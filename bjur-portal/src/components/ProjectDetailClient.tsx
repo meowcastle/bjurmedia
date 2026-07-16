@@ -65,6 +65,30 @@ export function ProjectDetailClient({
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
 
   const canDownload = role !== "VIEWER";
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadSelected() {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/download-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assetIds: [...selected] }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${project.title.replace(/[^a-z0-9]+/gi, "-")}-selected.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function toggleSelect(id: string) {
     setSelected((s) => {
@@ -164,6 +188,9 @@ export function ProjectDetailClient({
       .filter((g) => g.items.length);
   }, [filter, groupMode, assets, favorites, project.path]);
 
+  const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+
   const activeVideo = videoAssetId ? assets.find((a) => a.id === videoAssetId) ?? null : null;
   const activeVideoLocked = activeVideo ? activeVideo.licensable && !licensedIds.has(activeVideo.id) : false;
 
@@ -207,29 +234,48 @@ export function ProjectDetailClient({
             </span>
           </div>
         </div>
-        {canDownload && (
-          <a
-            href={`/api/projects/${project.id}/download-all`}
-            className="inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5"
-          >
-            ↓ Download all
-          </a>
-        )}
+        {canDownload &&
+          (selected.size > 0 ? (
+            <button
+              onClick={downloadSelected}
+              disabled={downloading}
+              className="cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5 disabled:opacity-60"
+            >
+              {downloading ? "Zipping…" : `↓ Download selected (${selected.size})`}
+            </button>
+          ) : (
+            <a
+              href={`/api/projects/${project.id}/download-all`}
+              className="inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5"
+            >
+              ↓ Download all
+            </a>
+          ))}
       </div>
 
       <div className="flex items-center justify-between gap-4 flex-wrap my-6">
-        <div className="inline-flex border border-line2">
-          {filters.map((f) => (
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="inline-flex border border-line2">
+            {filters.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                  filter === f.id ? "bg-accent text-bg" : "bg-transparent text-muted"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {canDownload && (
             <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-                filter === f.id ? "bg-accent text-bg" : "bg-transparent text-muted"
-              }`}
+              onClick={() => setSelected(allVisibleSelected ? new Set() : new Set(visibleIds))}
+              className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted hover:text-text px-1"
             >
-              {f.label}
+              {allVisibleSelected ? "Clear selection" : "Select all"}
             </button>
-          ))}
+          )}
         </div>
         <div className="inline-flex border border-line2">
           {(["format", "week"] as const).map((g) => (

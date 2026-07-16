@@ -6,15 +6,17 @@ import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id: projectId } = await params;
-  const session = await getSessionUser();
-  if (!session) return new Response(null, { status: 401 });
-
+async function buildZipResponse(
+  projectId: string,
+  session: NonNullable<Awaited<ReturnType<typeof getSessionUser>>>,
+  assetIds: string[] | null
+) {
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: {
-      assets: { where: { internal: false } },
+      assets: {
+        where: { internal: false, ...(assetIds ? { id: { in: assetIds } } : {}) },
+      },
       client: true,
     },
   });
@@ -86,4 +88,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       "Cache-Control": "no-store",
     },
   });
+}
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: projectId } = await params;
+  const session = await getSessionUser();
+  if (!session) return new Response(null, { status: 401 });
+  return buildZipResponse(projectId, session, null);
+}
+
+/** Zips only the selected assets — used by the gallery's checkbox multi-select. */
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: projectId } = await params;
+  const session = await getSessionUser();
+  if (!session) return new Response(null, { status: 401 });
+
+  const { assetIds } = await req.json().catch(() => ({ assetIds: null }));
+  if (!Array.isArray(assetIds) || assetIds.length === 0) {
+    return new Response(JSON.stringify({ error: "No assets selected." }), { status: 400 });
+  }
+
+  return buildZipResponse(projectId, session, assetIds);
 }
