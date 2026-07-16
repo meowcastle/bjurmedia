@@ -95,18 +95,35 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
   throw new Error(`Unrecognized export type: ${ext}`);
 }
 
-/** Resolve INBOX_ROOT/<clientUsername>/<inboxSlug>/... back to its Project row. */
+/**
+ * Resolve INBOX_ROOT/<clientUsername>/<anything>/... back to its Project row.
+ *
+ * Prefers an exact match on the second path segment against the project's
+ * generated inboxSlug. If that doesn't match — e.g. someone dropped in their own
+ * folder name instead of the generated slug — falls back to the client's only
+ * project, if they have exactly one. With two or more projects there's no safe
+ * way to guess which one a file belongs to (that's exactly the kind of mixup this
+ * app exists to prevent), so it's left unmatched rather than routed on a guess.
+ */
 export async function resolveProjectFromInboxPath(absPath: string) {
   const rel = path.relative(INBOX_ROOT, absPath);
   const [clientUsername, inboxSlug] = rel.split(path.sep);
   if (!clientUsername || !inboxSlug) return null;
 
-  const project = await db.project.findUnique({
+  const exact = await db.project.findUnique({
     where: { inboxSlug },
     include: { client: true },
   });
-  if (!project || project.client.username !== clientUsername) return null;
-  return project;
+  if (exact && exact.client.username === clientUsername) return exact;
+
+  const client = await db.client.findUnique({ where: { username: clientUsername } });
+  if (!client) return null;
+
+  const clientProjects = await db.project.findMany({
+    where: { clientId: client.id },
+    include: { client: true },
+  });
+  return clientProjects.length === 1 ? clientProjects[0] : null;
 }
 
 async function moveFile(src: string, dest: string) {
