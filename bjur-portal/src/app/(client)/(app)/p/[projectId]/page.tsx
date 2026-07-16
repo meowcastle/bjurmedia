@@ -54,6 +54,7 @@ export default async function ProjectDetailPage({
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
         weekOf: a.weekOf?.toISOString() ?? null,
+        thumbReady: a.thumbRelPath != null,
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
       initialLicensedAssetIds={licenses.map((l) => l.assetId)}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { gradientFor } from "@/lib/gradients";
 import { licenseTiers } from "@/lib/licensing";
 
@@ -15,6 +16,7 @@ export type TileAsset = {
   basePrice: number | null;
   createdAt: string;
   updatedAt: string;
+  thumbReady: boolean;
 };
 
 function fmtDuration(sec: number | null) {
@@ -60,6 +62,7 @@ export function AssetTile({
   const stamp = fmtStamp(asset.createdAt, asset.updatedAt);
   const badge = asset.kind === "VIDEO" ? fmtDuration(asset.durationSec) : asset.dims ?? "";
   const priceLabel = locked && asset.basePrice ? `from $${licenseTiers(asset.basePrice)[0].amount}` : "";
+  const [thumbFailed, setThumbFailed] = useState(false);
 
   const borderColor = selected ? "border-accent" : locked ? "border-accent/40" : "border-line";
 
@@ -70,6 +73,15 @@ export function AssetTile({
         className={`cursor-pointer relative overflow-hidden border hover:border-accent transition-colors ${borderColor}`}
         style={{ aspectRatio: aspectFor(asset), background: gradientFor(asset.id) }}
       >
+        {asset.thumbReady && !thumbFailed && (
+          // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
+          <img
+            src={`/api/assets/${asset.id}/thumb`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setThumbFailed(true)}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-transparent via-60% to-black/60" />
 
         {asset.licensable && (
