@@ -71,3 +71,20 @@ export async function addSeat(opts: {
 
   return { user, tempPassword };
 }
+
+/**
+ * Regenerates a client user's temp password — for a lost/never-delivered onboarding
+ * password, or any time staff need to hand out a fresh one. Forces a change on next
+ * login, same as a brand-new seat.
+ */
+export async function resetSeatPassword(userId: string) {
+  const tempPassword = genTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  const user = await db.user.update({
+    where: { id: userId },
+    data: { passwordHash, mustChangePassword: true },
+  });
+
+  return { user, tempPassword };
+}

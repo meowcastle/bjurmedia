@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
+import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
 
 type Seat = { id: string; name: string; email: string; role: string; lastLoginAt: string | null };
 type ClientRow = {
@@ -32,6 +33,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [seatDialogFor, setSeatDialogFor] = useState<ClientRow | null>(null);
+  const [resetDialogFor, setResetDialogFor] = useState<{ client: ClientRow; seat: Seat } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   function toggleExpand(id: string) {
@@ -147,6 +149,12 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                       <span className="text-[11px] text-dim w-16 text-right">
                         {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                       </span>
+                      <button
+                        onClick={() => setResetDialogFor({ client: c, seat: u })}
+                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                      >
+                        Reset password
+                      </button>
                     </div>
                   ))}
                   <button
@@ -174,6 +182,15 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           clientName={seatDialogFor.name}
           onClose={() => setSeatDialogFor(null)}
           onCreated={() => router.refresh()}
+        />
+      )}
+      {resetDialogFor && (
+        <ResetSeatPasswordDialog
+          clientId={resetDialogFor.client.id}
+          seatId={resetDialogFor.seat.id}
+          seatName={resetDialogFor.seat.name}
+          seatEmail={resetDialogFor.seat.email}
+          onClose={() => setResetDialogFor(null)}
         />
       )}
     </div>
