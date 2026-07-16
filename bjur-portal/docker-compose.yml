@@ -19,8 +19,9 @@ services:
       - SMTP_FROM=${SMTP_FROM}
     volumes:
       - ./data:/data
-      - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes
+      - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes media itself
       - /volume2/BJURMEDIA/_derived:/media/_derived
+      - /volume2/BJURMEDIA/_inbox:/media/_inbox # read-write: admin project creation mkdirs new inbox folders here
     ports:
       # host 3003 → container 3000 (3000–3002 are taken by other sites on the NAS)
       - "3003:3000"
