@@ -18,6 +18,18 @@ export default async function ProjectListPage() {
     },
   });
 
+  const covers = await db.asset.findMany({
+    where: {
+      projectId: { in: projects.map((p) => p.id) },
+      internal: false,
+      thumbRelPath: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    distinct: ["projectId"],
+    select: { id: true, projectId: true },
+  });
+  const coverByProject = new Map(covers.map((c) => [c.projectId, c.id]));
+
   return (
     <div className="px-10 py-12 max-w-[1400px] mx-auto">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
@@ -42,6 +54,7 @@ export default async function ProjectListPage() {
             expiresAt={p.expiresAt}
             photoCount={p.assets.filter((a) => a.kind === "PHOTO").length}
             videoCount={p.assets.filter((a) => a.kind === "VIDEO").length}
+            coverAssetId={coverByProject.get(p.id) ?? null}
           />
         ))}
       </div>

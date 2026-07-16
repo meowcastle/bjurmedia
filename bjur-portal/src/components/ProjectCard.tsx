@@ -12,6 +12,7 @@ export function ProjectCard({
   expiresAt,
   photoCount,
   videoCount,
+  coverAssetId,
 }: {
   id: string;
   title: string;
@@ -19,6 +20,7 @@ export function ProjectCard({
   expiresAt: Date | null;
   photoCount: number;
   videoCount: number;
+  coverAssetId: string | null;
 }) {
   const parts: string[] = [];
   if (videoCount) parts.push(`${videoCount} video${videoCount > 1 ? "s" : ""}`);
@@ -33,6 +35,14 @@ export function ProjectCard({
         className="aspect-[16/10] relative overflow-hidden"
         style={{ background: gradientFor(id) }}
       >
+        {coverAssetId && (
+          // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
+          <img
+            src={`/api/assets/${coverAssetId}/thumb`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-black/55" />
         {expiresAt && (
           <div className="absolute top-3 left-3 text-[10px] tracking-wide uppercase font-bold text-bg bg-accent px-2 py-1">
