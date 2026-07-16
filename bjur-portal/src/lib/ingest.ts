@@ -11,6 +11,26 @@ const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"]);
 const RAW_VIDEO_EXT = new Set([".braw", ".r3d", ".ari"]);
 const VIDEO_EXT = new Set([".mp4", ".mov", ".m4v", ...RAW_VIDEO_EXT]);
 
+const MONTH_ABBR: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * Parses studio date-folder names like "MARCH 9 2026" or "APRIL 13TH 2026" (any
+ * casing, ordinal suffix optional) into a Date. Returns null for anything that
+ * isn't shaped like one of these folder names — e.g. a plain filename or "WIPS".
+ */
+function parseDateFolder(name: string): Date | null {
+  const match = name.trim().match(/^([A-Za-z]{3,})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
+  if (!match) return null;
+  const month = MONTH_ABBR[match[1].slice(0, 3).toLowerCase()];
+  if (month === undefined) return null;
+  const day = parseInt(match[2], 10);
+  if (day < 1 || day > 31) return null;
+  return new Date(Date.UTC(parseInt(match[3], 10), month, day));
+}
+
 function humanSize(bytes: number) {
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
   return `${(bytes / 1_000_000).toFixed(1)} MB`;
@@ -167,6 +187,13 @@ export async function ingestFile(absPath: string) {
   const destAbsPath = path.join(MEDIA_ROOT, relPath);
   const sizeBytes = statSync(absPath).size;
 
+  // The date-named subfolder editors drop weekly batches into (e.g. "MARCH 9 2026")
+  // sits right after the client/project segments and is otherwise discarded once the
+  // file is moved — capture it here so the client gallery's week view has something
+  // to group on.
+  const inboxSegments = path.relative(INBOX_ROOT, absPath).split(path.sep);
+  const weekOf = inboxSegments[2] ? parseDateFolder(inboxSegments[2]) : null;
+
   await moveFile(absPath, destAbsPath);
 
   const isMaster = classification.format === "Master";
@@ -181,6 +208,7 @@ export async function ingestFile(absPath: string) {
       orientation: classification.orientation,
       name: filename,
       relPath,
+      weekOf,
       sizeBytes: BigInt(sizeBytes),
       dims: classification.dims,
       durationSec: classification.durationSec,
