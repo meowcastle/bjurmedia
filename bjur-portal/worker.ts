@@ -14,6 +14,19 @@ const SCHEDULER_POLL_MS = 60_000;
 
 mkdirSync(INBOX_ROOT, { recursive: true });
 
+// The proxy loop below only ever picks up PENDING assets. If the worker process gets
+// killed or restarted mid-encode (a deploy, a crash), whatever asset was GENERATING
+// at that moment is stranded forever with no thumbnail, no proxy, and no retry. Reset
+// any such orphans back to PENDING on startup — regenerating is always safe, it just
+// overwrites the same output files.
+async function recoverStrandedProxies() {
+  const { count } = await db.asset.updateMany({
+    where: { proxyStatus: "GENERATING" },
+    data: { proxyStatus: "PENDING" },
+  });
+  if (count) console.log(`[proxy] reset ${count} stranded GENERATING asset(s) back to PENDING`);
+}
+
 // Synology DSM mirrors every real file/folder shared over SMB with a hidden
 // "@eaDir" metadata directory, plus per-file "@SynoResource"/"@SynoEAStream"
 // pseudo-files for its own thumbnail/indexing layer. These aren't real media —
@@ -87,8 +100,12 @@ async function proxyLoopTick() {
 function startProxyLoop() {
   console.log(`[proxy] polling every ${POLL_MS}ms, concurrency ${CONCURRENCY}`);
   const tick = () => proxyLoopTick().catch((err) => console.error("[proxy] tick failed:", err));
-  tick();
-  setInterval(tick, POLL_MS);
+  recoverStrandedProxies()
+    .catch((err) => console.error("[proxy] failed to recover stranded assets:", err))
+    .finally(() => {
+      tick();
+      setInterval(tick, POLL_MS);
+    });
 }
 
 function startWeeklyDigestScheduler() {
