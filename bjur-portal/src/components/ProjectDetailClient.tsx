@@ -27,6 +27,14 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 }
 
+/** Monday (UTC midnight) of the calendar week containing `d`, as an ISO date string. */
+function mondayOfWeek(d: Date) {
+  const day = d.getUTCDay(); // 0 = Sunday ... 6 = Saturday
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffToMonday));
+  return monday.toISOString();
+}
+
 export function ProjectDetailClient({
   project,
   assets,
@@ -115,14 +123,23 @@ export function ProjectDetailClient({
         : [];
     }
     if (groupMode === "week") {
-      const weeks: string[] = [];
+      // Bucket by the Monday of the calendar week each asset's weekOf falls in, so
+      // files dated a day or two apart within the same studio week still cluster
+      // together, then sort newest week first with "Undated" pinned at the end.
+      const byWeek = new Map<string, Asset[]>();
       for (const a of assets) {
-        const w = a.weekOf ?? "Undated";
-        if (!weeks.includes(w)) weeks.push(w);
+        const key = a.weekOf ? mondayOfWeek(new Date(a.weekOf)) : "Undated";
+        const items = byWeek.get(key) ?? [];
+        items.push(a);
+        byWeek.set(key, items);
       }
-      return weeks
-        .map((w) => {
-          const items = assets.filter((a) => (a.weekOf ?? "Undated") === w);
+      return [...byWeek.entries()]
+        .sort(([a], [b]) => {
+          if (a === "Undated") return 1;
+          if (b === "Undated") return -1;
+          return b.localeCompare(a);
+        })
+        .map(([w, items]) => {
           const label = w === "Undated" ? w : `Week of ${fmtDate(w)}`;
           return {
             label,
@@ -131,8 +148,7 @@ export function ProjectDetailClient({
             cols: "repeat(auto-fill,minmax(190px,1fr))",
             items,
           };
-        })
-        .filter((g) => g.items.length);
+        });
     }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
       .map((d) => {
