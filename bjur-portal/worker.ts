@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { mkdirSync } from "fs";
+import path from "path";
 import chokidar from "chokidar";
 import { db } from "./src/lib/db";
 import { INBOX_ROOT } from "./src/lib/media";
@@ -13,11 +14,23 @@ const SCHEDULER_POLL_MS = 60_000;
 
 mkdirSync(INBOX_ROOT, { recursive: true });
 
+// Synology DSM mirrors every real file/folder shared over SMB with a hidden
+// "@eaDir" metadata directory, plus per-file "@SynoResource"/"@SynoEAStream"
+// pseudo-files for its own thumbnail/indexing layer. These aren't real media —
+// without filtering them out, a single bulk copy fires several add events per
+// real file and floods the ingest pipeline with paths that can never resolve
+// to a project.
+function isSynologyArtifact(watchedPath: string) {
+  const base = path.basename(watchedPath);
+  return base === "@eaDir" || base.includes("@Syno");
+}
+
 function startIngestWatcher() {
   const watcher = chokidar.watch(INBOX_ROOT, {
     ignoreInitial: false,
     awaitWriteFinish: { stabilityThreshold: 2500, pollInterval: 500 },
     depth: 4,
+    ignored: isSynologyArtifact,
   });
 
   // fsevents can fire duplicate "add" events for the same file (e.g. a create + a
@@ -25,18 +38,27 @@ function startIngestWatcher() {
   // and race on the same rename.
   const inFlight = new Set<string>();
 
-  watcher.on("add", async (filePath) => {
+  // SQLite has a single writer: chokidar fires "add" independently for every file it
+  // discovers, so a bulk folder copy (dozens of files at once) used to launch dozens
+  // of truly concurrent ingestFile() calls that piled up and timed out contending for
+  // the write lock. Chain them onto one queue so ingestion happens strictly one file
+  // at a time, no matter how many "add" events land in the same instant.
+  let queue: Promise<void> = Promise.resolve();
+
+  watcher.on("add", (filePath) => {
     if (inFlight.has(filePath)) return;
     inFlight.add(filePath);
-    try {
-      console.log(`[ingest] new file: ${filePath}`);
-      const asset = await ingestFile(filePath);
-      if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
-    } catch (err) {
-      console.error(`[ingest] failed for ${filePath}:`, err);
-    } finally {
-      inFlight.delete(filePath);
-    }
+    queue = queue.then(async () => {
+      try {
+        console.log(`[ingest] new file: ${filePath}`);
+        const asset = await ingestFile(filePath);
+        if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
+      } catch (err) {
+        console.error(`[ingest] failed for ${filePath}:`, err);
+      } finally {
+        inFlight.delete(filePath);
+      }
+    });
   });
 
   watcher.on("error", (err) => console.error("[ingest] watcher error:", err));
