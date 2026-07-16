@@ -56,7 +56,7 @@ export function ProjectDetailClient({
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
 }) {
   const [filter, setFilter] = useState<string>("ALL");
-  const [groupMode, setGroupMode] = useState<"format" | "week">("format");
+  const [groupMode, setGroupMode] = useState<"format" | "week">("week");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites));
   const [licensedIds, setLicensedIds] = useState<Set<string>>(new Set(initialLicensedAssetIds));

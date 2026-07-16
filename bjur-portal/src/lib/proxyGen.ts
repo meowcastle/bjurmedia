@@ -110,6 +110,12 @@ export async function generateProxy(asset: AssetRow) {
     const thumbRelPath = `${asset.id}/thumb.jpg`;
     await generateThumb(srcPath, path.join(DERIVED_ROOT, thumbRelPath), asset.kind === "VIDEO", asset.durationSec);
 
+    // Persist the thumbnail as soon as it's ready rather than waiting on the much
+    // slower full proxy encode below — with a large backlog processed one file at a
+    // time, this lets the client gallery show real posters within seconds instead of
+    // blank placeholders for everything still waiting on its turn to transcode.
+    await db.asset.update({ where: { id: asset.id }, data: { thumbRelPath } });
+
     let proxyRelPath: string | null = null;
     let proxyRes: string | null = null;
 
