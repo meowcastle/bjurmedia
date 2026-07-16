@@ -1,0 +1,208 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL") // file:/data/bjur.db
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Orgs & users ───────────────────────────────────────────
+model Client {
+  id        String       @id @default(cuid())
+  name      String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username  String       @unique // login handle for the org
+  type      ClientType   @default(RETAINER)
+  status    ClientStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  users     User[]
+  projects  Project[]
+  licenses  License[]
+  channel   ClientChannel?
+}
+
+enum ClientType {
+  RETAINER
+  ONEOFF
+}
+
+enum ClientStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clientId     String? // null => staff/admin user
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name         String
+  email        String   @unique
+  passwordHash String // argon2id
+  role         Role     @default(VIEWER)
+  isAdmin      Boolean  @default(false) // staff portal access
+  notifyDelivery Boolean @default(true) // email me when new work is delivered
+  notifyExpiry   Boolean @default(true) // remind me before a gallery expires
+  mustChangePassword Boolean @default(false) // set on temp-password issuance (invite, seat add)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  sessions     Session[]
+  favorites    Favorite[]
+  licenses     License[]
+
+  @@index([clientId])
+}
+
+enum Role {
+  OWNER
+  DOWNLOADER
+  VIEWER
+}
+
+// ── Projects (galleries) ───────────────────────────────────
+model Project {
+  id          String    @id @default(cuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title       String
+  path        String // relative to MEDIA_ROOT: CLIENT/PROJECT/DATE
+  inboxSlug   String    @unique // folder name under INBOX_ROOT/<client.username>/<inboxSlug> — export destination for finals
+  status      String    @default("LIVE")
+  deliveredAt DateTime?
+  expiresAt   DateTime? // null => permanent (retainer)
+  createdAt   DateTime  @default(now())
+  assets      Asset[]
+
+  @@index([clientId])
+}
+
+// ── Assets (registered files) ──────────────────────────────
+model Asset {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind        AssetKind // PHOTO | VIDEO
+  format      String // Still | Reel | Film | Master
+  orientation String // landscape | portrait
+  name        String // display filename
+  relPath     String // path under MEDIA_ROOT (source of truth on disk)
+  sizeBytes   BigInt
+  dims        String? // "6048×4032"
+  durationSec Int?
+  masterCodec String? // "ProRes 422 HQ · 12.4 GB", "BRAW · 47.2 GB"
+
+  // proxy / thumbnail pipeline
+  proxyStatus  ProxyStatus @default(PENDING)
+  proxyRelPath String? // generated H.264 proxy
+  thumbRelPath String? // generated poster/thumbnail
+  proxyRes     String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
+
+  // visibility & licensing
+  internal   Boolean @default(false) // studio working master — hidden from clients
+  licensable Boolean @default(false) // BRAW master offered to the client (raw:true)
+  basePrice  Int? // in whole dollars; tiers derive from this
+
+  // grouping (57.NYC IG workflow)
+  weekOf DateTime?
+
+  createdAt DateTime   @default(now()) // "Added"
+  updatedAt DateTime   @updatedAt // "Updated"
+  favorites Favorite[]
+  licenses  License[]
+
+  @@index([projectId])
+}
+
+enum AssetKind {
+  PHOTO
+  VIDEO
+}
+
+enum ProxyStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
+// ── Licensing (BRAW) ───────────────────────────────────────
+model License {
+  id          String      @id @default(cuid())
+  assetId     String
+  asset       Asset       @relation(fields: [assetId], references: [id])
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  tier        LicenseTier
+  amount      Int // dollars charged
+  scope       String // frozen copy of the scope text
+  purchasedAt DateTime    @default(now())
+
+  @@index([assetId])
+}
+
+enum LicenseTier {
+  SOCIAL
+  COMMERCIAL
+  BUYOUT
+}
+
+// ── Favorites, sessions, activity ──────────────────────────
+model Favorite {
+  userId  String
+  assetId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset   Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, assetId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique // hash of the session cookie value
+  device     String // "Chrome · macOS"
+  ip         String?
+  location   String? // resolved from IP
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  actor     String // "SSH", "You", "Worker", client name
+  action    String // human-readable line
+  meta      String? // JSON blob
+  createdAt DateTime @default(now())
+}
+
+// Singleton row the worker process touches every poll tick, so the admin
+// dashboard's "worker online" status reflects a real liveness check.
+model WorkerHeartbeat {
+  id       Int      @id @default(1)
+  lastSeen DateTime @default(now())
+}
+
+// ── Integrations ───────────────────────────────────────────
+model SlackConfig {
+  id             Int     @id @default(1) // singleton row
+  connected      Boolean @default(false)
+  workspace      String?
+  webhookUrl     String?
+  defaultChannel String  @default("#client-deliveries")
+  weeklyDay      String  @default("Monday")
+  weeklyTime     String  @default("09:00")
+  autoWeekly     Boolean @default(true)
+  autoUpload     Boolean @default(true)
+  autoDownload   Boolean @default(false)
+  autoLicense    Boolean @default(true)
+}
+
+model ClientChannel {
+  clientId String @id
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  channel  String // "#ssh-deliveries" (empty => use default)
+}

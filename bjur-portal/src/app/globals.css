@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0b;
+  --s1: #141416;
+  --s2: #1c1c1f;
+  --s3: #26262b;
+  --line: rgba(255, 255, 255, 0.1);
+  --line2: rgba(255, 255, 255, 0.2);
+  --text: #f4f3f2;
+  --muted: rgba(244, 243, 242, 0.56);
+  --dim: rgba(244, 243, 242, 0.34);
+  --accent: #ec3013;
+  --accentb: #ff5a3c;
+  --success: #2ec36b;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-accent: var(--accent);
+  --color-accentb: var(--accentb);
+  --color-success: var(--success);
+  --font-sans: var(--font-archivo);
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-none: 0px;
+}
+
+* {
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+@keyframes bjfade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bjrise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bjspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bjpulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.bjfade {
+  animation: bjfade 0.4s ease both;
+}
+
+.bjrise {
+  animation: bjrise 0.4s ease both;
+}
+
+.bjspin {
+  animation: bjspin 0.8s linear infinite;
+}
+
+.bjpulse {
+  animation: bjpulse 1.6s ease-in-out infinite;
+}

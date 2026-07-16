@@ -1,0 +1,4 @@
+.DS_Store
+
+# Claude Code local project state (personal machine/session config, not project source)
+.claude/

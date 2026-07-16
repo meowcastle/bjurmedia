@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root{--bg:#0a0a0b;--s1:#141416;--s2:#1c1c1f;--s3:#26262b;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.20);--text:#f4f3f2;--muted:rgba(244,243,242,.56);--dim:rgba(244,243,242,.34);--accent:#ec3013;--accentb:#ff5a3c}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Archivo",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--accentb)}
+::selection{background:rgba(236,48,19,.32)}
+button{font-family:inherit}
+input{font-family:inherit}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}::-webkit-scrollbar-track{background:transparent}
+@keyframes bjspin{to{transform:rotate(360deg)}}
+@keyframes bjfade{from{opacity:0}to{opacity:1}}
+@keyframes bjrise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes bjpulse{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;position:relative;overflow-x:hidden">
+
+<!-- ══ LOGIN ══ -->
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;display:grid;grid-template-columns:1.15fr .85fr">
+  <!-- left: cinematic panel -->
+  <div style="position:relative;display:flex;flex-direction:column;justify-content:center;padding:0 6vw;background:{{ loginPanelBg }};border-right:2px solid var(--line2)">
+    <div style="position:absolute;top:34px;left:6vw;display:flex;align-items:center;gap:11px">
+      <div style="width:15px;height:15px;background:var(--accent)"></div>
+      <span style="font-weight:900;letter-spacing:.02em;font-size:16px">BJUR</span>
+      <span style="font-weight:600;letter-spacing:.34em;font-size:13px;color:var(--muted)">MEDIA</span>
+    </div>
+    <div style="max-width:520px;animation:bjrise .5s ease both">
+      <div style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:22px">{{ loginKicker }}</div>
+      <h1 style="font-size:clamp(42px,5.6vw,76px);line-height:.94;letter-spacing:-.03em;font-weight:900;margin:0 0 20px">{{ loginHeadA }}<br>{{ loginHeadB }}</h1>
+      <p style="font-size:16px;line-height:1.6;color:var(--muted);max-width:420px;margin:0">{{ loginBlurb }}</p>
+    </div>
+    <div style="position:absolute;bottom:30px;left:6vw;font-size:11px;color:var(--dim);letter-spacing:.04em">Self-hosted · Synology NAS · © Bjur Media 2026</div>
+  </div>
+  <!-- right: sign-in form -->
+  <div style="display:flex;flex-direction:column;justify-content:center;padding:0 5vw;background:var(--s1)">
+    <div style="width:100%;max-width:360px;margin:0 auto;animation:bjfade .5s ease both">
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-family:ui-monospace,monospace;color:var(--dim);background:var(--bg);border:1px solid var(--line);padding:8px 11px;margin-bottom:22px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#2ec36b;flex:none"></span>
+        <span style="color:var(--muted)">https://</span>{{ loginAddress }}
+      </div>
+      <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px">{{ loginEyebrow }}</div>
+      <h2 style="font-size:28px;letter-spacing:-.02em;font-weight:900;margin:0 0 26px">{{ loginFormTitle }}</h2>
+
+      <form onSubmit="{{ submitLogin }}">
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Username</label>
+          <input value="{{ loginUser }}" onInput="{{ onLoginUser }}" autocomplete="username" placeholder="{{ loginUserPh }}" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:12px 13px;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--accent)"/>
+        </div>
+        <div style="margin-bottom:18px">
+          <label style="display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Password</label>
+          <input value="{{ loginPass }}" onInput="{{ onLoginPass }}" type="password" autocomplete="current-password" placeholder="••••••••" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:12px 13px;outline:none" style-focus="border-color:var(--accent)"/>
+        </div>
+        <sc-if value="{{ loginError }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accentb);margin-bottom:16px;font-weight:600">
+            <span style="width:14px;height:14px;border:1.5px solid var(--accentb);border-radius:50%;display:grid;place-items:center;font-size:9px">!</span>{{ loginError }}
+          </div>
+        </sc-if>
+        <button type="submit" onClick="{{ submitLogin }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;font-weight:700;font-size:14px;color:#0a0a0b;background:var(--accent);border:0;padding:14px 0" style-hover="background:var(--accentb)">Sign in <span style="font-size:15px;line-height:1">→</span></button>
+      </form>
+
+      <div style="margin-top:22px;display:flex;align-items:center;gap:9px;font-size:11px;color:var(--dim)">
+        <span style="width:6px;height:6px;border-radius:50%;background:#2ec36b"></span>
+        Encrypted session · rate-limited · argon2 hashed
+      </div>
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11px;color:var(--dim);line-height:1.7">
+        Demo — <a onClick="{{ demoFill }}" style="cursor:pointer;color:var(--muted);font-weight:600" style-hover="color:var(--accent)">{{ demoLabel }}</a> · any password
+        <br><a onClick="{{ switchPortal }}" style="cursor:pointer;color:var(--dim);font-weight:600" style-hover="color:var(--accent)">{{ switchLabel }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ CLIENT ══ -->
+<sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}">
+<div>
+  <!-- header -->
+  <div style="display:flex;align-items:center;gap:18px;padding:16px 40px;border-bottom:2px solid var(--line2);position:sticky;top:0;background:rgba(10,10,11,.86);backdrop-filter:blur(14px);z-index:20">
+    <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onClick="{{ backToProjects }}">
+      <div style="width:14px;height:14px;background:var(--accent)"></div>
+      <span style="font-weight:900;font-size:15px">BJUR</span>
+      <span style="font-weight:600;letter-spacing:.3em;font-size:11px;color:var(--muted)">MEDIA</span>
+    </div>
+    <div style="width:1px;height:20px;background:var(--line2)"></div>
+    <span style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600">Client Portal</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+      <div onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:12px;cursor:pointer" style-hover="opacity:.8">
+        <span style="font-size:13px;color:var(--muted)">{{ clientName }}</span>
+        <div style="width:30px;height:30px;background:var(--s3);display:grid;place-items:center;font-size:12px;font-weight:700">{{ clientInitials }}</div>
+      </div>
+      <button onClick="{{ signOut }}" style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:0;padding:6px" style-hover="color:var(--text)">Sign out</button>
+    </div>
+  </div>
+
+  <!-- project list -->
+  <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+  <div style="padding:52px 40px 80px;max-width:1400px;margin:0 auto">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px">Your Deliveries</div>
+        <h1 style="font-size:44px;letter-spacing:-.025em;font-weight:900;margin:0">Projects</h1>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">{{ projectCountLabel }}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:24px">
+      <sc-for list="{{ projectCards }}" as="p" hint-placeholder-count="3">
+        <div onClick="{{ p.onOpen }}" style="cursor:pointer;background:var(--s1);border:1px solid var(--line);animation:bjfade .4s ease both" style-hover="border-color:var(--line2)">
+          <div style="aspect-ratio:16/10;background:{{ p.bg }};position:relative;overflow:hidden">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))"></div>
+            <sc-if value="{{ p.isExpiring }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:12px;left:12px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#0a0a0b;background:var(--accent);padding:4px 8px">Expires {{ p.expires }}</div>
+            </sc-if>
+            <div style="position:absolute;bottom:12px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.82);font-weight:600">{{ p.assetLabel }}</span>
+              <span style="font-size:16px;line-height:1;color:#fff">→</span>
+            </div>
+          </div>
+          <div style="padding:18px 18px 20px">
+            <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">{{ p.status }}</div>
+            <div style="font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.15;margin-bottom:10px">{{ p.title }}</div>
+            <div style="font-size:12px;color:var(--dim)">Delivered {{ p.delivered }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- project detail -->
+  <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:32px 40px 120px;max-width:1500px;margin:0 auto;animation:bjfade .35s ease both">
+    <button onClick="{{ backToProjects }}" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:0;padding:0;margin-bottom:26px" style-hover="color:var(--text)">← All projects</button>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;border-bottom:2px solid var(--line2);padding-bottom:24px;margin-bottom:8px">
+      <div>
+        <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px">{{ curClientName }}</div>
+        <h1 style="font-size:40px;letter-spacing:-.025em;font-weight:900;margin:0 0 14px">{{ curTitle }}</h1>
+        <div style="display:flex;align-items:center;gap:18px;font-size:13px;color:var(--muted);flex-wrap:wrap">
+          <span>{{ curMetaAssets }}</span>
+          <span style="width:4px;height:4px;border-radius:50%;background:var(--dim)"></span>
+          <span>Delivered {{ curDelivered }}</span>
+          <sc-if value="{{ curHasExpiry }}" hint-placeholder-val="{{ false }}">
+            <span style="width:4px;height:4px;border-radius:50%;background:var(--dim)"></span>
+            <span style="color:var(--accentb);font-weight:600">Available until {{ curExpires }}</span>
+          </sc-if>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:8px;font-size:11px;font-family:ui-monospace,monospace;color:var(--dim);flex-wrap:wrap">
+          <span style="color:var(--muted)">MEDIA_ROOT</span><span>/</span><span style="color:var(--text)">{{ curPath }}</span>
+          <span style="margin-left:6px;padding:2px 7px;border:1px solid var(--line);color:var(--muted);letter-spacing:.08em">PROJECT · DATE · FORMAT</span>
+        </div>
+      </div>
+      <button onClick="{{ downloadAll }}" style="display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:13px 20px" style-hover="background:var(--accentb)">↓ Download all</button>
+    </div>
+
+    <!-- filter row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:24px 0 22px;flex-wrap:wrap">
+      <div style="display:inline-flex;border:1px solid var(--line2)">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+          <button onClick="{{ f.onClick }}" style="cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:9px 16px;border:0;border-left:1px solid var(--line2);background:{{ f.bg }};color:{{ f.color }}">{{ f.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:inline-flex;border:1px solid var(--line2)">
+        <sc-for list="{{ groupToggle }}" as="g" hint-placeholder-count="2">
+          <button onClick="{{ g.onClick }}" style="cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border:0;border-left:1px solid var(--line2);background:{{ g.bg }};color:{{ g.color }}">{{ g.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- format-grouped folders -->
+    <sc-for list="{{ groups }}" as="grp" hint-placeholder-count="2">
+      <div style="margin-bottom:38px">
+        <div style="display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:18px">
+          <span style="font-size:15px;font-weight:800;letter-spacing:.01em">{{ grp.label }}</span>
+          <span style="font-size:11px;color:var(--muted)">{{ grp.count }}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--dim);font-family:ui-monospace,monospace">{{ grp.folder }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:{{ grp.cols }};gap:16px;align-items:start">
+          <sc-for list="{{ grp.items }}" as="a" hint-placeholder-count="4">
+            <div style="animation:bjfade .3s ease both">
+              <div onClick="{{ a.onClick }}" style="cursor:pointer;aspect-ratio:{{ a.aspect }};background:{{ a.bg }};position:relative;overflow:hidden;border:1px solid {{ a.borderColor }}" style-hover="border-color:var(--accent)">
+                <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12) 0%,transparent 30%,transparent 62%,rgba(0,0,0,.6))"></div>
+                <sc-if value="{{ a.raw }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2">
+                    <div style="position:absolute;top:50%;left:50%;width:260%;transform:translate(-50%,-50%) rotate(-24deg);display:flex;flex-direction:column;gap:16px">
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+                      <div style="font-size:12px;font-weight:800;letter-spacing:.32em;color:rgba(255,255,255,.13);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+                    </div>
+                  </div>
+                </sc-if>
+                <div onClick="{{ a.onToggle }}" style="position:absolute;top:10px;left:10px;width:22px;height:22px;border:1.5px solid {{ a.checkBorder }};background:{{ a.checkBg }};display:grid;place-items:center;z-index:4;cursor:pointer">
+                  <sc-if value="{{ a.selected }}" hint-placeholder-val="{{ false }}"><span style="color:#0a0a0b;font-size:13px;font-weight:800;line-height:1">✓</span></sc-if>
+                </div>
+                <div onClick="{{ a.onFav }}" title="Add to favorites" style="position:absolute;top:10px;right:10px;width:26px;height:26px;display:grid;place-items:center;z-index:4;cursor:pointer;background:rgba(0,0,0,.4);color:{{ a.heartColor }};font-size:14px;line-height:1" style-hover="background:rgba(0,0,0,.6)">♥</div>
+                <sc-if value="{{ a.isVideo }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;display:grid;place-items:center;z-index:3">
+                    <div style="width:52px;height:52px;border:1.5px solid rgba(255,255,255,.85);border-radius:50%;display:grid;place-items:center;backdrop-filter:blur(2px)">
+                      <span style="color:#fff;font-size:15px;margin-left:3px">▶</span></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ a.locked }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:0;right:0;bottom:0;z-index:5;padding:11px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.85));display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <span style="font-size:11px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔒 {{ a.name }}</span>
+                    <span style="font-size:11px;font-weight:800;color:var(--accentb);white-space:nowrap">{{ a.priceLabel }}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ a.showCaption }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;bottom:11px;left:12px;right:12px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;z-index:3">
+                    <span style="font-size:11px;color:rgba(255,255,255,.9);font-weight:600;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+                    <span style="font-size:10px;color:rgba(255,255,255,.62);white-space:nowrap">{{ a.badge }}</span>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ a.stamp }}" hint-placeholder-val="{{ false }}"><div style="padding-top:7px;font-size:10.5px;color:{{ a.stampColor }};letter-spacing:.02em">{{ a.stamp }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{ showFavEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid var(--line);padding:64px 24px;text-align:center;margin-top:2px">
+        <div style="font-size:26px;color:var(--dim);margin-bottom:12px">♥</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">No favorites yet</div>
+        <div style="font-size:13px;color:var(--muted)">Tap the heart on any still to add it to this collection.</div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- account settings -->
+  <sc-if value="{{ showSettings }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:32px 40px 120px;max-width:820px;margin:0 auto;animation:bjfade .35s ease both">
+    <button onClick="{{ backToProjects }}" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:0;padding:0;margin-bottom:24px" style-hover="color:var(--text)">← All projects</button>
+    <div style="border-bottom:2px solid var(--line2);padding-bottom:22px;margin-bottom:30px">
+      <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px">{{ settingsCompany }}</div>
+      <h1 style="font-size:38px;letter-spacing:-.025em;font-weight:900;margin:0">Account settings</h1>
+    </div>
+
+    <div style="border:1px solid var(--line);background:var(--s1);padding:24px;margin-bottom:20px">
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:18px">Profile</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Display name</label>
+          <input value="{{ setName }}" onInput="{{ onSetName }}" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/></div>
+        <div><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Email</label>
+          <input value="{{ setEmail }}" onInput="{{ onSetEmail }}" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/></div>
+      </div>
+      <button onClick="{{ saveProfile }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">Save profile</button>
+    </div>
+
+    <div style="border:1px solid var(--line);background:var(--s1);padding:24px;margin-bottom:20px">
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:18px">Security</div>
+      <div style="display:flex;flex-direction:column;gap:14px;max-width:360px;margin-bottom:16px">
+        <div><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Current password</label>
+          <input value="{{ pwCur }}" onInput="{{ onPwCur }}" type="password" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/></div>
+        <div><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">New password</label>
+          <input value="{{ pwNext }}" onInput="{{ onPwNext }}" type="password" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/></div>
+        <div><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">Confirm new password</label>
+          <input value="{{ pwConf }}" onInput="{{ onPwConf }}" type="password" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/></div>
+      </div>
+      <button onClick="{{ savePassword }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">Update password</button>
+      <div style="margin-top:12px;font-size:11px;color:var(--dim)">Argon2 hashed · updating your password signs out all other sessions.</div>
+    </div>
+
+    <div style="border:1px solid var(--line);background:var(--s1);padding:24px;margin-bottom:20px">
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px">Notifications</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)">
+        <span style="font-size:14px">Email me when new work is delivered</span>
+        <div onClick="{{ toggleNotifyDelivery }}" style="width:40px;height:22px;background:{{ notifyDeliveryBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ notifyDeliveryDot }}"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0">
+        <span style="font-size:14px">Remind me before a gallery expires</span>
+        <div onClick="{{ toggleNotifyExpiry }}" style="width:40px;height:22px;background:{{ notifyExpiryBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ notifyExpiryDot }}"></div></div>
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--line);background:var(--s1);padding:24px">
+      <div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px">Active sessions</div>
+      <sc-for list="{{ sessionRows }}" as="x" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)">
+          <div><div style="font-size:14px;font-weight:600">{{ x.device }}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">{{ x.where }} · <span style="color:{{ x.whenColor }}">{{ x.when }}</span></div></div>
+          <sc-if value="{{ x.current }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2ec36b">This device</span></sc-if>
+          <sc-if value="{{ x.showRevoke }}" hint-placeholder-val="{{ true }}"><button onClick="{{ x.onRevoke }}" style="cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:6px 12px" style-hover="color:var(--accentb);border-color:var(--accentb)">Revoke</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ══ ADMIN ══ -->
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div>
+  <div style="display:flex;align-items:center;gap:18px;padding:16px 40px;border-bottom:2px solid var(--line2);position:sticky;top:0;background:rgba(10,10,11,.9);backdrop-filter:blur(14px);z-index:20">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:14px;height:14px;background:var(--accent)"></div>
+      <span style="font-weight:900;font-size:15px">BJUR</span>
+      <span style="font-weight:600;letter-spacing:.3em;font-size:11px;color:var(--muted)">MEDIA</span>
+    </div>
+    <div style="width:1px;height:20px;background:var(--line2)"></div>
+    <span style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700">Admin</span>
+    <div style="display:flex;gap:2px;margin-left:26px">
+      <sc-for list="{{ adminTabs }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.onClick }}" style="cursor:pointer;font-size:13px;font-weight:600;padding:8px 15px;border:0;background:none;color:{{ t.color }};border-bottom:2px solid {{ t.underline }}" style-hover="color:var(--text)">{{ t.label }}</button>
+      </sc-for>
+    </div>
+    <div style="margin-left:auto;position:relative;width:300px">
+      <div style="display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line2);padding:8px 12px" style-focus-within="border-color:var(--accent)">
+        <span style="color:var(--dim);font-size:14px">⌕</span>
+        <input value="{{ searchQuery }}" onInput="{{ onSearch }}" placeholder="Search clients, projects, files…" style="flex:1;background:none;border:0;color:var(--text);font-size:13px;outline:none;min-width:0"/>
+        <sc-if value="{{ searchOpen }}" hint-placeholder-val="{{ false }}"><span onClick="{{ clearSearch }}" style="cursor:pointer;color:var(--dim);font-size:12px">✕</span></sc-if>
+      </div>
+      <sc-if value="{{ searchOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:calc(100% + 6px);right:0;left:0;background:var(--s2);border:1px solid var(--line2);box-shadow:0 18px 50px rgba(0,0,0,.6);z-index:40;max-height:62vh;overflow-y:auto">
+          <sc-for list="{{ searchGroups }}" as="g" hint-placeholder-count="2">
+            <div style="padding:11px 14px 5px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">{{ g.label }}</div>
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+              <div onClick="{{ it.onClick }}" style="cursor:pointer;padding:9px 14px;border-top:1px solid var(--line)" style-hover="background:rgba(255,255,255,.04)">
+                <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.title }}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ it.sub }}</div>
+              </div>
+            </sc-for>
+          </sc-for>
+          <sc-if value="{{ searchEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:22px 14px;font-size:13px;color:var(--muted);text-align:center">No matches for “{{ searchQuery }}”</div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+    <button onClick="{{ signOut }}" style="margin-left:16px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:0;padding:6px" style-hover="color:var(--text)">Sign out</button>
+  </div>
+
+  <div style="padding:40px;max-width:1400px;margin:0 auto">
+
+    <!-- Home / Dashboard -->
+    <sc-if value="{{ tabHome }}" hint-placeholder-val="{{ true }}">
+    <div style="animation:bjfade .3s ease both">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px">
+        <div>
+          <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Tuesday · Jul 15, 2026</div>
+          <h1 style="font-size:36px;letter-spacing:-.025em;margin:0;font-weight:900">Dashboard</h1>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onClick="{{ openClientDialog }}" style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text);background:transparent;border:1px solid var(--line2);padding:11px 16px" style-hover="border-color:var(--text)">+ Client</button>
+          <button onClick="{{ openProjectDialog }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 18px" style-hover="background:var(--accentb)">+ New project</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+        <sc-for list="{{ dashStats }}" as="d" hint-placeholder-count="4">
+          <div style="background:var(--s1);border:1px solid var(--line);padding:22px">
+            <div style="font-size:34px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ d.value }}</div>
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:6px">{{ d.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--s1);border:1px solid var(--line);padding:16px 22px;margin-bottom:26px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#2ec36b"></span>
+          <span style="font-size:13px;color:var(--muted)">ffmpeg worker online · 1 process</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;color:var(--muted)">Proxies in queue</span>
+          <span style="font-size:18px;font-weight:900;color:{{ dashQueueColor }};font-variant-numeric:tabular-nums">{{ dashQueue }}</span>
+          <button onClick="{{ goImport }}" style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:7px 12px;margin-left:6px" style-hover="color:var(--text);border-color:var(--text)">Import library →</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start;margin-bottom:26px">
+        <div style="border:1px solid var(--line)">
+          <div style="padding:15px 20px;border-bottom:2px solid var(--line2);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700">Recent activity</div>
+          <sc-for list="{{ activity }}" as="a" hint-placeholder-count="4">
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ a.dot }};margin-top:6px;flex:none"></span>
+              <div style="flex:1;min-width:0"><span style="font-size:13px"><span style="font-weight:700">{{ a.who }}</span> {{ a.action }}</span></div>
+              <span style="font-size:11px;color:var(--dim);white-space:nowrap">{{ a.when }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border:1px solid var(--line)">
+          <div style="padding:15px 20px;border-bottom:2px solid var(--line2);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700">Expiring soon</div>
+          <sc-for list="{{ expiring }}" as="e" hint-placeholder-count="3">
+            <div style="padding:14px 20px;border-bottom:1px solid var(--line)">
+              <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.title }}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px">{{ e.client }} · <span style="color:var(--accentb)">{{ e.expires }}</span></div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ hasExpiring }}" hint-placeholder-val="{{ true }}"></sc-if>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:2.2fr 1.4fr 1fr 1.1fr;gap:16px;padding:14px 20px;border-bottom:2px solid var(--line2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">
+          <span>Recent delivery</span><span>Client</span><span>Files</span><span style="text-align:right">Delivered</span>
+        </div>
+        <sc-for list="{{ recentDeliveries }}" as="r" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:2.2fr 1.4fr 1fr 1.1fr;gap:16px;padding:15px 20px;border-bottom:1px solid var(--line);align-items:center">
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:7px;height:7px;border-radius:50%;background:{{ r.statusColor }};flex:none"></span><span style="font-size:14px;font-weight:600">{{ r.title }}</span></div>
+            <span style="font-size:13px;color:var(--muted)">{{ r.client }}</span>
+            <span style="font-size:13px;color:var(--muted)">{{ r.count }}</span>
+            <span style="font-size:13px;color:var(--muted);text-align:right">{{ r.delivered }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Clients -->
+    <sc-if value="{{ tabClients }}" hint-placeholder-val="{{ true }}">
+    <div style="animation:bjfade .3s ease both">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px">
+        <div><div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Accounts</div>
+        <h1 style="font-size:34px;letter-spacing:-.02em;margin:0;font-weight:900">Clients</h1></div>
+        <button onClick="{{ openClientDialog }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:12px 18px" style-hover="background:var(--accentb)">+ New client</button>
+      </div>
+      <div style="border:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:1.9fr .9fr .6fr .9fr 1fr;gap:16px;padding:14px 20px;border-bottom:2px solid var(--line2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">
+          <span>Client</span><span>Type</span><span>Projects</span><span>Users</span><span style="text-align:right">Status</span>
+        </div>
+        <sc-for list="{{ clientRows }}" as="c" hint-placeholder-count="3">
+          <div style="border-bottom:1px solid var(--line)">
+            <div style="display:grid;grid-template-columns:1.9fr .9fr .6fr .9fr 1fr;gap:16px;padding:15px 20px;align-items:center;background:{{ c.rowBg }}">
+              <div style="display:flex;align-items:center;gap:12px;min-width:0">
+                <div style="width:30px;height:30px;background:var(--s3);display:grid;place-items:center;font-size:11px;font-weight:700;color:{{ c.initColor }};flex:none">{{ c.initials }}</div>
+                <div style="min-width:0"><div style="font-weight:600;font-size:14px;color:{{ c.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+                <div style="font-size:11px;color:var(--dim);font-family:ui-monospace,monospace">@{{ c.username }}</div></div>
+              </div>
+              <span><span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:{{ c.typeColor }};border:1px solid {{ c.typeBorder }};padding:3px 8px">{{ c.typeLabel }}</span></span>
+              <span style="font-size:13px;color:var(--muted)">{{ c.projects }}</span>
+              <button onClick="{{ c.onExpand }}" style="cursor:pointer;text-align:left;font-size:13px;color:var(--muted);background:none;border:0;padding:0;display:inline-flex;align-items:center;gap:6px" style-hover="color:var(--text)"><span style="font-size:11px">{{ c.caret }}</span>{{ c.userCount }}</button>
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px">
+                <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:{{ c.statusColor }}">{{ c.statusLabel }}</span>
+                <button onClick="{{ c.onToggle }}" style="cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:5px 10px" style-hover="color:var(--text);border-color:var(--text)">{{ c.toggleLabel }}</button>
+              </div>
+            </div>
+            <sc-if value="{{ c.expanded }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:6px 20px 18px;background:rgba(255,255,255,.02)">
+                <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:700;padding:10px 0 8px">Client logins</div>
+                <sc-for list="{{ c.seats }}" as="u" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--line)">
+                    <div style="flex:1;min-width:0"><span style="font-size:13px;font-weight:600">{{ u.name }}</span> <span style="font-size:12px;color:var(--dim);font-family:ui-monospace,monospace">{{ u.email }}</span></div>
+                    <span style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:{{ u.roleColor }}">{{ u.role }}</span>
+                    <span style="font-size:11px;color:var(--dim);width:64px;text-align:right">{{ u.lastLogin }}</span>
+                  </div>
+                </sc-for>
+                <button onClick="{{ c.onAddUser }}" style="cursor:pointer;margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px dashed var(--line2);padding:8px 14px" style-hover="color:var(--text);border-color:var(--text)">+ Add user seat</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Projects -->
+    <sc-if value="{{ tabProjects }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:bjfade .3s ease both">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px">
+        <div><div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Galleries</div>
+        <h1 style="font-size:34px;letter-spacing:-.02em;margin:0;font-weight:900">Projects</h1></div>
+        <button onClick="{{ openProjectDialog }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:12px 18px" style-hover="background:var(--accentb)">+ New project</button>
+      </div>
+      <div style="border:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:2.2fr 1.5fr .9fr 1fr 1.1fr;gap:16px;padding:14px 20px;border-bottom:2px solid var(--line2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">
+          <span>Project</span><span>Client</span><span>Assets</span><span>Status</span><span style="text-align:right">Expires</span>
+        </div>
+        <sc-for list="{{ projectRows }}" as="p" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:2.2fr 1.5fr .9fr 1fr 1.1fr;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);align-items:center">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:44px;height:28px;background:{{ p.bg }};flex:none"></div>
+              <span style="font-weight:600;font-size:14px">{{ p.title }}</span>
+            </div>
+            <span style="font-size:13px;color:var(--muted)">{{ p.clientName }}</span>
+            <span style="font-size:13px;color:var(--muted)">{{ p.assetLabel }}</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:{{ p.statusColor }}">{{ p.status }}</span>
+            <span style="font-size:13px;text-align:right;color:{{ p.expiresColor }}">{{ p.expires }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Library / Import -->
+    <sc-if value="{{ tabLibrary }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:bjfade .3s ease both">
+      <div style="margin-bottom:8px"><div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Back-catalog import</div>
+      <h1 style="font-size:34px;letter-spacing:-.02em;margin:0;font-weight:900">Library</h1></div>
+      <p style="font-size:14px;color:var(--muted);max-width:640px;margin:0 0 26px">Browse what's already on the NAS and pull in only what you want — files are registered in place, never moved or re-uploaded. Everything you register is filed under the new <span style="color:var(--text);font-family:ui-monospace,monospace;font-size:12px">CLIENT / PROJECT / DATE / FORMAT</span> system.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start">
+        <!-- tree -->
+        <div style="border:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:2px solid var(--line2);font-size:11px;font-family:ui-monospace,monospace;color:var(--muted)">
+            <span style="color:var(--dim)">▸</span> /volume1/media/57NYC_archive
+          </div>
+          <sc-for list="{{ libRows }}" as="row" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line)" style-hover="background:rgba(255,255,255,.02)">
+              <div style="width:{{ row.indentW }};flex:none"></div>
+              <div onClick="{{ row.onToggle }}" style="width:14px;text-align:center;cursor:pointer;color:var(--muted);font-size:11px;flex:none">{{ row.caret }}</div>
+              <div onClick="{{ row.onPick }}" style="width:18px;height:18px;border:1.5px solid {{ row.checkBorder }};background:{{ row.checkBg }};display:grid;place-items:center;cursor:pointer;flex:none"><span style="color:#0a0a0b;font-size:11px;font-weight:800;line-height:1">{{ row.checkMark }}</span></div>
+              <span style="font-size:13px;font-family:ui-monospace,monospace;color:{{ row.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">{{ row.name }}</span>
+              <sc-if value="{{ row.raw }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.05em;color:var(--accentb);border:1px solid rgba(236,48,19,.4);padding:2px 6px">BRAW</span></sc-if>
+              <span style="font-size:11px;color:var(--dim);white-space:nowrap;flex:none">{{ row.meta }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- import panel -->
+        <div style="border:1px solid var(--line);background:var(--s1);position:sticky;top:92px">
+          <div style="padding:20px;border-bottom:1px solid var(--line)">
+            <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px">Register to project</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+              <sc-for list="{{ importTargets }}" as="t" hint-placeholder-count="2">
+                <button onClick="{{ t.onClick }}" style="cursor:pointer;font-size:12px;font-weight:600;padding:8px 12px;border:1px solid var(--line2);background:{{ t.bg }};color:{{ t.color }}">{{ t.label }}</button>
+              </sc-for>
+              <button onClick="{{ openProjectDialog }}" style="cursor:pointer;font-size:12px;font-weight:600;padding:8px 12px;border:1px dashed var(--line2);background:transparent;color:var(--muted)" style-hover="color:var(--text);border-color:var(--text)">+ New project</button>
+            </div>
+            <div style="font-size:11px;font-family:ui-monospace,monospace;color:var(--dim)">→ {{ importTargetPath }}</div>
+          </div>
+          <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:13px;font-weight:600">Auto-map from path</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px;max-width:190px">Derive date & format from folder + filename</div>
+            </div>
+            <div onClick="{{ toggleAutoMap }}" style="width:40px;height:22px;border-radius:0;background:{{ autoMapBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none">
+              <div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ autoMapDot }}"></div>
+            </div>
+          </div>
+          <div style="padding:20px">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:16px">
+              <span style="font-size:32px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ pickedCount }}</span>
+              <span style="font-size:12px;color:var(--muted)">file(s) selected</span>
+            </div>
+            <button onClick="{{ registerPicked }}" style="width:100%;cursor:pointer;font-weight:700;font-size:13px;color:{{ registerColor }};background:{{ registerBg }};border:0;padding:13px 0" style-hover="opacity:.92">{{ registerLabel }}</button>
+            <div style="margin-top:12px;font-size:11px;color:var(--dim);line-height:1.6">Registered in place · originals stay put · proxies + thumbnails queued to the worker.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Media -->
+    <sc-if value="{{ tabMedia }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:bjfade .3s ease both">
+      <div style="margin-bottom:24px"><div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Pipeline</div>
+      <h1 style="font-size:34px;letter-spacing:-.02em;margin:0;font-weight:900">Media</h1></div>
+
+      <!-- register bar -->
+      <div style="background:var(--s1);border:1px solid var(--line);padding:22px;margin-bottom:22px">
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px">Register from NAS</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line2);padding:11px 14px">
+            <span style="color:var(--dim);font-size:13px">▸</span>
+            <input value="{{ nasPath }}" onInput="{{ onNasInput }}" style="flex:1;background:none;border:0;color:var(--text);font-size:13px;font-family:ui-monospace,monospace;outline:none"/>
+          </div>
+          <div style="display:inline-flex;border:1px solid var(--line2)">
+            <sc-for list="{{ mediaProjectTabs }}" as="m" hint-placeholder-count="2">
+              <button onClick="{{ m.onClick }}" style="cursor:pointer;font-size:12px;font-weight:600;padding:9px 13px;border:0;border-left:1px solid var(--line2);background:{{ m.bg }};color:{{ m.color }}">{{ m.label }}</button>
+            </sc-for>
+          </div>
+          <button onClick="{{ scanNas }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">Scan & register</button>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--dim)">Files land in <span style="font-family:ui-monospace,monospace;color:var(--muted)">CLIENT / PROJECT / DATE / FORMAT</span>. The ffmpeg worker builds H.264 proxies (vertical 1080×1920 for reels) + poster thumbnails; <span style="color:var(--accentb)">.braw</span> masters are auto-watermarked and paywalled.</div>
+      </div>
+
+      <!-- worker status -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+        <sc-for list="{{ workerStats }}" as="w" hint-placeholder-count="4">
+          <div style="background:var(--s1);border:1px solid var(--line);padding:16px 18px">
+            <div style="font-size:26px;font-weight:900;letter-spacing:-.02em;color:{{ w.color }};font-variant-numeric:tabular-nums">{{ w.value }}</div>
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:4px">{{ w.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- asset table -->
+      <div style="border:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:56px 2.4fr 1fr 1fr 1.4fr 1fr;gap:14px;padding:14px 20px;border-bottom:2px solid var(--line2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;align-items:center">
+          <span></span><span>File</span><span>Type</span><span>Size</span><span>Proxy / Thumb</span><span style="text-align:right">Action</span>
+        </div>
+        <sc-for list="{{ mediaRows }}" as="a" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:56px 2.4fr 1fr 1fr 1.4fr 1fr;gap:14px;padding:13px 20px;border-bottom:1px solid var(--line);align-items:center">
+            <div style="width:56px;height:34px;background:{{ a.bg }};position:relative">
+              <sc-if value="{{ a.isVideo }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:9px">▶</div></sc-if>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <span style="font-size:13px;font-family:ui-monospace,monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+              <sc-if value="{{ a.hasVisTag }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:{{ a.visTagColor }};border:1px solid {{ a.visTagBorder }};padding:2px 6px">{{ a.visTag }}</span></sc-if>
+            </div>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted)">{{ a.typeLabel }}</span>
+            <span style="font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums">{{ a.size }}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <sc-if value="{{ a.isGenerating }}" hint-placeholder-val="{{ false }}">
+                <span style="width:12px;height:12px;border:2px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:bjspin .8s linear infinite;display:inline-block"></span>
+              </sc-if>
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ a.dotColor }};flex:none"></span>
+              <span style="font-size:12px;font-weight:600;color:{{ a.statusColor }}">{{ a.statusLabel }}</span>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+              <button onClick="{{ a.onToggleVis }}" title="Toggle client visibility" style="cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:5px 9px;white-space:nowrap" style-hover="color:var(--text);border-color:var(--text)">{{ a.visActionLabel }}</button>
+              <sc-if value="{{ a.canRetry }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ a.onRetry }}" style="cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:5px 10px" style-hover="color:var(--text);border-color:var(--text)">Retry</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Integrations / Slack -->
+    <sc-if value="{{ tabIntegrations }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:bjfade .3s ease both;max-width:820px">
+      <div style="margin-bottom:26px"><div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Integrations</div>
+      <h1 style="font-size:34px;letter-spacing:-.02em;margin:0;font-weight:900">Slack</h1></div>
+
+      <!-- connection -->
+      <div style="border:1px solid var(--line);background:var(--s1);padding:22px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+        <div style="width:44px;height:44px;background:var(--s3);display:grid;place-items:center;flex:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;width:22px;height:22px">
+            <div style="background:#ec3013"></div><div style="background:#f4f3f2"></div><div style="background:#f4f3f2"></div><div style="background:#ec3013"></div>
+          </div>
+        </div>
+        <sc-if value="{{ slackConnected }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px">Bjur Media <span style="width:7px;height:7px;border-radius:50%;background:#2ec36b"></span><span style="font-size:12px;font-weight:600;color:#2ec36b">Connected</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px">Incoming webhook · posts as <span style="font-family:ui-monospace,monospace">Bjur Delivery Bot</span></div>
+          </div>
+          <button onClick="{{ sendTestSlack }}" style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text);background:transparent;border:1px solid var(--line2);padding:9px 14px" style-hover="border-color:var(--text)">Send test</button>
+          <button onClick="{{ disconnectSlack }}" style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:9px 14px" style-hover="color:var(--accentb);border-color:var(--accentb)">Disconnect</button>
+        </sc-if>
+        <sc-if value="{{ slackDisconnected }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1"><div style="font-size:15px;font-weight:700">Not connected</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Connect a workspace to post delivery updates automatically.</div></div>
+          <button onClick="{{ connectSlack }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 18px" style-hover="background:var(--accentb)">Connect Slack</button>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ slackConnected }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <!-- default channel -->
+        <div style="border:1px solid var(--line);background:var(--s1);padding:22px;margin-bottom:20px">
+          <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px">Default channel</div>
+          <input value="{{ slackChannel }}" onInput="{{ onSlackChannel }}" style="width:260px;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;font-family:ui-monospace,monospace;padding:11px 13px;outline:none" style-focus="border-color:var(--accent)"/>
+          <div style="font-size:11px;color:var(--dim);margin-top:10px">Fallback channel for any client without a dedicated channel below.</div>
+        </div>
+
+        <!-- automations -->
+        <div style="border:1px solid var(--line);background:var(--s1);padding:22px 22px 8px;margin-bottom:20px">
+          <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px">Automations</div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+            <div style="flex:1"><div style="font-size:14px;font-weight:600">Weekly calendar post</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Posts the upcoming week's delivery schedule</div>
+              <sc-if value="{{ autoWeekly }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                  <select value="{{ slackWeeklyDay }}" onChange="{{ onSlackDay }}" style="background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:13px;padding:7px 9px;outline:none">
+                    <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+                  </select>
+                  <span style="font-size:12px;color:var(--dim)">at</span>
+                  <input value="{{ slackWeeklyTime }}" onInput="{{ onSlackTime }}" style="width:84px;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:13px;font-family:ui-monospace,monospace;padding:7px 9px;outline:none"/>
+                </div>
+              </sc-if>
+            </div>
+            <div onClick="{{ toggleAutoWeekly }}" style="width:40px;height:22px;background:{{ autoWeeklyBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ autoWeeklyDot }}"></div></div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+            <div><div style="font-size:14px;font-weight:600">New delivery / upload</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Ping the channel when new media is registered</div></div>
+            <div onClick="{{ toggleAutoUpload }}" style="width:40px;height:22px;background:{{ autoUploadBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ autoUploadDot }}"></div></div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+            <div><div style="font-size:14px;font-weight:600">Client download</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Notify when a client downloads a master or ZIP</div></div>
+            <div onClick="{{ toggleAutoDownload }}" style="width:40px;height:22px;background:{{ autoDownloadBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ autoDownloadDot }}"></div></div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0">
+            <div><div style="font-size:14px;font-weight:600">BRAW license purchased</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Alert when a master is licensed</div></div>
+            <div onClick="{{ toggleAutoLicense }}" style="width:40px;height:22px;background:{{ autoLicenseBg }};border:1px solid var(--line2);position:relative;cursor:pointer;flex:none"><div style="width:16px;height:16px;background:#0a0a0b;position:absolute;top:2px;left:2px;transition:transform .15s;transform:{{ autoLicenseDot }}"></div></div>
+          </div>
+        </div>
+
+        <!-- per-client channels -->
+        <div style="border:1px solid var(--line);background:var(--s1);padding:22px">
+          <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px">Per-client channels</div>
+          <sc-for list="{{ clientChannelRows }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0;border-top:1px solid var(--line)">
+              <span style="font-size:14px;font-weight:600">{{ c.name }}</span>
+              <input value="{{ c.channel }}" onInput="{{ c.onChange }}" placeholder="{{ slackChannel }}" style="width:220px;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:13px;font-family:ui-monospace,monospace;padding:8px 11px;outline:none" style-focus="border-color:var(--accent)"/>
+            </div>
+          </sc-for>
+          <div style="font-size:11px;color:var(--dim);margin-top:14px">Route each client's updates to their own channel. Blank = default channel.</div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ SELECTION BAR ══ -->
+<sc-if value="{{ showSelBar }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:20px;background:var(--s2);border:1px solid var(--line2);padding:12px 14px 12px 22px;box-shadow:0 18px 50px rgba(0,0,0,.6);animation:bjrise .25s ease both">
+  <span style="font-size:13px;font-weight:600">{{ selCount }} selected</span>
+  <button onClick="{{ clearSelection }}" style="cursor:pointer;font-size:12px;color:var(--muted);background:none;border:0" style-hover="color:var(--text)">Clear</button>
+  <button onClick="{{ downloadZip }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 18px" style-hover="background:var(--accentb)">↓ Download ZIP</button>
+</div>
+</sc-if>
+
+<!-- ══ LIGHTBOX ══ -->
+<sc-if value="{{ lbOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:80;background:rgba(6,6,7,.97);display:flex;flex-direction:column;animation:bjfade .2s ease both">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 26px;flex:none">
+    <div><div style="font-size:14px;font-weight:600">{{ lbName }}</div>
+    <div style="font-size:12px;color:var(--dim);margin-top:2px">{{ lbBadge }} · {{ lbCounter }}</div></div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button onClick="{{ lbToggleFav }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:12px;color:{{ lbFavColor }};background:none;border:1px solid var(--line2);padding:10px 14px" style-hover="border-color:var(--text)">♥ {{ lbFavLabel }}</button>
+      <button onClick="{{ lbDownload }}" style="cursor:pointer;font-weight:700;font-size:12px;color:#0a0a0b;background:var(--accent);border:0;padding:10px 16px" style-hover="background:var(--accentb)">↓ Download original</button>
+      <button onClick="{{ closeLightbox }}" style="cursor:pointer;width:36px;height:36px;border:1px solid var(--line2);background:none;color:var(--text);font-size:16px" style-hover="border-color:var(--text)">✕</button>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;padding:0 26px 26px;min-height:0">
+    <button onClick="{{ lbPrev }}" style="position:absolute;left:26px;cursor:pointer;width:46px;height:46px;border:1px solid var(--line2);background:rgba(0,0,0,.4);color:var(--text);font-size:18px;z-index:2" style-hover="border-color:var(--text)">‹</button>
+    <div style="max-width:min(1100px,88vw);width:100%;aspect-ratio:3/2;background:{{ lbBg }};box-shadow:0 30px 90px rgba(0,0,0,.7)"></div>
+    <button onClick="{{ lbNext }}" style="position:absolute;right:26px;cursor:pointer;width:46px;height:46px;border:1px solid var(--line2);background:rgba(0,0,0,.4);color:var(--text);font-size:18px;z-index:2" style-hover="border-color:var(--text)">›</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ VIDEO MODAL ══ -->
+<sc-if value="{{ vmOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:80;background:rgba(6,6,7,.97);display:flex;flex-direction:column;animation:bjfade .2s ease both">
+  <div style="display:flex;align-items:center;justify-content:flex-end;padding:18px 26px;flex:none">
+    <button onClick="{{ closeVideo }}" style="cursor:pointer;width:36px;height:36px;border:1px solid var(--line2);background:none;color:var(--text);font-size:16px" style-hover="border-color:var(--text)">✕</button>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 40px;min-height:0">
+    <div style="width:100%;max-width:{{ vmMaxW }}">
+      <div style="aspect-ratio:{{ vmAspect }};background:{{ vmBg }};position:relative;box-shadow:0 30px 90px rgba(0,0,0,.7);overflow:hidden">
+        <sc-if value="{{ vmRaw }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2">
+            <div style="position:absolute;top:50%;left:50%;width:200%;transform:translate(-50%,-50%) rotate(-24deg);display:flex;flex-direction:column;gap:26px">
+              <div style="font-size:22px;font-weight:800;letter-spacing:.34em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+              <div style="font-size:22px;font-weight:800;letter-spacing:.34em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+              <div style="font-size:22px;font-weight:800;letter-spacing:.34em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+              <div style="font-size:22px;font-weight:800;letter-spacing:.34em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</div>
+              <div style="font-size:22px;font-weight:800;letter-spacing:.34em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="position:absolute;inset:0;display:grid;place-items:center;z-index:3">
+          <div style="width:74px;height:74px;border:1.5px solid rgba(255,255,255,.9);border-radius:50%;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(255,255,255,.1)"><span style="color:#fff;font-size:22px;margin-left:4px">▶</span></div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 18px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.7));z-index:3">
+          <div style="height:3px;background:rgba(255,255,255,.25);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:32%;background:var(--accent)"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:11px;color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums"><span>00:12</span><span>{{ vmDur }}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-top:22px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px">{{ vmName }}</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+            <span style="width:6px;height:6px;border-radius:50%;background:#2ec36b"></span>
+            {{ vmProxyLabel }} · {{ vmProxy }}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <sc-if value="{{ vmLocked }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ vmUnlock }}" style="display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:13px 20px" style-hover="background:var(--accentb)">🔒 Unlock master · {{ vmPrice }}</button>
+            <div style="font-size:11px;color:var(--dim);margin-top:9px">{{ vmMaster }} · watermark removed on purchase</div>
+          </sc-if>
+          <sc-if value="{{ vmShowDownload }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ vmDownload }}" style="display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:13px 20px" style-hover="background:var(--accentb)">↓ Download original</button>
+            <div style="font-size:11px;color:var(--dim);margin-top:9px">{{ vmMaster }} · resumable</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ PAYWALL ══ -->
+<sc-if value="{{ payOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closePay }}" style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.8);display:grid;place-items:center;padding:24px;animation:bjfade .18s ease both">
+  <div onClick="{{ stop }}" style="width:min(440px,100%);background:var(--s2);border:1px solid var(--line2);animation:bjrise .22s ease both">
+    <div style="padding:26px 28px;border-bottom:2px solid var(--line2)">
+      <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Unlock master · BRAW</div>
+      <div style="font-size:21px;font-weight:900;letter-spacing:-.01em">{{ payName }}</div>
+    </div>
+    <div style="padding:22px 28px">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px">Choose a licensing tier</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ payTiers }}" as="t" hint-placeholder-count="3">
+          <div onClick="{{ t.onSelect }}" style="cursor:pointer;display:flex;align-items:flex-start;gap:13px;padding:14px 15px;border:1px solid {{ t.rowBorder }};background:{{ t.rowBg }}">
+            <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid {{ t.dotBorder }};margin-top:2px;flex:none;display:grid;place-items:center">
+              <div style="width:8px;height:8px;border-radius:50%;background:{{ t.dotBg }}"></div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+                <span style="font-size:14px;font-weight:800;color:{{ t.nameColor }}">{{ t.name }}</span>
+                <span style="font-size:15px;font-weight:900;white-space:nowrap">{{ t.amountLabel }}</span>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px">{{ t.scope }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:16px;font-size:12px;color:var(--dim);display:flex;gap:8px"><span style="color:var(--accent)">✓</span> Full-res {{ paySize }} BRAW master · watermark removed · resumable download</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:20px 28px;border-top:1px solid var(--line)">
+      <span style="font-size:11px;color:var(--dim)">Secure checkout · Stripe</span>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ closePay }}" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:11px 16px" style-hover="color:var(--text)">Cancel</button>
+        <button onClick="{{ confirmPay }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">{{ payCtaLabel }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ IMPORT PREVIEW ══ -->
+<sc-if value="{{ previewOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closePreview }}" style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.8);display:grid;place-items:center;padding:24px;animation:bjfade .18s ease both">
+  <div onClick="{{ stop }}" style="width:min(660px,100%);max-height:86vh;display:flex;flex-direction:column;background:var(--s2);border:1px solid var(--line2);animation:bjrise .22s ease both">
+    <div style="padding:24px 26px;border-bottom:2px solid var(--line2)">
+      <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:9px">Confirm import mapping</div>
+      <div style="font-size:20px;font-weight:900;letter-spacing:-.01em">{{ previewCount }} file(s) → {{ previewTargetName }}</div>
+      <div style="font-size:11px;font-family:ui-monospace,monospace;color:var(--dim);margin-top:6px">{{ previewTargetPath }} — review the derived DATE / FORMAT, tap a format to change it.</div>
+    </div>
+    <div style="overflow-y:auto;padding:8px 0">
+      <div style="display:grid;grid-template-columns:1fr 92px 84px 28px;gap:12px;padding:8px 26px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700">
+        <span>File</span><span>Format</span><span>Date</span><span></span>
+      </div>
+      <sc-for list="{{ previewRows }}" as="r" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:1fr 92px 84px 28px;gap:12px;padding:11px 26px;border-top:1px solid var(--line);align-items:center">
+          <div style="min-width:0;display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;font-family:ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+            <sc-if value="{{ r.isMaster }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:9px;font-weight:700;color:var(--accentb);border:1px solid rgba(236,48,19,.4);padding:2px 5px">BRAW</span></sc-if>
+          </div>
+          <button onClick="{{ r.onCycle }}" style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text);background:var(--s3);border:1px solid var(--line2);padding:6px 8px;text-align:left" style-hover="border-color:var(--accent)">{{ r.fmt }} ⇄</button>
+          <span style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">{{ r.dateText }}</span>
+          <button onClick="{{ r.onRemove }}" title="Skip this file" style="cursor:pointer;width:24px;height:24px;border:1px solid var(--line2);background:none;color:var(--muted);font-size:13px" style-hover="color:var(--accentb);border-color:var(--accentb)">✕</button>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:18px 26px;border-top:2px solid var(--line2)">
+      <span style="font-size:11px;color:var(--dim)">Originals stay in place · proxies queued after confirm</span>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ closePreview }}" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:11px 16px" style-hover="color:var(--text)">Back</button>
+        <button onClick="{{ confirmPreview }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">Confirm & register</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ DIALOG ══ -->
+<sc-if value="{{ dialogOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeDialog }}" style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.7);display:grid;place-items:center;padding:24px;animation:bjfade .18s ease both">
+  <div onClick="{{ stop }}" style="width:min(460px,100%);background:var(--s2);border:1px solid var(--line2);padding:28px;animation:bjrise .22s ease both">
+    <div style="font-size:22px;font-weight:900;letter-spacing:-.01em;margin-bottom:6px">{{ dialogTitle }}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:22px">{{ dialogSub }}</div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <label style="display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">{{ dialogField1 }}</label>
+        <input value="{{ form1 }}" onInput="{{ onForm1 }}" placeholder="{{ dialogPh1 }}" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px">{{ dialogField2 }}</label>
+        <input value="{{ form2 }}" onInput="{{ onForm2 }}" placeholder="{{ dialogPh2 }}" style="width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);font-size:14px;padding:11px 13px;outline:none"/>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:26px">
+      <button onClick="{{ closeDialog }}" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line2);padding:11px 18px" style-hover="color:var(--text)">Cancel</button>
+      <button onClick="{{ dialogConfirm }}" style="cursor:pointer;font-weight:700;font-size:13px;color:#0a0a0b;background:var(--accent);border:0;padding:11px 20px" style-hover="background:var(--accentb)">{{ dialogCta }}</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ TOAST ══ -->
+<sc-if value="{{ toastMsg }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;bottom:28px;right:28px;z-index:100;background:var(--s2);border:1px solid var(--line2);border-left:3px solid var(--accent);padding:14px 20px;font-size:13px;box-shadow:0 14px 40px rgba(0,0,0,.5);animation:bjrise .25s ease both;max-width:340px">{{ toastMsg }}</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const G = [
+      'radial-gradient(120% 90% at 26% 16%,rgba(236,48,19,.16),transparent 52%),linear-gradient(150deg,#241610,#0a0706 74%)',
+      'radial-gradient(120% 90% at 72% 20%,rgba(72,140,160,.20),transparent 54%),linear-gradient(150deg,#0d1c22,#070c0e 74%)',
+      'radial-gradient(120% 90% at 30% 80%,rgba(150,90,210,.16),transparent 54%),linear-gradient(150deg,#171426,#08070d 74%)',
+      'radial-gradient(120% 90% at 80% 30%,rgba(210,150,70,.18),transparent 52%),linear-gradient(150deg,#241d10,#0a0806 74%)',
+      'radial-gradient(120% 90% at 40% 24%,rgba(60,170,120,.16),transparent 54%),linear-gradient(150deg,#0e1f18,#060b09 74%)',
+      'radial-gradient(120% 90% at 66% 74%,rgba(236,48,19,.13),transparent 54%),linear-gradient(150deg,#221319,#0b0708 74%)',
+      'radial-gradient(120% 90% at 20% 30%,rgba(90,120,200,.16),transparent 54%),linear-gradient(150deg,#111726,#07080e 74%)',
+      'radial-gradient(120% 90% at 74% 66%,rgba(200,110,60,.16),transparent 52%),linear-gradient(150deg,#231810,#0a0705 74%)'
+    ];
+    this.G = G;
+    this.activity = [
+      {who:'SSH',action:'downloaded 12 files from Spring Campaign 2026',when:'2h ago',dot:'#2ec36b'},
+      {who:'57.NYC',action:'licensed a BRAW master — Commercial & Broadcast',when:'5h ago',dot:'var(--accent)'},
+      {who:'You',action:'registered 3 files into Rooftop Series',when:'Yesterday',dot:'var(--muted)'},
+      {who:'SUYINSAMA',action:'signed in from New York, US',when:'Yesterday',dot:'#2ec36b'},
+      {who:'Worker',action:'generated 8 H.264 proxies + thumbnails',when:'2 days ago',dot:'var(--muted)'}
+    ];
+    const g = i => G[i % G.length];
+    let uid = 0;
+    const A=(kind,format,orientation,name,date,gi,meta)=>({id:'a'+(++uid),kind,format,orientation,name,date,bg:g(gi),proxy:'READY',...meta});
+    const reel=(name,dur,gi,date,size)=>A('VIDEO','Reel','portrait',name,date,gi,{dur,proxyRes:'1080×1920 H.264',master:'ProRes 422 · '+size,size});
+    const film=(name,dur,gi,date,size)=>A('VIDEO','Film','landscape',name,date,gi,{dur,proxyRes:'1080p H.264',master:'ProRes 422 HQ · '+size,size});
+    const still=(name,orient,dims,gi,date,size)=>A('PHOTO','Still',orient,name,date,gi,{dims,size});
+    const master=(name,dur,gi,date,size,price)=>A('VIDEO','Master','landscape',name,date,gi,{dur,proxyRes:'watermarked 1080p',master:'BRAW · '+size,size,raw:true,price});
+
+    const assets = {
+      p1:[
+        reel('SSH_Reel_Hero.mp4','00:18',0,'Jun 14','1.9 GB'),
+        reel('SSH_Reel_Product.mp4','00:22',3,'Jun 14','2.2 GB'),
+        reel('SSH_Reel_BTS.mp4','00:15',5,'Jun 15','1.4 GB'),
+        film('SSH_BrandFilm_60.mp4','01:00',1,'Jun 14','9.4 GB'),
+        film('SSH_BrandFilm_Teaser.mp4','00:20',7,'Jun 14','3.1 GB'),
+        still('SSH_Still_012.jpg','landscape','6048×4032',2,'Jun 14','24.1 MB'),
+        still('SSH_Still_019.jpg','landscape','6048×4032',4,'Jun 14','22.8 MB'),
+        still('SSH_Portrait_04.jpg','portrait','4032×6048',6,'Jun 14','25.6 MB'),
+        still('SSH_Portrait_07.jpg','portrait','4032×6048',1,'Jun 15','24.9 MB'),
+        still('SSH_Still_031.jpg','landscape','6048×4032',5,'Jun 15','23.3 MB'),
+        still('SSH_Detail_08.jpg','landscape','5760×3240',3,'Jun 15','11.2 MB'),
+        master('SSH_HeroCut_MASTER.braw','01:00',0,'Jun 14','47.2 GB','$450'),
+        master('SSH_ProductFilm_MASTER.braw','00:40',3,'Jun 14','31.8 GB','$380')
+      ],
+      p2:[
+        reel('Aera_Reel_Launch.mp4','00:20',4,'Jul 03','2.0 GB'),
+        reel('Aera_Reel_Detail.mp4','00:16',6,'Jul 03','1.6 GB'),
+        film('Aera_Launch_Film.mp4','00:45',2,'Jul 03','6.8 GB'),
+        still('Aera_Pack_01.jpg','landscape','7008×4672','0','Jul 03','38.2 MB'),
+        still('Aera_Pack_02.jpg','landscape','7008×4672',5,'Jul 03','36.1 MB'),
+        still('Aera_Hero.jpg','portrait','4672×7008',1,'Jul 03','39.0 MB'),
+        master('Aera_Launch_MASTER.braw','00:45',7,'Jul 03','29.4 GB','$400')
+      ],
+      p3:[
+        still('Studio_P01.jpg','portrait','4032×6048',2,'May 28','21.2 MB'),
+        still('Studio_P02.jpg','portrait','4032×6048',4,'May 28','20.6 MB'),
+        still('Studio_P03.jpg','portrait','4032×6048',5,'May 28','22.1 MB'),
+        still('Studio_P04.jpg','portrait','4032×6048',6,'May 28','19.9 MB'),
+        still('Studio_P05.jpg','portrait','4032×6048',1,'May 28','23.0 MB'),
+        still('Studio_P06.jpg','portrait','4032×6048',3,'May 28','21.7 MB'),
+        reel('Studio_Reel_BTS.mp4','00:24',0,'May 28','2.4 GB')
+      ],
+      p4:[
+        reel('NYC_Rooftop_Reel_01.mp4','00:19',1,'Jul 02','1.8 GB'),
+        reel('NYC_Rooftop_Reel_02.mp4','00:21',6,'Jul 02','2.0 GB'),
+        reel('NYC_Rooftop_Reel_03.mp4','00:15',3,'Jul 02','1.5 GB'),
+        film('NYC_Rooftop_Film.mp4','01:12',7,'Jul 02','11.6 GB'),
+        still('NYC_Roof_Still_02.jpg','landscape','6048×4032',2,'Jul 02','25.4 MB'),
+        master('NYC_Rooftop_MASTER.braw','01:12',4,'Jul 02','53.1 GB','$500')
+      ],
+      p5:[
+        still('FW26_Look_01.jpg','portrait','4672×7008',3,'Jun 09','35.9 MB'),
+        still('FW26_Look_02.jpg','portrait','4672×7008',5,'Jun 09','37.7 MB'),
+        still('FW26_Look_03.jpg','portrait','4672×7008',0,'Jun 09','36.4 MB'),
+        still('FW26_Detail_04.jpg','landscape','6000×4000',2,'Jun 09','15.1 MB'),
+        reel('FW26_Reel_Runway.mp4','00:23',6,'Jun 09','2.3 GB')
+      ],
+      p6:[
+        reel('SUYIN_Live_Reel_01.mp4','00:20',5,'Jun 21','2.1 GB'),
+        reel('SUYIN_Live_Reel_02.mp4','00:17',1,'Jun 21','1.7 GB'),
+        film('SUYIN_Live_Recap.mp4','02:04',7,'Jun 21','16.2 GB'),
+        master('SUYIN_Live_MASTER.braw','02:04',3,'Jun 21','61.8 GB','$550')
+      ],
+      p7:[
+        film('Halcyon_BrandAnthem_60.mp4','01:00',6,'Jul 01','7.9 GB'),
+        reel('Halcyon_Anthem_Reel.mp4','00:18',2,'Jul 01','1.8 GB'),
+        still('Halcyon_Key_01.jpg','landscape','6048×4032',4,'Jul 01','23.4 MB'),
+        master('Halcyon_Anthem_MASTER.braw','01:00',7,'Jul 01','44.6 GB','$500')
+      ],
+      p8:[
+        Object.assign(reel('IG_Jul06_ReelA.mp4','00:14',1,'Jul 06','1.6 GB'),{week:'Week of Jul 6',added:'Jul 6 · 9:12 AM'}),
+        Object.assign(reel('IG_Jul06_ReelB.mp4','00:16',3,'Jul 06','1.7 GB'),{week:'Week of Jul 6',added:'Jul 6 · 9:14 AM',updated:'Jul 8 · 4:40 PM'}),
+        Object.assign(still('IG_Jul06_Carousel.jpg','landscape','5000×5000',5,'Jul 06','9.1 MB'),{week:'Week of Jul 6',added:'Jul 6 · 9:20 AM'}),
+        Object.assign(reel('IG_Jul13_ReelA.mp4','00:15',6,'Jul 13','1.5 GB'),{week:'Week of Jul 13',added:'Jul 13 · 8:55 AM'}),
+        Object.assign(reel('IG_Jul13_ReelB.mp4','00:18',2,'Jul 13','1.9 GB'),{week:'Week of Jul 13',added:'Jul 13 · 9:02 AM',updated:'Jul 14 · 11:20 AM'}),
+        Object.assign(reel('IG_Jul13_ReelC.mp4','00:12',4,'Jul 13','1.3 GB'),{week:'Week of Jul 13',added:'Jul 13 · 9:10 AM'})
+      ]
+    };
+    Object.keys(assets).forEach(pid=>{ (assets[pid]||[]).forEach(a=>{ if(!a.added) a.added=(a.date?a.date+', 2026':''); }); });
+    // retainer working masters are internal — hosted for the studio's own edits, hidden from clients
+    Object.keys(assets).forEach(pid=>{ if(pid==='p7')return; (assets[pid]||[]).forEach(a=>{ if(a.format==='Master')a.internal=true; }); });
+    const projects = [
+      {id:'p1',clientId:'c1',title:'Spring Campaign 2026',delivered:'Jun 18, 2026',date:'Jun 2026',path:'SSH/Spring-Campaign/2026-06',expires:null,status:'LIVE',bg:g(0)},
+      {id:'p2',clientId:'c1',title:'Product Launch — Aera',delivered:'Jul 09, 2026',date:'Jul 2026',path:'SSH/Aera-Launch/2026-07',expires:null,status:'LIVE',bg:g(3)},
+      {id:'p3',clientId:'c1',title:'Studio Portraits',delivered:'May 30, 2026',date:'May 2026',path:'SSH/Studio-Portraits/2026-05',expires:null,status:'LIVE',bg:g(1)},
+      {id:'p4',clientId:'c2',title:'Rooftop Series',delivered:'Jul 05, 2026',date:'Jul 2026',path:'57NYC/Rooftop-Series/2026-07',expires:null,status:'LIVE',bg:g(7)},
+      {id:'p5',clientId:'c2',title:'FW26 Lookbook',delivered:'Jun 12, 2026',date:'Jun 2026',path:'57NYC/FW26-Lookbook/2026-06',expires:null,status:'LIVE',bg:g(2)},
+      {id:'p6',clientId:'c3',title:'Live Set — Warehouse',delivered:'Jun 22, 2026',date:'Jun 2026',path:'SUYINSAMA/Live-Set/2026-06',expires:null,status:'LIVE',bg:g(5)},
+      {id:'p7',clientId:'c4',title:'Brand Anthem — Delivery',delivered:'Jul 03, 2026',date:'Jul 2026',path:'Halcyon/Brand-Anthem/2026-07',expires:'Sep 01, 2026',status:'LIVE',bg:g(6)},
+      {id:'p8',clientId:'c2',title:'IG Posting',delivered:'Jul 13, 2026',date:'Jul 2026',path:'57NYC/IG-Posting',expires:null,status:'LIVE',bg:g(1)}
+    ];
+    const clients = [
+      {id:'c1',name:'SSH',username:'ssh',status:'active',lastLogin:'Jul 12, 2026',type:'Retainer',users:[
+        {name:'Sasha Hale',email:'sasha@ssh.studio',role:'Owner',lastLogin:'Jul 12'},
+        {name:'Marco Vidal',email:'marco@ssh.studio',role:'Downloader',lastLogin:'Jul 11'}
+      ]},
+      {id:'c2',name:'57.NYC',username:'57nyc',status:'active',lastLogin:'Jul 10, 2026',type:'Retainer',users:[
+        {name:'57 Studio',email:'studio@57.nyc',role:'Owner',lastLogin:'Jul 10'},
+        {name:'Dana Okafor',email:'dana@57.nyc',role:'Downloader',lastLogin:'Jul 09'}
+      ]},
+      {id:'c3',name:'SUYINSAMA',username:'suyinsama',status:'active',lastLogin:'Jul 08, 2026',type:'Retainer',users:[
+        {name:'Suyin Sama',email:'suyin@suyinsama.com',role:'Owner',lastLogin:'Jul 08'},
+        {name:'Studio Team',email:'team@suyinsama.com',role:'Viewer',lastLogin:'Jul 05'}
+      ]},
+      {id:'c4',name:'Halcyon Films',username:'halcyon',status:'active',lastLogin:'Jul 03, 2026',type:'One-off',users:[
+        {name:'Ivy Chen',email:'ivy@halcyon.film',role:'Owner',lastLogin:'Jul 03'}
+      ]}
+    ];
+    // existing (unorganized) archive on the NAS — the back catalog to cherry-pick from
+    const archive = [
+      {id:'d1',type:'folder',name:'Rooftop_Series_MASTERS',children:[
+        {id:'d1a',type:'file',name:'RoofFilm_FINAL_v6.mp4',fmt:'Film',size:'9.1 GB'},
+        {id:'d1b',type:'file',name:'RoofReel_01.mp4',fmt:'Reel',size:'1.9 GB'},
+        {id:'d1c',type:'file',name:'RoofReel_02.mp4',fmt:'Reel',size:'2.1 GB'},
+        {id:'d1d',type:'file',name:'IMG_8842.jpg',fmt:'Still',size:'24 MB'},
+        {id:'d1e',type:'folder',name:'BRAW',children:[
+          {id:'d1e1',type:'file',name:'A001_C003.braw',fmt:'Master',size:'47 GB'},
+          {id:'d1e2',type:'file',name:'A001_C007.braw',fmt:'Master',size:'39 GB'}
+        ]}
+      ]},
+      {id:'d2',type:'folder',name:'FW26_selects',children:[
+        {id:'d2a',type:'file',name:'Look_01.jpg',fmt:'Still',size:'36 MB'},
+        {id:'d2b',type:'file',name:'Look_02.jpg',fmt:'Still',size:'37 MB'},
+        {id:'d2c',type:'file',name:'runway_reel.mp4',fmt:'Reel',size:'2.3 GB'}
+      ]},
+      {id:'d3',type:'folder',name:'Desktop_Dump_DONOTUSE',children:[
+        {id:'d3a',type:'file',name:'export_final_FINAL.mp4',fmt:'Film',size:'3.2 GB'},
+        {id:'d3b',type:'file',name:'test_render.mov',fmt:'Film',size:'1.1 GB'},
+        {id:'d3c',type:'file',name:'Screen Recording 2025.mov',fmt:'Film',size:'0.4 GB'}
+      ]},
+      {id:'d4',type:'folder',name:'2024_archive_OLD',children:[
+        {id:'d4a',type:'file',name:'old_promo.mp4',fmt:'Film',size:'2.0 GB'},
+        {id:'d4b',type:'file',name:'DSC_0099.jpg',fmt:'Still',size:'18 MB'},
+        {id:'d4c',type:'file',name:'DSC_0104.jpg',fmt:'Still',size:'17 MB'}
+      ]}
+    ];
+    this.state = {
+      view:'login', portal:(typeof location!=='undefined'&&/admin/i.test(location.hash))?'admin':'client', loginUser:'', loginPass:'', loginError:'',
+      clientSub:'list', clientId:'c1',
+      projectId:null, filter:'ALL', groupMode:'format', selected:[], favorites:[], unlocked:[], pay:null, payTier:'social',
+      lb:null, vm:null,
+      adminTab:'home', mediaProjectId:'p1', search:'', expandedClient:null, nasPath:'/volume1/media/Bjur/SSH/Spring-Campaign/2026-06',
+      slackConnected:true, slack:{channel:'#client-deliveries',weeklyDay:'Monday',weeklyTime:'09:00',autoWeekly:true,autoUpload:true,autoDownload:false,autoLicense:true},
+      clientChannels:{c1:'#ssh-deliveries',c2:'#57-social',c3:'#suyinsama',c4:''},
+      archive, expanded:['d1'], picked:[], importTarget:'p4', autoMap:true, preview:null,
+      setForm:{displayName:'',email:'',notifyDelivery:true,notifyExpiry:true}, pw:{cur:'',next:'',conf:''},
+      sessions:[
+        {id:'s1',device:'Chrome · macOS',where:'New York, US',when:'Active now',current:true},
+        {id:'s2',device:'Safari · iPhone',where:'New York, US',when:'2 days ago',current:false},
+        {id:'s3',device:'Chrome · Windows',where:'Brooklyn, US',when:'Jun 30, 2026',current:false}
+      ],
+      dialog:null, form1:'', form2:'',
+      toast:null,
+      clients, projects, assets
+    };
+  }
+
+  componentDidMount(){
+    this._hash=()=>{ const p=/admin/i.test(location.hash)?'admin':'client'; this.setState({portal:p,loginError:'',loginUser:'',loginPass:''}); };
+    window.addEventListener('hashchange',this._hash);
+  }
+  componentWillUnmount(){ if(this._hash)window.removeEventListener('hashchange',this._hash); }
+  toast(msg){ this.setState({toast:msg}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:null}),2600); }
+  countAssets(id,k){ return (this.state.assets[id]||[]).filter(a=>a.kind===k).length; }
+  clientOf(id){ return this.state.clients.find(c=>c.id===id); }
+
+  enterClient(){ this.setState({view:'client',clientSub:'list',clientId:'c1'}); }
+  enterAdmin(){ this.setState({view:'admin',adminTab:'home'}); }
+  signOut(){ const back=this.state.view==='admin'?'admin':'client'; if(typeof location!=='undefined')location.hash=back==='admin'?'#/admin':''; this.setState({view:'login',portal:back,projectId:null,clientSub:'list',selected:[],lb:null,vm:null,dialog:null,loginUser:'',loginPass:'',loginError:''}); }
+
+  goPortal(p){ if(typeof location!=='undefined')location.hash=p==='admin'?'#/admin':''; this.setState({portal:p,loginError:'',loginUser:'',loginPass:''}); }
+  onLoginUser(e){ this.setState({loginUser:e.target.value,loginError:''}); }
+  onLoginPass(e){ this.setState({loginPass:e.target.value,loginError:''}); }
+  demoFill(){ if(this.state.portal==='admin')this.setState({loginUser:'admin',loginPass:'demo1234',loginError:''}); else this.setState({loginUser:'ssh',loginPass:'demo1234',loginError:''}); }
+  submitLogin(e){
+    if(e&&e.preventDefault)e.preventDefault();
+    const u=this.state.loginUser.trim().toLowerCase(), p=this.state.loginPass;
+    if(!u||!p){ this.setState({loginError:'Enter your username and password.'}); return; }
+    if(this.state.portal==='admin'){
+      if(u!=='admin'){ this.setState({loginError:'Not an admin account. This portal is staff-only.'}); return; }
+      this.setState({view:'admin',adminTab:'home',loginError:''}); return;
+    }
+    const c=this.state.clients.find(x=>x.username===u);
+    if(!c){ this.setState({loginError:'No account found for that username.'}); return; }
+    if(c.status!=='active'){ this.setState({loginError:'This account is disabled. Contact Bjur Media.'}); return; }
+    this.setState({view:'client',clientSub:'list',clientId:c.id,loginError:''});
+  }
+
+  openProject(id){ this.setState({view:'client',clientSub:'detail',projectId:id,filter:'ALL',selected:[]}); window.scrollTo(0,0); }
+  backToProjects(){ if(this.state.view==='admin')return; this.setState({clientSub:'list',projectId:null,selected:[]}); }
+  openSettings(){ const c=this.clientOf(this.state.clientId)||{}; this.setState({clientSub:'settings', setForm:{displayName:c.name||'',email:(c.username||'client')+'@'+(c.name||'client').toLowerCase().replace(/[^a-z0-9]/g,'')+'.com', notifyDelivery:true, notifyExpiry:true}, pw:{cur:'',next:'',conf:''}}); window.scrollTo(0,0); }
+  onSet(field,e){ const v=e.target.value; this.setState(s=>({setForm:{...s.setForm,[field]:v}})); }
+  onPw(field,e){ const v=e.target.value; this.setState(s=>({pw:{...s.pw,[field]:v}})); }
+  toggleNotify(field){ this.setState(s=>({setForm:{...s.setForm,[field]:!s.setForm[field]}})); }
+  saveProfile(){ this.toast('Profile saved.'); }
+  savePassword(){ const p=this.state.pw; if(!p.cur||!p.next){ this.toast('Enter your current and new password.'); return; } if(p.next!==p.conf){ this.toast('New passwords don’t match.'); return; } if(p.next.length<8){ this.toast('Use at least 8 characters.'); return; } this.setState({pw:{cur:'',next:'',conf:''}}); this.toast('Password updated · other sessions signed out.'); }
+  revokeSession(id){ this.setState(s=>({sessions:s.sessions.filter(x=>x.id!==id)})); this.toast('Session revoked.'); }
+  setFilter(f){ this.setState({filter:f}); }
+  setGroupMode(m){ this.setState({groupMode:m}); }
+
+  toggleSelect(id){ this.setState(s=>({selected: s.selected.includes(id)? s.selected.filter(x=>x!==id): [...s.selected,id]})); }
+  toggleFav(id){ this.setState(s=>({favorites: s.favorites.includes(id)? s.favorites.filter(x=>x!==id): [...s.favorites,id]})); }
+  clearSelection(){ this.setState({selected:[]}); }
+  downloadAll(){ const p=this.state.projects.find(x=>x.id===this.state.projectId); this.toast('Preparing ZIP of all deliverables in “'+(p?p.title:'')+'”…'); }
+  downloadZip(){ this.toast('Preparing ZIP of '+this.state.selected.length+' selected item(s)…'); this.setState({selected:[]}); }
+
+  photosOf(id){ return (this.state.assets[id]||[]).filter(a=>a.kind==='PHOTO'); }
+  openPhoto(id){ const ph=this.photosOf(this.state.projectId); const i=ph.findIndex(a=>a.id===id); this.setState({lb:i<0?0:i}); }
+  closeLightbox(){ this.setState({lb:null}); }
+  lbNext(){ const ph=this.photosOf(this.state.projectId); this.setState(s=>({lb:(s.lb+1)%ph.length})); }
+  lbPrev(){ const ph=this.photosOf(this.state.projectId); this.setState(s=>({lb:(s.lb-1+ph.length)%ph.length})); }
+  openVideo(id){ this.setState({vm:id}); }
+  closeVideo(){ this.setState({vm:null}); }
+  vmDownloadFn(){ this.toast('Starting resumable download of master file…'); }
+  openPay(id){ this.setState({pay:id,payTier:'social'}); }
+  closePay(){ this.setState({pay:null}); }
+  setPayTier(t){ this.setState({payTier:t}); }
+  licenseTiers(price){ const base=parseInt(String(price).replace(/[^0-9]/g,''),10)||0; const r=n=>Math.round(n/50)*50; return [
+    {id:'social',name:'Social & Digital',amount:r(base),scope:'Organic social, web & internal use · 1 year'},
+    {id:'commercial',name:'Commercial & Broadcast',amount:r(base*2),scope:'Paid ads, TV / OTT, out-of-home · 2 years'},
+    {id:'buyout',name:'Full Buyout',amount:r(base*4),scope:'All media, worldwide, in perpetuity'}
+  ]; }
+  confirmPay(){ const id=this.state.pay; const a=Object.values(this.state.assets).flat().find(x=>x.id===id); const tier=this.licenseTiers(a&&a.price).find(t=>t.id===this.state.payTier)||{name:'',amount:0}; this.setState(s=>({unlocked:s.unlocked.includes(id)?s.unlocked:[...s.unlocked,id],pay:null})); this.toast('Licensed — '+tier.name+' ($'+tier.amount+'). Watermark removed, master unlocked.'); }
+
+  setAdminTab(t){ this.setState({adminTab:t}); }
+  onSearch(e){ this.setState({search:e.target.value}); }
+  clearSearch(){ this.setState({search:''}); }
+  searchGo(tab,extra){ this.setState(Object.assign({adminTab:tab,search:''},extra||{})); }
+  toggleClient(id){ this.setState(s=>({clients:s.clients.map(c=>c.id===id?{...c,status:c.status==='active'?'disabled':'active'}:c)})); }
+  toggleClientExpand(id){ this.setState(s=>({expandedClient:s.expandedClient===id?null:id})); }
+  addUserSeat(cid){ const c=this.clientOf(cid); this.toast('Invite sent — a new seat will appear on “'+(c?c.name:'')+'” once accepted.'); }
+  toggleInternal(aid){ const mp=this.state.mediaProjectId; this.setState(s=>({assets:{...s.assets,[mp]:(s.assets[mp]||[]).map(a=>a.id===aid?{...a,internal:!a.internal}:a)}})); }
+  connectSlack(){ this.setState({slackConnected:true}); this.toast('Connected to Slack workspace “Bjur Media”.'); }
+  disconnectSlack(){ this.setState({slackConnected:false}); this.toast('Slack disconnected.'); }
+  toggleSlack(k){ this.setState(s=>({slack:{...s.slack,[k]:!s.slack[k]}})); }
+  setSlack(k,e){ const v=e.target.value; this.setState(s=>({slack:{...s.slack,[k]:v}})); }
+  onClientChannel(cid,e){ const v=e.target.value; this.setState(s=>({clientChannels:{...s.clientChannels,[cid]:v}})); }
+  sendTestSlack(){ this.toast('Test message posted to '+this.state.slack.channel+' ✓'); }
+
+  _collectFiles(node){ return node.type==='file'?[node.id]:(node.children||[]).flatMap(n=>this._collectFiles(n)); }
+  _findFiles(nodes,ids,out){ nodes.forEach(n=>{ if(n.type==='file'){ if(ids.includes(n.id))out.push(n); } else this._findFiles(n.children||[],ids,out); }); return out; }
+  toggleExpand(id){ this.setState(s=>({expanded: s.expanded.includes(id)? s.expanded.filter(x=>x!==id):[...s.expanded,id]})); }
+  togglePick(id){ this.setState(s=>({picked: s.picked.includes(id)? s.picked.filter(x=>x!==id):[...s.picked,id]})); }
+  pickFolder(id){ const find=(nodes)=>{for(const n of nodes){if(n.id===id)return n;if(n.children){const r=find(n.children);if(r)return r;}}return null;}; const node=find(this.state.archive); if(!node)return; const files=this._collectFiles(node); const all=files.every(f=>this.state.picked.includes(f)); this.setState(s=>({picked: all? s.picked.filter(x=>!files.includes(x)) : [...new Set([...s.picked,...files])]})); }
+  setImportTarget(id){ this.setState({importTarget:id}); }
+  toggleAutoMap(){ this.setState(s=>({autoMap:!s.autoMap})); }
+  registerPicked(){
+    const ids=this.state.picked; if(!ids.length){ this.toast('Select files to import first.'); return; }
+    const files=this._findFiles(this.state.archive,ids,[]); const auto=this.state.autoMap; const tgt=this.state.projects.find(p=>p.id===this.state.importTarget);
+    const yr=(t)=>{ const m=String(t).match(/20\d{2}/); return m?m[0]:null; };
+    const rows=files.map(n=>({id:n.id,name:n.name,size:n.size,fmt:n.fmt, dateText: auto ? (yr(n.name)|| (tgt?tgt.date:'—')) : (tgt?tgt.date:'—') }));
+    this.setState({preview:rows});
+  }
+  closePreview(){ this.setState({preview:null}); }
+  previewCycleFmt(id){ const order=['Reel','Film','Still','Master']; this.setState(s=>({preview:(s.preview||[]).map(r=>r.id===id?{...r,fmt:order[(order.indexOf(r.fmt)+1)%order.length]}:r)})); }
+  previewRemove(id){ this.setState(s=>({preview:(s.preview||[]).filter(r=>r.id!==id), picked:s.picked.filter(x=>x!==id)})); }
+  confirmPreview(){
+    const rows=this.state.preview||[]; if(!rows.length){ this.setState({preview:null}); return; }
+    const tgt=this.state.importTarget; const G=this.G; const rnd=()=>G[Math.floor(Math.random()*G.length)];
+    const newAssets=rows.map((r,i)=>{
+      const kind=r.fmt==='Still'?'PHOTO':'VIDEO';
+      const a={id:'imp'+Date.now()+'_'+i,kind,format:r.fmt,orientation:r.fmt==='Reel'?'portrait':'landscape',name:r.name,size:r.size,bg:rnd(),proxy:'GENERATING'};
+      if(kind==='VIDEO'){ a.dur=r.fmt==='Reel'?'00:20':'01:00'; a.proxyRes=r.fmt==='Reel'?'1080×1920 H.264':'1080p H.264'; a.master=(r.fmt==='Master'?'BRAW · ':'ProRes · ')+r.size; if(r.fmt==='Master'){ a.raw=true; a.price='$450'; } }
+      else { a.dims='6000×4000'; }
+      return a;
+    });
+    const proj=this.state.projects.find(p=>p.id===tgt);
+    this.setState(s=>({assets:{...s.assets,[tgt]:[...newAssets,...(s.assets[tgt]||[])]},picked:[],preview:null}));
+    this.toast(rows.length+' file(s) registered into “'+(proj?proj.title:'')+'” · generating proxies…');
+    newAssets.forEach((a,i)=>setTimeout(()=>this.setProxy(tgt,a.id,'READY'),1500+i*650));
+  }
+
+  setMediaProject(id){ this.setState({mediaProjectId:id}); }
+  onNasInput(e){ this.setState({nasPath:e.target.value}); }
+  scanNas(){
+    const mp=this.state.mediaProjectId;
+    const newOnes=[
+      {id:'n'+Date.now(),kind:'VIDEO',format:'Reel',orientation:'portrait',name:'New_Reel_Import.mp4',dur:'00:19',proxyRes:'1080×1920 H.264',master:'ProRes 422 · 1.9 GB',size:'1.9 GB',bg:this.G[Math.floor(Math.random()*this.G.length)],proxy:'GENERATING'},
+      {id:'n'+(Date.now()+1),kind:'PHOTO',format:'Still',orientation:'landscape',name:'New_Still_041.jpg',dims:'6048×4032',size:'24.2 MB',bg:this.G[Math.floor(Math.random()*this.G.length)],proxy:'GENERATING'}
+    ];
+    this.setState(s=>({assets:{...s.assets,[mp]:[...newOnes,...(s.assets[mp]||[])]}}));
+    this.toast('2 files registered · ffmpeg worker generating proxies…');
+    const ids=newOnes.map(n=>n.id);
+    setTimeout(()=>this.setProxy(mp,ids[1],'READY'),2200);
+    setTimeout(()=>this.setProxy(mp,ids[0],'READY'),4200);
+  }
+  setProxy(pid,aid,status){ this.setState(s=>({assets:{...s.assets,[pid]:(s.assets[pid]||[]).map(a=>a.id===aid?{...a,proxy:status}:a)}})); }
+  retryProxy(aid){ const mp=this.state.mediaProjectId; this.setProxy(mp,aid,'GENERATING'); setTimeout(()=>this.setProxy(mp,aid,'READY'),2600); }
+
+  openClientDialog(){ this.setState({dialog:'client',form1:'',form2:''}); }
+  openProjectDialog(){ this.setState({dialog:'project',form1:'',form2:''}); }
+  closeDialog(){ this.setState({dialog:null}); }
+  onForm1(e){ this.setState({form1:e.target.value}); }
+  onForm2(e){ this.setState({form2:e.target.value}); }
+  confirmDialog(){
+    if(this.state.dialog==='client'){
+      const name=this.state.form1.trim()||'New Client';
+      const un=this.state.form2.trim()||name.toLowerCase().replace(/[^a-z]+/g,'');
+      this.setState(s=>({clients:[...s.clients,{id:'c'+Date.now(),name,username:un,status:'active',lastLogin:'—'}]}));
+      this.toast('Client “'+name+'” created · credentials emailed');
+    } else {
+      const title=this.state.form1.trim()||'Untitled Project';
+      const cn=this.state.form2.trim()||'Meridian Films';
+      const c=this.state.clients.find(x=>x.name.toLowerCase()===cn.toLowerCase())||this.state.clients[0];
+      this.setState(s=>({projects:[...s.projects,{id:'p'+Date.now(),clientId:c.id,title,delivered:'—',expires:null,status:'DRAFT',bg:this.G[0]}]}));
+      this.toast('Project “'+title+'” created for '+c.name);
+    }
+    this.setState({dialog:null});
+  }
+
+  renderVals(){
+    const s=this.state;
+    const view=s.view;
+    const clientRec=this.clientOf(s.clientId)||{name:'',};
+    const initials=n=>n.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    // client project list
+    const projectCards=s.projects.filter(p=>p.clientId===s.clientId).map(p=>{
+      const vis=(s.assets[p.id]||[]).filter(a=>!a.internal);
+      const ph=vis.filter(a=>a.kind==='PHOTO').length, vi=vis.filter(a=>a.kind==='VIDEO').length;
+      const parts=[]; if(vi)parts.push(vi+' video'+(vi>1?'s':'')); if(ph)parts.push(ph+' photo'+(ph>1?'s':''));
+      return {...p, onOpen:()=>this.openProject(p.id), assetLabel:parts.join(' · '),
+        assetCount:ph+vi, isExpiring:!!p.expires, expires:p.expires||''};
+    });
+
+    // detail
+    const cur=s.projects.find(p=>p.id===s.projectId)||null;
+    let groups=[], filters=[], curClientName='', curTitle='', curMetaAssets='', curDelivered='', curExpires='', curHasExpiry=false, curPath='', flatCount=0;
+    const mapItem=(a)=>{
+      const selected=s.selected.includes(a.id);
+      const fav=s.favorites.includes(a.id);
+      const locked = !!a.raw && !s.unlocked.includes(a.id);
+      const priceLabel = a.raw ? ('from $'+this.licenseTiers(a.price)[0].amount) : '';
+      const aspect = a.format==='Reel' ? '9 / 16' : a.format==='Still' ? (a.orientation==='portrait'?'3 / 4':'3 / 2') : '16 / 9';
+      return {...a, selected, isVideo:a.kind==='VIDEO', raw:!!a.raw, locked, showCaption:!locked, aspect, priceLabel,
+        stamp: a.updated? ('Updated '+a.updated) : (a.added? ('Added '+a.added) : ''),
+        stampColor: a.updated? 'var(--accentb)' : 'var(--dim)',
+        badge: a.kind==='VIDEO'? (a.dur||'') : (a.dims||''),
+        borderColor: selected?'var(--accent)': locked?'rgba(236,48,19,.4)':'var(--line)',
+        checkBorder: selected?'var(--accent)':'rgba(255,255,255,.7)',
+        checkBg: selected?'var(--accent)':'rgba(0,0,0,.35)',
+        heartColor: fav?'var(--accent)':'rgba(255,255,255,.8)',
+        onClick: a.kind==='VIDEO'? ()=>this.openVideo(a.id):()=>this.openPhoto(a.id),
+        onToggle: (e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.toggleSelect(a.id); },
+        onFav: (e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.toggleFav(a.id); }
+      };
+    };
+    if(cur){
+      const all=(s.assets[cur.id]||[]).filter(a=>!a.internal);
+      curClientName=(this.clientOf(cur.clientId)||{}).name||''; curTitle=cur.title; curDelivered=cur.delivered;
+      curHasExpiry=!!cur.expires; curExpires=cur.expires||''; curPath=cur.path||'';
+      const defs=[['Reel','Reels'],['Film','Films'],['Still','Stills'],['Master','Masters · BRAW']];
+      const cnt=f=>all.filter(a=>a.format===f).length;
+      curMetaAssets = defs.map(d=>[cnt(d[0]),d[1]]).filter(x=>x[0]).map(x=>x[0]+' '+x[1].split(' · ')[0].toLowerCase()).join(' · ');
+      const favCount=all.filter(a=>s.favorites.includes(a.id)).length;
+      const mk=(id,label)=>({label,onClick:()=>this.setFilter(id), bg:s.filter===id?'var(--accent)':'transparent', color:s.filter===id?'#0a0a0b':'var(--muted)'});
+      filters=[mk('ALL','All')].concat(defs.filter(d=>cnt(d[0])).map(d=>mk(d[0],d[1].split(' · ')[0]))).concat([mk('FAV','♥ Favorites '+(favCount?'('+favCount+')':''))]);
+      const colsFor=f=> f==='Reel'?'repeat(auto-fill,minmax(180px,1fr))': f==='Still'?'repeat(auto-fill,minmax(270px,1fr))':'repeat(auto-fill,minmax(340px,1fr))';
+      if(s.filter==='FAV'){
+        const items=all.filter(a=>s.favorites.includes(a.id)).map(mapItem);
+        flatCount=items.length;
+        if(items.length) groups=[{label:'Favorites',count:items.length+' item'+(items.length>1?'s':''),folder:curPath,cols:'repeat(auto-fill,minmax(220px,1fr))',items}];
+      } else if(s.groupMode==='week'){
+        const weeks=[]; all.forEach(a=>{ const w=a.week||'Undated'; if(!weeks.includes(w))weeks.push(w); });
+        weeks.forEach(w=>{
+          const items=all.filter(a=>(a.week||'Undated')===w).map(mapItem);
+          if(!items.length) return; flatCount+=items.length;
+          groups.push({label:w,count:items.length+' file'+(items.length>1?'s':''),folder:curPath+'/'+w.replace(/\s+/g,'-'),cols:'repeat(auto-fill,minmax(190px,1fr))',items});
+        });
+      } else {
+        defs.forEach(d=>{
+          if(s.filter!=='ALL' && s.filter!==d[0]) return;
+          const items=all.filter(a=>a.format===d[0]).map(mapItem);
+          if(!items.length) return;
+          flatCount+=items.length;
+          groups.push({label:d[1],count:items.length+' file'+(items.length>1?'s':''),folder:curPath+'/'+d[0],cols:colsFor(d[0]),items});
+        });
+      }
+    }
+
+    // lightbox
+    const photos=cur?this.photosOf(cur.id):[];
+    const lbOpen=s.lb!==null&&photos.length>0;
+    const lbCur=lbOpen?photos[s.lb]:null;
+
+    // video modal
+    const vmCur = s.vm? (Object.values(s.assets).flat().find(a=>a.id===s.vm)) : null;
+    const payAsset = s.pay? (Object.values(s.assets).flat().find(a=>a.id===s.pay)) : null;
+
+    // admin tabs
+    const at=(id,label)=>({label,onClick:()=>this.setAdminTab(id), color:s.adminTab===id?'var(--text)':'var(--muted)', underline:s.adminTab===id?'var(--accent)':'transparent'});
+    const adminTabs=[at('home','Home'),at('clients','Clients'),at('projects','Projects'),at('library','Library'),at('media','Media'),at('integrations','Integrations')];
+
+    const clientRows=s.clients.map(c=>{
+      const active=c.status==='active';
+      const proj=s.projects.filter(p=>p.clientId===c.id).length;
+      const users=c.users||[];
+      const roleColor=r=> r==='Owner'?'#2ec36b': r==='Downloader'?'var(--accentb)':'var(--muted)';
+      return {...c, initials:initials(c.name), projects:proj,
+        rowBg: active?'transparent':'rgba(255,255,255,.015)',
+        nameColor: active?'var(--text)':'var(--dim)',
+        initColor: active?'var(--text)':'var(--dim)',
+        statusLabel: active?'Active':'Disabled',
+        statusColor: active?'#2ec36b':'var(--dim)',
+        toggleLabel: active?'Disable':'Enable',
+        typeLabel:c.type||'Retainer', typeColor:c.type==='One-off'?'var(--muted)':'var(--accent)', typeBorder:c.type==='One-off'?'var(--line2)':'rgba(236,48,19,.4)',
+        userCount:users.length+' user'+(users.length>1?'s':''), expanded:s.expandedClient===c.id, caret:s.expandedClient===c.id?'▾':'▸',
+        onExpand:()=>this.toggleClientExpand(c.id), onAddUser:()=>this.addUserSeat(c.id),
+        seats:users.map(u=>({...u, roleColor:roleColor(u.role)})),
+        onToggle:()=>this.toggleClient(c.id)};
+    });
+
+    const projectRows=s.projects.map(p=>{
+      const ph=this.countAssets(p.id,'PHOTO'), vi=this.countAssets(p.id,'VIDEO');
+      const sc = p.status==='LIVE'?'#2ec36b': p.status==='DRAFT'?'var(--accentb)':'var(--dim)';
+      return {...p, clientName:(this.clientOf(p.clientId)||{}).name||'—', assetLabel:(ph+vi)+' assets',
+        statusColor:sc, expires:p.expires||'No expiry', expiresColor:p.expires?'var(--muted)':'var(--dim)'};
+    });
+
+    // media
+    const mpTabs=s.projects.filter(p=>p.clientId).slice(0,4).map(p=>({label:p.title.split(' — ')[0].split(' ').slice(0,2).join(' '), onClick:()=>this.setMediaProject(p.id), bg:s.mediaProjectId===p.id?'var(--accent)':'transparent', color:s.mediaProjectId===p.id?'#0a0a0b':'var(--muted)'}));
+    const mAll=s.assets[s.mediaProjectId]||[];
+    const mediaRows=mAll.map(a=>{
+      const st=a.proxy||'READY';
+      const map={READY:{l:'Ready',c:'#2ec36b'},GENERATING:{l:'Generating…',c:'var(--accentb)'},PENDING:{l:'Queued',c:'var(--muted)'},ERROR:{l:'Failed',c:'var(--accent)'}};
+      const m=map[st]||map.READY;
+      const vis = a.internal?'internal':(a.raw?'paywalled':'');
+      return {...a, isVideo:a.kind==='VIDEO', typeLabel:(a.format||(a.kind==='VIDEO'?'Video':'Photo')).toUpperCase(), size:a.size, raw:!!a.raw, internal:!!a.internal,
+        visTag: vis==='internal'?'INTERNAL':vis==='paywalled'?'PAYWALLED':'', hasVisTag: vis!=='',
+        visTagColor: vis==='internal'?'var(--muted)':'var(--accentb)', visTagBorder: vis==='internal'?'var(--line2)':'rgba(236,48,19,.4)',
+        visActionLabel: a.internal?'Show client':'Hide', onToggleVis:()=>this.toggleInternal(a.id),
+        statusLabel:m.l, statusColor:m.c, dotColor:m.c,
+        isGenerating:st==='GENERATING', isReady:st==='READY',
+        canRetry: st==='ERROR'||st==='PENDING', onRetry:()=>this.retryProxy(a.id)};
+    });
+    const gen=mAll.filter(a=>a.proxy==='GENERATING').length;
+    const ready=mAll.filter(a=>(a.proxy||'READY')==='READY').length;
+    const workerStats=[
+      {value:mAll.length,label:'Assets',color:'var(--text)'},
+      {value:ready,label:'Proxies ready',color:'#2ec36b'},
+      {value:gen,label:'In queue',color:gen?'var(--accentb)':'var(--dim)'},
+      {value:'1',label:'Workers online',color:'var(--text)'}
+    ];
+
+    const dialogClient=s.dialog==='client';
+
+    // library import
+    const libRows=[];
+    const walk=(nodes,depth)=>{ nodes.forEach(n=>{
+      const indentW=(depth*22)+'px';
+      if(n.type==='folder'){
+        const files=this._collectFiles(n); const picked=files.filter(f=>s.picked.includes(f)).length;
+        const st=picked===0?'none':picked===files.length?'all':'some'; const isOpen=s.expanded.includes(n.id);
+        libRows.push({id:n.id,isFolder:true,name:n.name,indentW,caret:isOpen?'▾':'▸',meta:files.length+' files',raw:false,
+          nameColor:'var(--text)',
+          checkBg: st==='all'?'var(--accent)':st==='some'?'rgba(236,48,19,.45)':'transparent',
+          checkBorder: st!=='none'?'var(--accent)':'var(--line2)', checkMark: st==='all'?'✓':st==='some'?'–':'',
+          onToggle:()=>this.toggleExpand(n.id), onPick:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.pickFolder(n.id); }});
+        if(isOpen) walk(n.children||[],depth+1);
+      } else {
+        const checked=s.picked.includes(n.id);
+        libRows.push({id:n.id,isFolder:false,name:n.name,indentW,caret:'',meta:n.fmt+' · '+n.size,raw:n.fmt==='Master',
+          nameColor:'var(--muted)',
+          checkBg:checked?'var(--accent)':'transparent', checkBorder:checked?'var(--accent)':'var(--line2)', checkMark:checked?'✓':'',
+          onToggle:()=>{}, onPick:()=>this.togglePick(n.id)});
+      }
+    }); };
+    walk(s.archive,0);
+    const importTargets=s.projects.filter(p=>p.clientId==='c2').map(p=>({label:p.title.split(' — ')[0], onClick:()=>this.setImportTarget(p.id), bg:s.importTarget===p.id?'var(--accent)':'transparent', color:s.importTarget===p.id?'#0a0a0b':'var(--muted)'}));
+    const tgtProj=s.projects.find(p=>p.id===s.importTarget);
+    const hasPicked=s.picked.length>0;
+    const previewRows=(s.preview||[]).map(r=>({...r, isMaster:r.fmt==='Master',
+      onCycle:()=>this.previewCycleFmt(r.id), onRemove:()=>this.previewRemove(r.id)}));
+
+    // dashboard
+    const activeClients=s.clients.filter(c=>c.status==='active').length;
+    const liveProjects=s.projects.filter(p=>p.status==='LIVE').length;
+    const allAssets=Object.values(s.assets).flat();
+    const queueCount=allAssets.filter(a=>a.proxy==='GENERATING').length;
+    const gb=allAssets.reduce((t,a)=>{ const m=String(a.master||a.size||'').match(/([\d.]+)\s*(GB|MB|TB)/i); if(!m)return t; let v=parseFloat(m[1]); const u=m[2].toUpperCase(); if(u==='MB')v/=1024; if(u==='TB')v*=1024; return t+v; },0);
+    const storageLabel = gb>=1024? (gb/1024).toFixed(1)+' TB' : Math.round(gb)+' GB';
+    const dashStats=[
+      {value:String(activeClients),label:'Active clients'},
+      {value:String(liveProjects),label:'Live galleries'},
+      {value:String(allAssets.length),label:'Deliverables'},
+      {value:storageLabel,label:'Storage indexed'}
+    ];
+    const clientNameOf=id=>(this.clientOf(id)||{}).name||'—';
+    const recentDeliveries=s.projects.slice(0,5).map(p=>({title:p.title, client:clientNameOf(p.clientId), delivered:p.delivered, count:(s.assets[p.id]||[]).length+' files', statusColor:p.status==='LIVE'?'#2ec36b':p.status==='DRAFT'?'var(--accentb)':'var(--dim)', status:p.status}));
+    const expiring=s.projects.filter(p=>p.expires).map(p=>({title:p.title, client:clientNameOf(p.clientId), expires:p.expires}));
+    const activity=this.activity||[];
+
+    // slack integration
+    const sl=s.slack; const tg=on=>({bg:on?'var(--accent)':'var(--s3)',dot:on?'translateX(18px)':'translateX(0)'});
+    const clientChannelRows=s.clients.map(c=>({id:c.id,name:c.name,channel:s.clientChannels[c.id]||'', onChange:(e)=>this.onClientChannel(c.id,e)}));
+
+    // global search
+    const q=s.search.trim().toLowerCase();
+    const searchOpen=q.length>0; let searchGroups=[]; let searchTotal=0;
+    if(q){
+      const cl=s.clients.filter(c=>c.name.toLowerCase().includes(q)||c.username.toLowerCase().includes(q)).slice(0,4).map(c=>({title:c.name,sub:'Client · @'+c.username,onClick:()=>this.searchGo('clients')}));
+      const pr=s.projects.filter(p=>p.title.toLowerCase().includes(q)||clientNameOf(p.clientId).toLowerCase().includes(q)).slice(0,5).map(p=>({title:p.title,sub:'Project · '+clientNameOf(p.clientId),onClick:()=>this.searchGo('projects')}));
+      const as=[]; Object.keys(s.assets).forEach(pid=>{ (s.assets[pid]||[]).forEach(a=>{ if(String(a.name).toLowerCase().includes(q)) as.push({title:a.name,sub:(a.format||a.kind)+' · '+clientNameOf((s.projects.find(p=>p.id===pid)||{}).clientId),onClick:()=>this.searchGo('media',{mediaProjectId:pid})}); }); });
+      const asL=as.slice(0,6);
+      searchTotal=cl.length+pr.length+asL.length;
+      if(cl.length)searchGroups.push({label:'Clients',items:cl});
+      if(pr.length)searchGroups.push({label:'Projects',items:pr});
+      if(asL.length)searchGroups.push({label:'Files',items:asL});
+    }
+
+    return {
+      isLogin:view==='login', isClient:view==='client', isAdmin:view==='admin',
+      showList:s.clientSub==='list', showDetail:s.clientSub==='detail', showSettings:s.clientSub==='settings',
+      openSettings:()=>this.openSettings(),
+      setName:s.setForm.displayName, setEmail:s.setForm.email,
+      onSetName:(e)=>this.onSet('displayName',e), onSetEmail:(e)=>this.onSet('email',e),
+      saveProfile:()=>this.saveProfile(),
+      pwCur:s.pw.cur, pwNext:s.pw.next, pwConf:s.pw.conf,
+      onPwCur:(e)=>this.onPw('cur',e), onPwNext:(e)=>this.onPw('next',e), onPwConf:(e)=>this.onPw('conf',e),
+      savePassword:()=>this.savePassword(),
+      notifyDeliveryBg:s.setForm.notifyDelivery?'var(--accent)':'var(--s3)', notifyDeliveryDot:s.setForm.notifyDelivery?'translateX(18px)':'translateX(0)', toggleNotifyDelivery:()=>this.toggleNotify('notifyDelivery'),
+      notifyExpiryBg:s.setForm.notifyExpiry?'var(--accent)':'var(--s3)', notifyExpiryDot:s.setForm.notifyExpiry?'translateX(18px)':'translateX(0)', toggleNotifyExpiry:()=>this.toggleNotify('notifyExpiry'),
+      settingsCompany:(this.clientOf(s.clientId)||{}).name||'',
+      sessionRows:s.sessions.map(x=>({...x, showRevoke:!x.current, whenColor:x.current?'#2ec36b':'var(--dim)', onRevoke:()=>this.revokeSession(x.id)})),
+      enterClient:()=>this.enterClient(), enterAdmin:()=>this.enterAdmin(), signOut:()=>this.signOut(),
+      loginUser:s.loginUser, loginPass:s.loginPass, loginError:s.loginError,
+      loginUserPh: s.portal==='admin'?'admin':'e.g. ssh',
+      onLoginUser:(e)=>this.onLoginUser(e), onLoginPass:(e)=>this.onLoginPass(e),
+      submitLogin:(e)=>this.submitLogin(e), demoFill:()=>this.demoFill(),
+      loginAddress: s.portal==='admin'?'portal.bjur.media/admin':'portal.bjur.media',
+      loginPanelBg: s.portal==='admin'?'radial-gradient(120% 80% at 18% 8%,rgba(120,120,130,.14),transparent 46%),var(--bg)':'radial-gradient(120% 80% at 18% 8%,rgba(236,48,19,.12),transparent 46%),var(--bg)',
+      loginKicker: s.portal==='admin'?'Staff Control Panel':'Client Delivery Portal',
+      loginHeadA: s.portal==='admin'?'Deliver with':'Your work,',
+      loginHeadB: s.portal==='admin'?'control.':'delivered.',
+      loginBlurb: s.portal==='admin'?'Manage client accounts, build galleries and run the media pipeline. Staff access only.':'Secure access to your finished photo and video deliverables. Stream, review and download masters at full resolution.',
+      loginEyebrow: s.portal==='admin'?'Admin access':'Sign in',
+      loginFormTitle: s.portal==='admin'?'Staff sign in':'Welcome back',
+      demoLabel: s.portal==='admin'?'admin':'client (ssh)',
+      switchLabel: s.portal==='admin'?'← Client portal (/)':'Staff? Go to /admin →',
+      switchPortal:()=>this.goPortal(s.portal==='admin'?'client':'admin'),
+      clientName:clientRec.name, clientInitials:initials(clientRec.name||'CL'),
+      backToProjects:()=>this.backToProjects(),
+      projectCards, projectCountLabel:projectCards.length+' active project'+(projectCards.length>1?'s':''),
+      // detail
+      curClientName, curTitle, curMetaAssets, curDelivered, curExpires, curHasExpiry, curPath,
+      filters, groups, downloadAll:()=>this.downloadAll(),
+      groupToggle:[
+        {label:'Format',onClick:()=>this.setGroupMode('format'), bg:s.groupMode==='format'?'var(--accent)':'transparent', color:s.groupMode==='format'?'#0a0a0b':'var(--muted)'},
+        {label:'Week',onClick:()=>this.setGroupMode('week'), bg:s.groupMode==='week'?'var(--accent)':'transparent', color:s.groupMode==='week'?'#0a0a0b':'var(--muted)'}
+      ],
+      showFavEmpty: !!cur && s.filter==='FAV' && flatCount===0,
+      // selection
+      showSelBar:s.selected.length>0, selCount:s.selected.length, clearSelection:()=>this.clearSelection(), downloadZip:()=>this.downloadZip(),
+      // lightbox
+      lbOpen, lbName:lbCur?lbCur.name:'', lbBadge:lbCur?lbCur.dims:'', lbCounter:lbOpen?((s.lb+1)+' / '+photos.length):'', lbBg:lbCur?lbCur.bg:'#111',
+      closeLightbox:()=>this.closeLightbox(), lbNext:()=>this.lbNext(), lbPrev:()=>this.lbPrev(), lbDownload:()=>this.toast('Downloading '+(lbCur?lbCur.name:'')+' ('+(lbCur?lbCur.size:'')+')…'),
+      lbFavColor: (lbCur&&s.favorites.includes(lbCur.id))?'var(--accent)':'var(--muted)',
+      lbFavLabel: (lbCur&&s.favorites.includes(lbCur.id))?'Favorited':'Favorite',
+      lbToggleFav:()=>{ if(lbCur)this.toggleFav(lbCur.id); },
+      // video
+      vmOpen:!!vmCur, vmName:vmCur?vmCur.name:'', vmDur:vmCur?vmCur.dur:'', vmProxy:vmCur?vmCur.proxyRes:'', vmMaster:vmCur?vmCur.master:'', vmBg:vmCur?vmCur.bg:'#111',
+      vmRaw: !!(vmCur&&vmCur.raw), vmLocked: !!(vmCur&&vmCur.raw&&!s.unlocked.includes(vmCur.id)), vmShowDownload: !(vmCur&&vmCur.raw&&!s.unlocked.includes(vmCur.id)),
+      vmPrice: vmCur&&vmCur.raw?('from $'+this.licenseTiers(vmCur.price)[0].amount):'',
+      vmAspect: vmCur&&vmCur.orientation==='portrait'?'9 / 16':'16 / 9',
+      vmMaxW: vmCur&&vmCur.orientation==='portrait'?'380px':'1080px',
+      vmProxyLabel: (vmCur&&vmCur.raw)?'Streaming watermarked preview':'Streaming H.264 proxy',
+      closeVideo:()=>this.closeVideo(), vmDownload:()=>this.vmDownloadFn(), vmUnlock:()=>{ if(vmCur)this.openPay(vmCur.id); },
+      // paywall
+      payOpen:!!s.pay, closePay:()=>this.closePay(), confirmPay:()=>this.confirmPay(),
+      payName:payAsset?payAsset.name:'', paySize:payAsset?(payAsset.size||''):'',
+      payTiers: payAsset? this.licenseTiers(payAsset.price).map(t=>({...t, amountLabel:'$'+t.amount, selected:s.payTier===t.id, onSelect:()=>this.setPayTier(t.id), rowBg:s.payTier===t.id?'rgba(236,48,19,.1)':'transparent', rowBorder:s.payTier===t.id?'var(--accent)':'var(--line2)', dotBg:s.payTier===t.id?'var(--accent)':'transparent', dotBorder:s.payTier===t.id?'var(--accent)':'var(--line2)', nameColor:s.payTier===t.id?'var(--text)':'var(--muted)'})) : [],
+      payCtaLabel: payAsset? ('License · $'+(this.licenseTiers(payAsset.price).find(t=>t.id===s.payTier)||{amount:0}).amount) : 'License',
+      // admin
+      adminTabs, tabHome:s.adminTab==='home', tabClients:s.adminTab==='clients', tabProjects:s.adminTab==='projects', tabMedia:s.adminTab==='media', tabLibrary:s.adminTab==='library', tabIntegrations:s.adminTab==='integrations',
+      slackConnected:s.slackConnected, slackDisconnected:!s.slackConnected, connectSlack:()=>this.connectSlack(), disconnectSlack:()=>this.disconnectSlack(), sendTestSlack:()=>this.sendTestSlack(),
+      slackChannel:sl.channel, onSlackChannel:(e)=>this.setSlack('channel',e),
+      slackWeeklyDay:sl.weeklyDay, onSlackDay:(e)=>this.setSlack('weeklyDay',e), slackWeeklyTime:sl.weeklyTime, onSlackTime:(e)=>this.setSlack('weeklyTime',e),
+      slackScheduleLabel:'Every '+sl.weeklyDay+' at '+sl.weeklyTime,
+      autoWeeklyBg:tg(sl.autoWeekly).bg, autoWeeklyDot:tg(sl.autoWeekly).dot, toggleAutoWeekly:()=>this.toggleSlack('autoWeekly'), autoWeekly:sl.autoWeekly,
+      autoUploadBg:tg(sl.autoUpload).bg, autoUploadDot:tg(sl.autoUpload).dot, toggleAutoUpload:()=>this.toggleSlack('autoUpload'),
+      autoDownloadBg:tg(sl.autoDownload).bg, autoDownloadDot:tg(sl.autoDownload).dot, toggleAutoDownload:()=>this.toggleSlack('autoDownload'),
+      autoLicenseBg:tg(sl.autoLicense).bg, autoLicenseDot:tg(sl.autoLicense).dot, toggleAutoLicense:()=>this.toggleSlack('autoLicense'),
+      clientChannelRows,
+      dashStats, dashQueue:String(queueCount), dashQueueColor:queueCount?'var(--accentb)':'var(--dim)',
+      recentDeliveries, expiring, hasExpiring:expiring.length>0, activity,
+      goImport:()=>this.setAdminTab('library'),
+      searchQuery:s.search, onSearch:(e)=>this.onSearch(e), clearSearch:()=>this.clearSearch(),
+      searchOpen, searchGroups, searchEmpty:searchOpen&&searchTotal===0,
+      libRows, pickedCount:s.picked.length, hasPicked,
+      importTargets, importTargetName: tgtProj? tgtProj.title : '—', importTargetPath: tgtProj? tgtProj.path : '',
+      autoMap:s.autoMap, autoMapBg:s.autoMap?'var(--accent)':'var(--s3)', autoMapDot:s.autoMap?'translateX(18px)':'translateX(0)', toggleAutoMap:()=>this.toggleAutoMap(),
+      registerPicked:()=>this.registerPicked(),
+      previewOpen: Array.isArray(s.preview), previewRows, previewCount:(s.preview||[]).length,
+      previewTargetName: tgtProj? tgtProj.title : '—', previewTargetPath: tgtProj? tgtProj.path : '',
+      closePreview:()=>this.closePreview(), confirmPreview:()=>this.confirmPreview(),
+      registerBg: hasPicked?'var(--accent)':'var(--s3)', registerColor: hasPicked?'#0a0a0b':'var(--dim)',
+      registerLabel: hasPicked? ('Register '+s.picked.length+' file'+(s.picked.length>1?'s':'')) : 'Register selected',
+      clientRows, openClientDialog:()=>this.openClientDialog(),
+      projectRows, openProjectDialog:()=>this.openProjectDialog(),
+      mediaProjectTabs:mpTabs, nasPath:s.nasPath, onNasInput:(e)=>this.onNasInput(e), scanNas:()=>this.scanNas(),
+      workerStats, mediaRows,
+      // dialog
+      dialogOpen:!!s.dialog, closeDialog:()=>this.closeDialog(), stop:(e)=>{if(e&&e.stopPropagation)e.stopPropagation();},
+      dialogTitle: dialogClient?'New client':'New project',
+      dialogSub: dialogClient?'Creates a client account with a secure, hashed password.':'Creates a gallery and assigns it to a client.',
+      dialogField1: dialogClient?'Client name':'Project title',
+      dialogField2: dialogClient?'Username':'Assign to client',
+      dialogPh1: dialogClient?'e.g. Meridian Films':'e.g. Winter Campaign',
+      dialogPh2: dialogClient?'auto from name':'e.g. Meridian Films',
+      dialogCta: dialogClient?'Create client':'Create project',
+      form1:s.form1, form2:s.form2, onForm1:(e)=>this.onForm1(e), onForm2:(e)=>this.onForm2(e),
+      dialogConfirm:()=>this.confirmDialog(),
+      // toast
+      toastMsg:s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

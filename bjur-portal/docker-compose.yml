@@ -1,0 +1,47 @@
+services:
+  web:
+    build:
+      context: .
+      target: runtime-web
+    environment:
+      - DATABASE_URL=file:/data/bjur.db
+      - MEDIA_ROOT=/media
+      - DERIVED_ROOT=/media/_derived
+      - ARCHIVE_ROOT=/media/_archive
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CRON_SECRET=${CRON_SECRET}
+      - PORTAL_URL=${PORTAL_URL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    volumes:
+      - ./data:/data
+      - /volume1/media/Bjur:/media:ro # read-only: web only ever streams, never writes
+      - /volume1/media/Bjur/_derived:/media/_derived
+    ports:
+      # host 3003 → container 3000 (3000–3002 are taken by other sites on the NAS)
+      - "3003:3000"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: runtime-worker
+    environment:
+      - DATABASE_URL=file:/data/bjur.db
+      - MEDIA_ROOT=/media
+      - DERIVED_ROOT=/media/_derived
+      - INBOX_ROOT=/media/_inbox
+      - ARCHIVE_ROOT=/media/_archive
+      - WORKER_CONCURRENCY=1
+    volumes:
+      - ./data:/data
+      # read-write: the ingest watcher moves finished exports from _inbox into the
+      # canonical CLIENT/PROJECT/DATE/FORMAT tree, and the proxy loop writes _derived.
+      - /volume1/media/Bjur:/media
+      - /volume1/media/Bjur/_derived:/media/_derived
+      - /volume1/media/Bjur/_inbox:/media/_inbox
+    restart: unless-stopped
