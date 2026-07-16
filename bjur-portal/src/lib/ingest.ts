@@ -170,6 +170,21 @@ export async function ingestFile(absPath: string) {
   // than one for a single logical write) racing past the in-process de-dupe in worker.ts.
   if (!existsSync(absPath)) return;
 
+  // Work-in-progress exports live in a "WIPS"/"WIP" subfolder alongside the finals and
+  // should never reach a client gallery. Drop them from the inbox rather than delivering
+  // drafts — the studio's real originals live elsewhere, this is only a staging copy.
+  const inboxSegmentsForWipCheck = path.relative(INBOX_ROOT, absPath).split(path.sep);
+  if (inboxSegmentsForWipCheck.some((seg) => /^wips?$/i.test(seg))) {
+    await unlink(absPath);
+    await db.activity.create({
+      data: {
+        actor: "Worker",
+        action: `Discarded WIP file (not delivered): ${inboxSegmentsForWipCheck.join("/")}`,
+      },
+    });
+    return;
+  }
+
   const project = await resolveProjectFromInboxPath(absPath);
   if (!project) {
     await db.activity.create({
