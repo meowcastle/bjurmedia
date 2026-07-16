@@ -19,8 +19,8 @@ services:
       - SMTP_FROM=${SMTP_FROM}
     volumes:
       - ./data:/data
-      - /volume1/media/Bjur:/media:ro # read-only: web only ever streams, never writes
-      - /volume1/media/Bjur/_derived:/media/_derived
+      - /volume2/BjurMedia:/media:ro # read-only: web only ever streams, never writes
+      - /volume2/BjurMedia/_derived:/media/_derived
     ports:
       # host 3003 → container 3000 (3000–3002 are taken by other sites on the NAS)
       - "3003:3000"
@@ -41,7 +41,7 @@ services:
       - ./data:/data
       # read-write: the ingest watcher moves finished exports from _inbox into the
       # canonical CLIENT/PROJECT/DATE/FORMAT tree, and the proxy loop writes _derived.
-      - /volume1/media/Bjur:/media
-      - /volume1/media/Bjur/_derived:/media/_derived
-      - /volume1/media/Bjur/_inbox:/media/_inbox
+      - /volume2/BjurMedia:/media
+      - /volume2/BjurMedia/_derived:/media/_derived
+      - /volume2/BjurMedia/_inbox:/media/_inbox
     restart: unless-stopped
