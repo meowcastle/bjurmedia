@@ -124,14 +124,6 @@ export function AssetTile({
           ♥
         </div>
 
-        {asset.kind === "VIDEO" && !locked && (
-          <div className="absolute inset-0 grid place-items-center z-[3]">
-            <div className="w-[52px] h-[52px] border-[1.5px] border-white/85 rounded-full grid place-items-center backdrop-blur-sm">
-              <span className="text-white text-[15px] ml-0.5">▶</span>
-            </div>
-          </div>
-        )}
-
         {locked ? (
           <div className="absolute left-0 right-0 bottom-0 z-[5] px-3 py-2.5 bg-gradient-to-t from-black/85 to-transparent flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-white truncate">🔒 {asset.name}</span>
