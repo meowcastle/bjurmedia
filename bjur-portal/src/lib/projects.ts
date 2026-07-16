@@ -43,6 +43,11 @@ export async function createProject(opts: {
   const inboxSlug = `${slug}-${shortSuffix()}`;
   const path_ = `${client.name.replace(/[^a-zA-Z0-9]+/g, "")}/${slug}`;
 
+  // Create the inbox folder before the DB row: if this throws (e.g. a read-only
+  // mount), we want zero trace of the project rather than an orphaned DRAFT row
+  // that the UI reported as a failure but the database actually kept.
+  await ensureInboxDir(client.username, inboxSlug);
+
   const project = await db.project.create({
     data: {
       clientId: opts.clientId,
@@ -53,8 +58,6 @@ export async function createProject(opts: {
       expiresAt: opts.expiresAt ?? null,
     },
   });
-
-  await ensureInboxDir(client.username, inboxSlug);
 
   return { project, inboxPath: inboxDirFor(client.username, inboxSlug) };
 }

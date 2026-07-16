@@ -12,6 +12,7 @@ type ProjectRow = {
   deliveredAt: string | null;
   expiresAt: string | null;
   clientType: "RETAINER" | "ONEOFF";
+  assetCount: number;
 };
 
 function toDateInput(iso: string | null) {
@@ -22,10 +23,12 @@ export function EditProjectDialog({
   project,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   project: ProjectRow;
   onClose: () => void;
   onSaved: () => void;
+  onDeleted: () => void;
 }) {
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
@@ -33,8 +36,24 @@ export function EditProjectDialog({
   const [expiresAt, setExpiresAt] = useState(toDateInput(project.expiresAt));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isRetainer = project.clientType === "RETAINER";
+
+  async function deleteProject() {
+    setDeleting(true);
+    setError("");
+    const res = await fetch(`/api/admin/projects/${project.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? "Failed to delete.");
+      setDeleting(false);
+      setConfirmingDelete(false);
+      return;
+    }
+    onDeleted();
+  }
 
   async function submit() {
     setLoading(true);
@@ -96,13 +115,43 @@ export function EditProjectDialog({
 
         {error && <div className="text-xs text-accentb mt-4 font-semibold">{error}</div>}
 
-        <div className="flex justify-end gap-2.5 mt-7">
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={loading}>
-            {loading ? "Saving…" : "Save changes"}
-          </Button>
+        <div className="flex items-center justify-between gap-2.5 mt-7">
+          <div>
+            {project.assetCount === 0 &&
+              (confirmingDelete ? (
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs text-muted">Delete this project?</span>
+                  <button
+                    onClick={deleteProject}
+                    disabled={deleting}
+                    className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                  >
+                    {deleting ? "Deleting…" : "Confirm delete"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+                >
+                  Delete project
+                </button>
+              ))}
+          </div>
+          <div className="flex justify-end gap-2.5">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

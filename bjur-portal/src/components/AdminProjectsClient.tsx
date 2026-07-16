@@ -112,9 +112,14 @@ export function AdminProjectsClient({
             deliveredAt: editing.deliveredAt,
             expiresAt: editing.expiresAt,
             clientType: editing.clientType,
+            assetCount: editing.assetCount,
           }}
           onClose={() => setEditing(null)}
           onSaved={() => {
+            setEditing(null);
+            router.refresh();
+          }}
+          onDeleted={() => {
             setEditing(null);
             router.refresh();
           }}
