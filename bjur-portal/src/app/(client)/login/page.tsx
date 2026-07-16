@@ -10,7 +10,7 @@ export default function ClientLoginPage() {
       blurb="Secure access to your finished photo and video deliverables. Stream, review and download masters at full resolution."
       eyebrow="Sign in"
       formTitle="Welcome back"
-      address="portal.bjur.media"
+      address="portal.justinbjur.com"
       demoEmail="sasha@ssh.studio"
       switchHref="/admin/login"
       switchLabel="Staff sign in →"

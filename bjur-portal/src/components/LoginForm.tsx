@@ -143,9 +143,6 @@ export function LoginForm({
             Encrypted session · rate-limited · argon2 hashed
           </div>
           <div className="mt-6 pt-5 border-t border-line text-[11px] text-dim leading-relaxed">
-            Demo — <span className="text-muted font-semibold">{demoEmail}</span> · password{" "}
-            <span className="text-muted font-semibold">bjurmedia2026</span>
-            <br />
             <a href={switchHref} className="cursor-pointer text-dim font-semibold hover:text-accent">
               {switchLabel}
             </a>

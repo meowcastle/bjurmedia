@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
       blurb="Manage client accounts, build galleries and run the media pipeline. Staff access only."
       eyebrow="Admin access"
       formTitle="Staff sign in"
-      address="portal.bjur.media/admin"
+      address="portal.justinbjur.com/admin"
       demoEmail="admin@bjurmedia.nyc"
       switchHref="/login"
       switchLabel="Client sign in →"
