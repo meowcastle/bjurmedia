@@ -1,4 +1,5 @@
-import { execFileSync } from "child_process";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { mkdir, rename, copyFile, unlink } from "fs/promises";
 import { statSync, existsSync } from "fs";
 import path from "path";
@@ -6,6 +7,8 @@ import { imageSizeFromFile } from "image-size/fromFile";
 import { db } from "@/lib/db";
 import { MEDIA_ROOT, INBOX_ROOT } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
+
+const execFileAsync = promisify(execFile);
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"]);
 const RAW_VIDEO_EXT = new Set([".braw", ".r3d", ".ari"]);
@@ -36,13 +39,17 @@ function humanSize(bytes: number) {
   return `${(bytes / 1_000_000).toFixed(1)} MB`;
 }
 
-function probeVideo(absPath: string) {
+async function probeVideo(absPath: string) {
   // ffprobe only reads headers/metadata, so it should always finish in well under a
-  // second regardless of file size — a timeout here is a safety net, not a normal-
-  // operation constraint. Without one, a single corrupted or unusual file can hang
-  // this call forever, and since this runs synchronously on the worker's one thread,
-  // that freezes ingest, proxy generation, and everything else in the process too.
-  const out = execFileSync(
+  // second regardless of file size — the timeout here is a safety net, not a normal-
+  // operation constraint. Using the async form (not execFileSync) matters: a corrupted
+  // file can put the ffprobe process into an uninterruptible kernel I/O wait that no
+  // signal can break, sometimes for many minutes — and a *synchronous* call blocks the
+  // worker's single thread for that entire span, freezing ingest, proxy generation,
+  // everything, until it finally resolves on its own. The async form only ties up this
+  // one queued item; the rest of the process keeps running. killSignal: SIGKILL gives
+  // the best real chance of the process actually dying the moment it becomes killable.
+  const { stdout } = await execFileAsync(
     "ffprobe",
     [
       "-v",
@@ -55,9 +62,9 @@ function probeVideo(absPath: string) {
       "format=duration",
       absPath,
     ],
-    { encoding: "utf-8", timeout: 30_000 }
+    { encoding: "utf-8", timeout: 30_000, killSignal: "SIGKILL" }
   );
-  const data = JSON.parse(out);
+  const data = JSON.parse(stdout);
   const videoStream = (data.streams ?? []).find((s: { codec_type: string }) => s.codec_type === "video");
   return {
     width: videoStream?.width ?? 0,
@@ -105,7 +112,7 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
         masterCodec: `${ext.slice(1).toUpperCase()} · ${humanSize(sizeBytes)}`,
       };
     }
-    const { width, height, codecName, durationSec } = probeVideo(absPath);
+    const { width, height, codecName, durationSec } = await probeVideo(absPath);
     const orientation = height > width ? "portrait" : "landscape";
     return {
       kind: "VIDEO",

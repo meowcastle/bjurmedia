@@ -60,18 +60,34 @@ function startIngestWatcher() {
   // at a time, no matter how many "add" events land in the same instant.
   let queue: Promise<void> = Promise.resolve();
 
+  // Belt-and-suspenders on top of ingest.ts's own ffprobe timeout: a genuinely stuck
+  // OS-level read (a corrupted file wedged in uninterruptible I/O) can outlast even a
+  // SIGKILL for minutes. Give up waiting on any single file after this long so the
+  // queue keeps moving for everything behind it — the abandoned ingestFile() call is
+  // still allowed to finish in the background and will register normally if it ever
+  // does; this only stops it from blocking other files' turn.
+  const INGEST_GIVE_UP_MS = 2 * 60_000;
+
   watcher.on("add", (filePath) => {
     if (inFlight.has(filePath)) return;
     inFlight.add(filePath);
     queue = queue.then(async () => {
-      try {
-        console.log(`[ingest] new file: ${filePath}`);
-        const asset = await ingestFile(filePath);
-        if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
-      } catch (err) {
-        console.error(`[ingest] failed for ${filePath}:`, err);
-      } finally {
-        inFlight.delete(filePath);
+      console.log(`[ingest] new file: ${filePath}`);
+      const done = ingestFile(filePath)
+        .then((asset) => {
+          if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
+        })
+        .catch((err) => console.error(`[ingest] failed for ${filePath}:`, err))
+        .finally(() => inFlight.delete(filePath));
+
+      const gaveUp = await Promise.race([
+        done.then(() => false),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(true), INGEST_GIVE_UP_MS)),
+      ]);
+      if (gaveUp) {
+        console.error(
+          `[ingest] ${filePath} still running after ${INGEST_GIVE_UP_MS / 1000}s — moving on to the next file; this one will still register if it eventually finishes`
+        );
       }
     });
   });

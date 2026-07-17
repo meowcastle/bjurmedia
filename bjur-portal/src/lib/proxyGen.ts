@@ -1,9 +1,12 @@
-import { execFileSync } from "child_process";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { db } from "@/lib/db";
 import { resolveMediaPath, DERIVED_ROOT } from "@/lib/media";
+
+const execFileAsync = promisify(execFile);
 
 const WATERMARK_FONT =
   process.env.WATERMARK_FONT ?? "/System/Library/Fonts/Supplemental/Arial Bold.ttf";
@@ -12,15 +15,20 @@ type AssetRow = Awaited<ReturnType<typeof db.asset.findFirstOrThrow>>;
 
 // Real transcodes of this studio's short-form content legitimately take a few
 // minutes on the NAS's CPU, but with no timeout at all a single corrupted/unusual
-// input can hang ffmpeg forever — and since this call is synchronous, that freezes
-// the whole worker process (ingest, other proxies, everything) with no way out short
-// of a manual restart. An hour is generous enough to never interrupt a real encode.
+// input can hang ffmpeg forever. Using the async form (not execFileSync) matters on
+// top of that: a corrupted file can put ffmpeg into an uninterruptible kernel I/O
+// wait that no signal can break, sometimes for many minutes — a *synchronous* call
+// blocks the worker's single thread for that whole span, freezing ingest, every other
+// proxy job, everything, until it finally resolves on its own. The async form only
+// ties up this one asset's job. An hour is generous enough to never interrupt a real
+// encode; killSignal: SIGKILL gives the best real chance of the process actually
+// dying the moment it becomes killable.
 const FFMPEG_TIMEOUT_MS = 60 * 60_000;
 
-function runFfmpeg(args: string[]) {
-  execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...args], {
-    stdio: ["ignore", "ignore", "pipe"],
+async function runFfmpeg(args: string[]) {
+  await execFileAsync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...args], {
     timeout: FFMPEG_TIMEOUT_MS,
+    killSignal: "SIGKILL",
   });
 }
 
@@ -32,7 +40,7 @@ async function generateThumb(srcPath: string, outPath: string, isVideo: boolean,
   await mkdir(path.dirname(outPath), { recursive: true });
   if (isVideo) {
     const offset = durationSec ? Math.min(1, durationSec * 0.1) : 0.1;
-    runFfmpeg([
+    await runFfmpeg([
       "-ss",
       offset.toFixed(2),
       "-i",
@@ -46,11 +54,11 @@ async function generateThumb(srcPath: string, outPath: string, isVideo: boolean,
       outPath,
     ]);
   } else {
-    runFfmpeg(["-i", srcPath, "-vf", "scale=960:-1:flags=lanczos", "-q:v", "3", outPath]);
+    await runFfmpeg(["-i", srcPath, "-vf", "scale=960:-1:flags=lanczos", "-q:v", "3", outPath]);
   }
 }
 
-function generateVideoProxy(srcPath: string, outPath: string, format: string, watermark: boolean) {
+async function generateVideoProxy(srcPath: string, outPath: string, format: string, watermark: boolean) {
   const { w, h } = proxyDims(format);
   const scale = `scale=${w}:${h}:flags=lanczos`;
   const hasFont = existsSync(WATERMARK_FONT);
@@ -91,11 +99,11 @@ function generateVideoProxy(srcPath: string, outPath: string, format: string, wa
   ];
 
   try {
-    runFfmpeg(args);
+    await runFfmpeg(args);
   } catch (err) {
     if (watermark && hasFont) {
       // Retry without the text overlay so a font/filter issue doesn't fail the whole encode.
-      runFfmpeg([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
+      await runFfmpeg([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
     } else {
       throw err;
     }
@@ -130,7 +138,7 @@ export async function generateProxy(asset: AssetRow) {
     if (asset.kind === "VIDEO") {
       const watermark = asset.licensable;
       proxyRelPath = `${asset.id}/proxy.mp4`;
-      generateVideoProxy(srcPath, path.join(DERIVED_ROOT, proxyRelPath), asset.format, watermark);
+      await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, proxyRelPath), asset.format, watermark);
       const { w, h } = proxyDims(asset.format);
       proxyRes = watermark ? `watermarked ${h}p` : asset.format === "Reel" ? `${w}×${h} H.264` : `${h}p H.264`;
     }
