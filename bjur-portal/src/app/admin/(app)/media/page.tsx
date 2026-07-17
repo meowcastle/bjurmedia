@@ -25,7 +25,6 @@ export default async function AdminMediaPage({
     <AdminMediaClient
       projects={projects.map((p) => ({ id: p.id, title: p.title, clientName: p.client.name }))}
       selectedProjectId={selectedId}
-      selectedProjectPath={selected?.path ?? ""}
       assets={assets.map((a) => ({
         id: a.id,
         name: a.name,

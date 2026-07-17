@@ -29,46 +29,23 @@ const STATUS_MAP: Record<Asset["proxyStatus"], { label: string; color: string }>
 export function AdminMediaClient({
   projects,
   selectedProjectId,
-  selectedProjectPath,
   assets,
 }: {
   projects: ProjectOption[];
   selectedProjectId: string;
-  selectedProjectPath: string;
   assets: Asset[];
 }) {
   const router = useRouter();
-  const [nasPath, setNasPath] = useState(selectedProjectPath ? `${selectedProjectPath}/` : "");
-  const [scanning, setScanning] = useState(false);
-  const [scanMsg, setScanMsg] = useState("");
   const [rows, setRows] = useState(assets);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
+  const failed = rows.filter((a) => a.proxyStatus === "FAILED").length;
 
   function selectProject(id: string) {
     router.push(`/admin/media?project=${id}`);
-  }
-
-  async function scan() {
-    if (!nasPath.trim()) return;
-    setScanning(true);
-    setScanMsg("");
-    const res = await fetch("/api/admin/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: selectedProjectId, path: nasPath.trim() }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setScanning(false);
-    if (!res.ok) {
-      setScanMsg(data.error ?? "Scan failed.");
-      return;
-    }
-    setScanMsg(`Registered ${data.registered.length} file(s), skipped ${data.skipped.length} already known.`);
-    router.refresh();
   }
 
   async function toggleInternal(a: Asset) {
@@ -130,48 +107,22 @@ export function AdminMediaClient({
         <h1 className="text-[34px] tracking-tight font-black">Media</h1>
       </div>
 
-      <div className="bg-s1 border border-line p-5 mb-6">
-        <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-3.5">
-          Register from NAS
-        </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          <div className="flex-1 min-w-[280px] flex items-center gap-2.5 bg-bg border border-line2 px-3.5 py-2.5">
-            <span className="text-dim text-sm">▸</span>
-            <input
-              value={nasPath}
-              onChange={(e) => setNasPath(e.target.value)}
-              placeholder="SSH/Spring-Campaign/2026-06"
-              className="flex-1 bg-transparent border-0 text-text text-[13px] font-mono outline-none min-w-0"
-            />
-          </div>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => selectProject(e.target.value)}
-            className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.clientName} — {p.title}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={scan}
-            disabled={scanning || !selectedProjectId}
-            className="cursor-pointer font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3 disabled:opacity-50"
-          >
-            {scanning ? "Scanning…" : "Scan & register"}
-          </button>
-        </div>
-        {scanMsg && <div className="mt-3 text-xs text-muted">{scanMsg}</div>}
-        <div className="mt-3 text-xs text-dim">
-          Path is relative to <span className="font-mono text-muted">MEDIA_ROOT</span>. Files are
-          registered in place — never moved or re-uploaded. The ffmpeg worker builds H.264 proxies
-          (vertical 1080×1920 for reels) + poster thumbnails.
-        </div>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Project</span>
+        <select
+          value={selectedProjectId}
+          onChange={(e) => selectProject(e.target.value)}
+          className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+        >
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.clientName} — {p.title}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5 mb-6">
+      <div className="grid grid-cols-5 gap-3.5 mb-6">
         <div className="bg-s1 border border-line px-4 py-4">
           <div className="text-[26px] font-black tracking-tight tabular-nums">{rows.length}</div>
           <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Assets</div>
@@ -185,6 +136,12 @@ export function AdminMediaClient({
             {generating}
           </div>
           <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">In queue</div>
+        </div>
+        <div className="bg-s1 border border-line px-4 py-4">
+          <div className={`text-[26px] font-black tracking-tight tabular-nums ${failed ? "text-accent" : "text-dim"}`}>
+            {failed}
+          </div>
+          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Failed</div>
         </div>
         <div className="bg-s1 border border-line px-4 py-4">
           <div className="text-[26px] font-black tracking-tight tabular-nums">1</div>

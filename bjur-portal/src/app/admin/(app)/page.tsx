@@ -31,6 +31,7 @@ export default async function AdminDashboardPage() {
     ]);
 
   const queueCount = await db.asset.count({ where: { proxyStatus: { in: ["PENDING", "GENERATING"] } } });
+  const failedCount = await db.asset.count({ where: { proxyStatus: "FAILED" } });
   const totalBytes = assets.reduce((t, a) => t + a.sizeBytes, BigInt(0));
   const workerOnline = !!heartbeat && isRecentlyActive(heartbeat.lastSeen, HEARTBEAT_TIMEOUT_MS);
 
@@ -57,6 +58,7 @@ export default async function AdminDashboardPage() {
       ]}
       workerOnline={workerOnline}
       queueCount={queueCount}
+      failedCount={failedCount}
       activity={recentActivity.map((a) => ({
         id: a.id,
         who: a.actor,

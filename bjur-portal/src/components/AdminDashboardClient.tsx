@@ -25,6 +25,7 @@ export function AdminDashboardClient({
   stats,
   workerOnline,
   queueCount,
+  failedCount,
   activity,
   expiring,
   recentDeliveries,
@@ -34,6 +35,7 @@ export function AdminDashboardClient({
   stats: Stat[];
   workerOnline: boolean;
   queueCount: number;
+  failedCount: number;
   activity: ActivityRow[];
   expiring: ExpiringRow[];
   recentDeliveries: DeliveryRow[];
@@ -82,6 +84,14 @@ export function AdminDashboardClient({
           <span className={`text-lg font-black tabular-nums ${queueCount > 0 ? "text-accentb" : "text-text"}`}>
             {queueCount}
           </span>
+          <span className="w-px h-4 bg-line2 mx-1" />
+          <span className="text-[13px] text-muted">Failed</span>
+          <Link
+            href="/admin/media"
+            className={`text-lg font-black tabular-nums ${failedCount > 0 ? "text-accent" : "text-text"}`}
+          >
+            {failedCount}
+          </Link>
           <Link
             href="/admin/library"
             className="text-xs font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5 ml-1.5"
