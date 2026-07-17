@@ -40,6 +40,20 @@ export function AdminMediaClient({
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
 
+  // Switching projects is a client-side navigation (router.push), not a full reload —
+  // useState's initial value only applies on first mount, so without this the table
+  // silently keeps showing whichever project happened to load first and never
+  // updates, even though selectedProjectId and the assets prop both change correctly.
+  // Adjusting state during render (React's own pattern for this) instead of an effect
+  // avoids an extra render pass.
+  const [prevProjectId, setPrevProjectId] = useState(selectedProjectId);
+  if (selectedProjectId !== prevProjectId) {
+    setPrevProjectId(selectedProjectId);
+    setRows(assets);
+    setPriceDrafts({});
+    setWeekOfDrafts({});
+  }
+
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
   const failed = rows.filter((a) => a.proxyStatus === "FAILED").length;
