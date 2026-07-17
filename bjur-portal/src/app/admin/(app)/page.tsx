@@ -2,6 +2,10 @@ import { db } from "@/lib/db";
 import { timeAgo, formatDate, formatBytes, isRecentlyActive } from "@/lib/format";
 import { AdminDashboardClient } from "@/components/AdminDashboardClient";
 
+// Worker status, queue depth, and recent activity are only meaningful live — a cached
+// render could show "offline" long after the worker came back, or vice versa.
+export const dynamic = "force-dynamic";
+
 const HEARTBEAT_TIMEOUT_MS = 15_000;
 
 export default async function AdminDashboardPage() {
