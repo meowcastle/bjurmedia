@@ -10,9 +10,17 @@ const WATERMARK_FONT =
 
 type AssetRow = Awaited<ReturnType<typeof db.asset.findFirstOrThrow>>;
 
+// Real transcodes of this studio's short-form content legitimately take a few
+// minutes on the NAS's CPU, but with no timeout at all a single corrupted/unusual
+// input can hang ffmpeg forever — and since this call is synchronous, that freezes
+// the whole worker process (ingest, other proxies, everything) with no way out short
+// of a manual restart. An hour is generous enough to never interrupt a real encode.
+const FFMPEG_TIMEOUT_MS = 60 * 60_000;
+
 function runFfmpeg(args: string[]) {
   execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...args], {
     stdio: ["ignore", "ignore", "pipe"],
+    timeout: FFMPEG_TIMEOUT_MS,
   });
 }
 

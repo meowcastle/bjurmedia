@@ -37,6 +37,11 @@ function humanSize(bytes: number) {
 }
 
 function probeVideo(absPath: string) {
+  // ffprobe only reads headers/metadata, so it should always finish in well under a
+  // second regardless of file size — a timeout here is a safety net, not a normal-
+  // operation constraint. Without one, a single corrupted or unusual file can hang
+  // this call forever, and since this runs synchronously on the worker's one thread,
+  // that freezes ingest, proxy generation, and everything else in the process too.
   const out = execFileSync(
     "ffprobe",
     [
@@ -50,7 +55,7 @@ function probeVideo(absPath: string) {
       "format=duration",
       absPath,
     ],
-    { encoding: "utf-8" }
+    { encoding: "utf-8", timeout: 30_000 }
   );
   const data = JSON.parse(out);
   const videoStream = (data.streams ?? []).find((s: { codec_type: string }) => s.codec_type === "video");
