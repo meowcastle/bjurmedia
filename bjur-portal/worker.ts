@@ -27,15 +27,17 @@ async function recoverStrandedProxies() {
   if (count) console.log(`[proxy] reset ${count} stranded GENERATING asset(s) back to PENDING`);
 }
 
-// Synology DSM mirrors every real file/folder shared over SMB with a hidden
-// "@eaDir" metadata directory, plus per-file "@SynoResource"/"@SynoEAStream"
-// pseudo-files for its own thumbnail/indexing layer. These aren't real media —
-// without filtering them out, a single bulk copy fires several add events per
-// real file and floods the ingest pipeline with paths that can never resolve
-// to a project.
-function isSynologyArtifact(watchedPath: string) {
+// Neither NAS-server nor client-side SMB tooling actually produces clean file trees:
+// Synology DSM mirrors every real file/folder with a hidden "@eaDir" metadata
+// directory plus per-file "@SynoResource"/"@SynoEAStream" pseudo-files, macOS's SMB
+// client drops transient ".smbdeleteXXXXXXXX" markers during copy/delete operations,
+// and Finder leaves ".DS_Store" everywhere. None of these are real media — without
+// filtering them out, ordinary file operations flood the ingest pipeline with paths
+// that can never resolve to a project and just generate noisy failed-classification
+// errors.
+function isFilesystemArtifact(watchedPath: string) {
   const base = path.basename(watchedPath);
-  return base === "@eaDir" || base.includes("@Syno");
+  return base === "@eaDir" || base.includes("@Syno") || base === ".DS_Store" || base.startsWith(".smbdelete");
 }
 
 function startIngestWatcher() {
@@ -43,7 +45,7 @@ function startIngestWatcher() {
     ignoreInitial: false,
     awaitWriteFinish: { stabilityThreshold: 2500, pollInterval: 500 },
     depth: 4,
-    ignored: isSynologyArtifact,
+    ignored: isFilesystemArtifact,
   });
 
   // fsevents can fire duplicate "add" events for the same file (e.g. a create + a
