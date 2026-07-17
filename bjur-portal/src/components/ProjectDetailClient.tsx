@@ -35,6 +35,35 @@ function mondayOfWeek(d: Date) {
   return monday.toISOString();
 }
 
+type Group = { label: string; count: string; folder: string; cols: string; items: Asset[] };
+
+/** Buckets assets by the Monday of their weekOf's calendar week, newest first, Undated last. */
+function bucketByWeek(items: Asset[], folderBase: string): Group[] {
+  const byWeek = new Map<string, Asset[]>();
+  for (const a of items) {
+    const key = a.weekOf ? mondayOfWeek(new Date(a.weekOf)) : "Undated";
+    const list = byWeek.get(key) ?? [];
+    list.push(a);
+    byWeek.set(key, list);
+  }
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => {
+      if (a === "Undated") return 1;
+      if (b === "Undated") return -1;
+      return b.localeCompare(a);
+    })
+    .map(([w, weekItems]) => {
+      const label = w === "Undated" ? w : `Week of ${fmtDate(w)}`;
+      return {
+        label,
+        count: `${weekItems.length} file${weekItems.length > 1 ? "s" : ""}`,
+        folder: `${folderBase}/${label.replace(/\s+/g, "-")}`,
+        cols: "repeat(auto-fill,minmax(190px,1fr))",
+        items: weekItems,
+      };
+    });
+}
+
 export function ProjectDetailClient({
   project,
   assets,
@@ -138,7 +167,8 @@ export function ProjectDetailClient({
     .map(([c, label]) => `${c} ${label.split(" · ")[0].toLowerCase()}`)
     .join(" · ");
 
-  type Group = { label: string; count: string; folder: string; cols: string; items: Asset[] };
+  const currentYear = new Date().getFullYear();
+
   const groups: Group[] = useMemo(() => {
     if (filter === "FAV") {
       const items = assets.filter((a) => favorites.has(a.id));
@@ -147,32 +177,11 @@ export function ProjectDetailClient({
         : [];
     }
     if (groupMode === "week") {
-      // Bucket by the Monday of the calendar week each asset's weekOf falls in, so
-      // files dated a day or two apart within the same studio week still cluster
-      // together, then sort newest week first with "Undated" pinned at the end.
-      const byWeek = new Map<string, Asset[]>();
-      for (const a of assets) {
-        const key = a.weekOf ? mondayOfWeek(new Date(a.weekOf)) : "Undated";
-        const items = byWeek.get(key) ?? [];
-        items.push(a);
-        byWeek.set(key, items);
-      }
-      return [...byWeek.entries()]
-        .sort(([a], [b]) => {
-          if (a === "Undated") return 1;
-          if (b === "Undated") return -1;
-          return b.localeCompare(a);
-        })
-        .map(([w, items]) => {
-          const label = w === "Undated" ? w : `Week of ${fmtDate(w)}`;
-          return {
-            label,
-            count: `${items.length} file${items.length > 1 ? "s" : ""}`,
-            folder: `${project.path}/${label.replace(/\s+/g, "-")}`,
-            cols: "repeat(auto-fill,minmax(190px,1fr))",
-            items,
-          };
-        });
+      // Current year (plus anything undated) shows directly; older years are bucketed
+      // separately below into collapsible folders so the default view stays focused on
+      // this year's weekly deliveries instead of a year-spanning wall of weeks.
+      const items = assets.filter((a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear);
+      return bucketByWeek(items, project.path);
     }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
       .map((d) => {
@@ -186,7 +195,29 @@ export function ProjectDetailClient({
         };
       })
       .filter((g) => g.items.length);
-  }, [filter, groupMode, assets, favorites, project.path]);
+  }, [filter, groupMode, assets, favorites, project.path, currentYear]);
+
+  type YearFolder = { year: number; count: string; weeks: Group[] };
+  const pastYearFolders: YearFolder[] = useMemo(() => {
+    if (groupMode !== "week" || filter === "FAV") return [];
+    const byYear = new Map<number, Asset[]>();
+    for (const a of assets) {
+      if (!a.weekOf) continue;
+      const year = new Date(a.weekOf).getUTCFullYear();
+      if (year === currentYear) continue;
+      const items = byYear.get(year) ?? [];
+      items.push(a);
+      byYear.set(year, items);
+    }
+    return [...byYear.entries()]
+      .sort(([a], [b]) => b - a)
+      .map(([year, items]) => ({
+        year,
+        count: `${items.length} file${items.length > 1 ? "s" : ""}`,
+        weeks: bucketByWeek(items, `${project.path}/${year}`),
+      }));
+  }, [assets, groupMode, filter, project.path, currentYear]);
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
@@ -200,6 +231,32 @@ export function ProjectDetailClient({
     } else {
       setLightboxIdx(photos.findIndex((p) => p.id === a.id));
     }
+  }
+
+  function renderGroup(grp: Group) {
+    return (
+      <div key={grp.folder} className="mb-9">
+        <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
+          <span className="text-[15px] font-extrabold">{grp.label}</span>
+          <span className="text-[11px] text-muted">{grp.count}</span>
+          <span className="ml-auto text-[11px] text-dim font-mono">{grp.folder}</span>
+        </div>
+        <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
+          {grp.items.map((a) => (
+            <AssetTile
+              key={a.id}
+              asset={a}
+              selected={selected.has(a.id)}
+              favorite={favorites.has(a.id)}
+              unlocked={licensedIds.has(a.id)}
+              onToggleSelect={() => toggleSelect(a.id)}
+              onToggleFavorite={() => toggleFavorite(a.id)}
+              onOpen={() => openAsset(a)}
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -292,29 +349,31 @@ export function ProjectDetailClient({
         </div>
       </div>
 
-      {groups.map((grp) => (
-        <div key={grp.label} className="mb-9">
-          <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
-            <span className="text-[15px] font-extrabold">{grp.label}</span>
-            <span className="text-[11px] text-muted">{grp.count}</span>
-            <span className="ml-auto text-[11px] text-dim font-mono">{grp.folder}</span>
+      {groups.map(renderGroup)}
+
+      {pastYearFolders.map((yf) => {
+        const isOpen = expandedYears.has(yf.year);
+        return (
+          <div key={yf.year} className="mb-9">
+            <button
+              onClick={() =>
+                setExpandedYears((s) => {
+                  const next = new Set(s);
+                  if (next.has(yf.year)) next.delete(yf.year);
+                  else next.add(yf.year);
+                  return next;
+                })
+              }
+              className="cursor-pointer w-full flex items-center gap-3 border-b border-line2 pb-2.5 mb-4 text-left"
+            >
+              <span className="text-[11px]">{isOpen ? "▾" : "▸"}</span>
+              <span className="text-[15px] font-extrabold">{yf.year}</span>
+              <span className="text-[11px] text-muted">{yf.count}</span>
+            </button>
+            {isOpen && <div className="pl-6">{yf.weeks.map(renderGroup)}</div>}
           </div>
-          <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
-            {grp.items.map((a) => (
-              <AssetTile
-                key={a.id}
-                asset={a}
-                selected={selected.has(a.id)}
-                favorite={favorites.has(a.id)}
-                unlocked={licensedIds.has(a.id)}
-                onToggleSelect={() => toggleSelect(a.id)}
-                onToggleFavorite={() => toggleFavorite(a.id)}
-                onOpen={() => openAsset(a)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {filter === "FAV" && groups.length === 0 && (
         <div className="border border-line px-6 py-16 text-center mt-0.5">
