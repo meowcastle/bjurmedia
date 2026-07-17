@@ -38,6 +38,7 @@ services:
       - INBOX_ROOT=/media/_inbox
       - ARCHIVE_ROOT=/media/_archive
       - WORKER_CONCURRENCY=1
+      - CRON_SECRET=${CRON_SECRET}
     volumes:
       - ./data:/data
       # read-write: the ingest watcher moves finished exports from _inbox into the

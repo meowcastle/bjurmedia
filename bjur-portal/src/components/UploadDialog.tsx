@@ -52,14 +52,23 @@ export function UploadDialog({
 }) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [justAdded, setJustAdded] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listEndRef = useRef<HTMLDivElement>(null);
 
   function addFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setQueue((q) => [
-      ...q,
-      ...Array.from(files).map((file) => ({ file, progress: 0, status: "pending" as const })),
-    ]);
+    // Guard against picking the same batch twice (e.g. re-opening the picker in the
+    // same folder) — same name + size is close enough to certain for a duplicate.
+    setQueue((q) => {
+      const existing = new Set(q.map((item) => `${item.file.name}:${item.file.size}`));
+      const additions = Array.from(files)
+        .filter((file) => !existing.has(`${file.name}:${file.size}`))
+        .map((file) => ({ file, progress: 0, status: "pending" as const }));
+      setJustAdded(additions.length);
+      return [...q, ...additions];
+    });
+    requestAnimationFrame(() => listEndRef.current?.scrollIntoView({ block: "nearest" }));
   }
 
   async function startUpload() {
@@ -109,6 +118,12 @@ export function UploadDialog({
           >
             Drop files here or click to browse
           </div>
+          {queue.length > 0 && (
+            <div className="text-xs text-muted mb-3">
+              <span className="font-bold text-text">{queue.length}</span> file{queue.length === 1 ? "" : "s"} queued
+              {justAdded > 0 && <span className="text-success"> (+{justAdded} just added)</span>}
+            </div>
+          )}
           <input
             ref={inputRef}
             type="file"
@@ -147,6 +162,7 @@ export function UploadDialog({
                   </div>
                 </div>
               ))}
+              <div ref={listEndRef} />
             </div>
           )}
 

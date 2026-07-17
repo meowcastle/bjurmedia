@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { mkdirSync } from "fs";
+import { createServer } from "http";
 import path from "path";
 import chokidar from "chokidar";
 import { db } from "./src/lib/db";
@@ -11,6 +12,7 @@ import { postWeeklyDigest } from "./src/lib/slack";
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
 const POLL_MS = 4000;
 const SCHEDULER_POLL_MS = 60_000;
+const INGEST_PORT = parseInt(process.env.INGEST_PORT ?? "3100", 10);
 
 mkdirSync(INBOX_ROOT, { recursive: true });
 
@@ -149,6 +151,48 @@ function startWeeklyDigestScheduler() {
   setInterval(() => tick().catch((err) => console.error("[slack] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+// The web container's media mount is read-only by design (it only ever streams, never
+// writes production media) — but the admin upload feature needs a real file moved into
+// MEDIA_ROOT, which only this container has permission to do. Rather than either
+// broadening web's write access (defeats the point of it being read-only) or relying
+// on chokidar noticing a web-written file (proven unreliable — a file written by one
+// container and watched by another didn't reliably cross that boundary in production),
+// web calls this internal endpoint right after writing to _inbox, and this container —
+// which already holds the correct permissions — runs the exact same ingestFile() the
+// watcher itself uses. Not exposed outside the docker-compose network; only reachable
+// container-to-container by service name, and gated by the same secret used for the
+// other internal automation endpoint (CRON_SECRET).
+function startIngestServer() {
+  const server = createServer((req, res) => {
+    if (req.method !== "POST" || req.url !== "/ingest") {
+      res.writeHead(404).end();
+      return;
+    }
+    if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+      res.writeHead(401).end();
+      return;
+    }
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      res.setHeader("Content-Type", "application/json");
+      try {
+        const { path: filePath } = JSON.parse(body || "{}");
+        if (typeof filePath !== "string" || !filePath.startsWith(INBOX_ROOT + path.sep)) {
+          res.writeHead(400).end(JSON.stringify({ error: "Path must be inside INBOX_ROOT." }));
+          return;
+        }
+        const asset = await ingestFile(filePath);
+        res.writeHead(200).end(asset ? JSON.stringify({ ingested: true, assetId: asset.id }) : JSON.stringify({ ingested: false }));
+      } catch (err) {
+        res.writeHead(200).end(JSON.stringify({ ingested: false, note: (err as Error).message.slice(0, 200) }));
+      }
+    });
+  });
+  server.listen(INGEST_PORT, () => console.log(`[ingest-server] listening on :${INGEST_PORT}`));
+}
+
 startIngestWatcher();
+startIngestServer();
 startProxyLoop();
 startWeeklyDigestScheduler();

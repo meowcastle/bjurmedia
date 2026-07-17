@@ -6,9 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inboxDirFor, ensureInboxDir } from "@/lib/projects";
-import { ingestFile } from "@/lib/ingest";
 
 export const runtime = "nodejs";
+
+const INGEST_URL = `http://worker:${process.env.INGEST_PORT ?? "3100"}/ingest`;
 
 function sanitizeFilename(name: string) {
   const base = path.basename(name).trim(); // strip any directory components (path traversal)
@@ -16,16 +17,21 @@ function sanitizeFilename(name: string) {
 }
 
 /**
- * Streams an admin-uploaded file into the project's existing inbox folder, then
- * ingests it directly in this same request/process instead of waiting on the
- * worker's chokidar watcher to notice it. In production, a file written by this
- * (web) container turned out not to reliably surface as an inotify event in the
- * separate worker container watching the same bind-mounted directory — one file
- * uploaded this way sat undetected through multiple full-tree rescans, while an
- * identical file placed directly on the NAS was picked up instantly. Calling the
- * same ingestFile() the watcher itself calls, synchronously and in-process here,
- * sidesteps that cross-container gap entirely rather than trying to make
- * cross-container file watching reliable.
+ * Streams an admin-uploaded file into the project's existing inbox folder, then asks
+ * the worker container to ingest it — this container's media mount is read-only by
+ * design (it only ever streams, never writes production media), so it can write the
+ * upload into _inbox but can't itself move the finished file into MEDIA_ROOT. Calling
+ * ingestFile() in-process here (an earlier version of this route) hit exactly that:
+ * `ENOENT ... mkdir '/media/<client>/<project>'`, since the mkdir landed on a
+ * read-only mount web was never granted write access to.
+ *
+ * Waiting on the worker's chokidar watcher to notice the file instead isn't reliable
+ * either — in production a file written by web and watched by the separate worker
+ * container didn't consistently surface as an inotify event (proven: one file sat
+ * undetected through multiple full-tree rescans, while an identical file placed
+ * directly on the NAS was picked up instantly). So: write to _inbox here, then make an
+ * internal-only HTTP call to the worker container (which already holds the correct
+ * permissions) to run the exact same ingestFile() the watcher itself uses.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
@@ -54,22 +60,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await pipeline(nodeReadable, createWriteStream(destPath));
 
   try {
-    const asset = await ingestFile(destPath);
-    if (!asset) {
+    const res = await fetch(INGEST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      body: JSON.stringify({ path: destPath }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
       return NextResponse.json({
         ok: true,
         filename,
         ingested: false,
-        note: "Uploaded, but not registered as an asset — check it's not a WIP file or an unrecognized format, and that this project's inbox folder matched correctly.",
+        note: data.error ? `Uploaded, but ingest was rejected: ${data.error}` : `Uploaded, but ingest request failed (${res.status}).`,
       });
     }
-    return NextResponse.json({ ok: true, filename, ingested: true, assetId: asset.id });
+    if (!data.ingested) {
+      return NextResponse.json({
+        ok: true,
+        filename,
+        ingested: false,
+        note:
+          data.note ??
+          "Uploaded, but not registered as an asset — check it's not a WIP file or an unrecognized format, and that this project's inbox folder matched correctly.",
+      });
+    }
+    return NextResponse.json({ ok: true, filename, ingested: true, assetId: data.assetId });
   } catch (err) {
     return NextResponse.json({
       ok: true,
       filename,
       ingested: false,
-      note: `Uploaded, but ingest failed: ${(err as Error).message.slice(0, 200)}`,
+      note: `Uploaded, but couldn't reach the ingest service: ${(err as Error).message.slice(0, 200)}`,
     });
   }
 }
