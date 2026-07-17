@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
+import { UploadDialog } from "@/components/UploadDialog";
 
 type Asset = {
   id: string;
@@ -39,6 +41,7 @@ export function AdminMediaClient({
   const [rows, setRows] = useState(assets);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Switching projects is a client-side navigation (router.push), not a full reload —
   // useState's initial value only applies on first mount, so without this the table
@@ -121,7 +124,7 @@ export function AdminMediaClient({
         <h1 className="text-[34px] tracking-tight font-black">Media</h1>
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Project</span>
         <select
           value={selectedProjectId}
@@ -134,6 +137,22 @@ export function AdminMediaClient({
             </option>
           ))}
         </select>
+        {selectedProjectId && (
+          <>
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+            >
+              Upload
+            </button>
+            <Link
+              href={`/admin/library?project=${selectedProjectId}`}
+              className="text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+            >
+              Import from NAS →
+            </Link>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-5 gap-3.5 mb-6">
@@ -273,6 +292,15 @@ export function AdminMediaClient({
           <div className="px-5 py-10 text-center text-sm text-muted">No assets in this project yet.</div>
         )}
       </div>
+
+      {uploadOpen && selectedProjectId && (
+        <UploadDialog
+          projectId={selectedProjectId}
+          projectTitle={projects.find((p) => p.id === selectedProjectId)?.title ?? "this project"}
+          onClose={() => setUploadOpen(false)}
+          onUploaded={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }

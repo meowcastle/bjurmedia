@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
@@ -88,19 +89,21 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                 className="grid gap-4 px-5 py-4 items-center"
                 style={{ gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr", background: active ? "transparent" : "rgba(255,255,255,.015)" }}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3 min-w-0 group">
                   <div
                     className={`w-[30px] h-[30px] bg-s3 grid place-items-center text-[11px] font-bold flex-none ${active ? "text-text" : "text-dim"}`}
                   >
                     {initials(c.name)}
                   </div>
                   <div className="min-w-0">
-                    <div className={`font-semibold text-sm truncate ${active ? "text-text" : "text-dim"}`}>
+                    <div
+                      className={`font-semibold text-sm truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
+                    >
                       {c.name}
                     </div>
                     <div className="text-[11px] text-dim font-mono">@{c.username}</div>
                   </div>
-                </div>
+                </Link>
                 <span>
                   <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
                     {c.type === "RETAINER" ? "Retainer" : "One-off"}

@@ -106,10 +106,12 @@ export function AdminLibraryClient({
   archiveRoot,
   rootEntries,
   projects,
+  preselectProjectId,
 }: {
   archiveRoot: string;
   rootEntries: Entry[];
   projects: ProjectOption[];
+  preselectProjectId?: string;
 }) {
   const router = useRouter();
   const [childrenCache, setChildrenCache] = useState<Map<string, Entry[]>>(
@@ -117,7 +119,11 @@ export function AdminLibraryClient({
   );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [targetProject, setTargetProject] = useState(projects[0]?.id ?? "");
+  const [targetProject, setTargetProject] = useState(
+    (preselectProjectId && projects.some((p) => p.id === preselectProjectId) ? preselectProjectId : null) ??
+      projects[0]?.id ??
+      ""
+  );
   const [autoMap, setAutoMap] = useState(true);
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [loading, setLoading] = useState(false);
