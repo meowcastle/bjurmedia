@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { UploadDialog } from "@/components/UploadDialog";
 
 type ProjectRow = {
   id: string;
@@ -42,6 +43,7 @@ export function AdminProjectsClient({
   const router = useRouter();
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectRow | null>(null);
+  const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
 
   return (
     <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
@@ -87,12 +89,20 @@ export function AdminProjectsClient({
               {p.status}
             </span>
             <span className="text-[13px] text-right text-muted">{fmtDate(p.expiresAt)}</span>
-            <button
-              onClick={() => setEditing(p)}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
-            >
-              Edit
-            </button>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setUploadingTo(p)}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+              >
+                Upload
+              </button>
+              <button
+                onClick={() => setEditing(p)}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+              >
+                Edit
+              </button>
+            </div>
           </div>
         ))}
         {projects.length === 0 && (
@@ -123,6 +133,14 @@ export function AdminProjectsClient({
             setEditing(null);
             router.refresh();
           }}
+        />
+      )}
+      {uploadingTo && (
+        <UploadDialog
+          projectId={uploadingTo.id}
+          projectTitle={uploadingTo.title}
+          onClose={() => setUploadingTo(null)}
+          onUploaded={() => router.refresh()}
         />
       )}
     </div>
