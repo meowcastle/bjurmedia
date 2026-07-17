@@ -7,12 +7,14 @@ import { Portal } from "@/components/ui/Portal";
 type QueueItem = {
   file: File;
   progress: number;
-  status: "pending" | "uploading" | "done" | "error";
-  error?: string;
+  status: "pending" | "uploading" | "done" | "warning" | "error";
+  note?: string;
 };
 
+type UploadResult = { ok: boolean; ingested?: boolean; note?: string };
+
 function uploadOne(projectId: string, item: QueueItem, onProgress: (pct: number) => void) {
-  return new Promise<{ ok: boolean; error?: string }>((resolve) => {
+  return new Promise<UploadResult>((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/admin/projects/${projectId}/upload`);
     xhr.setRequestHeader("X-Filename", encodeURIComponent(item.file.name));
@@ -20,20 +22,19 @@ function uploadOne(projectId: string, item: QueueItem, onProgress: (pct: number)
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
+      let body: { error?: string; ingested?: boolean; note?: string } = {};
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        // fall through with an empty body
+      }
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ ok: true });
+        resolve({ ok: true, ingested: body.ingested, note: body.note });
       } else {
-        const msg = (() => {
-          try {
-            return JSON.parse(xhr.responseText).error as string;
-          } catch {
-            return `Upload failed (${xhr.status})`;
-          }
-        })();
-        resolve({ ok: false, error: msg });
+        resolve({ ok: false, note: body.error ?? `Upload failed (${xhr.status})` });
       }
     };
-    xhr.onerror = () => resolve({ ok: false, error: "Network error" });
+    xhr.onerror = () => resolve({ ok: false, note: "Network error" });
     xhr.send(item.file);
   });
 }
@@ -69,10 +70,11 @@ export function UploadDialog({
       const result = await uploadOne(projectId, item, (pct) => {
         setQueue((q) => q.map((qi) => (qi.file === item.file ? { ...qi, progress: pct } : qi)));
       });
+      const status = !result.ok ? "error" : result.ingested === false ? "warning" : "done";
       setQueue((q) =>
         q.map((qi) =>
           qi.file === item.file
-            ? { ...qi, status: result.ok ? "done" : "error", error: result.error, progress: result.ok ? 100 : qi.progress }
+            ? { ...qi, status, note: result.note, progress: result.ok ? 100 : qi.progress }
             : qi
         )
       );
@@ -81,7 +83,7 @@ export function UploadDialog({
     onUploaded();
   }
 
-  const allDone = queue.length > 0 && queue.every((q) => q.status === "done");
+  const allDone = queue.length > 0 && queue.every((q) => q.status === "done" || q.status === "warning");
   const hasPending = queue.some((q) => q.status === "pending");
 
   return (
@@ -124,17 +126,22 @@ export function UploadDialog({
                 <div key={i}>
                   <div className="flex justify-between gap-3 mb-1 text-xs">
                     <span className="truncate text-text">{item.file.name}</span>
-                    <span className="text-dim flex-none">
+                    <span className={`flex-none ${item.status === "warning" ? "text-accentb" : "text-dim"}`}>
                       {item.status === "done"
                         ? "✓"
-                        : item.status === "error"
-                          ? item.error
-                          : `${item.progress}%`}
+                        : item.status === "warning"
+                          ? "⚠ not ingested"
+                          : item.status === "error"
+                            ? item.note
+                            : `${item.progress}%`}
                     </span>
                   </div>
+                  {item.status === "warning" && item.note && (
+                    <div className="text-[11px] text-accentb mb-1">{item.note}</div>
+                  )}
                   <div className="h-1 bg-bg border border-line2">
                     <div
-                      className={`h-full ${item.status === "error" ? "bg-accentb" : "bg-accent"}`}
+                      className={`h-full ${item.status === "error" || item.status === "warning" ? "bg-accentb" : "bg-accent"}`}
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
