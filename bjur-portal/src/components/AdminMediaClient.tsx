@@ -14,6 +14,7 @@ type Asset = {
   internal: boolean;
   licensable: boolean;
   basePrice: number | null;
+  weekOf: string | null;
 };
 
 type ProjectOption = { id: string; title: string; clientName: string };
@@ -42,6 +43,7 @@ export function AdminMediaClient({
   const [scanMsg, setScanMsg] = useState("");
   const [rows, setRows] = useState(assets);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
@@ -97,6 +99,18 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ basePrice: price }),
+    });
+  }
+
+  async function saveWeekOf(a: Asset) {
+    const raw = weekOfDrafts[a.id];
+    if (raw === undefined) return;
+    const weekOf = raw === "" ? null : new Date(raw).toISOString();
+    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, weekOf } : r)));
+    await fetch(`/api/admin/assets/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekOf }),
     });
   }
 
@@ -204,18 +218,32 @@ export function AdminMediaClient({
                   <div className="absolute inset-0 grid place-items-center text-white text-[9px]">▶</div>
                 )}
               </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[13px] font-mono text-text truncate">{a.name}</span>
-                {a.internal && (
-                  <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
-                    INTERNAL
-                  </span>
-                )}
-                {a.licensable && (
-                  <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
-                    PAYWALLED
-                  </span>
-                )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[13px] font-mono text-text truncate">{a.name}</span>
+                  {a.internal && (
+                    <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
+                      INTERNAL
+                    </span>
+                  )}
+                  {a.licensable && (
+                    <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
+                      PAYWALLED
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[10px] text-dim uppercase tracking-wide">Week</span>
+                  <input
+                    type="date"
+                    defaultValue={a.weekOf ? a.weekOf.slice(0, 10) : ""}
+                    onChange={(e) => setWeekOfDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                    onBlur={() => saveWeekOf(a)}
+                    className={`bg-bg border text-[11px] px-1.5 py-1 outline-none focus:border-accent ${
+                      a.weekOf ? "border-line2 text-text" : "border-accent/50 text-accentb"
+                    }`}
+                  />
+                </div>
               </div>
               <span className="text-[11px] font-bold tracking-wide text-muted">{a.format.toUpperCase()}</span>
               <span className="text-[13px] text-muted tabular-nums">{a.size}</span>

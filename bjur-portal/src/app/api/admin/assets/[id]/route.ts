@@ -23,6 +23,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.retry === true) {
     data.proxyStatus = "PENDING";
   }
+  if (body.weekOf !== undefined) {
+    data.weekOf = body.weekOf ? new Date(body.weekOf) : null;
+  }
 
   const updated = await db.asset.update({ where: { id }, data });
 

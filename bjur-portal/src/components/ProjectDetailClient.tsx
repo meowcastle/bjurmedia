@@ -239,7 +239,6 @@ export function ProjectDetailClient({
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
           <span className="text-[15px] font-extrabold">{grp.label}</span>
           <span className="text-[11px] text-muted">{grp.count}</span>
-          <span className="ml-auto text-[11px] text-dim font-mono">{grp.folder}</span>
         </div>
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
           {grp.items.map((a) => (
@@ -281,14 +280,6 @@ export function ProjectDetailClient({
                 <span className="text-accentb font-semibold">Available until {fmtDate(project.expiresAt)}</span>
               </>
             )}
-          </div>
-          <div className="mt-3.5 flex items-center gap-2 text-[11px] font-mono text-dim flex-wrap">
-            <span className="text-muted">MEDIA_ROOT</span>
-            <span>/</span>
-            <span className="text-text">{project.path}</span>
-            <span className="ml-1.5 px-1.5 py-0.5 border border-line text-muted tracking-wide">
-              PROJECT · DATE · FORMAT
-            </span>
           </div>
         </div>
         {canDownload &&

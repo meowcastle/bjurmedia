@@ -36,6 +36,7 @@ export default async function AdminMediaPage({
         internal: a.internal,
         licensable: a.licensable,
         basePrice: a.basePrice,
+        weekOf: a.weekOf?.toISOString() ?? null,
       }))}
     />
   );
