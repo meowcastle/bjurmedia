@@ -41,6 +41,10 @@ html,
 body {
   background: var(--bg);
   color: var(--text);
+  /* Safety net against horizontal drift on mobile — any element that doesn't wrap
+     cleanly gets clipped instead of creating side-scroll/viewport creep. */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {

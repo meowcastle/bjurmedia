@@ -259,7 +259,7 @@ export function ProjectDetailClient({
   }
 
   return (
-    <div className="px-10 pt-8 pb-32 max-w-[1500px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[1500px] mx-auto bjfade">
       <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
         ← All projects
       </Link>
@@ -269,7 +269,7 @@ export function ProjectDetailClient({
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
             {project.clientName}
           </div>
-          <h1 className="text-4xl tracking-tight font-black mb-3.5">{project.title}</h1>
+          <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3.5">{project.title}</h1>
           <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">
             <span>{metaAssets}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />

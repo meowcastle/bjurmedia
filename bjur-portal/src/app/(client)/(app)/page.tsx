@@ -31,20 +31,20 @@ export default async function ProjectListPage() {
   const coverByProject = new Map(covers.map((c) => [c.projectId, c.id]));
 
   return (
-    <div className="px-10 py-12 max-w-[1400px] mx-auto">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
         <div>
           <div className="text-[11px] tracking-[0.24em] uppercase text-accent font-bold mb-3">
             Your Deliveries
           </div>
-          <h1 className="text-[44px] tracking-[-0.025em] font-black">Projects</h1>
+          <h1 className="text-[32px] sm:text-[44px] tracking-[-0.025em] font-black">Projects</h1>
         </div>
         <div className="text-[13px] text-muted">
           {projects.length} active project{projects.length !== 1 ? "s" : ""}
         </div>
       </div>
 
-      <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(330px,1fr))" }}>
+      <div className="grid grid-cols-1 gap-6 sm:[grid-template-columns:repeat(auto-fill,minmax(330px,1fr))]">
         {projects.map((p) => (
           <ProjectCard
             key={p.id}

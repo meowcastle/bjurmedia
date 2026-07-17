@@ -111,7 +111,7 @@ export function SettingsClient({
   }
 
   return (
-    <div className="px-10 pt-8 pb-32 max-w-[820px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[820px] mx-auto bjfade">
       <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
         ← All projects
       </Link>
@@ -119,7 +119,7 @@ export function SettingsClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
           {companyName}
         </div>
-        <h1 className="text-[38px] tracking-[-0.025em] font-black">Account settings</h1>
+        <h1 className="text-[28px] sm:text-[38px] tracking-[-0.025em] font-black">Account settings</h1>
       </div>
 
       <div className="border border-line bg-s1 p-6 mb-5">
