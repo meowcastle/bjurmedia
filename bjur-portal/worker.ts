@@ -1,10 +1,11 @@
 import "dotenv/config";
 import { mkdirSync } from "fs";
+import { rm } from "fs/promises";
 import { createServer } from "http";
 import path from "path";
 import chokidar from "chokidar";
 import { db } from "./src/lib/db";
-import { INBOX_ROOT } from "./src/lib/media";
+import { INBOX_ROOT, DERIVED_ROOT, resolveMediaPath } from "./src/lib/media";
 import { ingestFile } from "./src/lib/ingest";
 import { generateProxy } from "./src/lib/proxyGen";
 import { postWeeklyDigest } from "./src/lib/slack";
@@ -152,47 +153,79 @@ function startWeeklyDigestScheduler() {
 }
 
 // The web container's media mount is read-only by design (it only ever streams, never
-// writes production media) — but the admin upload feature needs a real file moved into
+// writes production media) — but some admin actions need real writes/deletes under
 // MEDIA_ROOT, which only this container has permission to do. Rather than either
 // broadening web's write access (defeats the point of it being read-only) or relying
 // on chokidar noticing a web-written file (proven unreliable — a file written by one
 // container and watched by another didn't reliably cross that boundary in production),
-// web calls this internal endpoint right after writing to _inbox, and this container —
-// which already holds the correct permissions — runs the exact same ingestFile() the
-// watcher itself uses. Not exposed outside the docker-compose network; only reachable
-// container-to-container by service name, and gated by the same secret used for the
-// other internal automation endpoint (CRON_SECRET).
-function startIngestServer() {
+// web calls these internal endpoints, and this container — which already holds the
+// correct permissions — does the actual filesystem work. Not exposed outside the
+// docker-compose network; only reachable container-to-container by service name, and
+// gated by the same secret used for the other internal automation endpoint
+// (CRON_SECRET).
+function readJsonBody(req: import("http").IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(body || "{}"));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+async function handleIngest(req: import("http").IncomingMessage, res: import("http").ServerResponse) {
+  const { path: filePath } = await readJsonBody(req);
+  if (typeof filePath !== "string" || !filePath.startsWith(INBOX_ROOT + path.sep)) {
+    res.writeHead(400).end(JSON.stringify({ error: "Path must be inside INBOX_ROOT." }));
+    return;
+  }
+  try {
+    const asset = await ingestFile(filePath);
+    res.writeHead(200).end(asset ? JSON.stringify({ ingested: true, assetId: asset.id }) : JSON.stringify({ ingested: false }));
+  } catch (err) {
+    res.writeHead(200).end(JSON.stringify({ ingested: false, note: (err as Error).message.slice(0, 200) }));
+  }
+}
+
+async function handleDeleteAsset(req: import("http").IncomingMessage, res: import("http").ServerResponse) {
+  const { assetId, relPath } = await readJsonBody(req);
+  if (typeof assetId !== "string" || typeof relPath !== "string") {
+    res.writeHead(400).end(JSON.stringify({ error: "assetId and relPath are required." }));
+    return;
+  }
+  try {
+    const mediaPath = await resolveMediaPath(relPath);
+    await rm(mediaPath, { force: true });
+    await rm(path.join(DERIVED_ROOT, assetId), { recursive: true, force: true });
+    res.writeHead(200).end(JSON.stringify({ ok: true }));
+  } catch (err) {
+    res.writeHead(200).end(JSON.stringify({ ok: false, error: (err as Error).message.slice(0, 200) }));
+  }
+}
+
+function startInternalServer() {
   const server = createServer((req, res) => {
-    if (req.method !== "POST" || req.url !== "/ingest") {
-      res.writeHead(404).end();
-      return;
-    }
     if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
       res.writeHead(401).end();
       return;
     }
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", async () => {
-      res.setHeader("Content-Type", "application/json");
-      try {
-        const { path: filePath } = JSON.parse(body || "{}");
-        if (typeof filePath !== "string" || !filePath.startsWith(INBOX_ROOT + path.sep)) {
-          res.writeHead(400).end(JSON.stringify({ error: "Path must be inside INBOX_ROOT." }));
-          return;
-        }
-        const asset = await ingestFile(filePath);
-        res.writeHead(200).end(asset ? JSON.stringify({ ingested: true, assetId: asset.id }) : JSON.stringify({ ingested: false }));
-      } catch (err) {
-        res.writeHead(200).end(JSON.stringify({ ingested: false, note: (err as Error).message.slice(0, 200) }));
-      }
-    });
+    res.setHeader("Content-Type", "application/json");
+    if (req.method === "POST" && req.url === "/ingest") {
+      handleIngest(req, res).catch((err) => res.writeHead(500).end(JSON.stringify({ error: String(err) })));
+    } else if (req.method === "POST" && req.url === "/delete-asset") {
+      handleDeleteAsset(req, res).catch((err) => res.writeHead(500).end(JSON.stringify({ error: String(err) })));
+    } else {
+      res.writeHead(404).end();
+    }
   });
-  server.listen(INGEST_PORT, () => console.log(`[ingest-server] listening on :${INGEST_PORT}`));
+  server.listen(INGEST_PORT, () => console.log(`[internal-server] listening on :${INGEST_PORT}`));
 }
 
 startIngestWatcher();
-startIngestServer();
+startInternalServer();
 startProxyLoop();
 startWeeklyDigestScheduler();

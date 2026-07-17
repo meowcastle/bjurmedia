@@ -42,6 +42,9 @@ export function AdminMediaClient({
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Switching projects is a client-side navigation (router.push), not a full reload —
   // useState's initial value only applies on first mount, so without this the table
@@ -55,6 +58,8 @@ export function AdminMediaClient({
     setRows(assets);
     setPriceDrafts({});
     setWeekOfDrafts({});
+    setConfirmingDeleteId(null);
+    setDeleteError(null);
   }
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
@@ -115,6 +120,20 @@ export function AdminMediaClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ retry: true }),
     });
+  }
+
+  async function deleteAsset(a: Asset) {
+    setDeletingId(a.id);
+    setDeleteError(null);
+    const res = await fetch(`/api/admin/assets/${a.id}`, { method: "DELETE" });
+    if (res.ok) {
+      setRows((rs) => rs.filter((r) => r.id !== a.id));
+      setConfirmingDeleteId(null);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setDeleteError(data.error ?? "Failed to delete asset.");
+    }
+    setDeletingId(null);
   }
 
   return (
@@ -247,22 +266,53 @@ export function AdminMediaClient({
                 </span>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <div className="flex gap-2 items-center justify-end">
-                  <button
-                    onClick={() => toggleInternal(a)}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
-                  >
-                    {a.internal ? "Show client" : "Hide"}
-                  </button>
-                  {(a.proxyStatus === "FAILED" || a.proxyStatus === "PENDING") && (
+                {confirmingDeleteId === a.id ? (
+                  <div className="flex gap-2 items-center justify-end">
+                    <span className="text-[11px] text-muted">Delete permanently?</span>
                     <button
-                      onClick={() => retry(a)}
-                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                      onClick={() => deleteAsset(a)}
+                      disabled={deletingId === a.id}
+                      className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
                     >
-                      Retry
+                      {deletingId === a.id ? "Deleting…" : "Confirm"}
                     </button>
-                  )}
-                </div>
+                    <button
+                      onClick={() => setConfirmingDeleteId(null)}
+                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 items-center justify-end">
+                    <button
+                      onClick={() => toggleInternal(a)}
+                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
+                    >
+                      {a.internal ? "Show client" : "Hide"}
+                    </button>
+                    {(a.proxyStatus === "FAILED" || a.proxyStatus === "PENDING") && (
+                      <button
+                        onClick={() => retry(a)}
+                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                      >
+                        Retry
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setDeleteError(null);
+                        setConfirmingDeleteId(a.id);
+                      }}
+                      className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+                {confirmingDeleteId === a.id && deleteError && (
+                  <div className="text-[11px] text-accentb text-right max-w-[240px]">{deleteError}</div>
+                )}
                 {isMaster && (
                   <div className="flex gap-2 items-center justify-end">
                     <button
