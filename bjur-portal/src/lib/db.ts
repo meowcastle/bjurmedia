@@ -13,9 +13,13 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 // queuing. WAL mode lets readers and a writer proceed without blocking each other,
 // and busy_timeout makes writers that do contend retry for a few seconds instead of
 // erroring right away.
-db.$executeRawUnsafe("PRAGMA journal_mode=WAL;").catch((err) =>
+// Both of these PRAGMAs return the value they just set as a result row (e.g.
+// journal_mode=WAL returns "wal"), so they need $queryRawUnsafe — $executeRawUnsafe
+// is only for statements that return no rows, and throws "Execute returned results"
+// for anything that does, silently failing to ever apply either setting.
+db.$queryRawUnsafe("PRAGMA journal_mode=WAL;").catch((err) =>
   console.error("Failed to enable SQLite WAL mode:", err)
 );
-db.$executeRawUnsafe("PRAGMA busy_timeout=5000;").catch((err) =>
+db.$queryRawUnsafe("PRAGMA busy_timeout=5000;").catch((err) =>
   console.error("Failed to set SQLite busy_timeout:", err)
 );
