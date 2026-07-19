@@ -227,24 +227,49 @@ export async function ingestFile(absPath: string) {
   const licensable = isMaster && project.client.type === "ONEOFF";
   const internal = isMaster && project.client.type === "RETAINER";
 
-  const asset = await db.asset.create({
-    data: {
-      projectId: project.id,
-      kind: classification.kind,
-      format: classification.format,
-      orientation: classification.orientation,
-      name: filename,
-      relPath,
-      weekOf,
-      sizeBytes: BigInt(sizeBytes),
-      dims: classification.dims,
-      durationSec: classification.durationSec,
-      masterCodec: classification.masterCodec,
-      proxyStatus: "PENDING",
-      internal,
-      licensable,
-    },
-  });
+  // Same project + same destination path (i.e. same filename dropped again, an
+  // updated re-export) should replace the existing asset in place, not duplicate it —
+  // otherwise the DB ends up with two rows pointing at the same relPath, one of them
+  // silently stale the moment the file underneath it got overwritten. Updating in
+  // place also means favorites/licenses on the original asset survive a re-upload.
+  // internal/licensable are deliberately left untouched here — those can be an
+  // admin's manual override and a re-upload shouldn't stomp them.
+  const existing = await db.asset.findFirst({ where: { projectId: project.id, relPath } });
+  const asset = existing
+    ? await db.asset.update({
+        where: { id: existing.id },
+        data: {
+          kind: classification.kind,
+          orientation: classification.orientation,
+          weekOf,
+          sizeBytes: BigInt(sizeBytes),
+          dims: classification.dims,
+          durationSec: classification.durationSec,
+          masterCodec: classification.masterCodec,
+          proxyStatus: "PENDING",
+          proxyRelPath: null,
+          thumbRelPath: null,
+          proxyRes: null,
+        },
+      })
+    : await db.asset.create({
+        data: {
+          projectId: project.id,
+          kind: classification.kind,
+          format: classification.format,
+          orientation: classification.orientation,
+          name: filename,
+          relPath,
+          weekOf,
+          sizeBytes: BigInt(sizeBytes),
+          dims: classification.dims,
+          durationSec: classification.durationSec,
+          masterCodec: classification.masterCodec,
+          proxyStatus: "PENDING",
+          internal,
+          licensable,
+        },
+      });
 
   if (project.status === "DRAFT") {
     await db.project.update({
@@ -253,10 +278,12 @@ export async function ingestFile(absPath: string) {
     });
   }
 
+  const verb = existing ? "replaced" : "auto-ingested";
+
   await db.activity.create({
     data: {
       actor: project.client.name,
-      action: `auto-ingested "${filename}" into ${project.title}`,
+      action: `${verb} "${filename}" in ${project.title}`,
     },
   });
 
@@ -268,7 +295,7 @@ export async function ingestFile(absPath: string) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `:package: *New delivery — ${project.client.name}*\n*${project.title}*\n${filename} auto-ingested · proxy generating`,
+          text: `:package: *${existing ? "Updated delivery" : "New delivery"} — ${project.client.name}*\n*${project.title}*\n${filename} ${verb} · proxy generating`,
         },
       },
     ],
