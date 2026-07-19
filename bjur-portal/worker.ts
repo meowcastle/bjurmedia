@@ -43,6 +43,30 @@ function isFilesystemArtifact(watchedPath: string) {
   return base === "@eaDir" || base.includes("@Syno") || base === ".DS_Store" || base.startsWith(".smbdelete");
 }
 
+// The chokidar watcher below (for files editors drop directly onto the NAS over SMB)
+// and the internal /ingest HTTP endpoint (for admin-panel browser uploads) both land
+// files in the same INBOX_ROOT tree, so an admin upload fires both triggers for the
+// same file: the HTTP handler calls ingestFile() directly right after the write
+// finishes, and chokidar's own "add" event (delayed by awaitWriteFinish, but not
+// reliably delayed *enough*) fires independently a moment later. With no coordination
+// between them, both raced into moveFile()'s copyFile()+unlink() fallback (rename()
+// always hits EXDEV here — _inbox and MEDIA_ROOT are separate bind mounts even though
+// they're the same host tree) and wrote the same destination path concurrently,
+// producing a file with a correct header but corrupted/interleaved sample data underneath
+// — confirmed by a checksum mismatch between the uploaded file and what landed on disk.
+// Sharing one in-flight map between both triggers means whichever fires first actually
+// runs ingestFile(), and the other just awaits and reuses that same result instead of
+// launching a second, colliding call.
+const inFlightIngests = new Map<string, ReturnType<typeof ingestFile>>();
+
+function ingestOnce(filePath: string) {
+  const existing = inFlightIngests.get(filePath);
+  if (existing) return existing;
+  const promise = ingestFile(filePath).finally(() => inFlightIngests.delete(filePath));
+  inFlightIngests.set(filePath, promise);
+  return promise;
+}
+
 function startIngestWatcher() {
   const watcher = chokidar.watch(INBOX_ROOT, {
     ignoreInitial: false,
@@ -50,11 +74,6 @@ function startIngestWatcher() {
     depth: 4,
     ignored: isFilesystemArtifact,
   });
-
-  // fsevents can fire duplicate "add" events for the same file (e.g. a create + a
-  // separate write-completion event); without this, both fire ingestFile concurrently
-  // and race on the same rename.
-  const inFlight = new Set<string>();
 
   // SQLite has a single writer: chokidar fires "add" independently for every file it
   // discovers, so a bulk folder copy (dozens of files at once) used to launch dozens
@@ -72,16 +91,14 @@ function startIngestWatcher() {
   const INGEST_GIVE_UP_MS = 2 * 60_000;
 
   watcher.on("add", (filePath) => {
-    if (inFlight.has(filePath)) return;
-    inFlight.add(filePath);
+    if (inFlightIngests.has(filePath)) return;
     queue = queue.then(async () => {
       console.log(`[ingest] new file: ${filePath}`);
-      const done = ingestFile(filePath)
+      const done = ingestOnce(filePath)
         .then((asset) => {
           if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
         })
-        .catch((err) => console.error(`[ingest] failed for ${filePath}:`, err))
-        .finally(() => inFlight.delete(filePath));
+        .catch((err) => console.error(`[ingest] failed for ${filePath}:`, err));
 
       const gaveUp = await Promise.race([
         done.then(() => false),
@@ -184,7 +201,7 @@ async function handleIngest(req: import("http").IncomingMessage, res: import("ht
     return;
   }
   try {
-    const asset = await ingestFile(filePath);
+    const asset = await ingestOnce(filePath);
     res.writeHead(200).end(asset ? JSON.stringify({ ingested: true, assetId: asset.id }) : JSON.stringify({ ingested: false }));
   } catch (err) {
     res.writeHead(200).end(JSON.stringify({ ingested: false, note: (err as Error).message.slice(0, 200) }));
