@@ -180,7 +180,8 @@ export function ProjectDetailClient({
       // Current year (plus anything undated) shows directly; older years are bucketed
       // separately below into collapsible folders so the default view stays focused on
       // this year's weekly deliveries instead of a year-spanning wall of weeks.
-      const items = assets.filter((a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear);
+      const byFilter = filter === "ALL" ? assets : assets.filter((a) => a.format === filter);
+      const items = byFilter.filter((a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear);
       return bucketByWeek(items, project.path);
     }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
@@ -200,8 +201,9 @@ export function ProjectDetailClient({
   type YearFolder = { year: number; count: string; weeks: Group[] };
   const pastYearFolders: YearFolder[] = useMemo(() => {
     if (groupMode !== "week" || filter === "FAV") return [];
+    const byFilter = filter === "ALL" ? assets : assets.filter((a) => a.format === filter);
     const byYear = new Map<number, Asset[]>();
-    for (const a of assets) {
+    for (const a of byFilter) {
       if (!a.weekOf) continue;
       const year = new Date(a.weekOf).getUTCFullYear();
       if (year === currentYear) continue;

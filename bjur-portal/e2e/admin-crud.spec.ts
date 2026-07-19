@@ -34,27 +34,37 @@ test("rejects a duplicate username", async ({ page }) => {
   await expect(page.getByText(/already taken/i)).toBeVisible();
 });
 
+// Project creation moved from a standalone /admin/projects list to each client's own
+// detail page (/admin/clients/[id]) — browsing starts from Clients now, and the "New
+// project" dialog there is pre-scoped to that one client (no client picker to fill in).
 test("create a new project and see its inbox path", async ({ page }) => {
-  await page.goto("/admin/projects");
-  await page.getByRole("button", { name: "+ New project" }).click();
+  await page.goto("/admin/clients");
+  await page.getByText("SSH", { exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/clients\/.+/);
 
-  await page.getByLabel("Assign to client").selectOption({ label: "SSH — Retainer" });
+  await page.getByRole("button", { name: "+ New project" }).click();
   await page.getByLabel("Project title").fill("Fall Lookbook 2026");
   await page.getByRole("button", { name: "Create project" }).click();
 
-  await expect(page.getByText("Project created")).toBeVisible();
-  await expect(page.getByText(/_inbox\/ssh\/fall-lookbook-2026/)).toBeVisible();
-  await page.getByRole("button", { name: "Done" }).click();
+  // Scoped to the dialog overlay: router.refresh() (triggered by onCreated()) can make
+  // the client detail page's own project list show this same new project's inbox path
+  // underneath the still-open "Project created" dialog, so an unscoped text locator
+  // matches both and violates Playwright's strict mode.
+  const dialog = page.locator(".fixed.inset-0.z-50");
+  await expect(dialog.getByText("Project created")).toBeVisible();
+  await expect(dialog.getByText(/_inbox\/ssh\/fall-lookbook-2026/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Done" }).click();
 
   await expect(page.getByText("Fall Lookbook 2026")).toBeVisible();
   await expect(page.getByText("DRAFT")).toBeVisible(); // invisible to the client until first delivery
 });
 
 test("retainer clients can't be given a project expiry", async ({ page }) => {
-  await page.goto("/admin/projects");
-  await page.getByRole("button", { name: "+ New project" }).click();
+  await page.goto("/admin/clients");
+  await page.getByText("SSH", { exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/clients\/.+/);
 
-  await page.getByLabel("Assign to client").selectOption({ label: "SSH — Retainer" });
+  await page.getByRole("button", { name: "+ New project" }).click();
   // SSH is a retainer — the expiry field should be replaced by an explanatory note.
   await expect(page.getByLabel("Expires (optional)")).toHaveCount(0);
   await expect(page.getByText(/permanent library/i)).toBeVisible();

@@ -21,7 +21,12 @@ export default defineConfig({
     command: "pnpm dev",
     url: `http://localhost:${testEnv.PORT ?? 3100}`,
     reuseExistingServer: !process.env.CI,
-    env: testEnv as Record<string, string>,
+    // Tells src/lib/db.ts to skip enabling SQLite WAL mode. Flipping a fresh e2e.db
+    // into WAL for the first time right as global-setup's separate `prisma migrate
+    // deploy` process touches that same file causes a real, reproducible "database is
+    // locked" — the two connections colliding during that one-time mode transition.
+    // Not needed for e2e anyway: single test worker, no separate worker process.
+    env: { ...testEnv, PLAYWRIGHT_TEST: "true" } as Record<string, string>,
     timeout: 60_000,
   },
 });

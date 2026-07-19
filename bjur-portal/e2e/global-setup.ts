@@ -17,11 +17,34 @@ export default async function globalSetup() {
   const env = { ...process.env, ...testEnv };
   const baseURL = `http://localhost:${testEnv.PORT ?? 3100}`;
 
-  rmSync(path.join(root, "data", "e2e.db"), { force: true });
+  // Deliberately not deleting the sqlite file (or its WAL/SHM sidecars) here: Prisma
+  // resolves the relative DATABASE_URL against schema.prisma's own directory (not the
+  // repo root), and Playwright's webServer starts around the same time as this
+  // function, opening its own long-lived connection to that same file — deleting it
+  // out from under that connection, or dropping WAL/SHM state it may depend on, causes
+  // "table does not exist"/"database is locked" depending on exact timing. seed.ts
+  // itself deleteMany()s every table before reseeding, so resetting data in place
+  // (schema left alone, migrate deploy is a no-op once already applied) is sufficient
+  // and doesn't require touching the file's identity at all. The two exec calls are
+  // still wrapped in a retry since a transient SQLITE_BUSY from that same startup
+  // overlap is possible even without any manual file manipulation.
   rmSync(path.join(root, testEnv.MEDIA_ROOT ?? "media-e2e"), { recursive: true, force: true });
 
-  execSync("npx prisma migrate deploy", { cwd: root, env, stdio: "inherit" });
-  execSync("npx tsx prisma/seed.ts", { cwd: root, env, stdio: "inherit" });
+  function execWithRetry(cmd: string, attempts = 5) {
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        execSync(cmd, { cwd: root, env, stdio: i === attempts ? "inherit" : "pipe" });
+        return;
+      } catch (err) {
+        if (i === attempts) throw err;
+        console.log(`[global-setup] "${cmd}" failed (attempt ${i}/${attempts}), retrying...`);
+        execSync("sleep 1");
+      }
+    }
+  }
+
+  execWithRetry("npx prisma migrate deploy");
+  execWithRetry("npx tsx prisma/seed.ts");
 
   const archiveRoot = path.resolve(root, testEnv.ARCHIVE_ROOT ?? "media-e2e/_archive");
   const folder = path.join(archiveRoot, "57NYC_old_dump", "2024");
