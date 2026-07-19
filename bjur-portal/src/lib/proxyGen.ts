@@ -36,6 +36,20 @@ function proxyDims(format: string) {
   return format === "Reel" ? { w: 1080, h: 1920 } : { w: 1920, h: 1080 };
 }
 
+async function probeDuration(filePath: string): Promise<number | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      "ffprobe",
+      ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath],
+      { encoding: "utf-8", timeout: 30_000, killSignal: "SIGKILL" }
+    );
+    const parsed = parseFloat(stdout.trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function generateThumb(srcPath: string, outPath: string, isVideo: boolean, durationSec: number | null) {
   await mkdir(path.dirname(outPath), { recursive: true });
   if (isVideo) {
@@ -138,7 +152,25 @@ export async function generateProxy(asset: AssetRow) {
     if (asset.kind === "VIDEO") {
       const watermark = asset.licensable;
       proxyRelPath = `${asset.id}/proxy.mp4`;
-      await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, proxyRelPath), asset.format, watermark);
+      const outPath = path.join(DERIVED_ROOT, proxyRelPath);
+      await generateVideoProxy(srcPath, outPath, asset.format, watermark);
+
+      // A source file can have a corrupted packet partway through (valid header/
+      // duration metadata, broken bitstream data after some point) that ffmpeg just
+      // quietly stops decoding at instead of erroring — exiting 0 with whatever it
+      // salvaged. Without this check that silently reports as a successful, full-length
+      // proxy. Comparing the encode's real output duration against the source's probed
+      // duration catches it instead (confirmed case: a HandBrake-exported master with a
+      // corrupt HEVC NAL unit at 5.2s produced a "Ready" 5s proxy from an 18.6s source).
+      if (asset.durationSec) {
+        const proxyDurationSec = await probeDuration(outPath);
+        if (proxyDurationSec !== null && proxyDurationSec < asset.durationSec * 0.9 - 1) {
+          throw new Error(
+            `Proxy only encoded ${proxyDurationSec.toFixed(1)}s of a ${asset.durationSec}s source — the master file is likely corrupted partway through. Re-export and re-upload.`
+          );
+        }
+      }
+
       const { w, h } = proxyDims(asset.format);
       proxyRes = watermark ? `watermarked ${h}p` : asset.format === "Reel" ? `${w}×${h} H.264` : `${h}p H.264`;
     }
