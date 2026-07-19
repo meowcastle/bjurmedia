@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
@@ -61,6 +61,30 @@ export function AdminMediaClient({
     setConfirmingDeleteId(null);
     setDeleteError(null);
   }
+
+  // Same "adjust during render" trick, but keyed on the assets prop's identity rather
+  // than the project — this is what actually makes the poll below visible. Every
+  // router.refresh() re-fetches the server component and hands this client component a
+  // brand new assets array, but a plain useState(assets) only ever reads that as its
+  // *initial* value; without re-syncing here, the table would keep the interval running
+  // forever (still seeing the old stale "Generating…"/"Queued" rows) instead of ever
+  // reflecting the refreshed proxyStatus.
+  const [prevAssets, setPrevAssets] = useState(assets);
+  if (assets !== prevAssets) {
+    setPrevAssets(assets);
+    setRows(assets);
+  }
+
+  // Proxy generation happens out-of-band in the worker container, so nothing on this
+  // page would otherwise learn a status changed short of a manual reload. Polling only
+  // while something's actually in flight (not on a fixed interval forever) keeps this
+  // cheap and self-stopping the moment every row settles into Ready/Failed.
+  useEffect(() => {
+    const inFlight = rows.some((r) => r.proxyStatus === "PENDING" || r.proxyStatus === "GENERATING");
+    if (!inFlight) return;
+    const interval = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(interval);
+  }, [rows, router]);
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
