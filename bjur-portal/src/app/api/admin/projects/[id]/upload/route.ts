@@ -1,15 +1,23 @@
 import { createWriteStream } from "fs";
+import { mkdir, rename, unlink } from "fs/promises";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
+import { randomUUID } from "crypto";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inboxDirFor, ensureInboxDir } from "@/lib/projects";
+import { INBOX_ROOT } from "@/lib/media";
 
 export const runtime = "nodejs";
 
 const INGEST_URL = `http://worker:${process.env.INGEST_PORT ?? "3100"}/ingest`;
+
+// Uploads land here first, invisible to the worker's chokidar watcher (see
+// isFilesystemArtifact in worker.ts), and only get moved into the real inbox path
+// once fully written — see the comment above the rename() call below for why.
+const UPLOAD_STAGING_DIR = path.join(INBOX_ROOT, ".uploading");
 
 function sanitizeFilename(name: string) {
   const base = path.basename(name).trim(); // strip any directory components (path traversal)
@@ -56,8 +64,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await ensureInboxDir(project.client.username, project.inboxSlug);
   const destPath = path.join(inboxDirFor(project.client.username, project.inboxSlug), filename);
 
+  // Writing straight to destPath let the worker's chokidar watcher notice the file
+  // before the upload actually finished: its awaitWriteFinish stability window (2.5s
+  // of no size change) is tuned for fast NAS-local drops, but a browser upload
+  // streamed over the admin's real internet connection can easily stall between
+  // chunks for that long on a large clip. That fired ingestion on a truncated
+  // snapshot — moveFile() copied whatever bytes existed at that instant into
+  // MEDIA_ROOT and unlinked the inbox copy, while this still-open write stream kept
+  // writing into the now-unlinked (orphaned) file, so the upload looked successful
+  // here even though the asset that got created was corrupted. Staging the write
+  // outside the watched tree and only rename()-ing (atomic, same mount) into place
+  // once the whole file has landed means the watcher — and the /ingest call below —
+  // never sees anything but a complete file.
+  await mkdir(UPLOAD_STAGING_DIR, { recursive: true });
+  const stagingPath = path.join(UPLOAD_STAGING_DIR, `${randomUUID()}-${filename}`);
+
   const nodeReadable = Readable.fromWeb(req.body as import("stream/web").ReadableStream<Uint8Array>);
-  await pipeline(nodeReadable, createWriteStream(destPath));
+  try {
+    await pipeline(nodeReadable, createWriteStream(stagingPath));
+  } catch (err) {
+    await unlink(stagingPath).catch(() => {});
+    return NextResponse.json(
+      { error: `Upload failed: ${(err as Error).message.slice(0, 200)}` },
+      { status: 500 }
+    );
+  }
+  await rename(stagingPath, destPath);
 
   try {
     const res = await fetch(INGEST_URL, {

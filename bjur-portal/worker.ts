@@ -38,9 +38,21 @@ async function recoverStrandedProxies() {
 // filtering them out, ordinary file operations flood the ingest pipeline with paths
 // that can never resolve to a project and just generate noisy failed-classification
 // errors.
+//
+// ".uploading" is different: it's the admin upload route's own staging directory
+// (see the upload route handler). Admin-panel uploads are streamed there first and
+// only rename()'d into a real inbox path once fully written, specifically so this
+// watcher never sees a partial file and fires ingestion on a truncated snapshot —
+// so it must stay unwatched, not just filtered after the fact.
 function isFilesystemArtifact(watchedPath: string) {
   const base = path.basename(watchedPath);
-  return base === "@eaDir" || base.includes("@Syno") || base === ".DS_Store" || base.startsWith(".smbdelete");
+  return (
+    base === "@eaDir" ||
+    base.includes("@Syno") ||
+    base === ".DS_Store" ||
+    base.startsWith(".smbdelete") ||
+    base === ".uploading"
+  );
 }
 
 // The chokidar watcher below (for files editors drop directly onto the NAS over SMB)
