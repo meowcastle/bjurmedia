@@ -1,7 +1,5 @@
 import { createWriteStream } from "fs";
 import { mkdir, rename, stat, unlink } from "fs/promises";
-import { pipeline } from "stream/promises";
-import { Readable } from "stream";
 import { randomUUID } from "crypto";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
@@ -79,10 +77,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await mkdir(UPLOAD_STAGING_DIR, { recursive: true });
   const stagingPath = path.join(UPLOAD_STAGING_DIR, `${randomUUID()}-${filename}`);
 
-  const nodeReadable = Readable.fromWeb(req.body as import("stream/web").ReadableStream<Uint8Array>);
+  // Deliberately not Readable.fromWeb(req.body) + pipeline() here — that conversion has
+  // documented double-buffering/highWaterMark bugs (nodejs/node#48636, #47128, #49938)
+  // that can make the resulting Node stream emit 'end' early on large transfers, with no
+  // error thrown, well before the underlying Web ReadableStream is actually exhausted.
+  // Confirmed on this exact route: packet captures showed the full file arriving intact
+  // at this process's own socket, while Readable.fromWeb's stream still ended ~45MB
+  // short on a 55MB upload. Reading the Web Streams reader directly and pumping chunks
+  // into the file by hand sidesteps that conversion entirely.
+  const reader = req.body.getReader();
+  const writeStream = createWriteStream(stagingPath);
   try {
-    await pipeline(nodeReadable, createWriteStream(stagingPath));
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!writeStream.write(value)) {
+        await new Promise<void>((resolve) => writeStream.once("drain", () => resolve()));
+      }
+    }
+    await new Promise<void>((resolve, reject) => {
+      writeStream.end((err: NodeJS.ErrnoException | null | undefined) => (err ? reject(err) : resolve()));
+    });
   } catch (err) {
+    writeStream.destroy();
     await unlink(stagingPath).catch(() => {});
     return NextResponse.json(
       { error: `Upload failed: ${(err as Error).message.slice(0, 200)}` },
@@ -90,14 +107,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  // pipeline() resolving cleanly only means the write stream finished — it doesn't
-  // mean every byte the browser sent actually arrived. A reverse proxy or a flaky
-  // connection can end the request mid-transfer in a way Node sees as a normal,
-  // complete stream rather than an error (unlike a raw NAS file copy, which has hard
-  // completion guarantees at the filesystem level). Comparing against the browser's
-  // declared Content-Length — which XHR sets from the File's real size — catches a
-  // silently truncated upload here, at the source, instead of it surfacing minutes
-  // later as a cryptic "corrupted master" failure during proxy generation.
+  // The write loop above finishing without throwing still doesn't guarantee every byte
+  // the browser sent actually arrived — belt-and-suspenders against any other silent
+  // truncation vector (a flaky connection, a misbehaving proxy) by comparing against the
+  // browser's declared Content-Length, which XHR sets from the File's real size. Catches
+  // it here, at the source, instead of it surfacing minutes later as a cryptic "corrupted
+  // master" failure during proxy generation.
   const declaredLength = req.headers.get("content-length");
   if (declaredLength) {
     const expectedBytes = parseInt(declaredLength, 10);
