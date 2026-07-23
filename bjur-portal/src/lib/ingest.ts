@@ -60,17 +60,22 @@ async function probeVideo(absPath: string) {
       "stream=width,height,codec_name,codec_type",
       "-show_entries",
       "format=duration",
+      "-show_entries",
+      "format_tags=creation_time",
       absPath,
     ],
     { encoding: "utf-8", timeout: 30_000, killSignal: "SIGKILL" }
   );
   const data = JSON.parse(stdout);
   const videoStream = (data.streams ?? []).find((s: { codec_type: string }) => s.codec_type === "video");
+  const rawCreationTime = data.format?.tags?.creation_time;
+  const capturedAt = rawCreationTime && !isNaN(Date.parse(rawCreationTime)) ? rawCreationTime : null;
   return {
     width: videoStream?.width ?? 0,
     height: videoStream?.height ?? 0,
     codecName: videoStream?.codec_name ?? "unknown",
     durationSec: data.format?.duration ? Math.round(parseFloat(data.format.duration)) : null,
+    capturedAt,
   };
 }
 
@@ -81,6 +86,7 @@ export type Classification = {
   dims: string | null;
   durationSec: number | null;
   masterCodec: string;
+  capturedAt: string | null;
 };
 
 export async function classifyMedia(absPath: string): Promise<Classification> {
@@ -96,6 +102,7 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
       dims: `${width}×${height}`,
       durationSec: null,
       masterCodec: `${ext.slice(1).toUpperCase()} · ${humanSize(sizeBytes)}`,
+      capturedAt: null,
     };
   }
 
@@ -110,9 +117,10 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
         dims: null,
         durationSec: null,
         masterCodec: `${ext.slice(1).toUpperCase()} · ${humanSize(sizeBytes)}`,
+        capturedAt: null,
       };
     }
-    const { width, height, codecName, durationSec } = await probeVideo(absPath);
+    const { width, height, codecName, durationSec, capturedAt } = await probeVideo(absPath);
     const orientation = height > width ? "portrait" : "landscape";
     return {
       kind: "VIDEO",
@@ -121,6 +129,7 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
       dims: width && height ? `${width}×${height}` : null,
       durationSec,
       masterCodec: `${codecName.toUpperCase()} · ${humanSize(sizeBytes)}`,
+      capturedAt,
     };
   }
 
@@ -301,5 +310,5 @@ export async function ingestFile(absPath: string) {
     ],
   });
 
-  return asset;
+  return { asset, capturedAt: classification.capturedAt };
 }

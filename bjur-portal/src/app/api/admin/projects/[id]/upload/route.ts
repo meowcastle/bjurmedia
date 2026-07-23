@@ -1,5 +1,5 @@
 import { createWriteStream } from "fs";
-import { mkdir, rename, unlink } from "fs/promises";
+import { mkdir, rename, stat, unlink } from "fs/promises";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
 import { randomUUID } from "crypto";
@@ -89,6 +89,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       { status: 500 }
     );
   }
+
+  // pipeline() resolving cleanly only means the write stream finished — it doesn't
+  // mean every byte the browser sent actually arrived. A reverse proxy or a flaky
+  // connection can end the request mid-transfer in a way Node sees as a normal,
+  // complete stream rather than an error (unlike a raw NAS file copy, which has hard
+  // completion guarantees at the filesystem level). Comparing against the browser's
+  // declared Content-Length — which XHR sets from the File's real size — catches a
+  // silently truncated upload here, at the source, instead of it surfacing minutes
+  // later as a cryptic "corrupted master" failure during proxy generation.
+  const declaredLength = req.headers.get("content-length");
+  if (declaredLength) {
+    const expectedBytes = parseInt(declaredLength, 10);
+    const actualBytes = (await stat(stagingPath)).size;
+    if (Number.isFinite(expectedBytes) && actualBytes !== expectedBytes) {
+      await unlink(stagingPath).catch(() => {});
+      return NextResponse.json(
+        {
+          error: `Upload incomplete: received ${actualBytes} of ${expectedBytes} bytes — the connection likely dropped mid-transfer. Try again.`,
+        },
+        { status: 500 }
+      );
+    }
+  }
+
   await rename(stagingPath, destPath);
 
   try {
@@ -116,7 +140,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           "Uploaded, but not registered as an asset — check it's not a WIP file or an unrecognized format, and that this project's inbox folder matched correctly.",
       });
     }
-    return NextResponse.json({ ok: true, filename, ingested: true, assetId: data.assetId });
+    return NextResponse.json({
+      ok: true,
+      filename,
+      ingested: true,
+      assetId: data.assetId,
+      capturedAt: data.capturedAt ?? null,
+    });
   } catch (err) {
     return NextResponse.json({
       ok: true,

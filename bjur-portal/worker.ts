@@ -107,8 +107,8 @@ function startIngestWatcher() {
     queue = queue.then(async () => {
       console.log(`[ingest] new file: ${filePath}`);
       const done = ingestOnce(filePath)
-        .then((asset) => {
-          if (asset) console.log(`[ingest] registered asset ${asset.id} (${asset.name})`);
+        .then((result) => {
+          if (result) console.log(`[ingest] registered asset ${result.asset.id} (${result.asset.name})`);
         })
         .catch((err) => console.error(`[ingest] failed for ${filePath}:`, err));
 
@@ -213,8 +213,12 @@ async function handleIngest(req: import("http").IncomingMessage, res: import("ht
     return;
   }
   try {
-    const asset = await ingestOnce(filePath);
-    res.writeHead(200).end(asset ? JSON.stringify({ ingested: true, assetId: asset.id }) : JSON.stringify({ ingested: false }));
+    const result = await ingestOnce(filePath);
+    res.writeHead(200).end(
+      result
+        ? JSON.stringify({ ingested: true, assetId: result.asset.id, capturedAt: result.capturedAt })
+        : JSON.stringify({ ingested: false })
+    );
   } catch (err) {
     res.writeHead(200).end(JSON.stringify({ ingested: false, note: (err as Error).message.slice(0, 200) }));
   }

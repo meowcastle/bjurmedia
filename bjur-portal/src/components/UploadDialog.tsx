@@ -9,9 +9,11 @@ type QueueItem = {
   progress: number;
   status: "pending" | "uploading" | "done" | "warning" | "error";
   note?: string;
+  assetId?: string;
+  weekOfDraft?: string;
 };
 
-type UploadResult = { ok: boolean; ingested?: boolean; note?: string };
+type UploadResult = { ok: boolean; ingested?: boolean; note?: string; assetId?: string; capturedAt?: string | null };
 
 function uploadOne(projectId: string, item: QueueItem, onProgress: (pct: number) => void) {
   return new Promise<UploadResult>((resolve) => {
@@ -22,14 +24,14 @@ function uploadOne(projectId: string, item: QueueItem, onProgress: (pct: number)
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
-      let body: { error?: string; ingested?: boolean; note?: string } = {};
+      let body: { error?: string; ingested?: boolean; note?: string; assetId?: string; capturedAt?: string | null } = {};
       try {
         body = JSON.parse(xhr.responseText);
       } catch {
         // fall through with an empty body
       }
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ ok: true, ingested: body.ingested, note: body.note });
+        resolve({ ok: true, ingested: body.ingested, note: body.note, assetId: body.assetId, capturedAt: body.capturedAt });
       } else {
         resolve({ ok: false, note: body.error ?? `Upload failed (${xhr.status})` });
       }
@@ -37,6 +39,12 @@ function uploadOne(projectId: string, item: QueueItem, onProgress: (pct: number)
     xhr.onerror = () => resolve({ ok: false, note: "Network error" });
     xhr.send(item.file);
   });
+}
+
+// capturedAt is a UTC ISO string (ffprobe's creation_time); format it in UTC so the
+// label always matches the calendar date the (timezone-less) date input below it shows.
+function fmtDetected(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 export function UploadDialog({
@@ -80,10 +88,15 @@ export function UploadDialog({
         setQueue((q) => q.map((qi) => (qi.file === item.file ? { ...qi, progress: pct } : qi)));
       });
       const status = !result.ok ? "error" : result.ingested === false ? "warning" : "done";
+      // Only ingested uploads get an assetId back — that's what the date field below
+      // is keyed on, so warning/error rows never render one.
+      const dateFields = result.assetId
+        ? { assetId: result.assetId, weekOfDraft: result.capturedAt ? result.capturedAt.slice(0, 10) : "" }
+        : {};
       setQueue((q) =>
         q.map((qi) =>
           qi.file === item.file
-            ? { ...qi, status, note: result.note, progress: result.ok ? 100 : qi.progress }
+            ? { ...qi, status, note: result.note, progress: result.ok ? 100 : qi.progress, ...dateFields }
             : qi
         )
       );
@@ -92,15 +105,35 @@ export function UploadDialog({
     onUploaded();
   }
 
+  function setWeekOfDraft(item: QueueItem, value: string) {
+    setQueue((q) => q.map((qi) => (qi.file === item.file ? { ...qi, weekOfDraft: value } : qi)));
+  }
+
+  async function saveWeekOf(item: QueueItem) {
+    if (!item.assetId) return;
+    const weekOf = item.weekOfDraft ? new Date(item.weekOfDraft).toISOString() : null;
+    await fetch(`/api/admin/assets/${item.assetId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekOf }),
+    });
+  }
+
+  // The date field is prefilled but may never be focused (an admin who agrees with a
+  // detected date has no reason to click into it), so onBlur alone would never fire —
+  // flushing every ingested item's current draft here is what actually confirms it.
+  async function finishAndClose() {
+    await Promise.all(queue.filter((qi) => qi.assetId).map(saveWeekOf));
+    onClose();
+  }
+
   const allDone = queue.length > 0 && queue.every((q) => q.status === "done" || q.status === "warning");
   const hasPending = queue.some((q) => q.status === "pending");
+  const handleDismiss = uploading ? undefined : allDone ? finishAndClose : onClose;
 
   return (
     <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
-        onClick={uploading ? undefined : onClose}
-      >
+      <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade" onClick={handleDismiss}>
         <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[520px] bg-s2 border border-line2 p-7 bjrise">
           <div className="text-xl font-black tracking-tight mb-1.5">Upload deliverables</div>
           <div className="text-[13px] text-muted mb-6">
@@ -160,6 +193,22 @@ export function UploadDialog({
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
+                  {item.assetId && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-[10px] text-dim uppercase tracking-wide">
+                        {item.weekOfDraft ? `Detected ${fmtDetected(item.weekOfDraft)} — correct?` : "No date detected"}
+                      </span>
+                      <input
+                        type="date"
+                        value={item.weekOfDraft ?? ""}
+                        onChange={(e) => setWeekOfDraft(item, e.target.value)}
+                        onBlur={() => saveWeekOf(item)}
+                        className={`bg-bg border text-[11px] px-1.5 py-1 outline-none focus:border-accent ${
+                          item.weekOfDraft ? "border-line2 text-text" : "border-accent/50 text-accentb"
+                        }`}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
               <div ref={listEndRef} />
@@ -167,7 +216,7 @@ export function UploadDialog({
           )}
 
           <div className="flex justify-end gap-2.5 mt-2">
-            <Button variant="secondary" onClick={onClose} disabled={uploading}>
+            <Button variant="secondary" onClick={handleDismiss} disabled={uploading}>
               {allDone ? "Done" : "Cancel"}
             </Button>
             {!allDone && (
