@@ -23,5 +23,11 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // /api is excluded here, not just handled as a no-op in the logic above: Next.js
+  // "proxy"-buffers (clones + caps at 10MB by default) the body of any request that
+  // matches this config, whether or not the middleware function itself reads it. The
+  // admin upload route's large file bodies were silently getting truncated at that
+  // buffer cap before ever reaching the route handler. Every /api route already does
+  // its own getSessionUser() check, so middleware was never actually gating them.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
