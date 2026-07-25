@@ -10,6 +10,21 @@ const COMMIT_DISTANCE_RATIO = 0.3;
 const COMMIT_VELOCITY = 500;
 const SPRING = { type: "spring" as const, stiffness: 300, damping: 32 };
 
+// framer-motion's own drag implementation runs a boundary-correction animation
+// on release — synchronously, in the same tick as pointerup, *before* onDragEnd
+// even fires (onDragEnd is deferred to frame.postRender). dragMomentum={false}
+// only zeroes the velocity fed into that animation, it doesn't disable it — so
+// on any drag that ends past the raw constraint edge (routine with dragElastic
+// during a real flick), framer's own animation visibly pulls x back toward the
+// old rest position for a beat *before* commitAndSlide's own animate() call
+// takes over. That's the two-stage "snaps to center, then pushes to next"
+// bounce. These values are framer's own "elastic disabled" branch — passing
+// them via dragTransition makes framer's own correction animation effectively
+// instant/invisible, leaving 100% of the visible motion to the one animation
+// this file actually controls. Live-drag rubber-banding (dragElastic) is a
+// separate code path and is untouched by this.
+export const OVERDAMPED_DRAG_TRANSITION = { bounceStiffness: 1_000_000, bounceDamping: 10_000_000 };
+
 /**
  * Shared engine behind both the video and stills fullscreen carousels: a 3-slot
  * windowed mount (prev/current/next) with tap-to-reveal chrome and drag-to-swipe,
@@ -101,10 +116,19 @@ export function useMediaCarousel<T extends { id: string }>({
   // interrupt with anything, since state is already correct by the time any
   // animation even starts.
   function commitAndSlide(direction: 1 | -1) {
+    // .jump() (not .set()) — framer's own drag implementation starts its own
+    // boundary-correction animation on this same value synchronously on
+    // release, before onDragEnd even fires (it's deferred to frame.postRender).
+    // A plain .set() doesn't necessarily halt that already-running animation
+    // (only .start()-family calls reliably do), which let framer's animation
+    // keep ticking on top of the rebase — the actual mechanism behind the
+    // reported "restarts to center" bounce. .jump() explicitly stops any
+    // active animation as part of the same call, closing that gap.
+    //
     // slot k's viewport position is x + k*width; when slot2's content becomes
     // slot1's content on a "next" commit, x_new + width = x_old + 2*width =>
     // x_new = x_old + width. Generalizes to both directions as one line.
-    x.set(x.get() + direction * width);
+    x.jump(x.get() + direction * width);
     setCurrentIndex((i) => i + direction);
     // Cosmetic only from here — safe to interrupt with anything, since state
     // is already correct.
@@ -118,6 +142,13 @@ export function useMediaCarousel<T extends { id: string }>({
   }
 
   function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
+    // Framer's own drag implementation starts its own boundary-correction
+    // animation on `x` synchronously on release — before this callback even
+    // runs, since onDragEnd is deferred to frame.postRender. Stop it
+    // explicitly, first thing, so nothing here (commit or snap-back) has to
+    // fight an animation that's already ticking.
+    x.stop();
+
     const offset = info.offset.x;
     const velocity = info.velocity.x;
     const goNext = hasNext && (offset < -width * COMMIT_DISTANCE_RATIO || velocity < -COMMIT_VELOCITY);

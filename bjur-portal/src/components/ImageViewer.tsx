@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { ImageSlide, type PhotoNavAsset } from "@/components/ImageSlide";
 import { PhotoChrome } from "@/components/PhotoChrome";
-import { useMediaCarousel } from "@/lib/useMediaCarousel";
+import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCarousel";
 
 export type { PhotoNavAsset };
 
@@ -41,6 +41,7 @@ export function ImageViewer({
             dragElastic={0.55}
             dragMomentum={false}
             dragConstraints={carousel.dragConstraints}
+            dragTransition={OVERDAMPED_DRAG_TRANSITION}
             onDragEnd={carousel.handleDragEnd}
           >
             <div style={{ width: carousel.width, height: "100%", flexShrink: 0 }}>

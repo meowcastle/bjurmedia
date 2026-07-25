@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { VideoSlide } from "@/components/VideoSlide";
 import { VideoChrome } from "@/components/VideoChrome";
-import { useMediaCarousel } from "@/lib/useMediaCarousel";
+import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCarousel";
 
 export type VideoNavAsset = {
   id: string;
@@ -104,6 +104,7 @@ export function VideoViewer({
             dragElastic={0.55}
             dragMomentum={false}
             dragConstraints={carousel.dragConstraints}
+            dragTransition={OVERDAMPED_DRAG_TRANSITION}
             onDragEnd={carousel.handleDragEnd}
           >
             <div style={{ width: carousel.width, height: "100%", flexShrink: 0 }}>
