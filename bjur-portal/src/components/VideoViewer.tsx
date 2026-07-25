@@ -5,6 +5,7 @@ import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { VideoSlide } from "@/components/VideoSlide";
 import { VideoChrome } from "@/components/VideoChrome";
+import { haptic } from "@/lib/haptics";
 
 export type VideoNavAsset = {
   id: string;
@@ -86,6 +87,7 @@ export function VideoViewer({
   }, [currentItem?.id]);
 
   function commit(direction: 1 | -1) {
+    haptic();
     activeVideoRef.current?.pause();
     setCurrentIndex((i) => i + direction);
     x.set(-width);

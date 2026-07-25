@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
 import { licenseTiers } from "@/lib/licensing";
 
@@ -67,9 +68,18 @@ export function AssetTile({
   const borderColor = selected ? "border-accent" : locked ? "border-accent/40" : "border-line";
 
   return (
-    <div className="bjfade">
-      <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+    >
+      <motion.div
         onClick={onOpen}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         className={`cursor-pointer relative overflow-hidden border hover:border-accent transition-colors ${borderColor}`}
         style={{ aspectRatio: aspectFor(asset), background: gradientFor(asset.id) }}
       >
@@ -135,12 +145,12 @@ export function AssetTile({
             <span className="text-[10px] text-white/62 whitespace-nowrap">{badge}</span>
           </div>
         )}
-      </div>
+      </motion.div>
       {stamp.text && (
         <div className={`pt-1.5 text-[10.5px] ${stamp.isUpdate ? "text-accentb" : "text-dim"}`}>
           {stamp.text}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
+import { haptic } from "@/lib/haptics";
 import { Lightbox } from "@/components/Lightbox";
 import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
@@ -20,6 +22,44 @@ function colsFor(format: string) {
   if (format === "Reel") return "repeat(auto-fill,minmax(180px,1fr))";
   if (format === "Still") return "repeat(auto-fill,minmax(270px,1fr))";
   return "repeat(auto-fill,minmax(340px,1fr))";
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Download button with a looping shimmer + live byte count while a zip streams in —
+ * the server can't report a Content-Length (archiver zips on the fly), so this is
+ * honest progress feedback rather than a fabricated percentage. */
+function DownloadButton({
+  label,
+  onClick,
+  downloading,
+  downloadedBytes,
+}: {
+  label: string;
+  onClick: () => void;
+  downloading: boolean;
+  downloadedBytes: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={downloading}
+      className="relative overflow-hidden cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5 disabled:cursor-default"
+    >
+      {downloading && (
+        <motion.div
+          className="absolute inset-y-0 left-0 w-1/3 bg-white/25"
+          animate={{ x: ["-100%", "300%"] }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
+        />
+      )}
+      <span className="relative z-10">{downloading ? `↓ Downloading… ${formatBytes(downloadedBytes)}` : label}</span>
+    </button>
+  );
 }
 
 function fmtDate(d: string | null) {
@@ -95,21 +135,40 @@ export function ProjectDetailClient({
 
   const canDownload = role !== "VIEWER";
   const [downloading, setDownloading] = useState(false);
+  const [downloadedBytes, setDownloadedBytes] = useState(0);
 
-  async function downloadSelected() {
+  async function downloadZip(opts: { method: "GET" | "POST"; body?: { assetIds: string[] }; filename: string }) {
     setDownloading(true);
+    setDownloadedBytes(0);
     try {
       const res = await fetch(`/api/projects/${project.id}/download-all`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetIds: [...selected] }),
+        method: opts.method,
+        headers: opts.body ? { "Content-Type": "application/json" } : undefined,
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
       });
-      if (!res.ok) return;
-      const blob = await res.blob();
+      if (!res.ok || !res.body) return;
+
+      // No Content-Length to compute a real percentage against (the server zips on
+      // the fly via archiver), so this tracks bytes actually received — honest
+      // progress feedback instead of a static "Zipping…" label.
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          total += value.byteLength;
+          setDownloadedBytes(total);
+        }
+      }
+
+      const blob = new Blob(chunks as BlobPart[], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${project.title.replace(/[^a-z0-9]+/gi, "-")}-selected.zip`;
+      a.download = opts.filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -117,6 +176,21 @@ export function ProjectDetailClient({
     } finally {
       setDownloading(false);
     }
+  }
+
+  function downloadSelected() {
+    downloadZip({
+      method: "POST",
+      body: { assetIds: [...selected] },
+      filename: `${project.title.replace(/[^a-z0-9]+/gi, "-")}-selected.zip`,
+    });
+  }
+
+  function downloadAll() {
+    downloadZip({
+      method: "GET",
+      filename: `${project.title.replace(/[^a-z0-9]+/gi, "-")}.zip`,
+    });
   }
 
   async function toggleSelect(id: string) {
@@ -129,6 +203,7 @@ export function ProjectDetailClient({
   }
 
   async function toggleFavorite(id: string) {
+    haptic();
     const wasFav = favorites.has(id);
     setFavorites((f) => {
       const next = new Set(f);
@@ -246,26 +321,36 @@ export function ProjectDetailClient({
 
   function renderGroup(grp: Group) {
     return (
-      <div key={grp.folder} className="mb-9">
+      <motion.div
+        layout
+        key={grp.folder}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="mb-9"
+      >
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
           <span className="text-[15px] font-extrabold">{grp.label}</span>
           <span className="text-[11px] text-muted">{grp.count}</span>
         </div>
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
-          {grp.items.map((a) => (
-            <AssetTile
-              key={a.id}
-              asset={a}
-              selected={selected.has(a.id)}
-              favorite={favorites.has(a.id)}
-              unlocked={licensedIds.has(a.id)}
-              onToggleSelect={() => toggleSelect(a.id)}
-              onToggleFavorite={() => toggleFavorite(a.id)}
-              onOpen={() => openAsset(a)}
-            />
-          ))}
+          <AnimatePresence mode="popLayout">
+            {grp.items.map((a) => (
+              <AssetTile
+                key={a.id}
+                asset={a}
+                selected={selected.has(a.id)}
+                favorite={favorites.has(a.id)}
+                unlocked={licensedIds.has(a.id)}
+                onToggleSelect={() => toggleSelect(a.id)}
+                onToggleFavorite={() => toggleFavorite(a.id)}
+                onOpen={() => openAsset(a)}
+              />
+            ))}
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -295,20 +380,19 @@ export function ProjectDetailClient({
         </div>
         {canDownload &&
           (selected.size > 0 ? (
-            <button
+            <DownloadButton
+              label={`↓ Download selected (${selected.size})`}
               onClick={downloadSelected}
-              disabled={downloading}
-              className="cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5 disabled:opacity-60"
-            >
-              {downloading ? "Zipping…" : `↓ Download selected (${selected.size})`}
-            </button>
+              downloading={downloading}
+              downloadedBytes={downloadedBytes}
+            />
           ) : (
-            <a
-              href={`/api/projects/${project.id}/download-all`}
-              className="inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5"
-            >
-              ↓ Download all
-            </a>
+            <DownloadButton
+              label="↓ Download all"
+              onClick={downloadAll}
+              downloading={downloading}
+              downloadedBytes={downloadedBytes}
+            />
           ))}
       </div>
 
@@ -319,11 +403,18 @@ export function ProjectDetailClient({
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-                  filter === f.id ? "bg-accent text-bg" : "bg-transparent text-muted"
+                className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                  filter === f.id ? "text-bg" : "text-muted"
                 }`}
               >
-                {f.label}
+                {filter === f.id && (
+                  <motion.div
+                    layoutId="filterPill"
+                    className="absolute inset-0 bg-accent z-0"
+                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                  />
+                )}
+                <span className="relative z-10">{f.label}</span>
               </button>
             ))}
           </div>
@@ -341,17 +432,24 @@ export function ProjectDetailClient({
             <button
               key={g}
               onClick={() => setGroupMode(g)}
-              className={`cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2.5 border-l border-line2 first:border-l-0 ${
-                groupMode === g ? "bg-accent text-bg" : "bg-transparent text-muted"
+              className={`relative cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2.5 border-l border-line2 first:border-l-0 ${
+                groupMode === g ? "text-bg" : "text-muted"
               }`}
             >
-              By {g === "format" ? "Format" : "Week"}
+              {groupMode === g && (
+                <motion.div
+                  layoutId="groupModePill"
+                  className="absolute inset-0 bg-accent z-0"
+                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                />
+              )}
+              <span className="relative z-10">By {g === "format" ? "Format" : "Week"}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {groups.map(renderGroup)}
+      <AnimatePresence mode="popLayout">{groups.map(renderGroup)}</AnimatePresence>
 
       {pastYearFolders.map((yf) => {
         const isOpen = expandedYears.has(yf.year);
