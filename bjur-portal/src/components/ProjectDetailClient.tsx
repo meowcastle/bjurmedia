@@ -90,7 +90,7 @@ export function ProjectDetailClient({
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites));
   const [licensedIds, setLicensedIds] = useState<Set<string>>(new Set(initialLicensedAssetIds));
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
-  const [videoAssetId, setVideoAssetId] = useState<string | null>(null);
+  const [videoIdx, setVideoIdx] = useState<number | null>(null);
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
 
   const canDownload = role !== "VIEWER";
@@ -147,6 +147,7 @@ export function ProjectDetailClient({
   }
 
   const photos = useMemo(() => assets.filter((a) => a.kind === "PHOTO"), [assets]);
+  const videos = useMemo(() => assets.filter((a) => a.kind === "VIDEO"), [assets]);
 
   const formatCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -224,12 +225,12 @@ export function ProjectDetailClient({
   const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
-  const activeVideo = videoAssetId ? assets.find((a) => a.id === videoAssetId) ?? null : null;
+  const activeVideo = videoIdx !== null ? videos[videoIdx] ?? null : null;
   const activeVideoLocked = activeVideo ? activeVideo.licensable && !licensedIds.has(activeVideo.id) : false;
 
   function openAsset(a: Asset) {
     if (a.kind === "VIDEO") {
-      setVideoAssetId(a.id);
+      setVideoIdx(videos.findIndex((v) => v.id === a.id));
     } else {
       setLightboxIdx(photos.findIndex((p) => p.id === a.id));
     }
@@ -388,16 +389,20 @@ export function ProjectDetailClient({
         />
       )}
 
-      {activeVideo && (
+      {activeVideo && videoIdx !== null && (
         <VideoPlayer
           assetId={activeVideo.id}
           name={activeVideo.name}
           canDownload={canDownload}
           locked={activeVideoLocked}
-          onClose={() => setVideoAssetId(null)}
+          hasPrev={videoIdx > 0}
+          hasNext={videoIdx < videos.length - 1}
+          onPrev={() => setVideoIdx((i) => (i ?? 0) - 1)}
+          onNext={() => setVideoIdx((i) => (i ?? 0) + 1)}
+          onClose={() => setVideoIdx(null)}
           onRequestLicense={() => {
-            setVideoAssetId(null);
             setLicensingAsset(activeVideo);
+            setVideoIdx(null);
           }}
         />
       )}

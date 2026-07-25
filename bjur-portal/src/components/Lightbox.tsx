@@ -22,7 +22,7 @@ export function Lightbox({
 }) {
   return (
     <Portal>
-    <div className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center bjfade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/97 backdrop-blur-sm flex items-center justify-center bjfade" onClick={onClose}>
       <button
         onClick={onClose}
         className="absolute top-5 right-6 text-white/70 hover:text-white text-2xl cursor-pointer"
