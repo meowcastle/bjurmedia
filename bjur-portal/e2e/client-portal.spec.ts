@@ -45,8 +45,11 @@ test("project detail: video plays inline and can be closed", async ({ page }) =>
   await expect(video).toBeVisible();
   await expect(video).toHaveAttribute("src", /\/api\/assets\/.+\/proxy/);
 
-  // Chrome (including the close button) is hidden until the video area is tapped once.
-  await video.click();
+  // Chrome (including the close button) is hidden until the video area is tapped
+  // once. The tap target is a dedicated gesture-capture surface layered above the
+  // <video> element (not the video itself) — native <video> can intercept touch
+  // input, so drag/tap handling lives on this overlay instead.
+  await page.getByTestId("video-gesture-surface").click();
   await page.getByRole("button", { name: "Close" }).click();
   await expect(video).not.toBeVisible();
 });

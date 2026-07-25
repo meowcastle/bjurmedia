@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, useDragControls, animate, type PanInfo } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { VideoSlide } from "@/components/VideoSlide";
 import { VideoChrome } from "@/components/VideoChrome";
@@ -52,6 +52,8 @@ export function VideoViewer({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [width, setWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
+  const dragControls = useDragControls();
+  const lastTimeUpdateRef = useRef(0);
 
   // x is the track's absolute translateX in px. Rest position is -width (centers
   // the middle "current" slide in the viewport); dragging/committing moves it to
@@ -118,6 +120,17 @@ export function VideoViewer({
     animate(x, -width * 2, { ...SPRING, onComplete: () => commit(1) });
   }
 
+  // Native timeupdate fires many times a second — piping every tick straight into
+  // React state re-renders the whole viewer (including the drag track) that often,
+  // which competes with touch gesture tracking on the main thread while a video is
+  // playing. Throttling to 4x/sec keeps the scrubber live-feeling without the churn.
+  function handleTimeUpdate(t: number) {
+    const now = performance.now();
+    if (now - lastTimeUpdateRef.current < 250) return;
+    lastTimeUpdateRef.current = now;
+    setCurrentTime(t);
+  }
+
   function seek(t: number) {
     if (activeVideoRef.current) activeVideoRef.current.currentTime = t;
     setCurrentTime(t);
@@ -144,9 +157,11 @@ export function VideoViewer({
       <div className="fixed inset-0 z-50 bg-black bjfade overscroll-contain">
         <div ref={viewportRef} className="relative w-full h-full overflow-hidden">
           <motion.div
-            className="flex h-full touch-none"
+            className="flex h-full"
             style={{ x }}
             drag={hasPrev || hasNext ? "x" : false}
+            dragListener={false}
+            dragControls={dragControls}
             dragElastic={0.55}
             dragMomentum={false}
             dragConstraints={{
@@ -154,7 +169,6 @@ export function VideoViewer({
               right: hasPrev ? 0 : -width,
             }}
             onDragEnd={handleDragEnd}
-            onTap={() => setChromeVisible((v) => !v)}
           >
             <div style={{ width, height: "100%", flexShrink: 0 }}>
               <VideoSlide item={prevItem} active={false} />
@@ -166,7 +180,7 @@ export function VideoViewer({
                 onMediaRef={(el) => {
                   activeVideoRef.current = el;
                 }}
-                onTimeUpdate={setCurrentTime}
+                onTimeUpdate={handleTimeUpdate}
                 onDurationChange={setDuration}
                 onPlayStateChange={setPlaying}
                 onMuteChange={setMuted}
@@ -176,6 +190,19 @@ export function VideoViewer({
               <VideoSlide item={nextItem} active={false} />
             </div>
           </motion.div>
+
+          {/* Transparent gesture-capture surface, above the video elements but below
+              VideoChrome. Drag is externally armed from here (dragListener={false} +
+              dragControls on the track above) rather than letting Framer listen
+              directly on the track — native <video> elements can intercept/compete
+              for touch input, which is what made finger-swipe unreliable while a
+              raw <video> sat directly under the touch point. */}
+          <motion.div
+            data-testid="video-gesture-surface"
+            className="absolute inset-0 touch-none"
+            onPointerDown={(e) => dragControls.start(e)}
+            onTap={() => setChromeVisible((v) => !v)}
+          />
         </div>
 
         <VideoChrome

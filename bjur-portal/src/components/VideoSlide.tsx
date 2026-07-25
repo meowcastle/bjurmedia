@@ -30,8 +30,14 @@ export function VideoSlide({
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [ready, setReady] = useState(false);
-  const [thumbFailed, setThumbFailed] = useState(false);
+  // Keyed by asset id rather than a plain boolean reset in a useEffect — a
+  // post-render effect reset left a one-frame window where a *new* item's poster
+  // briefly inherited the *previous* item's "ready" state (so it rendered
+  // opacity-0, invisible, before the effect caught up), which is exactly the
+  // flash this is meant to prevent. Comparing ids is synchronously correct on
+  // every render, no lag window.
+  const [readyForId, setReadyForId] = useState<string | null>(null);
+  const [failedForId, setFailedForId] = useState<string | null>(null);
 
   // Autoplay the slide that becomes active — swipe-driven mounts don't carry the
   // same user-activation guarantee as the initial tap-driven open, so a rejected
@@ -52,14 +58,12 @@ export function VideoSlide({
     }
   }, [active, item?.id]);
 
-  useEffect(() => {
-    setReady(false);
-    setThumbFailed(false);
-  }, [item?.id]);
-
   if (!item) {
     return <div className="w-full h-full shrink-0" />;
   }
+
+  const showPoster = readyForId !== item.id;
+  const posterFailed = failedForId === item.id;
 
   return (
     <div className="w-full h-full shrink-0 relative" style={{ background: gradientFor(item.id) }}>
@@ -83,21 +87,21 @@ export function VideoSlide({
         onPlay={() => onPlayStateChange?.(true)}
         onPause={() => onPlayStateChange?.(false)}
         onVolumeChange={(e) => onMuteChange?.(e.currentTarget.muted)}
-        onCanPlay={() => setReady(true)}
+        onCanPlay={() => setReadyForId(item.id)}
         onEnded={onEnded}
       />
       {/* Own-managed poster, faded out only once onCanPlay confirms real playable
           data — <video poster> clears itself as soon as the browser *attempts* to
           load, which can land well before a frame is actually ready, producing a
           blank gap. This keeps a frame visible the entire time in between. */}
-      {!thumbFailed && (
+      {!posterFailed && (
         // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
         <img
           src={`/api/assets/${item.id}/thumb`}
           alt=""
-          onError={() => setThumbFailed(true)}
+          onError={() => setFailedForId(item.id)}
           className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${
-            ready ? "opacity-0" : "opacity-100"
+            showPoster ? "opacity-100" : "opacity-0"
           }`}
         />
       )}
