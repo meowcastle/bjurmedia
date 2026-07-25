@@ -47,6 +47,8 @@ export function AssetTile({
   selected,
   favorite,
   unlocked,
+  isNew,
+  index,
   onToggleSelect,
   onToggleFavorite,
   onOpen,
@@ -55,6 +57,8 @@ export function AssetTile({
   selected: boolean;
   favorite: boolean;
   unlocked: boolean;
+  isNew?: boolean;
+  index?: number;
   onToggleSelect: () => void;
   onToggleFavorite: () => void;
   onOpen: () => void;
@@ -73,7 +77,7 @@ export function AssetTile({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
+      transition={{ duration: 0.22, ease: "easeOut", delay: Math.min((index ?? 0) * 0.03, 0.4) }}
     >
       <motion.div
         onClick={onOpen}
@@ -133,6 +137,12 @@ export function AssetTile({
         >
           ♥
         </div>
+
+        {isNew && (
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-[4] bg-accent text-bg text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 bjpulse">
+            New
+          </div>
+        )}
 
         {locked ? (
           <div className="absolute left-0 right-0 bottom-0 z-[5] px-3 py-2.5 bg-gradient-to-t from-black/85 to-transparent flex items-center justify-between gap-2">

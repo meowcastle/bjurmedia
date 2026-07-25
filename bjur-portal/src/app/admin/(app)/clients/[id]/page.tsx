@@ -26,6 +26,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         username: client.username,
         type: client.type,
         status: client.status,
+        accentColor: client.accentColor,
       }}
       seats={client.users.map((u) => ({
         id: u.id,

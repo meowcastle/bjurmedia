@@ -9,16 +9,17 @@ generator client {
 
 // ── Orgs & users ───────────────────────────────────────────
 model Client {
-  id        String       @id @default(cuid())
-  name      String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
-  username  String       @unique // login handle for the org
-  type      ClientType   @default(RETAINER)
-  status    ClientStatus @default(ACTIVE)
-  createdAt DateTime     @default(now())
-  users     User[]
-  projects  Project[]
-  licenses  License[]
-  channel   ClientChannel?
+  id          String         @id @default(cuid())
+  name        String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username    String         @unique // login handle for the org
+  type        ClientType     @default(RETAINER)
+  status      ClientStatus   @default(ACTIVE)
+  accentColor String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  createdAt   DateTime       @default(now())
+  users       User[]
+  projects    Project[]
+  licenses    License[]
+  channel     ClientChannel?
 }
 
 enum ClientType {
@@ -32,22 +33,22 @@ enum ClientStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  clientId     String? // null => staff/admin user
-  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  name         String
-  email        String   @unique
-  passwordHash String // argon2id
-  role         Role     @default(VIEWER)
-  isAdmin      Boolean  @default(false) // staff portal access
-  notifyDelivery Boolean @default(true) // email me when new work is delivered
-  notifyExpiry   Boolean @default(true) // remind me before a gallery expires
-  mustChangePassword Boolean @default(false) // set on temp-password issuance (invite, seat add)
-  lastLoginAt  DateTime?
-  createdAt    DateTime @default(now())
-  sessions     Session[]
-  favorites    Favorite[]
-  licenses     License[]
+  id                 String     @id @default(cuid())
+  clientId           String? // null => staff/admin user
+  client             Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name               String
+  email              String     @unique
+  passwordHash       String // argon2id
+  role               Role       @default(VIEWER)
+  isAdmin            Boolean    @default(false) // staff portal access
+  notifyDelivery     Boolean    @default(true) // email me when new work is delivered
+  notifyExpiry       Boolean    @default(true) // remind me before a gallery expires
+  mustChangePassword Boolean    @default(false) // set on temp-password issuance (invite, seat add)
+  lastLoginAt        DateTime?
+  createdAt          DateTime   @default(now())
+  sessions           Session[]
+  favorites          Favorite[]
+  licenses           License[]
 
   @@index([clientId])
 }
@@ -151,8 +152,8 @@ enum LicenseTier {
 model Favorite {
   userId  String
   assetId String
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  asset   Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@id([userId, assetId])
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isValidHexColor } from "@/lib/color";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -9,7 +10,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { status } = await req.json();
+  const body = await req.json();
+
+  if ("accentColor" in body) {
+    const { accentColor } = body as { accentColor: string | null };
+    if (accentColor !== null && !isValidHexColor(accentColor)) {
+      return NextResponse.json({ error: "Invalid accent color." }, { status: 400 });
+    }
+    const client = await db.client.update({ where: { id }, data: { accentColor } });
+    return NextResponse.json({ client });
+  }
+
+  const { status } = body;
   if (status !== "ACTIVE" && status !== "DISABLED") {
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });
   }

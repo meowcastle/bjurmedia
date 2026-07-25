@@ -63,6 +63,7 @@ export function VideoSlide({
           onMediaRef?.(el);
         }}
         src={`/api/assets/${item.id}/proxy`}
+        poster={`/api/assets/${item.id}/thumb`}
         data-testid={active ? "active-video" : undefined}
         playsInline
         preload={active ? "auto" : "metadata"}

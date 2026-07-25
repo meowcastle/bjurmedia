@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
@@ -132,6 +132,19 @@ export function ProjectDetailClient({
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
+
+  // "New" badges compare each asset's createdAt against the timestamp of the client's
+  // previous visit to *this* project, stored locally (no per-user "last viewed"
+  // column in the DB — this is a lightweight per-device heuristic, not a synced
+  // read-tracking system, so switching devices won't carry the same New badges).
+  // Null on a first-ever visit deliberately suppresses badges entirely — everything
+  // being "new" to a first-time visitor isn't a meaningful signal to highlight.
+  const [lastVisit, setLastVisit] = useState<string | null>(null);
+  useEffect(() => {
+    const key = `bjur:lastVisit:${project.id}`;
+    setLastVisit(localStorage.getItem(key));
+    localStorage.setItem(key, new Date().toISOString());
+  }, [project.id]);
 
   const canDownload = role !== "VIEWER";
   const [downloading, setDownloading] = useState(false);
@@ -336,10 +349,12 @@ export function ProjectDetailClient({
         </div>
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
           <AnimatePresence mode="popLayout">
-            {grp.items.map((a) => (
+            {grp.items.map((a, i) => (
               <AssetTile
                 key={a.id}
                 asset={a}
+                index={i}
+                isNew={lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)}
                 selected={selected.has(a.id)}
                 favorite={favorites.has(a.id)}
                 unlocked={licensedIds.has(a.id)}

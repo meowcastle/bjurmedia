@@ -26,7 +26,10 @@ type ClientInfo = {
   username: string;
   type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
+  accentColor: string | null;
 };
+
+const DEFAULT_ACCENT = "#ec3013";
 
 const ROLE_COLOR: Record<string, string> = {
   OWNER: "#2ec36b",
@@ -60,6 +63,8 @@ export function AdminClientDetailClient({
   const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [accentColor, setAccentColor] = useState(client.accentColor ?? DEFAULT_ACCENT);
+  const [savingAccent, setSavingAccent] = useState(false);
 
   const active = client.status === "ACTIVE";
 
@@ -71,6 +76,18 @@ export function AdminClientDetailClient({
       body: JSON.stringify({ status: active ? "DISABLED" : "ACTIVE" }),
     });
     setBusy(false);
+    router.refresh();
+  }
+
+  async function saveAccentColor(value: string | null) {
+    setSavingAccent(true);
+    setAccentColor(value ?? DEFAULT_ACCENT);
+    await fetch(`/api/admin/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accentColor: value }),
+    });
+    setSavingAccent(false);
     router.refresh();
   }
 
@@ -95,13 +112,35 @@ export function AdminClientDetailClient({
             </span>
           </div>
         </div>
-        <button
-          onClick={toggleStatus}
-          disabled={busy}
-          className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 disabled:opacity-40"
-        >
-          {active ? "Disable client" : "Enable client"}
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-muted">Portal accent</span>
+            <input
+              type="color"
+              value={accentColor}
+              disabled={savingAccent}
+              onChange={(e) => saveAccentColor(e.target.value)}
+              className="w-7 h-7 cursor-pointer bg-transparent border border-line2 disabled:opacity-40"
+              title="Set this client's portal accent color"
+            />
+            {client.accentColor && (
+              <button
+                onClick={() => saveAccentColor(null)}
+                disabled={savingAccent}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text disabled:opacity-40"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <button
+            onClick={toggleStatus}
+            disabled={busy}
+            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 disabled:opacity-40"
+          >
+            {active ? "Disable client" : "Enable client"}
+          </button>
+        </div>
       </div>
 
       <div className="flex items-end justify-between mb-4">
