@@ -93,8 +93,18 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
     "medium",
     "-profile:v",
     "high",
+    // CRF 21 was delivered-master quality, not preview quality — this is a
+    // scrolling mobile proxy, not something anyone licenses. -maxrate/-bufsize
+    // (VBV-constrained CRF) cap worst-case spikes on high-motion content
+    // (concert/event reels especially) rather than just lowering the average —
+    // spikes are usually what cause a visible stall mid-swipe on a real
+    // network, not the average bitrate.
     "-crf",
-    "21",
+    "26",
+    "-maxrate",
+    "4000k",
+    "-bufsize",
+    "8000k",
     "-color_primaries",
     "bt709",
     "-color_trc",
@@ -104,7 +114,7 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
     "-c:a",
     "aac",
     "-b:a",
-    "160k",
+    "128k",
     "-ac",
     "2",
     "-movflags",

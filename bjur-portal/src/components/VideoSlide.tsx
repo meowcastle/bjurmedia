@@ -13,6 +13,7 @@ import type { VideoNavAsset } from "@/components/VideoViewer";
 export function VideoSlide({
   item,
   active,
+  mount,
   onMediaRef,
   onTimeUpdate,
   onDurationChange,
@@ -22,6 +23,13 @@ export function VideoSlide({
 }: {
   item: VideoNavAsset | null;
   active: boolean;
+  // Whether to actually mount the real <video> (and thus start a real network
+  // fetch) for this slot. False for a neighbor during a rapid-swipe burst —
+  // toggling the `preload` attribute on an already-mounted element isn't a
+  // reliable way to retroactively trigger a download across engines
+  // (particularly Safari), so this gates the element's existence instead: no
+  // <video> at all until true, just the poster, then a genuine fresh mount.
+  mount: boolean;
   onMediaRef?: (el: HTMLVideoElement | null) => void;
   onTimeUpdate?: (t: number) => void;
   onDurationChange?: (d: number) => void;
@@ -62,34 +70,40 @@ export function VideoSlide({
     return <div className="w-full h-full shrink-0" />;
   }
 
-  const showPoster = readyForId !== item.id;
+  // Not mounted yet (unsettled neighbor) counts as "not ready" too — there's
+  // no video to become ready, so the poster stays up until mount catches up.
+  const showPoster = !mount || readyForId !== item.id;
   const posterFailed = failedForId === item.id;
 
   return (
     <div className="w-full h-full shrink-0 relative" style={{ background: gradientFor(item.id) }}>
-      <video
-        key={item.id}
-        ref={(el) => {
-          videoRef.current = el;
-          onMediaRef?.(el);
-        }}
-        src={`/api/assets/${item.id}/proxy`}
-        data-testid={active ? "active-video" : undefined}
-        playsInline
-        // "auto" on every mounted slot, not just the active one — the immediate
-        // neighbors get the entire time the current video is being watched to
-        // buffer real bytes in the background, so by the time a swipe lands the
-        // next video already has data queued up instead of starting from zero.
-        preload="auto"
-        className="w-full h-full object-contain"
-        onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
-        onDurationChange={(e) => onDurationChange?.(e.currentTarget.duration)}
-        onPlay={() => onPlayStateChange?.(true)}
-        onPause={() => onPlayStateChange?.(false)}
-        onVolumeChange={(e) => onMuteChange?.(e.currentTarget.muted)}
-        onCanPlay={() => setReadyForId(item.id)}
-        onEnded={onEnded}
-      />
+      {mount && (
+        <video
+          key={item.id}
+          ref={(el) => {
+            videoRef.current = el;
+            onMediaRef?.(el);
+          }}
+          src={`/api/assets/${item.id}/proxy`}
+          data-testid={active ? "active-video" : undefined}
+          playsInline
+          // Auto on every *mounted* slot, not just the active one — an
+          // immediate neighbor gets the entire time the current video is
+          // being watched to buffer real bytes in the background, so by the
+          // time a swipe lands it already has data queued up instead of
+          // starting from zero. (Rapid-swipe churn is handled by not
+          // mounting at all yet, above — not by throttling this attribute.)
+          preload="auto"
+          className="w-full h-full object-contain"
+          onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
+          onDurationChange={(e) => onDurationChange?.(e.currentTarget.duration)}
+          onPlay={() => onPlayStateChange?.(true)}
+          onPause={() => onPlayStateChange?.(false)}
+          onVolumeChange={(e) => onMuteChange?.(e.currentTarget.muted)}
+          onCanPlay={() => setReadyForId(item.id)}
+          onEnded={onEnded}
+        />
+      )}
       {/* Own-managed poster, faded out only once onCanPlay confirms real playable
           data — <video poster> clears itself as soon as the browser *attempts* to
           load, which can land well before a frame is actually ready, producing a

@@ -14,7 +14,7 @@ test("project list shows the client's own projects", async ({ page }) => {
   await expect(page.getByText("Product Launch — Aera")).toBeVisible();
 });
 
-test("project detail: filters, lightbox, and favorites", async ({ page }) => {
+test("project detail: filters, photo viewer, and favorites", async ({ page }) => {
   await page.getByText("Spring Campaign 2026").click();
   await expect(page).toHaveURL(/\/p\/.+/);
   await expect(page.getByRole("heading", { name: "Spring Campaign 2026" })).toBeVisible();
@@ -24,11 +24,16 @@ test("project detail: filters, lightbox, and favorites", async ({ page }) => {
   await expect(page.getByText("SSH_Still_012.jpg")).toBeVisible();
   await expect(page.getByText("SSH_Reel_Hero.mp4")).not.toBeVisible();
 
-  // Open a still in the lightbox
+  // Open a still in the fullscreen photo viewer. Chrome (including the close
+  // button) is hidden until the photo area is tapped once, same as the video
+  // viewer — the tap target is a gesture-capture surface layered above the
+  // <img>, not the image itself.
   await page.getByText("SSH_Still_012.jpg").click();
-  await expect(page.locator("img[alt='SSH_Still_012.jpg']")).toBeVisible();
-  await page.locator("button", { hasText: "✕" }).click();
-  await expect(page.locator("img[alt='SSH_Still_012.jpg']")).not.toBeVisible();
+  const photo = page.getByTestId("active-photo");
+  await expect(photo).toBeVisible();
+  await page.getByTestId("photo-gesture-surface").click();
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(photo).not.toBeVisible();
 
   // Favorite a still, then filter to Favorites and confirm it shows up
   await page.getByTitle("Add to favorites").first().click();
