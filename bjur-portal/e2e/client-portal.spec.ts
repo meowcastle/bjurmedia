@@ -41,11 +41,13 @@ test("project detail: video plays inline and can be closed", async ({ page }) =>
   await page.getByRole("button", { name: "Reels", exact: true }).click();
   await page.getByText("SSH_Reel_Hero.mp4").click();
 
-  const video = page.locator("video");
+  const video = page.getByTestId("active-video");
   await expect(video).toBeVisible();
   await expect(video).toHaveAttribute("src", /\/api\/assets\/.+\/proxy/);
 
-  await page.locator("button", { hasText: "✕" }).click();
+  // Chrome (including the close button) is hidden until the video area is tapped once.
+  await video.click();
+  await page.getByRole("button", { name: "Close" }).click();
   await expect(video).not.toBeVisible();
 });
 

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
 import { Lightbox } from "@/components/Lightbox";
-import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
 
 type Asset = TileAsset & { weekOf: string | null };
@@ -90,7 +90,7 @@ export function ProjectDetailClient({
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites));
   const [licensedIds, setLicensedIds] = useState<Set<string>>(new Set(initialLicensedAssetIds));
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
-  const [videoIdx, setVideoIdx] = useState<number | null>(null);
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
 
   const canDownload = role !== "VIEWER";
@@ -147,7 +147,6 @@ export function ProjectDetailClient({
   }
 
   const photos = useMemo(() => assets.filter((a) => a.kind === "PHOTO"), [assets]);
-  const videos = useMemo(() => assets.filter((a) => a.kind === "VIDEO"), [assets]);
 
   const formatCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -225,12 +224,21 @@ export function ProjectDetailClient({
   const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
-  const activeVideo = videoIdx !== null ? videos[videoIdx] ?? null : null;
-  const activeVideoLocked = activeVideo ? activeVideo.licensable && !licensedIds.has(activeVideo.id) : false;
+  // Follows the same grouped/filtered visual order the grid is actually rendered in
+  // (week or format buckets, current filter) rather than raw upload order, so swipe
+  // navigation in the video viewer matches what's on screen.
+  const videoOrder = useMemo(
+    () => groups.flatMap((g) => g.items.filter((i) => i.kind === "VIDEO")),
+    [groups]
+  );
+  const videoNavItems = useMemo(
+    () => videoOrder.map((v) => ({ id: v.id, name: v.name, licensable: v.licensable, licensed: licensedIds.has(v.id) })),
+    [videoOrder, licensedIds]
+  );
 
   function openAsset(a: Asset) {
     if (a.kind === "VIDEO") {
-      setVideoIdx(videos.findIndex((v) => v.id === a.id));
+      setOpenVideoId(a.id);
     } else {
       setLightboxIdx(photos.findIndex((p) => p.id === a.id));
     }
@@ -389,20 +397,16 @@ export function ProjectDetailClient({
         />
       )}
 
-      {activeVideo && videoIdx !== null && (
-        <VideoPlayer
-          assetId={activeVideo.id}
-          name={activeVideo.name}
+      {openVideoId && (
+        <VideoViewer
+          items={videoNavItems}
+          initialId={openVideoId}
           canDownload={canDownload}
-          locked={activeVideoLocked}
-          hasPrev={videoIdx > 0}
-          hasNext={videoIdx < videos.length - 1}
-          onPrev={() => setVideoIdx((i) => (i ?? 0) - 1)}
-          onNext={() => setVideoIdx((i) => (i ?? 0) + 1)}
-          onClose={() => setVideoIdx(null)}
-          onRequestLicense={() => {
-            setLicensingAsset(activeVideo);
-            setVideoIdx(null);
+          onClose={() => setOpenVideoId(null)}
+          onRequestLicense={(assetId) => {
+            const asset = videoOrder.find((v) => v.id === assetId);
+            if (asset) setLicensingAsset(asset);
+            setOpenVideoId(null);
           }}
         />
       )}

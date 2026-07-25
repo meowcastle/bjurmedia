@@ -56,6 +56,39 @@ body {
   color: var(--bg);
 }
 
+/* The global `* { border-radius: 0 !important }` reset above doesn't reach these
+   pseudo-elements, so the video scrubber thumb needs its own explicit square reset
+   to match the brutalist aesthetic used everywhere else. */
+.bj-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+.bj-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.bj-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.bj-scrubber::-moz-range-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
 @keyframes bjfade {
   from {
     opacity: 0;

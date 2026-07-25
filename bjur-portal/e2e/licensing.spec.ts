@@ -14,8 +14,11 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
   await expect(page.getByText(/from \$500/)).toBeVisible();
 
   // Locked master opens the video preview with an unlock CTA, not a download link.
+  // Chrome (including the unlock/download CTA) is hidden until the video is tapped.
   await tile.click();
-  await expect(page.locator("video")).toBeVisible();
+  const video = page.getByTestId("active-video");
+  await expect(video).toBeVisible();
+  await video.click();
   const unlockBtn = page.getByRole("button", { name: /unlock master/i });
   await expect(unlockBtn).toBeVisible();
   await unlockBtn.click();
@@ -34,6 +37,8 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
 
   // Reopening the same asset now offers a real download instead of the unlock CTA.
   await tile.click();
+  await expect(video).toBeVisible();
+  await video.click();
   await expect(page.getByRole("link", { name: /download master/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /unlock master/i })).not.toBeVisible();
 });
