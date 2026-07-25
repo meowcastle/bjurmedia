@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gradientFor } from "@/lib/gradients";
 import type { VideoNavAsset } from "@/components/VideoViewer";
 
@@ -30,6 +30,8 @@ export function VideoSlide({
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const [thumbFailed, setThumbFailed] = useState(false);
 
   // Autoplay the slide that becomes active — swipe-driven mounts don't carry the
   // same user-activation guarantee as the initial tap-driven open, so a rejected
@@ -50,6 +52,11 @@ export function VideoSlide({
     }
   }, [active, item?.id]);
 
+  useEffect(() => {
+    setReady(false);
+    setThumbFailed(false);
+  }, [item?.id]);
+
   if (!item) {
     return <div className="w-full h-full shrink-0" />;
   }
@@ -63,18 +70,37 @@ export function VideoSlide({
           onMediaRef?.(el);
         }}
         src={`/api/assets/${item.id}/proxy`}
-        poster={`/api/assets/${item.id}/thumb`}
         data-testid={active ? "active-video" : undefined}
         playsInline
-        preload={active ? "auto" : "metadata"}
+        // "auto" on every mounted slot, not just the active one — the immediate
+        // neighbors get the entire time the current video is being watched to
+        // buffer real bytes in the background, so by the time a swipe lands the
+        // next video already has data queued up instead of starting from zero.
+        preload="auto"
         className="w-full h-full object-contain"
         onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
         onDurationChange={(e) => onDurationChange?.(e.currentTarget.duration)}
         onPlay={() => onPlayStateChange?.(true)}
         onPause={() => onPlayStateChange?.(false)}
         onVolumeChange={(e) => onMuteChange?.(e.currentTarget.muted)}
+        onCanPlay={() => setReady(true)}
         onEnded={onEnded}
       />
+      {/* Own-managed poster, faded out only once onCanPlay confirms real playable
+          data — <video poster> clears itself as soon as the browser *attempts* to
+          load, which can land well before a frame is actually ready, producing a
+          blank gap. This keeps a frame visible the entire time in between. */}
+      {!thumbFailed && (
+        // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
+        <img
+          src={`/api/assets/${item.id}/thumb`}
+          alt=""
+          onError={() => setThumbFailed(true)}
+          className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${
+            ready ? "opacity-0" : "opacity-100"
+          }`}
+        />
+      )}
     </div>
   );
 }
