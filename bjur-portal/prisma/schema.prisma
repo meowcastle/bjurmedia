@@ -15,6 +15,7 @@ model Client {
   type        ClientType     @default(RETAINER)
   status      ClientStatus   @default(ACTIVE)
   accentColor String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  logoUrl     String? // brand logo, admin-set — null = initials fallback
   createdAt   DateTime       @default(now())
   users       User[]
   projects    Project[]

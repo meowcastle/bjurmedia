@@ -9,6 +9,7 @@ import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
+import { lighten } from "@/lib/color";
 
 type Seat = { id: string; name: string; email: string; role: string; lastLoginAt: string | null };
 type ProjectRow = {
@@ -27,7 +28,12 @@ type ClientInfo = {
   type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
   accentColor: string | null;
+  logoUrl: string | null;
 };
+
+function initials(name: string) {
+  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 type SocialAccountRow = {
   platform: "INSTAGRAM" | "YOUTUBE";
   externalId: string;
@@ -75,6 +81,9 @@ export function AdminClientDetailClient({
   const [busy, setBusy] = useState(false);
   const [accentColor, setAccentColor] = useState(client.accentColor ?? DEFAULT_ACCENT);
   const [savingAccent, setSavingAccent] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(client.logoUrl);
+  const [logoDraft, setLogoDraft] = useState(client.logoUrl ?? "");
+  const [savingLogo, setSavingLogo] = useState(false);
   const [social, setSocial] = useState(socialAccounts);
 
   function socialRow(platform: "INSTAGRAM" | "YOUTUBE"): SocialAccountRow {
@@ -173,6 +182,18 @@ export function AdminClientDetailClient({
     router.refresh();
   }
 
+  async function saveLogoUrl(value: string) {
+    const trimmed = value.trim();
+    setSavingLogo(true);
+    await fetch(`/api/admin/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logoUrl: trimmed || null }),
+    });
+    setLogoUrl(trimmed || null);
+    setSavingLogo(false);
+  }
+
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
       <Link href="/admin/clients" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
@@ -180,21 +201,57 @@ export function AdminClientDetailClient({
       </Link>
 
       <div className="flex items-end justify-between gap-6 flex-wrap border-b-2 border-line2 pb-6 mb-9">
-        <div>
-          <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-            @{client.username}
+        <div className="flex items-center gap-4">
+          <div
+            className="w-14 h-14 flex-none grid place-items-center overflow-hidden bg-s3"
+            style={!logoUrl ? { background: `linear-gradient(135deg, ${accentColor}, ${lighten(accentColor, 0.6)})` } : undefined}
+          >
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
+              <img src={logoUrl} alt="" className="w-full h-full object-contain bg-bg" />
+            ) : (
+              <span className="text-lg font-black text-bg">{initials(client.name)}</span>
+            )}
           </div>
-          <h1 className="text-4xl tracking-tight font-black mb-3">{client.name}</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
-              {client.type === "RETAINER" ? "Retainer" : "One-off"}
-            </span>
-            <span className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}>
-              {active ? "Active" : "Disabled"}
-            </span>
+          <div>
+            <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
+              @{client.username}
+            </div>
+            <h1 className="text-4xl tracking-tight font-black mb-3">{client.name}</h1>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
+                {client.type === "RETAINER" ? "Retainer" : "One-off"}
+              </span>
+              <span className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}>
+                {active ? "Active" : "Disabled"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-muted">Logo URL</span>
+            <input
+              value={logoDraft}
+              onChange={(e) => setLogoDraft(e.target.value)}
+              onBlur={() => logoDraft.trim() !== (logoUrl ?? "") && saveLogoUrl(logoDraft)}
+              placeholder="https://…"
+              disabled={savingLogo}
+              className="w-44 bg-bg border border-line2 text-text text-[12px] font-mono px-2.5 py-2 outline-none focus:border-accent disabled:opacity-40"
+            />
+            {logoUrl && (
+              <button
+                onClick={() => {
+                  setLogoDraft("");
+                  saveLogoUrl("");
+                }}
+                disabled={savingLogo}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text disabled:opacity-40"
+              >
+                Reset
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-muted">Portal accent</span>
             <input

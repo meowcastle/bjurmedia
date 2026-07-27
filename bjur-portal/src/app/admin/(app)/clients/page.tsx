@@ -18,6 +18,8 @@ export default async function AdminClientsPage() {
         username: c.username,
         type: c.type,
         status: c.status,
+        accentColor: c.accentColor,
+        logoUrl: c.logoUrl,
         projectCount: c._count.projects,
         seats: c.users.map((u) => ({
           id: u.id,

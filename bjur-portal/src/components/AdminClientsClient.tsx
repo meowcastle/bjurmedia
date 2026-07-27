@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
+import { lighten } from "@/lib/color";
 
 type Seat = { id: string; name: string; email: string; role: string; lastLoginAt: string | null };
 type ClientRow = {
@@ -15,9 +16,13 @@ type ClientRow = {
   username: string;
   type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
+  accentColor: string | null;
+  logoUrl: string | null;
   projectCount: number;
   seats: Seat[];
 };
+
+const DEFAULT_ACCENT = "#ec3013";
 
 function initials(name: string) {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -83,24 +88,35 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
         {clients.map((c) => {
           const isExpanded = expanded.has(c.id);
           const active = c.status === "ACTIVE";
+          const accent = c.accentColor ?? DEFAULT_ACCENT;
           return (
-            <div key={c.id} className="border-b border-line last:border-b-0">
+            <div
+              key={c.id}
+              className="border-b border-line last:border-b-0"
+              style={{ borderLeft: `3px solid ${active ? accent : "var(--line2)"}` }}
+            >
               <div
-                className="flex flex-col gap-2.5 px-4 py-4 md:grid md:gap-4 md:px-5 md:py-4 md:items-center"
+                className="flex flex-col gap-3 px-4 py-5 md:grid md:gap-4 md:px-5 md:py-5 md:items-center"
                 style={{ gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr", background: active ? "transparent" : "rgba(255,255,255,.015)" }}
               >
                 {/* Identity + type share a row on mobile (display:contents at md: restores
                     the plain 5-col grid, same as the Media pipeline table). */}
-                <div className="flex items-center gap-3 md:contents">
-                  <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3 min-w-0 flex-1 group">
+                <div className="flex items-center gap-3.5 md:contents">
+                  <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3.5 min-w-0 flex-1 group">
                     <div
-                      className={`w-[30px] h-[30px] bg-s3 grid place-items-center text-[11px] font-bold flex-none ${active ? "text-text" : "text-dim"}`}
+                      className="w-12 h-12 flex-none grid place-items-center overflow-hidden"
+                      style={!c.logoUrl ? { background: `linear-gradient(135deg, ${accent}, ${lighten(accent, 0.6)})` } : { background: "var(--s3)" }}
                     >
-                      {initials(c.name)}
+                      {c.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
+                        <img src={c.logoUrl} alt="" className="w-full h-full object-contain bg-bg" />
+                      ) : (
+                        <span className={`text-sm font-black ${active ? "text-bg" : "text-dim"}`}>{initials(c.name)}</span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div
-                        className={`font-semibold text-sm truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
+                        className={`font-bold text-base truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
                       >
                         {c.name}
                       </div>
@@ -114,13 +130,13 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 md:contents">
-                  <span className="text-[13px] text-muted">
-                    <span className="md:hidden text-dim">Projects · </span>
+                  <span className="text-[12px] text-dim">
+                    <span className="md:hidden">Projects · </span>
                     {c.projectCount}
                   </span>
                   <button
                     onClick={() => toggleExpand(c.id)}
-                    className="cursor-pointer text-left text-[13px] text-muted hover:text-text inline-flex items-center gap-1.5"
+                    className="cursor-pointer text-left text-[12px] text-dim hover:text-text inline-flex items-center gap-1.5"
                   >
                     <span className="text-[11px]">{isExpanded ? "▾" : "▸"}</span>
                     {c.seats.length} seat{c.seats.length !== 1 ? "s" : ""}

@@ -21,6 +21,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ client });
   }
 
+  if ("logoUrl" in body) {
+    const { logoUrl } = body as { logoUrl: string | null };
+    if (logoUrl !== null) {
+      try {
+        new URL(logoUrl);
+      } catch {
+        return NextResponse.json({ error: "Invalid logo URL." }, { status: 400 });
+      }
+    }
+    const client = await db.client.update({ where: { id }, data: { logoUrl } });
+    return NextResponse.json({ client });
+  }
+
   const { status } = body;
   if (status !== "ACTIVE" && status !== "DISABLED") {
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });

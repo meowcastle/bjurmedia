@@ -29,6 +29,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         type: client.type,
         status: client.status,
         accentColor: client.accentColor,
+        logoUrl: client.logoUrl,
       }}
       socialAccounts={socialAccounts.map((s) => ({
         platform: s.platform,
