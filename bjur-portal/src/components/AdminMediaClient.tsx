@@ -161,7 +161,7 @@ export function AdminMediaClient({
   }
 
   return (
-    <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
       <div className="mb-6">
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Pipeline</div>
         <h1 className="text-[34px] tracking-tight font-black">Media</h1>
@@ -198,7 +198,7 @@ export function AdminMediaClient({
         )}
       </div>
 
-      <div className="grid grid-cols-5 gap-3.5 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 mb-6">
         <div className="bg-s1 border border-line px-4 py-4">
           <div className="text-[26px] font-black tracking-tight tabular-nums">{rows.length}</div>
           <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Assets</div>
@@ -227,7 +227,7 @@ export function AdminMediaClient({
 
       <div className="border border-line">
         <div
-          className="grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
+          className="hidden md:grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
           style={{ gridTemplateColumns: "56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
         >
           <span />
@@ -243,55 +243,63 @@ export function AdminMediaClient({
           return (
             <div
               key={a.id}
-              className="grid gap-3.5 px-5 py-3.5 border-b border-line last:border-b-0 items-center"
+              className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-3.5 md:px-5 md:py-3.5 md:items-center"
               style={{ gridTemplateColumns: "56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
             >
-              <div className="w-14 h-[34px] relative" style={{ background: gradientFor(a.id) }}>
-                {a.kind === "VIDEO" && (
-                  <div className="absolute inset-0 grid place-items-center text-white text-[9px]">▶</div>
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[13px] font-mono text-text truncate">{a.name}</span>
-                  {a.internal && (
-                    <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
-                      INTERNAL
-                    </span>
-                  )}
-                  {a.licensable && (
-                    <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
-                      PAYWALLED
-                    </span>
+              {/* Thumbnail + filename/badges/week share a row on mobile (display:contents
+                  at md: makes this wrapper disappear, restoring the plain 6-col grid). */}
+              <div className="flex items-start gap-3 md:contents">
+                <div className="w-14 h-[34px] relative shrink-0" style={{ background: gradientFor(a.id) }}>
+                  {a.kind === "VIDEO" && (
+                    <div className="absolute inset-0 grid place-items-center text-white text-[9px]">▶</div>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[10px] text-dim uppercase tracking-wide">Week</span>
-                  <input
-                    type="date"
-                    defaultValue={a.weekOf ? a.weekOf.slice(0, 10) : ""}
-                    onChange={(e) => setWeekOfDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
-                    onBlur={() => saveWeekOf(a)}
-                    className={`bg-bg border text-[11px] px-1.5 py-1 outline-none focus:border-accent ${
-                      a.weekOf ? "border-line2 text-text" : "border-accent/50 text-accentb"
-                    }`}
-                  />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                    <span className="text-[13px] font-mono text-text truncate">{a.name}</span>
+                    {a.internal && (
+                      <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
+                        INTERNAL
+                      </span>
+                    )}
+                    {a.licensable && (
+                      <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
+                        PAYWALLED
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-[10px] text-dim uppercase tracking-wide">Week</span>
+                    <input
+                      type="date"
+                      defaultValue={a.weekOf ? a.weekOf.slice(0, 10) : ""}
+                      onChange={(e) => setWeekOfDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                      onBlur={() => saveWeekOf(a)}
+                      className={`bg-bg border text-[11px] px-1.5 py-1 outline-none focus:border-accent ${
+                        a.weekOf ? "border-line2 text-text" : "border-accent/50 text-accentb"
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
-              <span className="text-[11px] font-bold tracking-wide text-muted">{a.format.toUpperCase()}</span>
-              <span className="text-[13px] text-muted tabular-nums">{a.size}</span>
-              <div className="flex items-center gap-2">
-                {a.proxyStatus === "GENERATING" && (
-                  <span className="w-3 h-3 border-2 border-line2 border-t-accent rounded-full bjspin inline-block" />
-                )}
-                <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: status.color }} />
-                <span className="text-xs font-semibold" style={{ color: status.color }}>
-                  {status.label}
-                </span>
+              {/* Format/size/status flow inline on mobile instead of each fighting for a
+                  narrow fixed grid column. */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:contents">
+                <span className="font-bold tracking-wide text-muted">{a.format.toUpperCase()}</span>
+                <span className="text-[13px] text-muted tabular-nums">{a.size}</span>
+                <div className="flex items-center gap-2">
+                  {a.proxyStatus === "GENERATING" && (
+                    <span className="w-3 h-3 border-2 border-line2 border-t-accent rounded-full bjspin inline-block" />
+                  )}
+                  <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: status.color }} />
+                  <span className="text-xs font-semibold" style={{ color: status.color }}>
+                    {status.label}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5">
+              <div className="flex flex-col items-start gap-1.5 md:items-end">
                 {confirmingDeleteId === a.id ? (
-                  <div className="flex gap-2 items-center justify-end">
+                  <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
                     <span className="text-[11px] text-muted">Delete permanently?</span>
                     <button
                       onClick={() => deleteAsset(a)}
@@ -308,7 +316,7 @@ export function AdminMediaClient({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex gap-2 items-center justify-end">
+                  <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
                     <button
                       onClick={() => toggleInternal(a)}
                       className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
@@ -335,10 +343,10 @@ export function AdminMediaClient({
                   </div>
                 )}
                 {confirmingDeleteId === a.id && deleteError && (
-                  <div className="text-[11px] text-accentb text-right max-w-[240px]">{deleteError}</div>
+                  <div className="text-[11px] text-accentb text-left md:text-right max-w-[240px]">{deleteError}</div>
                 )}
                 {isMaster && (
-                  <div className="flex gap-2 items-center justify-end">
+                  <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
                     <button
                       onClick={() => toggleLicensable(a)}
                       className={`cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 border ${
