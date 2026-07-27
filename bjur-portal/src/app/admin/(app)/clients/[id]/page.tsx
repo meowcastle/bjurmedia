@@ -18,6 +18,8 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   });
   if (!client) notFound();
 
+  const socialAccounts = await db.socialAccount.findMany({ where: { clientId: client.id } });
+
   return (
     <AdminClientDetailClient
       client={{
@@ -28,6 +30,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         status: client.status,
         accentColor: client.accentColor,
       }}
+      socialAccounts={socialAccounts.map((s) => ({
+        platform: s.platform,
+        externalId: s.externalId,
+        handle: s.handle,
+        hasToken: !!s.accessToken,
+        lastSyncedAt: s.lastSyncedAt?.toISOString() ?? null,
+        lastSyncError: s.lastSyncError,
+      }))}
       seats={client.users.map((u) => ({
         id: u.id,
         name: u.name,

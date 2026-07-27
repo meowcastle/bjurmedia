@@ -20,6 +20,7 @@ model Client {
   projects    Project[]
   licenses    License[]
   channel     ClientChannel?
+  socialAccounts SocialAccount[]
 }
 
 enum ClientType {
@@ -109,6 +110,7 @@ model Asset {
   updatedAt DateTime   @updatedAt // "Updated"
   favorites Favorite[]
   licenses  License[]
+  socialPosts SocialPost[]
 
   @@index([projectId])
 }
@@ -206,4 +208,51 @@ model ClientChannel {
   clientId String @id
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   channel  String // "#ssh-deliveries" (empty => use default)
+}
+
+// ── Social insights (weekly IG/YouTube view counts) ────────
+enum SocialPlatform {
+  INSTAGRAM
+  YOUTUBE
+}
+
+model SocialAccount {
+  id            String         @id @default(cuid())
+  clientId      String
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform      SocialPlatform
+  externalId    String // IG Business Account ID, or YouTube Channel ID
+  handle        String // "@ssh_studio" — display only
+  accessToken   String? // IG long-lived token; null for YouTube (uses SocialConfig.youtubeApiKey)
+  lastSyncedAt  DateTime?
+  lastSyncError String?
+  posts         SocialPost[]
+
+  @@unique([clientId, platform])
+}
+
+model SocialPost {
+  id              String        @id @default(cuid())
+  socialAccountId String
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  assetId         String?
+  asset           Asset?        @relation(fields: [assetId], references: [id])
+  externalPostId  String        @unique // IG media id / YouTube video id
+  permalink       String?
+  caption         String?
+  postedAt        DateTime
+  viewCount       Int           @default(0)
+  matchConfidence String? // "auto" | "manual" | null (unmatched)
+  lastFetchedAt   DateTime      @default(now())
+
+  @@index([assetId])
+  @@index([socialAccountId])
+}
+
+model SocialConfig {
+  id            Int      @id @default(1) // singleton row
+  youtubeApiKey String?
+  weeklyDay     String   @default("Tuesday")
+  weeklyTime    String   @default("09:00")
+  autoWeekly    Boolean  @default(true)
 }

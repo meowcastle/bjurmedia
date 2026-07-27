@@ -16,11 +16,19 @@ export default async function ProjectDetailPage({
     where: { id: projectId },
     include: {
       client: true,
-      assets: { where: { internal: false }, orderBy: { createdAt: "asc" } },
+      assets: {
+        where: { internal: false },
+        orderBy: { createdAt: "asc" },
+        include: { socialPosts: { select: { viewCount: true } } },
+      },
     },
   });
 
   if (!project || project.clientId !== session.clientId || project.status !== "LIVE") notFound();
+
+  const allSocialPosts = project.assets.flatMap((a) => a.socialPosts);
+  const totalViews = allSocialPosts.reduce((sum, p) => sum + p.viewCount, 0);
+  const totalPosts = allSocialPosts.length;
 
   const [favorites, licenses] = await Promise.all([
     db.favorite.findMany({
@@ -41,6 +49,8 @@ export default async function ProjectDetailPage({
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,
       }}
+      totalViews={totalViews}
+      totalSocialPosts={totalPosts}
       assets={project.assets.map((a) => ({
         id: a.id,
         kind: a.kind,
@@ -55,6 +65,9 @@ export default async function ProjectDetailPage({
         updatedAt: a.updatedAt.toISOString(),
         weekOf: a.weekOf?.toISOString() ?? null,
         thumbReady: a.thumbRelPath != null,
+        viewCount: a.socialPosts.length
+          ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
+          : null,
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
       initialLicensedAssetIds={licenses.map((l) => l.assetId)}

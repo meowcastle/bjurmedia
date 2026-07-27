@@ -28,6 +28,14 @@ type ClientInfo = {
   status: "ACTIVE" | "DISABLED";
   accentColor: string | null;
 };
+type SocialAccountRow = {
+  platform: "INSTAGRAM" | "YOUTUBE";
+  externalId: string;
+  handle: string;
+  hasToken: boolean;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+};
 
 const DEFAULT_ACCENT = "#ec3013";
 
@@ -51,10 +59,12 @@ export function AdminClientDetailClient({
   client,
   seats,
   projects,
+  socialAccounts,
 }: {
   client: ClientInfo;
   seats: Seat[];
   projects: ProjectRow[];
+  socialAccounts: SocialAccountRow[];
 }) {
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
@@ -65,6 +75,78 @@ export function AdminClientDetailClient({
   const [busy, setBusy] = useState(false);
   const [accentColor, setAccentColor] = useState(client.accentColor ?? DEFAULT_ACCENT);
   const [savingAccent, setSavingAccent] = useState(false);
+  const [social, setSocial] = useState(socialAccounts);
+
+  function socialRow(platform: "INSTAGRAM" | "YOUTUBE"): SocialAccountRow {
+    return social.find((s) => s.platform === platform) ?? {
+      platform,
+      externalId: "",
+      handle: "",
+      hasToken: false,
+      lastSyncedAt: null,
+      lastSyncError: null,
+    };
+  }
+
+  const [igDraft, setIgDraft] = useState(() => {
+    const r = socialRow("INSTAGRAM");
+    return { externalId: r.externalId, handle: r.handle, accessToken: "" };
+  });
+  const [ytDraft, setYtDraft] = useState(() => {
+    const r = socialRow("YOUTUBE");
+    return { externalId: r.externalId, handle: r.handle };
+  });
+  const [savingSocial, setSavingSocial] = useState<"INSTAGRAM" | "YOUTUBE" | null>(null);
+
+  async function saveIg() {
+    setSavingSocial("INSTAGRAM");
+    await saveSocialAccount("INSTAGRAM", {
+      externalId: igDraft.externalId,
+      handle: igDraft.handle,
+      accessToken: igDraft.accessToken || undefined,
+    });
+    setIgDraft((d) => ({ ...d, accessToken: "" }));
+    setSavingSocial(null);
+  }
+
+  async function saveYt() {
+    setSavingSocial("YOUTUBE");
+    await saveSocialAccount("YOUTUBE", { externalId: ytDraft.externalId, handle: ytDraft.handle });
+    setSavingSocial(null);
+  }
+
+  async function unlinkSocial(platform: "INSTAGRAM" | "YOUTUBE") {
+    setSavingSocial(platform);
+    await saveSocialAccount(platform, { externalId: "", handle: "" });
+    if (platform === "INSTAGRAM") setIgDraft({ externalId: "", handle: "", accessToken: "" });
+    else setYtDraft({ externalId: "", handle: "" });
+    setSavingSocial(null);
+  }
+
+  async function saveSocialAccount(
+    platform: "INSTAGRAM" | "YOUTUBE",
+    fields: { externalId: string; handle: string; accessToken?: string }
+  ) {
+    await fetch(`/api/admin/clients/${client.id}/social`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform, ...fields }),
+    });
+    setSocial((rows) => {
+      const next = rows.filter((r) => r.platform !== platform);
+      if (fields.externalId.trim()) {
+        next.push({
+          platform,
+          externalId: fields.externalId.trim(),
+          handle: fields.handle.trim(),
+          hasToken: fields.accessToken !== undefined ? !!fields.accessToken.trim() : rows.find((r) => r.platform === platform)?.hasToken ?? false,
+          lastSyncedAt: null,
+          lastSyncError: null,
+        });
+      }
+      return next;
+    });
+  }
 
   const active = client.status === "ACTIVE";
 
@@ -140,6 +222,101 @@ export function AdminClientDetailClient({
           >
             {active ? "Disable client" : "Enable client"}
           </button>
+        </div>
+      </div>
+
+      <div className="mb-9">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
+          Social accounts
+        </h2>
+        <div className="border border-line bg-s1 p-5 flex flex-col gap-5">
+          <div>
+            <div className="text-sm font-bold mb-1">Instagram</div>
+            <div className="text-xs text-muted mb-3">
+              Business/Creator Account ID + a long-lived access token — powers weekly
+              view counts, matched automatically to delivered reels/stills.
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              <input
+                value={igDraft.handle}
+                onChange={(e) => setIgDraft((d) => ({ ...d, handle: e.target.value }))}
+                placeholder="@handle"
+                className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
+              />
+              <input
+                value={igDraft.externalId}
+                onChange={(e) => setIgDraft((d) => ({ ...d, externalId: e.target.value }))}
+                placeholder="IG Business Account ID"
+                className="w-52 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
+              />
+              <input
+                value={igDraft.accessToken}
+                onChange={(e) => setIgDraft((d) => ({ ...d, accessToken: e.target.value }))}
+                placeholder={socialRow("INSTAGRAM").hasToken ? "•••• (saved — paste to replace)" : "Long-lived access token"}
+                className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
+              />
+              <button
+                onClick={saveIg}
+                disabled={savingSocial === "INSTAGRAM" || !igDraft.externalId.trim()}
+                className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
+              >
+                Save
+              </button>
+              {socialRow("INSTAGRAM").externalId && (
+                <button
+                  onClick={() => unlinkSocial("INSTAGRAM")}
+                  disabled={savingSocial === "INSTAGRAM"}
+                  className="cursor-pointer text-xs font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-3.5 py-2 disabled:opacity-40"
+                >
+                  Unlink
+                </button>
+              )}
+            </div>
+            {socialRow("INSTAGRAM").lastSyncError && (
+              <div className="text-xs text-accentb mt-2">{socialRow("INSTAGRAM").lastSyncError}</div>
+            )}
+          </div>
+
+          <div className="border-t border-line pt-5">
+            <div className="text-sm font-bold mb-1">YouTube</div>
+            <div className="text-xs text-muted mb-3">
+              Channel ID only — view counts are pulled with the shared YouTube API key
+              set on the Integrations page.
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              <input
+                value={ytDraft.handle}
+                onChange={(e) => setYtDraft((d) => ({ ...d, handle: e.target.value }))}
+                placeholder="Channel name"
+                className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
+              />
+              <input
+                value={ytDraft.externalId}
+                onChange={(e) => setYtDraft((d) => ({ ...d, externalId: e.target.value }))}
+                placeholder="YouTube Channel ID"
+                className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
+              />
+              <button
+                onClick={saveYt}
+                disabled={savingSocial === "YOUTUBE" || !ytDraft.externalId.trim()}
+                className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
+              >
+                Save
+              </button>
+              {socialRow("YOUTUBE").externalId && (
+                <button
+                  onClick={() => unlinkSocial("YOUTUBE")}
+                  disabled={savingSocial === "YOUTUBE"}
+                  className="cursor-pointer text-xs font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-3.5 py-2 disabled:opacity-40"
+                >
+                  Unlink
+                </button>
+              )}
+            </div>
+            {socialRow("YOUTUBE").lastSyncError && (
+              <div className="text-xs text-accentb mt-2">{socialRow("YOUTUBE").lastSyncError}</div>
+            )}
+          </div>
         </div>
       </div>
 

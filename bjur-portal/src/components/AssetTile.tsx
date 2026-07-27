@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
 import { licenseTiers } from "@/lib/licensing";
+import { formatViews } from "@/lib/format";
 
 export type TileAsset = {
   id: string;
@@ -18,6 +19,7 @@ export type TileAsset = {
   createdAt: string;
   updatedAt: string;
   thumbReady: boolean;
+  viewCount: number | null;
 };
 
 function fmtDuration(sec: number | null) {
@@ -137,6 +139,12 @@ export function AssetTile({
         >
           ♥
         </div>
+
+        {asset.viewCount != null && asset.viewCount > 0 && (
+          <div className="absolute top-10 left-2.5 z-[3] bg-black/45 text-white/90 text-[10px] font-semibold px-1.5 py-0.5">
+            ▶ {formatViews(asset.viewCount)} views
+          </div>
+        )}
 
         {isNew && (
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-[4] bg-accent text-bg text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 bjpulse">

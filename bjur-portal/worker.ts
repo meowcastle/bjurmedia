@@ -9,6 +9,7 @@ import { INBOX_ROOT, DERIVED_ROOT, resolveMediaPath } from "./src/lib/media";
 import { ingestFile } from "./src/lib/ingest";
 import { generateProxy } from "./src/lib/proxyGen";
 import { postWeeklyDigest } from "./src/lib/slack";
+import { syncAllSocialAccounts } from "./src/lib/socialSync";
 
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
 const POLL_MS = 4000;
@@ -181,6 +182,29 @@ function startWeeklyDigestScheduler() {
   setInterval(() => tick().catch((err) => console.error("[slack] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+function startWeeklySocialSyncScheduler() {
+  let lastFiredOn: string | null = null;
+
+  const tick = async () => {
+    const config = await db.socialConfig.findUnique({ where: { id: 1 } });
+    if (!config?.autoWeekly) return;
+
+    const now = new Date();
+    const today = now.toLocaleDateString("en-US", { weekday: "long" });
+    const hhmm = now.toTimeString().slice(0, 5);
+    const dateKey = now.toISOString().slice(0, 10);
+
+    if (today === config.weeklyDay && hhmm === config.weeklyTime && lastFiredOn !== dateKey) {
+      lastFiredOn = dateKey;
+      console.log("[social] syncing linked Instagram/YouTube accounts");
+      await syncAllSocialAccounts().catch((err) => console.error("[social] weekly sync failed:", err));
+    }
+  };
+
+  console.log(`[social] weekly sync scheduler checking every ${SCHEDULER_POLL_MS}ms`);
+  setInterval(() => tick().catch((err) => console.error("[social] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // The web container's media mount is read-only by design (it only ever streams, never
 // writes production media) — but some admin actions need real writes/deletes under
 // MEDIA_ROOT, which only this container has permission to do. Rather than either
@@ -262,3 +286,4 @@ startIngestWatcher();
 startInternalServer();
 startProxyLoop();
 startWeeklyDigestScheduler();
+startWeeklySocialSyncScheduler();

@@ -18,7 +18,11 @@ export default async function AdminMediaPage({
   const selected = projects.find((p) => p.id === selectedId) ?? null;
 
   const assets = selected
-    ? await db.asset.findMany({ where: { projectId: selected.id }, orderBy: { createdAt: "desc" } })
+    ? await db.asset.findMany({
+        where: { projectId: selected.id },
+        orderBy: { createdAt: "desc" },
+        include: { socialPosts: true },
+      })
     : [];
 
   return (
@@ -36,6 +40,11 @@ export default async function AdminMediaPage({
         licensable: a.licensable,
         basePrice: a.basePrice,
         weekOf: a.weekOf?.toISOString() ?? null,
+        socialPosts: a.socialPosts.map((p) => ({
+          id: p.id,
+          permalink: p.permalink,
+          viewCount: p.viewCount,
+        })),
       }))}
     />
   );

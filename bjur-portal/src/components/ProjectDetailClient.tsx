@@ -9,6 +9,7 @@ import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
+import { formatViews } from "@/lib/format";
 
 type Asset = TileAsset & { weekOf: string | null };
 
@@ -108,6 +109,8 @@ export function ProjectDetailClient({
   initialFavorites,
   initialLicensedAssetIds,
   role,
+  totalViews,
+  totalSocialPosts,
 }: {
   project: {
     id: string;
@@ -121,6 +124,8 @@ export function ProjectDetailClient({
   initialFavorites: string[];
   initialLicensedAssetIds: string[];
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
+  totalViews: number;
+  totalSocialPosts: number;
 }) {
   const [filter, setFilter] = useState<string>("ALL");
   const [groupMode, setGroupMode] = useState<"format" | "week">("week");
@@ -390,6 +395,15 @@ export function ProjectDetailClient({
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
                 <span className="text-accentb font-semibold">Available until {fmtDate(project.expiresAt)}</span>
+              </>
+            )}
+            {totalSocialPosts > 0 && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-dim" />
+                <span className="text-accentb font-semibold">
+                  ▶ {formatViews(totalViews)} views across {totalSocialPosts} post
+                  {totalSocialPosts > 1 ? "s" : ""}
+                </span>
               </>
             )}
           </div>

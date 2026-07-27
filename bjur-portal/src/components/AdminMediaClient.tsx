@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
+import { formatViews } from "@/lib/format";
 import { UploadDialog } from "@/components/UploadDialog";
 
 type Asset = {
@@ -17,6 +18,7 @@ type Asset = {
   licensable: boolean;
   basePrice: number | null;
   weekOf: string | null;
+  socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
 
 type ProjectOption = { id: string; title: string; clientName: string };
@@ -134,6 +136,17 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weekOf }),
+    });
+  }
+
+  async function unlinkSocialPost(assetId: string, postId: string) {
+    setRows((rs) =>
+      rs.map((r) => (r.id === assetId ? { ...r, socialPosts: r.socialPosts.filter((p) => p.id !== postId) } : r))
+    );
+    await fetch(`/api/admin/social-posts/${postId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetId: null }),
     });
   }
 
@@ -296,6 +309,29 @@ export function AdminMediaClient({
                     {status.label}
                   </span>
                 </div>
+                {a.socialPosts.map((p) => (
+                  <div key={p.id} className="flex items-center gap-1.5">
+                    {p.permalink ? (
+                      <a
+                        href={p.permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-semibold text-accentb hover:text-text"
+                      >
+                        ▶ {formatViews(p.viewCount)} views ↗
+                      </a>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-accentb">▶ {formatViews(p.viewCount)} views</span>
+                    )}
+                    <button
+                      onClick={() => unlinkSocialPost(a.id, p.id)}
+                      className="cursor-pointer text-[10px] text-dim hover:text-accentb"
+                      title="Unlink this post"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
               <div className="flex flex-col items-start gap-1.5 md:items-end">
                 {confirmingDeleteId === a.id ? (

@@ -27,3 +27,9 @@ export function formatBytes(bytes: number | bigint) {
   if (gb >= 1) return `${gb.toFixed(1)} GB`;
   return `${(n / 1_000_000).toFixed(1)} MB`;
 }
+
+export function formatViews(n: number) {
+  if (n < 1000) return `${n}`;
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+}
