@@ -1,5 +1,12 @@
 "use client";
 
+/* eslint-disable react-hooks/refs --
+ * Same composite-return false positive as VideoViewer.tsx: useMediaCarousel()
+ * mixes real refs/framer-motion handles with plain useState values in one
+ * returned object, and the rule can't discriminate per-property. Everything
+ * flagged here (dragControls, x, width, ...) is either passed straight to a
+ * framer-motion prop or read as a plain value, never `.current` during
+ * render. */
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { ImageSlide, type PhotoNavAsset } from "@/components/ImageSlide";

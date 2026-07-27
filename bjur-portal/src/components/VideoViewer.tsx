@@ -1,5 +1,17 @@
 "use client";
 
+/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect --
+ * react-hooks/refs: useMediaCarousel() returns one object mixing real refs/
+ * framer-motion handles (viewportRef, x, dragControls) with plain useState
+ * values (hasPrev, width, currentItem, ...). The rule can't discriminate
+ * per-property on a composite custom-hook return, so it flags every access
+ * on `carousel` as a ref read — including dragControls/x, which are only
+ * ever *passed* to framer-motion props here, never read as `.current`
+ * during render. Verified correct behavior via e2e/video-rapid-swipe.spec.ts
+ * and extensive manual testing, not just typechecking.
+ * react-hooks/set-state-in-effect: the playback-state reset on active-item
+ * change (line below) is the standard "reset state when switching to a new
+ * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";

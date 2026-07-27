@@ -145,6 +145,9 @@ export function ProjectDetailClient({
   const [lastVisit, setLastVisit] = useState<string | null>(null);
   useEffect(() => {
     const key = `bjur:lastVisit:${project.id}`;
+    // Textbook "sync with an external system" (localStorage isn't readable during
+    // render/SSR), exactly the pattern React's own docs sanction for useEffect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLastVisit(localStorage.getItem(key));
     localStorage.setItem(key, new Date().toISOString());
   }, [project.id]);

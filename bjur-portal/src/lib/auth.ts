@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 
 const SESSION_COOKIE = "bjur_session";
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export async function hashPassword(password: string) {
   return argon2.hash(password, { type: argon2.argon2id });
