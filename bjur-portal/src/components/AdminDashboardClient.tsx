@@ -19,6 +19,8 @@ type DeliveryRow = {
   statusColor: string;
 };
 type ClientOption = { id: string; name: string; type: "RETAINER" | "ONEOFF" };
+type SocialErrorRow = { id: string; clientName: string; platform: string; error: string };
+type TopSocialPostRow = { id: string; assetName: string; clientName: string; projectId: string; views: string };
 
 export function AdminDashboardClient({
   dateLabel,
@@ -30,6 +32,8 @@ export function AdminDashboardClient({
   expiring,
   recentDeliveries,
   clients,
+  socialErrors,
+  topSocialPosts,
 }: {
   dateLabel: string;
   stats: Stat[];
@@ -40,6 +44,8 @@ export function AdminDashboardClient({
   expiring: ExpiringRow[];
   recentDeliveries: DeliveryRow[];
   clients: ClientOption[];
+  socialErrors: SocialErrorRow[];
+  topSocialPosts: TopSocialPostRow[];
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<"client" | "project" | null>(null);
@@ -119,21 +125,56 @@ export function AdminDashboardClient({
             <div className="px-5 py-8 text-center text-sm text-muted">No activity yet.</div>
           )}
         </div>
-        <div className="border border-line">
-          <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
-            Expiring soon
-          </div>
-          {expiring.map((e) => (
-            <div key={e.id} className="px-5 py-3.5 border-b border-line last:border-b-0">
-              <div className="text-[13px] font-semibold truncate">{e.title}</div>
-              <div className="text-xs text-muted mt-1">
-                {e.client} · <span className="text-accentb">{e.expires}</span>
-              </div>
+        <div className="flex flex-col gap-5">
+          <div className="border border-line">
+            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
+              Expiring soon
             </div>
-          ))}
-          {expiring.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm text-muted">Nothing expiring.</div>
-          )}
+            {expiring.map((e) => (
+              <div key={e.id} className="px-5 py-3.5 border-b border-line last:border-b-0">
+                <div className="text-[13px] font-semibold truncate">{e.title}</div>
+                <div className="text-xs text-muted mt-1">
+                  {e.client} · <span className="text-accentb">{e.expires}</span>
+                </div>
+              </div>
+            ))}
+            {expiring.length === 0 && (
+              <div className="px-5 py-8 text-center text-sm text-muted">Nothing expiring.</div>
+            )}
+          </div>
+
+          <div className="border border-line">
+            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
+              Social insights
+            </div>
+            {socialErrors.map((e) => (
+              <div key={e.id} className="px-5 py-3.5 border-b border-line last:border-b-0">
+                <div className="text-[13px] font-semibold text-accentb">
+                  ⚠ {e.clientName} · {e.platform}
+                </div>
+                <div className="text-xs text-muted mt-1 truncate" title={e.error}>
+                  Sync failed: {e.error}
+                </div>
+              </div>
+            ))}
+            {topSocialPosts.map((p) => (
+              <Link
+                key={p.id}
+                href={`/admin/media?project=${p.projectId}`}
+                className="block px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s1"
+              >
+                <div className="text-[13px] font-semibold truncate">{p.assetName}</div>
+                <div className="text-xs text-muted mt-1">
+                  {p.clientName} · <span className="text-accentb">▶ {p.views} views</span>
+                </div>
+              </Link>
+            ))}
+            {socialErrors.length === 0 && topSocialPosts.length === 0 && (
+              <div className="px-5 py-8 text-center text-sm text-muted">
+                No linked accounts yet — connect one from a client&apos;s page.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

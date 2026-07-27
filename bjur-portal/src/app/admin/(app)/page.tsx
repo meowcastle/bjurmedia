@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { timeAgo, formatDate, formatBytes, isRecentlyActive } from "@/lib/format";
+import { timeAgo, formatDate, formatBytes, formatViews, isRecentlyActive } from "@/lib/format";
+import { summarizeActivity } from "@/lib/activityFeed";
 import { AdminDashboardClient } from "@/components/AdminDashboardClient";
 
 // Worker status, queue depth, and recent activity are only meaningful live — a cached
@@ -15,7 +16,10 @@ export default async function AdminDashboardPage() {
       db.project.count({ where: { status: "LIVE" } }),
       db.asset.findMany({ select: { sizeBytes: true } }),
       db.workerHeartbeat.findUnique({ where: { id: 1 } }),
-      db.activity.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
+      // Fetched wider than the ~8 we'll display — a burst of routine proxy
+      // completions can otherwise push every real event out of a 6-row window
+      // before summarizeActivity() ever gets a chance to collapse them down.
+      db.activity.findMany({ orderBy: { createdAt: "desc" }, take: 40 }),
       db.project.findMany({
         where: { expiresAt: { gt: new Date() } },
         orderBy: { expiresAt: "asc" },
@@ -34,6 +38,18 @@ export default async function AdminDashboardPage() {
   const failedCount = await db.asset.count({ where: { proxyStatus: "FAILED" } });
   const totalBytes = assets.reduce((t, a) => t + a.sizeBytes, BigInt(0));
   const workerOnline = !!heartbeat && isRecentlyActive(heartbeat.lastSeen, HEARTBEAT_TIMEOUT_MS);
+
+  const [socialAccountErrors, topSocialPosts] = await Promise.all([
+    db.socialAccount.findMany({ where: { lastSyncError: { not: null } }, include: { client: true } }),
+    db.socialPost.findMany({
+      where: { assetId: { not: null }, viewCount: { gt: 0 } },
+      orderBy: { viewCount: "desc" },
+      take: 3,
+      include: { asset: { include: { project: { include: { client: true } } } } },
+    }),
+  ]);
+
+  const summarizedActivity = summarizeActivity(recentActivity).slice(0, 8);
 
   const dateLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -59,7 +75,7 @@ export default async function AdminDashboardPage() {
       workerOnline={workerOnline}
       queueCount={queueCount}
       failedCount={failedCount}
-      activity={recentActivity.map((a) => ({
+      activity={summarizedActivity.map((a) => ({
         id: a.id,
         who: a.actor,
         action: a.action,
@@ -81,6 +97,21 @@ export default async function AdminDashboardPage() {
         statusColor: statusColor[p.status] ?? "var(--dim)",
       }))}
       clients={clients.map((c) => ({ id: c.id, name: c.name, type: c.type }))}
+      socialErrors={socialAccountErrors.map((a) => ({
+        id: a.id,
+        clientName: a.client.name,
+        platform: a.platform === "INSTAGRAM" ? "Instagram" : "YouTube",
+        error: a.lastSyncError!,
+      }))}
+      topSocialPosts={topSocialPosts
+        .filter((p) => p.asset)
+        .map((p) => ({
+          id: p.id,
+          assetName: p.asset!.name,
+          clientName: p.asset!.project.client.name,
+          projectId: p.asset!.projectId,
+          views: formatViews(p.viewCount),
+        }))}
     />
   );
 }
