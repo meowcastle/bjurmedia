@@ -174,7 +174,7 @@ export function AdminClientDetailClient({
   }
 
   return (
-    <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
       <Link href="/admin/clients" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
         ← All clients
       </Link>
@@ -359,21 +359,32 @@ export function AdminClientDetailClient({
       </div>
       <div className="border border-line">
         {projects.map((p) => (
-          <div key={p.id} className="grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center" style={{ gridTemplateColumns: "2.1fr .9fr 1fr 1.1fr auto" }}>
-            <div>
-              <Link href={`/admin/media?project=${p.id}`} className="font-semibold text-sm hover:text-accent">
-                {p.title}
-              </Link>
-              <div className="text-[10.5px] font-mono text-dim mt-1 truncate" title={p.inboxPath}>
-                {p.inboxPath}
+          <div
+            key={p.id}
+            className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
+            style={{ gridTemplateColumns: "2.1fr .9fr 1fr 1.1fr auto" }}
+          >
+            <div className="md:contents">
+              <div>
+                <Link href={`/admin/media?project=${p.id}`} className="font-semibold text-sm hover:text-accent">
+                  {p.title}
+                </Link>
+                <div className="text-[10.5px] font-mono text-dim mt-1 truncate" title={p.inboxPath}>
+                  {p.inboxPath}
+                </div>
               </div>
             </div>
-            <span className="text-[13px] text-muted">{p.assetCount} assets</span>
-            <span className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}>
-              {p.status}
-            </span>
-            <span className="text-[13px] text-right text-muted">{fmtDate(p.expiresAt)}</span>
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
+              <span className="text-muted">{p.assetCount} assets</span>
+              <span className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}>
+                {p.status}
+              </span>
+              <span className="text-muted md:text-right">
+                <span className="md:hidden text-dim">Expires · </span>
+                {fmtDate(p.expiresAt)}
+              </span>
+            </div>
+            <div className="flex gap-2 justify-start md:justify-end">
               <button
                 onClick={() => setUploadingTo(p)}
                 className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"

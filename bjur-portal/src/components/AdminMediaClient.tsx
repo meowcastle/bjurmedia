@@ -21,7 +21,8 @@ type Asset = {
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
 
-type ProjectOption = { id: string; title: string; clientName: string };
+type ProjectOption = { id: string; title: string };
+type ClientGroup = { id: string; name: string; projects: ProjectOption[] };
 
 const STATUS_MAP: Record<Asset["proxyStatus"], { label: string; color: string }> = {
   READY: { label: "Ready", color: "#2ec36b" },
@@ -31,12 +32,20 @@ const STATUS_MAP: Record<Asset["proxyStatus"], { label: string; color: string }>
 };
 
 export function AdminMediaClient({
-  projects,
   selectedProjectId,
+  selectedProjectTitle,
+  selectedClientId,
+  selectedClientName,
+  siblingProjects,
+  clientGroups,
   assets,
 }: {
-  projects: ProjectOption[];
   selectedProjectId: string;
+  selectedProjectTitle: string | null;
+  selectedClientId: string | null;
+  selectedClientName: string | null;
+  siblingProjects: ProjectOption[];
+  clientGroups: ClientGroup[];
   assets: Asset[];
 }) {
   const router = useRouter();
@@ -47,6 +56,7 @@ export function AdminMediaClient({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
 
   // Switching projects is a client-side navigation (router.push), not a full reload —
   // useState's initial value only applies on first mount, so without this the table
@@ -94,6 +104,15 @@ export function AdminMediaClient({
 
   function selectProject(id: string) {
     router.push(`/admin/media?project=${id}`);
+  }
+
+  function toggleClientExpand(id: string) {
+    setExpandedClients((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function toggleInternal(a: Asset) {
@@ -173,42 +192,101 @@ export function AdminMediaClient({
     setDeletingId(null);
   }
 
+  if (!selectedProjectId) {
+    return (
+      <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
+        <div className="mb-6">
+          <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Pipeline</div>
+          <h1 className="text-[34px] tracking-tight font-black mb-2.5">Media</h1>
+          <p className="text-sm text-muted">Pick a client, then a project, to see its pipeline.</p>
+        </div>
+
+        <div className="border border-line">
+          {clientGroups.map((g) => {
+            const isOpen = expandedClients.has(g.id);
+            return (
+              <div key={g.id} className="border-b border-line last:border-b-0">
+                <button
+                  onClick={() => toggleClientExpand(g.id)}
+                  className="cursor-pointer w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-[11px] text-muted">{isOpen ? "▾" : "▸"}</span>
+                    <span className="font-semibold text-sm">{g.name}</span>
+                  </span>
+                  <span className="text-[11px] text-muted">
+                    {g.projects.length} project{g.projects.length !== 1 ? "s" : ""}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="pb-2">
+                    {g.projects.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/admin/media?project=${p.id}`}
+                        className="block pl-11 pr-5 py-2.5 text-[13px] text-muted hover:text-text hover:bg-s1"
+                      >
+                        {p.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {clientGroups.length === 0 && (
+            <div className="px-5 py-10 text-center text-sm text-muted">No projects yet.</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
       <div className="mb-6">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Pipeline</div>
-        <h1 className="text-[34px] tracking-tight font-black">Media</h1>
+        {selectedClientName && selectedClientId && (
+          <Link
+            href={`/admin/clients/${selectedClientId}`}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4"
+          >
+            ← {selectedClientName}
+          </Link>
+        )}
+        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Media</div>
+        <h1 className="text-[34px] tracking-tight font-black">{selectedProjectTitle}</h1>
       </div>
 
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Project</span>
-        <select
-          value={selectedProjectId}
-          onChange={(e) => selectProject(e.target.value)}
-          className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.clientName} — {p.title}
-            </option>
-          ))}
-        </select>
-        {selectedProjectId && (
+        {siblingProjects.length > 0 && (
           <>
-            <button
-              onClick={() => setUploadOpen(true)}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+            <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Switch project</span>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => selectProject(e.target.value)}
+              className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
             >
-              Upload
-            </button>
-            <Link
-              href={`/admin/library?project=${selectedProjectId}`}
-              className="text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
-            >
-              Import from NAS →
-            </Link>
+              <option value={selectedProjectId}>{selectedProjectTitle}</option>
+              {siblingProjects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
           </>
         )}
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+        >
+          Upload
+        </button>
+        <Link
+          href={`/admin/library?project=${selectedProjectId}`}
+          className="text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+        >
+          Import from NAS →
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 mb-6">
@@ -414,7 +492,7 @@ export function AdminMediaClient({
       {uploadOpen && selectedProjectId && (
         <UploadDialog
           projectId={selectedProjectId}
-          projectTitle={projects.find((p) => p.id === selectedProjectId)?.title ?? "this project"}
+          projectTitle={selectedProjectTitle ?? "this project"}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => router.refresh()}
         />

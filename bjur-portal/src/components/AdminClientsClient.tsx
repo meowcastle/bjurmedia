@@ -58,7 +58,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
   }
 
   return (
-    <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
       <div className="flex items-end justify-between mb-7">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
@@ -71,7 +71,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
 
       <div className="border border-line">
         <div
-          className="grid gap-4 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
+          className="hidden md:grid gap-4 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
           style={{ gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr" }}
         >
           <span>Client</span>
@@ -86,38 +86,47 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           return (
             <div key={c.id} className="border-b border-line last:border-b-0">
               <div
-                className="grid gap-4 px-5 py-4 items-center"
+                className="flex flex-col gap-2.5 px-4 py-4 md:grid md:gap-4 md:px-5 md:py-4 md:items-center"
                 style={{ gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr", background: active ? "transparent" : "rgba(255,255,255,.015)" }}
               >
-                <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3 min-w-0 group">
-                  <div
-                    className={`w-[30px] h-[30px] bg-s3 grid place-items-center text-[11px] font-bold flex-none ${active ? "text-text" : "text-dim"}`}
-                  >
-                    {initials(c.name)}
-                  </div>
-                  <div className="min-w-0">
+                {/* Identity + type share a row on mobile (display:contents at md: restores
+                    the plain 5-col grid, same as the Media pipeline table). */}
+                <div className="flex items-center gap-3 md:contents">
+                  <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3 min-w-0 flex-1 group">
                     <div
-                      className={`font-semibold text-sm truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
+                      className={`w-[30px] h-[30px] bg-s3 grid place-items-center text-[11px] font-bold flex-none ${active ? "text-text" : "text-dim"}`}
                     >
-                      {c.name}
+                      {initials(c.name)}
                     </div>
-                    <div className="text-[11px] text-dim font-mono">@{c.username}</div>
-                  </div>
-                </Link>
-                <span>
-                  <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
-                    {c.type === "RETAINER" ? "Retainer" : "One-off"}
+                    <div className="min-w-0">
+                      <div
+                        className={`font-semibold text-sm truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
+                      >
+                        {c.name}
+                      </div>
+                      <div className="text-[11px] text-dim font-mono">@{c.username}</div>
+                    </div>
+                  </Link>
+                  <span className="flex-none">
+                    <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
+                      {c.type === "RETAINER" ? "Retainer" : "One-off"}
+                    </span>
                   </span>
-                </span>
-                <span className="text-[13px] text-muted">{c.projectCount}</span>
-                <button
-                  onClick={() => toggleExpand(c.id)}
-                  className="cursor-pointer text-left text-[13px] text-muted hover:text-text inline-flex items-center gap-1.5"
-                >
-                  <span className="text-[11px]">{isExpanded ? "▾" : "▸"}</span>
-                  {c.seats.length} seat{c.seats.length !== 1 ? "s" : ""}
-                </button>
-                <div className="flex items-center justify-end gap-3">
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 md:contents">
+                  <span className="text-[13px] text-muted">
+                    <span className="md:hidden text-dim">Projects · </span>
+                    {c.projectCount}
+                  </span>
+                  <button
+                    onClick={() => toggleExpand(c.id)}
+                    className="cursor-pointer text-left text-[13px] text-muted hover:text-text inline-flex items-center gap-1.5"
+                  >
+                    <span className="text-[11px]">{isExpanded ? "▾" : "▸"}</span>
+                    {c.seats.length} seat{c.seats.length !== 1 ? "s" : ""}
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 md:justify-end">
                   <span
                     className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}
                   >
