@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin", label: "Home" },
   { href: "/admin/clients", label: "Clients" },
   { href: "/admin/media", label: "Media" },
+  { href: "/admin/reports", label: "Reports" },
   { href: "/admin/integrations", label: "Integrations" },
 ];
 
@@ -22,7 +23,7 @@ export function AdminHeader({ userName }: { userName: string }) {
   }
 
   return (
-    <div className="flex items-center gap-4 px-10 py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
+    <div className="print:hidden flex items-center gap-4 px-10 py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
       <Link href="/admin" className="flex items-center gap-2.5">
         <div className="w-3.5 h-3.5 bg-accent" />
         <span className="font-black text-[15px]">BJUR</span>

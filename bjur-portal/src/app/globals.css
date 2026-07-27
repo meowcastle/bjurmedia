@@ -140,3 +140,22 @@ body {
 .bjpulse {
   animation: bjpulse 1.6s ease-in-out infinite;
 }
+
+/* Client attribution report (AdminReportsClient.tsx): the app's dark theme
+   colors are all driven by the CSS vars above, so overriding them within this
+   one scoped class — rather than adding print: variants to every element —
+   flips the whole report to a normal white one-pager for "Print → Save as
+   PDF" without touching anything else in the app. */
+@media print {
+  .report-print-scope {
+    --bg: #ffffff;
+    --s1: #f5f5f5;
+    --s2: #eeeeee;
+    --s3: #e2e2e2;
+    --line: rgba(0, 0, 0, 0.14);
+    --line2: rgba(0, 0, 0, 0.24);
+    --text: #111111;
+    --muted: rgba(17, 17, 17, 0.62);
+    --dim: rgba(17, 17, 17, 0.42);
+  }
+}
