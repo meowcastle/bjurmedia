@@ -42,8 +42,25 @@ type SocialAccountRow = {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
 };
+type LicenseRow = {
+  id: string;
+  assetName: string;
+  tier: "SOCIAL" | "COMMERCIAL" | "BUYOUT" | "CUSTOM";
+  amount: number;
+  scope: string;
+  purchasedAt: string;
+  expiresAt: string | null;
+  userName: string;
+};
 
 const DEFAULT_ACCENT = "#ec3013";
+
+const TIER_LABEL: Record<LicenseRow["tier"], string> = {
+  SOCIAL: "Social & Digital",
+  COMMERCIAL: "Commercial & Broadcast",
+  BUYOUT: "Full Buyout",
+  CUSTOM: "Custom",
+};
 
 const ROLE_COLOR: Record<string, string> = {
   OWNER: "#2ec36b",
@@ -66,11 +83,13 @@ export function AdminClientDetailClient({
   seats,
   projects,
   socialAccounts,
+  licenses,
 }: {
   client: ClientInfo;
   seats: Seat[];
   projects: ProjectRow[];
   socialAccounts: SocialAccountRow[];
+  licenses: LicenseRow[];
 }) {
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
@@ -460,6 +479,39 @@ export function AdminClientDetailClient({
         {projects.length === 0 && (
           <div className="px-5 py-10 text-center text-sm text-muted">No projects yet.</div>
         )}
+      </div>
+
+      <div className="mt-9">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">Licenses</h2>
+        <div className="border border-line">
+          {licenses.map((l) => {
+            const now = new Date();
+            const expired = l.expiresAt != null && new Date(l.expiresAt) < now;
+            const statusLabel = l.expiresAt == null ? "Perpetual" : expired ? "Expired" : "Active";
+            const statusColor = expired ? "text-accent" : l.expiresAt == null ? "text-muted" : "text-success";
+            return (
+              <div
+                key={l.id}
+                className="flex flex-col gap-1.5 px-5 py-4 border-b border-line last:border-b-0"
+              >
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-sm font-semibold">{l.assetName}</span>
+                  <span className={`text-[11px] font-bold tracking-wide uppercase ${statusColor}`}>{statusLabel}</span>
+                </div>
+                <div className="text-xs text-muted">
+                  {TIER_LABEL[l.tier]} · ${l.amount} · {l.scope}
+                </div>
+                <div className="text-[11px] text-dim">
+                  {fmtDate(l.purchasedAt)} · {l.userName}
+                  {l.expiresAt && ` · expires ${fmtDate(l.expiresAt)}`}
+                </div>
+              </div>
+            );
+          })}
+          {licenses.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-muted">No licenses yet.</div>
+          )}
+        </div>
       </div>
 
       {seatDialogOpen && (

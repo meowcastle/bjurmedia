@@ -147,6 +147,14 @@ model License {
   scope       String // frozen copy of the scope text
   purchasedAt DateTime    @default(now())
 
+  // enterprise dials (admin-granted custom licenses only) — all additive/nullable,
+  // existing tier-based rows are unaffected
+  termMonths Int? // null = perpetuity
+  territory  String? // null = "Worldwide"
+  channels   String? // JSON array: ["organic_social","paid_social","ooh","broadcast"]
+  exclusive  Boolean @default(false)
+  expiresAt  DateTime? // purchasedAt + termMonths, computed once at creation
+
   @@index([assetId])
 }
 
@@ -154,6 +162,7 @@ enum LicenseTier {
   SOCIAL
   COMMERCIAL
   BUYOUT
+  CUSTOM // admin-granted enterprise license — term/territory/channels/exclusivity instead of a fixed tier
 }
 
 // ── Favorites, sessions, activity ──────────────────────────

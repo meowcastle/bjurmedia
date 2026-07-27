@@ -20,13 +20,22 @@ export default async function AdminMediaPage({
   // for you, which was indistinguishable from actually choosing one.
   const selected = projectParam ? (projects.find((p) => p.id === projectParam) ?? null) : null;
 
-  const assets = selected
-    ? await db.asset.findMany({
-        where: { projectId: selected.id },
-        orderBy: { createdAt: "desc" },
-        include: { socialPosts: true },
-      })
-    : [];
+  const [assets, clientSeats] = await Promise.all([
+    selected
+      ? db.asset.findMany({
+          where: { projectId: selected.id },
+          orderBy: { createdAt: "desc" },
+          include: { socialPosts: true, licenses: { select: { expiresAt: true } } },
+        })
+      : Promise.resolve([]),
+    selected
+      ? db.user.findMany({
+          where: { clientId: selected.clientId },
+          select: { id: true, name: true, email: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const clientGroups = Object.values(
     projects.reduce<Record<string, { id: string; name: string; projects: { id: string; title: string }[] }>>(
@@ -53,6 +62,7 @@ export default async function AdminMediaPage({
       selectedClientName={selected?.client.name ?? null}
       siblingProjects={siblingProjects}
       clientGroups={clientGroups}
+      clientSeats={clientSeats}
       assets={assets.map((a) => ({
         id: a.id,
         name: a.name,
@@ -67,6 +77,7 @@ export default async function AdminMediaPage({
         contentTitle: a.contentTitle,
         caption: a.caption,
         captionYT: a.captionYT,
+        licenseExpired: a.licenses.some((l) => l.expiresAt != null && l.expiresAt < new Date()),
         socialPosts: a.socialPosts.map((p) => ({
           id: p.id,
           permalink: p.permalink,

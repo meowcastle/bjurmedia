@@ -64,6 +64,7 @@ export function AdminReportsClient({
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Client</span>
           <select
+            aria-label="Client"
             value={selectedClientId ?? ""}
             onChange={(e) => e.target.value && navigate(e.target.value, fromDraft, toDraft)}
             className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
@@ -82,6 +83,7 @@ export function AdminReportsClient({
             <>
               <span className="text-[11px] tracking-wide uppercase text-muted font-semibold ml-2">From</span>
               <input
+                aria-label="From"
                 type="date"
                 value={fromDraft}
                 onChange={(e) => setFromDraft(e.target.value)}
@@ -90,6 +92,7 @@ export function AdminReportsClient({
               />
               <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">To</span>
               <input
+                aria-label="To"
                 type="date"
                 value={toDraft}
                 onChange={(e) => setToDraft(e.target.value)}

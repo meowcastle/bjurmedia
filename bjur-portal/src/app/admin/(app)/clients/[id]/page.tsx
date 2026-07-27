@@ -18,7 +18,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   });
   if (!client) notFound();
 
-  const socialAccounts = await db.socialAccount.findMany({ where: { clientId: client.id } });
+  const [socialAccounts, licenses] = await Promise.all([
+    db.socialAccount.findMany({ where: { clientId: client.id } }),
+    db.license.findMany({
+      where: { clientId: client.id },
+      orderBy: { purchasedAt: "desc" },
+      include: { asset: { select: { name: true } }, user: { select: { name: true } } },
+    }),
+  ]);
 
   return (
     <AdminClientDetailClient
@@ -31,6 +38,16 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         accentColor: client.accentColor,
         logoUrl: client.logoUrl,
       }}
+      licenses={licenses.map((l) => ({
+        id: l.id,
+        assetName: l.asset.name,
+        tier: l.tier,
+        amount: l.amount,
+        scope: l.scope,
+        purchasedAt: l.purchasedAt.toISOString(),
+        expiresAt: l.expiresAt?.toISOString() ?? null,
+        userName: l.user.name,
+      }))}
       socialAccounts={socialAccounts.map((s) => ({
         platform: s.platform,
         externalId: s.externalId,

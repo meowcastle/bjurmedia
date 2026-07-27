@@ -8,6 +8,7 @@ import { formatViews, formatDate } from "@/lib/format";
 import { mondayOfWeek } from "@/lib/weeks";
 import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { UploadDialog } from "@/components/UploadDialog";
+import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 
 type Asset = {
   id: string;
@@ -23,11 +24,13 @@ type Asset = {
   contentTitle: string | null;
   caption: string | null;
   captionYT: string | null;
+  licenseExpired: boolean;
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
 
 type ProjectOption = { id: string; title: string };
 type ClientGroup = { id: string; name: string; projects: ProjectOption[] };
+type Seat = { id: string; name: string; email: string };
 
 const STATUS_MAP: Record<Asset["proxyStatus"], { label: string; color: string }> = {
   READY: { label: "Ready", color: "#2ec36b" },
@@ -43,6 +46,7 @@ export function AdminMediaClient({
   selectedClientName,
   siblingProjects,
   clientGroups,
+  clientSeats,
   assets,
 }: {
   selectedProjectId: string;
@@ -50,6 +54,7 @@ export function AdminMediaClient({
   selectedClientId: string | null;
   selectedClientName: string | null;
   siblingProjects: ProjectOption[];
+  clientSeats: Seat[];
   clientGroups: ClientGroup[];
   assets: Asset[];
 }) {
@@ -64,6 +69,7 @@ export function AdminMediaClient({
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>("");
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [grantingLicenseFor, setGrantingLicenseFor] = useState<Asset | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -442,6 +448,7 @@ export function AdminMediaClient({
           return (
             <div
               key={a.id}
+              data-testid={`asset-row-${a.id}`}
               className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-3.5 md:px-5 md:py-3.5 md:items-center"
               style={{ gridTemplateColumns: "56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
             >
@@ -464,6 +471,11 @@ export function AdminMediaClient({
                     {a.licensable && (
                       <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
                         PAYWALLED
+                      </span>
+                    )}
+                    {a.licenseExpired && (
+                      <span className="flex-none text-[9px] font-bold tracking-wide text-accent border border-accent px-1.5 py-0.5">
+                        LICENSE EXPIRED
                       </span>
                     )}
                   </div>
@@ -622,6 +634,14 @@ export function AdminMediaClient({
                         className="w-20 bg-bg border border-line2 text-text text-[11px] px-2 py-1.5 outline-none focus:border-accent"
                       />
                     )}
+                    {a.licensable && a.basePrice != null && (
+                      <button
+                        onClick={() => setGrantingLicenseFor(a)}
+                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
+                      >
+                        Grant custom license
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -639,6 +659,20 @@ export function AdminMediaClient({
           projectTitle={selectedProjectTitle ?? "this project"}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => router.refresh()}
+        />
+      )}
+
+      {grantingLicenseFor && selectedClientName && (
+        <GrantLicenseDialog
+          assetId={grantingLicenseFor.id}
+          assetName={grantingLicenseFor.name}
+          clientName={selectedClientName}
+          seats={clientSeats}
+          onClose={() => setGrantingLicenseFor(null)}
+          onGranted={() => {
+            setGrantingLicenseFor(null);
+            router.refresh();
+          }}
         />
       )}
     </div>

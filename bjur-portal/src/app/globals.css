@@ -141,21 +141,40 @@ body {
   animation: bjpulse 1.6s ease-in-out infinite;
 }
 
-/* Client attribution report (AdminReportsClient.tsx): the app's dark theme
-   colors are all driven by the CSS vars above, so overriding them within this
-   one scoped class — rather than adding print: variants to every element —
-   flips the whole report to a normal white one-pager for "Print → Save as
-   PDF" without touching anything else in the app. */
+/* Client attribution report (AdminReportsClient.tsx): flips the report to a
+   normal white one-pager for "Print → Save as PDF". Originally tried
+   redefining the --bg/--s1/etc custom properties within a scoped class, on
+   the assumption every themed utility resolves them at paint time the same
+   way html/body's inline `background: var(--bg)` does — confirmed wrong by
+   an actual print-preview screenshot (still fully dark): Tailwind's
+   `@theme inline` bakes each utility's resolved color in at build time, so
+   `.bg-s1` etc. never re-read `--s1` at runtime at all. Overriding the
+   generated classes directly, scoped under this one class, sidesteps that
+   entirely regardless of how Tailwind compiled them. */
 @media print {
   .report-print-scope {
-    --bg: #ffffff;
-    --s1: #f5f5f5;
-    --s2: #eeeeee;
-    --s3: #e2e2e2;
-    --line: rgba(0, 0, 0, 0.14);
-    --line2: rgba(0, 0, 0, 0.24);
-    --text: #111111;
-    --muted: rgba(17, 17, 17, 0.62);
-    --dim: rgba(17, 17, 17, 0.42);
+    background: #ffffff;
+    color: #111111;
+  }
+  .report-print-scope .bg-s1 {
+    background: #f5f5f5;
+  }
+  .report-print-scope .bg-s3 {
+    background: #e2e2e2;
+  }
+  .report-print-scope .border-line {
+    border-color: rgba(0, 0, 0, 0.14);
+  }
+  .report-print-scope .border-line2 {
+    border-color: rgba(0, 0, 0, 0.24);
+  }
+  .report-print-scope .text-text {
+    color: #111111;
+  }
+  .report-print-scope .text-muted {
+    color: rgba(17, 17, 17, 0.62);
+  }
+  .report-print-scope .text-dim {
+    color: rgba(17, 17, 17, 0.42);
   }
 }
