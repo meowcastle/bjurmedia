@@ -64,6 +64,9 @@ export default async function AdminMediaPage({
         licensable: a.licensable,
         basePrice: a.basePrice,
         weekOf: a.weekOf?.toISOString() ?? null,
+        contentTitle: a.contentTitle,
+        caption: a.caption,
+        captionYT: a.captionYT,
         socialPosts: a.socialPosts.map((p) => ({
           id: p.id,
           permalink: p.permalink,

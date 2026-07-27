@@ -28,10 +28,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.weekOf !== undefined) {
     data.weekOf = body.weekOf ? new Date(body.weekOf) : null;
   }
+  if (body.contentTitle !== undefined) data.contentTitle = body.contentTitle || null;
+  if (body.caption !== undefined) data.caption = body.caption || null;
+  if (body.captionYT !== undefined) data.captionYT = body.captionYT || null;
 
-  const updated = await db.asset.update({ where: { id }, data });
+  await db.asset.update({ where: { id }, data });
 
-  return NextResponse.json({ asset: updated });
+  return NextResponse.json({ ok: true });
 }
 
 /**

@@ -107,6 +107,11 @@ model Asset {
   // grouping (57.NYC IG workflow)
   weekOf DateTime?
 
+  // weekly Slack content-calendar text (57.NYC IG workflow)
+  contentTitle String? // "TOVA (FAM ONLY)" — guest/topic + collab tag line
+  caption      String? // IG & YT caption body (or IG-only body when captionYT is set)
+  captionYT    String? // set only when YT copy differs from IG — null in the common case
+
   createdAt DateTime   @default(now()) // "Added"
   updatedAt DateTime   @updatedAt // "Updated"
   favorites Favorite[]

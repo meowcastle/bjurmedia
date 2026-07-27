@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
-import { formatViews } from "@/lib/format";
+import { formatViews, formatDate } from "@/lib/format";
+import { mondayOfWeek } from "@/lib/weeks";
+import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { UploadDialog } from "@/components/UploadDialog";
 
 type Asset = {
@@ -18,6 +20,9 @@ type Asset = {
   licensable: boolean;
   basePrice: number | null;
   weekOf: string | null;
+  contentTitle: string | null;
+  caption: string | null;
+  captionYT: string | null;
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
 
@@ -52,6 +57,12 @@ export function AdminMediaClient({
   const [rows, setRows] = useState(assets);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
+  const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({});
+  const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>({});
+  const [captionYTDrafts, setCaptionYTDrafts] = useState<Record<string, string>>({});
+  const [ytExpanded, setYtExpanded] = useState<Set<string>>(new Set());
+  const [selectedWeekKey, setSelectedWeekKey] = useState<string>("");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -70,6 +81,11 @@ export function AdminMediaClient({
     setRows(assets);
     setPriceDrafts({});
     setWeekOfDrafts({});
+    setTitleDrafts({});
+    setCaptionDrafts({});
+    setCaptionYTDrafts({});
+    setYtExpanded(new Set());
+    setSelectedWeekKey("");
     setConfirmingDeleteId(null);
     setDeleteError(null);
   }
@@ -101,6 +117,39 @@ export function AdminMediaClient({
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
   const failed = rows.filter((a) => a.proxyStatus === "FAILED").length;
+
+  // Distinct weeks present among this project's assets, newest first — the
+  // source list for the "Copy Slack post" week picker.
+  const weeks = useMemo(() => {
+    const map = new Map<string, Date>();
+    for (const a of rows) {
+      if (!a.weekOf) continue;
+      const monday = mondayOfWeek(new Date(a.weekOf));
+      map.set(monday.toISOString(), monday);
+    }
+    return [...map.values()].sort((a, b) => b.getTime() - a.getTime());
+  }, [rows]);
+
+  const activeWeekKey = selectedWeekKey || weeks[0]?.toISOString() || "";
+
+  async function copySlackPost() {
+    const weekStart = weeks.find((w) => w.toISOString() === activeWeekKey);
+    if (!weekStart) return;
+    const text = buildWeeklySlackPost(
+      weekStart,
+      rows
+        .filter((a): a is Asset & { weekOf: string } => a.weekOf != null)
+        .map((a) => ({
+          weekOf: new Date(a.weekOf),
+          contentTitle: a.contentTitle,
+          caption: a.caption,
+          captionYT: a.captionYT,
+        }))
+    );
+    await navigator.clipboard.writeText(text);
+    setCopyStatus("copied");
+    setTimeout(() => setCopyStatus("idle"), 2000);
+  }
 
   function selectProject(id: string) {
     router.push(`/admin/media?project=${id}`);
@@ -155,6 +204,42 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weekOf }),
+    });
+  }
+
+  async function saveContentTitle(a: Asset) {
+    const raw = titleDrafts[a.id];
+    if (raw === undefined) return;
+    const contentTitle = raw.trim() || null;
+    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, contentTitle } : r)));
+    await fetch(`/api/admin/assets/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentTitle }),
+    });
+  }
+
+  async function saveCaption(a: Asset) {
+    const raw = captionDrafts[a.id];
+    if (raw === undefined) return;
+    const caption = raw.trim() || null;
+    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, caption } : r)));
+    await fetch(`/api/admin/assets/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caption }),
+    });
+  }
+
+  async function saveCaptionYT(a: Asset) {
+    const raw = captionYTDrafts[a.id];
+    if (raw === undefined) return;
+    const captionYT = raw.trim() || null;
+    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, captionYT } : r)));
+    await fetch(`/api/admin/assets/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ captionYT }),
     });
   }
 
@@ -289,6 +374,29 @@ export function AdminMediaClient({
         </Link>
       </div>
 
+      {weeks.length > 0 && (
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Slack post</span>
+          <select
+            value={activeWeekKey}
+            onChange={(e) => setSelectedWeekKey(e.target.value)}
+            className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+          >
+            {weeks.map((w) => (
+              <option key={w.toISOString()} value={w.toISOString()}>
+                Week of {formatDate(w)}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={copySlackPost}
+            className="cursor-pointer text-[11px] font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2.5"
+          >
+            {copyStatus === "copied" ? "Copied ✓" : "Copy Slack post"}
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 mb-6">
         <div className="bg-s1 border border-line px-4 py-4">
           <div className="text-[26px] font-black tracking-tight tabular-nums">{rows.length}</div>
@@ -359,7 +467,7 @@ export function AdminMediaClient({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     <span className="text-[10px] text-dim uppercase tracking-wide">Week</span>
                     <input
                       type="date"
@@ -370,6 +478,42 @@ export function AdminMediaClient({
                         a.weekOf ? "border-line2 text-text" : "border-accent/50 text-accentb"
                       }`}
                     />
+                    <span className="text-[10px] text-dim uppercase tracking-wide ml-2">Title</span>
+                    <input
+                      type="text"
+                      defaultValue={a.contentTitle ?? ""}
+                      placeholder="e.g. TOVA (FAM ONLY)"
+                      onChange={(e) => setTitleDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                      onBlur={() => saveContentTitle(a)}
+                      className="bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent w-44"
+                    />
+                  </div>
+                  <div className="mt-1.5">
+                    <textarea
+                      defaultValue={a.caption ?? ""}
+                      placeholder="IG & YT caption…"
+                      rows={2}
+                      onChange={(e) => setCaptionDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                      onBlur={() => saveCaption(a)}
+                      className="w-full bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent resize-y"
+                    />
+                    {a.captionYT != null || ytExpanded.has(a.id) ? (
+                      <textarea
+                        defaultValue={a.captionYT ?? ""}
+                        placeholder="YouTube caption (if different)…"
+                        rows={2}
+                        onChange={(e) => setCaptionYTDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                        onBlur={() => saveCaptionYT(a)}
+                        className="w-full mt-1 bg-bg border border-accent/40 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent resize-y"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setYtExpanded((s) => new Set(s).add(a.id))}
+                        className="cursor-pointer text-[10px] text-dim hover:text-accentb mt-1"
+                      >
+                        + Different caption for YouTube
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
