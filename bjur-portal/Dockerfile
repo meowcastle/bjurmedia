@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
 WORKDIR /app
 ENV WATERMARK_FONT=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
+# Purely cosmetic — npm is only ever shelled out to via `npx prisma ...`, pnpm is the
+# actual package manager here, so there's no reason to chase npm's own version nags.
+ENV npm_config_update_notifier=false
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
