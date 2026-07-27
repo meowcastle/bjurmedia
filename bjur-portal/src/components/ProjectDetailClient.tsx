@@ -8,6 +8,7 @@ import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
+import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 
 type Asset = TileAsset & { weekOf: string | null };
 
@@ -69,10 +70,7 @@ function fmtDate(d: string | null) {
 
 /** Monday (UTC midnight) of the calendar week containing `d`, as an ISO date string. */
 function mondayOfWeek(d: Date) {
-  const day = d.getUTCDay(); // 0 = Sunday ... 6 = Saturday
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffToMonday));
-  return monday.toISOString();
+  return mondayOfWeekDate(d).toISOString();
 }
 
 type Group = { label: string; count: string; folder: string; cols: string; items: Asset[] };

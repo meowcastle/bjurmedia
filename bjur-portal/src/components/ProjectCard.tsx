@@ -13,6 +13,7 @@ export function ProjectCard({
   photoCount,
   videoCount,
   coverAssetId,
+  hasNewThisWeek,
 }: {
   id: string;
   title: string;
@@ -21,6 +22,7 @@ export function ProjectCard({
   photoCount: number;
   videoCount: number;
   coverAssetId: string | null;
+  hasNewThisWeek?: boolean;
 }) {
   const parts: string[] = [];
   if (videoCount) parts.push(`${videoCount} video${videoCount > 1 ? "s" : ""}`);
@@ -47,6 +49,11 @@ export function ProjectCard({
         {expiresAt && (
           <div className="absolute top-3 left-3 text-[10px] tracking-wide uppercase font-bold text-bg bg-accent px-2 py-1">
             Expires {formatDate(expiresAt)}
+          </div>
+        )}
+        {hasNewThisWeek && (
+          <div className="absolute top-3 right-3 text-[10px] tracking-wide uppercase font-bold text-bg bg-accent px-2 py-1">
+            New this week
           </div>
         )}
         <div className="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between">
