@@ -82,9 +82,20 @@ function ingestOnce(filePath: string) {
 }
 
 function startIngestWatcher() {
+  // stabilityThreshold is how long a file's size must sit unchanged before we treat
+  // the write as finished and hand it to ingestFile()/ffprobe. Local drag-and-drop
+  // copies never pause mid-write, so a short window was fine there. Remote clients
+  // copying masters in over scp/rsync-over-ssh are a different story: those transfers
+  // can stall for several seconds (network hiccup, TCP backpressure, SSH rekey) without
+  // being done. A stall longer than the old 2500ms window looked identical to "finished"
+  // — ffprobe then read the partial file's real (short) duration as asset.durationSec,
+  // which is also the baseline proxyGen.ts compares its proxy against, so the corrupted-
+  // source safeguard there never caught it: source and proxy agreed, both silently short.
+  // Widening the window doesn't change behavior for fast local copies, just makes the
+  // watcher tolerant of the multi-second stalls that slower/remote transfers produce.
   const watcher = chokidar.watch(INBOX_ROOT, {
     ignoreInitial: false,
-    awaitWriteFinish: { stabilityThreshold: 2500, pollInterval: 500 },
+    awaitWriteFinish: { stabilityThreshold: 10_000, pollInterval: 1000 },
     depth: 4,
     ignored: isFilesystemArtifact,
   });
