@@ -593,12 +593,12 @@ export function AdminMediaClient({
                     >
                       {a.internal ? "Show client" : "Hide"}
                     </button>
-                    {(a.proxyStatus === "FAILED" || a.proxyStatus === "PENDING") && (
+                    {a.proxyStatus !== "GENERATING" && (
                       <button
                         onClick={() => retry(a)}
                         className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
                       >
-                        Retry
+                        {a.proxyStatus === "READY" ? "Regenerate" : "Retry"}
                       </button>
                     )}
                     <button
