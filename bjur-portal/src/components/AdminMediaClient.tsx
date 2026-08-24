@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
-import { formatViews, formatDate } from "@/lib/format";
+import { formatViews, formatDate, timeAgo } from "@/lib/format";
 import { mondayOfWeek } from "@/lib/weeks";
 import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { UploadDialog } from "@/components/UploadDialog";
@@ -17,6 +17,8 @@ type Asset = {
   format: string;
   size: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
+  reingestCount: number;
+  lastReplacedAt: string | null;
   internal: boolean;
   licensable: boolean;
   basePrice: number | null;
@@ -476,6 +478,15 @@ export function AdminMediaClient({
                     {a.licenseExpired && (
                       <span className="flex-none text-[9px] font-bold tracking-wide text-accent border border-accent px-1.5 py-0.5">
                         LICENSE EXPIRED
+                      </span>
+                    )}
+                    {a.reingestCount > 0 && (
+                      <span
+                        title="Re-uploaded to this same path after its first ingest — worth a second look if playback seems off"
+                        className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accentb/40 px-1.5 py-0.5"
+                      >
+                        ↻ RE-UPLOADED{a.reingestCount > 1 ? ` ×${a.reingestCount}` : ""}
+                        {a.lastReplacedAt ? ` · ${timeAgo(a.lastReplacedAt)}` : ""}
                       </span>
                     )}
                   </div>

@@ -99,6 +99,13 @@ model Asset {
   thumbRelPath String? // generated poster/thumbnail
   proxyRes     String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
 
+  // re-upload tracking: an asset re-ingested at the same relPath replaces the
+  // original in place (see ingest.ts) rather than duplicating — these track how
+  // often and how recently that's happened, since a re-upload shortly after the
+  // first one is the fingerprint of a canceled/redone upload worth a second look.
+  reingestCount  Int       @default(0)
+  lastReplacedAt DateTime?
+
   // visibility & licensing
   internal   Boolean @default(false) // studio working master — hidden from clients
   licensable Boolean @default(false) // BRAW master offered to the client (raw:true)

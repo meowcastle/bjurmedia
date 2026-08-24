@@ -259,6 +259,8 @@ export async function ingestFile(absPath: string) {
           proxyRelPath: null,
           thumbRelPath: null,
           proxyRes: null,
+          reingestCount: { increment: 1 },
+          lastReplacedAt: new Date(),
         },
       })
     : await db.asset.create({
