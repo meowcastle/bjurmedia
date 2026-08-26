@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
@@ -76,6 +76,11 @@ export function AdminMediaClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   // Switching projects is a client-side navigation (router.push), not a full reload —
   // useState's initial value only applies on first mount, so without this the table
@@ -96,6 +101,9 @@ export function AdminMediaClient({
     setSelectedWeekKey("");
     setConfirmingDeleteId(null);
     setDeleteError(null);
+    setSelectedIds(new Set());
+    setConfirmingBulkDelete(false);
+    setBulkDeleteError(null);
   }
 
   // Same "adjust during render" trick, but keyed on the assets prop's identity rather
@@ -109,6 +117,8 @@ export function AdminMediaClient({
   if (assets !== prevAssets) {
     setPrevAssets(assets);
     setRows(assets);
+    const stillPresent = new Set(assets.map((a) => a.id));
+    setSelectedIds((ids) => new Set([...ids].filter((id) => stillPresent.has(id))));
   }
 
   // Proxy generation happens out-of-band in the worker container, so nothing on this
@@ -121,6 +131,11 @@ export function AdminMediaClient({
     const interval = setInterval(() => router.refresh(), 3000);
     return () => clearInterval(interval);
   }, [rows, router]);
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < rows.length;
+  }, [selectedIds, rows.length]);
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
@@ -285,6 +300,43 @@ export function AdminMediaClient({
     setDeletingId(null);
   }
 
+  function toggleSelectOne(id: string) {
+    setSelectedIds((ids) => {
+      const next = new Set(ids);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((ids) => (ids.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+  }
+
+  async function bulkDelete() {
+    setBulkDeleting(true);
+    setBulkDeleteError(null);
+    const ids = [...selectedIds];
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const res = await fetch(`/api/admin/assets/${id}`, { method: "DELETE" });
+        return { id, ok: res.ok };
+      })
+    );
+    const failedIds = results.filter((r) => !r.ok).map((r) => r.id);
+    const succeededIds = new Set(results.filter((r) => r.ok).map((r) => r.id));
+    setRows((rs) => rs.filter((r) => !succeededIds.has(r.id)));
+    setSelectedIds(new Set(failedIds));
+    if (failedIds.length > 0) {
+      setBulkDeleteError(
+        `Failed to delete ${failedIds.length} of ${ids.length} asset${ids.length !== 1 ? "s" : ""}.`
+      );
+    } else {
+      setConfirmingBulkDelete(false);
+    }
+    setBulkDeleting(false);
+  }
+
   if (!selectedProjectId) {
     return (
       <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
@@ -432,11 +484,66 @@ export function AdminMediaClient({
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 flex-wrap bg-s1 border border-line px-4 py-3">
+          <span className="text-[12px] font-semibold text-text">
+            {selectedIds.size} selected
+          </span>
+          {confirmingBulkDelete ? (
+            <div className="flex gap-2 items-center flex-wrap">
+              <span className="text-[11px] text-muted">Delete permanently?</span>
+              <button
+                onClick={bulkDelete}
+                disabled={bulkDeleting}
+                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+              >
+                {bulkDeleting ? "Deleting…" : `Confirm delete (${selectedIds.size})`}
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmingBulkDelete(false);
+                  setBulkDeleteError(null);
+                }}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setBulkDeleteError(null);
+                setConfirmingBulkDelete(true);
+              }}
+              className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+            >
+              Delete selected
+            </button>
+          )}
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+          >
+            Clear selection
+          </button>
+          {bulkDeleteError && <div className="text-[11px] text-accentb">{bulkDeleteError}</div>}
+        </div>
+      )}
+
       <div className="border border-line">
         <div
           className="hidden md:grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
-          style={{ gridTemplateColumns: "56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
+          style={{ gridTemplateColumns: "24px 56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
         >
+          <input
+            ref={selectAllRef}
+            type="checkbox"
+            checked={rows.length > 0 && selectedIds.size === rows.length}
+            onChange={toggleSelectAll}
+            disabled={rows.length === 0}
+            aria-label="Select all"
+            className="cursor-pointer w-3.5 h-3.5"
+          />
           <span />
           <span>File</span>
           <span>Type</span>
@@ -452,11 +559,18 @@ export function AdminMediaClient({
               key={a.id}
               data-testid={`asset-row-${a.id}`}
               className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-3.5 md:px-5 md:py-3.5 md:items-center"
-              style={{ gridTemplateColumns: "56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
+              style={{ gridTemplateColumns: "24px 56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
             >
               {/* Thumbnail + filename/badges/week share a row on mobile (display:contents
-                  at md: makes this wrapper disappear, restoring the plain 6-col grid). */}
+                  at md: makes this wrapper disappear, restoring the plain 7-col grid). */}
               <div className="flex items-start gap-3 md:contents">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(a.id)}
+                  onChange={() => toggleSelectOne(a.id)}
+                  aria-label={`Select ${a.name}`}
+                  className="cursor-pointer w-3.5 h-3.5 mt-1.5 shrink-0"
+                />
                 <div className="w-14 h-[34px] relative shrink-0" style={{ background: gradientFor(a.id) }}>
                   {a.kind === "VIDEO" && (
                     <div className="absolute inset-0 grid place-items-center text-white text-[9px]">▶</div>
