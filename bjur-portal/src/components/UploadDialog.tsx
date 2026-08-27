@@ -64,7 +64,6 @@ export function UploadDialog({
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
   const [folderId, setFolderId] = useState<string>("");
-  const inputRef = useRef<HTMLInputElement>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
 
   function addFiles(files: FileList | null) {
@@ -169,17 +168,17 @@ export function UploadDialog({
             </div>
           )}
 
-          <div
-            onClick={() => inputRef.current?.click()}
+          <label
+            htmlFor="upload-dropzone-input"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
               addFiles(e.dataTransfer.files);
             }}
-            className="cursor-pointer border border-dashed border-line2 hover:border-accent px-5 py-8 text-center text-sm text-muted mb-4"
+            className="block cursor-pointer border border-dashed border-line2 hover:border-accent px-5 py-8 text-center text-sm text-muted mb-4"
           >
             Drop files here or click to browse
-          </div>
+          </label>
           {queue.length > 0 && (
             <div className="text-xs text-muted mb-3">
               <span className="font-bold text-text">{queue.length}</span> file{queue.length === 1 ? "" : "s"} queued
@@ -187,7 +186,7 @@ export function UploadDialog({
             </div>
           )}
           <input
-            ref={inputRef}
+            id="upload-dropzone-input"
             type="file"
             multiple
             className="hidden"
