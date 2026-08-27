@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
+import { getProjectAccess } from "@/lib/projectAccess";
 
 async function buildZipResponse(
   projectId: string,
@@ -21,9 +22,10 @@ async function buildZipResponse(
     },
   });
   if (!project) return new Response(null, { status: 404 });
+  const access = await getProjectAccess(session, project);
   if (!session.isAdmin) {
-    if (project.clientId !== session.clientId) return new Response(null, { status: 404 });
-    if (session.role === "VIEWER") return new Response(null, { status: 403 });
+    if (!access.allowed) return new Response(null, { status: 404 });
+    if (access.role === "VIEWER") return new Response(null, { status: 403 });
     if (project.expiresAt && project.expiresAt.getTime() < Date.now()) {
       return new Response(null, { status: 410 });
     }

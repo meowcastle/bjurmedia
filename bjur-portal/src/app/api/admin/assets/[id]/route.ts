@@ -28,6 +28,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.weekOf !== undefined) {
     data.weekOf = body.weekOf ? new Date(body.weekOf) : null;
   }
+  if (body.folderId !== undefined) {
+    if (body.folderId !== null) {
+      const folder = await db.folder.findUnique({ where: { id: body.folderId } });
+      if (!folder || folder.projectId !== asset.projectId) {
+        return NextResponse.json({ error: "Invalid folder." }, { status: 400 });
+      }
+    }
+    data.folderId = body.folderId;
+  }
   if (body.contentTitle !== undefined) data.contentTitle = body.contentTitle || null;
   if (body.caption !== undefined) data.caption = body.caption || null;
   if (body.captionYT !== undefined) data.captionYT = body.captionYT || null;

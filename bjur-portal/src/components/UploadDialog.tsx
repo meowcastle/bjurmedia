@@ -50,17 +50,20 @@ function fmtDetected(iso: string) {
 export function UploadDialog({
   projectId,
   projectTitle,
+  folders = [],
   onClose,
   onUploaded,
 }: {
   projectId: string;
   projectTitle: string;
+  folders?: { id: string; name: string }[];
   onClose: () => void;
   onUploaded: () => void;
 }) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
+  const [folderId, setFolderId] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +96,13 @@ export function UploadDialog({
       const dateFields = result.assetId
         ? { assetId: result.assetId, weekOfDraft: result.capturedAt ? result.capturedAt.slice(0, 10) : "" }
         : {};
+      if (result.assetId && folderId) {
+        fetch(`/api/admin/assets/${result.assetId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId }),
+        });
+      }
       setQueue((q) =>
         q.map((qi) =>
           qi.file === item.file
@@ -139,6 +149,25 @@ export function UploadDialog({
           <div className="text-[13px] text-muted mb-6">
             Goes straight into &ldquo;{projectTitle}&rdquo;&apos;s inbox — auto-ingested exactly like a NAS drop.
           </div>
+
+          {folders.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Folder</span>
+              <select
+                value={folderId}
+                onChange={(e) => setFolderId(e.target.value)}
+                disabled={uploading}
+                className="bg-bg border border-line2 px-3 py-2 text-[13px] text-text outline-none disabled:opacity-40"
+              >
+                <option value="">Unsorted</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div
             onClick={() => inputRef.current?.click()}

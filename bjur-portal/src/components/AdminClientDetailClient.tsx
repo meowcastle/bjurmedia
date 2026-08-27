@@ -6,12 +6,21 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
+import { SeatAccessDialog } from "@/components/SeatAccessDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
 import { lighten } from "@/lib/color";
 
-type Seat = { id: string; name: string; email: string; role: string; lastLoginAt: string | null };
+type ProjectAccessGrant = { projectId: string; role: string };
+type Seat = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  lastLoginAt: string | null;
+  projectAccess: ProjectAccessGrant[];
+};
 type ProjectRow = {
   id: string;
   title: string;
@@ -94,6 +103,7 @@ export function AdminClientDetailClient({
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [resetDialogFor, setResetDialogFor] = useState<Seat | null>(null);
+  const [accessDialogFor, setAccessDialogFor] = useState<Seat | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
@@ -415,9 +425,20 @@ export function AdminClientDetailClient({
             <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: ROLE_COLOR[u.role] }}>
               {u.role}
             </span>
+            <span className="text-[11px] text-dim">
+              {u.projectAccess.length === 0
+                ? "All projects"
+                : `${u.projectAccess.length} project${u.projectAccess.length !== 1 ? "s" : ""}`}
+            </span>
             <span className="text-[11px] text-dim w-16 text-right">
               {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
             </span>
+            <button
+              onClick={() => setAccessDialogFor(u)}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+            >
+              Manage access
+            </button>
             <button
               onClick={() => setResetDialogFor(u)}
               className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
@@ -518,6 +539,7 @@ export function AdminClientDetailClient({
         <AddSeatDialog
           clientId={client.id}
           clientName={client.name}
+          projects={projects.map((p) => ({ id: p.id, title: p.title }))}
           onClose={() => setSeatDialogOpen(false)}
           onCreated={() => router.refresh()}
         />
@@ -529,6 +551,20 @@ export function AdminClientDetailClient({
           seatName={resetDialogFor.name}
           seatEmail={resetDialogFor.email}
           onClose={() => setResetDialogFor(null)}
+        />
+      )}
+      {accessDialogFor && (
+        <SeatAccessDialog
+          clientId={client.id}
+          seatId={accessDialogFor.id}
+          seatName={accessDialogFor.name}
+          projects={projects.map((p) => ({ id: p.id, title: p.title }))}
+          initialAccess={accessDialogFor.projectAccess}
+          onClose={() => setAccessDialogFor(null)}
+          onSaved={() => {
+            setAccessDialogFor(null);
+            router.refresh();
+          }}
         />
       )}
       {newProjectOpen && (

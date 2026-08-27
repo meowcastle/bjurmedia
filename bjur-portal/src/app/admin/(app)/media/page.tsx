@@ -20,7 +20,7 @@ export default async function AdminMediaPage({
   // for you, which was indistinguishable from actually choosing one.
   const selected = projectParam ? (projects.find((p) => p.id === projectParam) ?? null) : null;
 
-  const [assets, clientSeats] = await Promise.all([
+  const [assets, clientSeats, folders] = await Promise.all([
     selected
       ? db.asset.findMany({
           where: { projectId: selected.id },
@@ -33,6 +33,13 @@ export default async function AdminMediaPage({
           where: { clientId: selected.clientId },
           select: { id: true, name: true, email: true },
           orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+    selected
+      ? db.folder.findMany({
+          where: { projectId: selected.id },
+          orderBy: { createdAt: "asc" },
+          include: { _count: { select: { assets: true } } },
         })
       : Promise.resolve([]),
   ]);
@@ -63,6 +70,7 @@ export default async function AdminMediaPage({
       siblingProjects={siblingProjects}
       clientGroups={clientGroups}
       clientSeats={clientSeats}
+      folders={folders.map((f) => ({ id: f.id, name: f.name, assetCount: f._count.assets }))}
       assets={assets.map((a) => ({
         id: a.id,
         name: a.name,
@@ -76,6 +84,7 @@ export default async function AdminMediaPage({
         licensable: a.licensable,
         basePrice: a.basePrice,
         weekOf: a.weekOf?.toISOString() ?? null,
+        folderId: a.folderId,
         contentTitle: a.contentTitle,
         caption: a.caption,
         captionYT: a.captionYT,

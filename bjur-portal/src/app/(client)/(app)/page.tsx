@@ -4,13 +4,20 @@ import { db } from "@/lib/db";
 import { ProjectCard } from "@/components/ProjectCard";
 import { WeeklyDigest } from "@/components/WeeklyDigest";
 import { mondayOfWeek } from "@/lib/weeks";
+import { getAccessibleProjectIds } from "@/lib/projectAccess";
 
 export default async function ProjectListPage() {
   const session = await getSessionUser();
   if (!session?.clientId) redirect("/login");
 
+  const accessibleIds = await getAccessibleProjectIds(session);
+
   const projects = await db.project.findMany({
-    where: { clientId: session.clientId, status: "LIVE" },
+    where: {
+      clientId: session.clientId,
+      status: "LIVE",
+      ...(accessibleIds ? { id: { in: accessibleIds } } : {}),
+    },
     orderBy: { deliveredAt: "desc" },
     include: {
       assets: {

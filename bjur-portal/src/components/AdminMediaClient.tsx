@@ -9,6 +9,7 @@ import { mondayOfWeek } from "@/lib/weeks";
 import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { UploadDialog } from "@/components/UploadDialog";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
+import { ManageFoldersDialog, type FolderRow } from "@/components/ManageFoldersDialog";
 
 type Asset = {
   id: string;
@@ -23,6 +24,7 @@ type Asset = {
   licensable: boolean;
   basePrice: number | null;
   weekOf: string | null;
+  folderId: string | null;
   contentTitle: string | null;
   caption: string | null;
   captionYT: string | null;
@@ -49,6 +51,7 @@ export function AdminMediaClient({
   siblingProjects,
   clientGroups,
   clientSeats,
+  folders,
   assets,
 }: {
   selectedProjectId: string;
@@ -58,6 +61,7 @@ export function AdminMediaClient({
   siblingProjects: ProjectOption[];
   clientSeats: Seat[];
   clientGroups: ClientGroup[];
+  folders: FolderRow[];
   assets: Asset[];
 }) {
   const router = useRouter();
@@ -80,6 +84,11 @@ export function AdminMediaClient({
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+  const [folderFilterId, setFolderFilterId] = useState<string>("ALL");
+  const [moveTargetId, setMoveTargetId] = useState<string>("");
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   // Switching projects is a client-side navigation (router.push), not a full reload —
@@ -104,6 +113,9 @@ export function AdminMediaClient({
     setSelectedIds(new Set());
     setConfirmingBulkDelete(false);
     setBulkDeleteError(null);
+    setFolderFilterId("ALL");
+    setMoveTargetId("");
+    setMoveError(null);
   }
 
   // Same "adjust during render" trick, but keyed on the assets prop's identity rather
@@ -121,6 +133,13 @@ export function AdminMediaClient({
     setSelectedIds((ids) => new Set([...ids].filter((id) => stillPresent.has(id))));
   }
 
+  const tableRows =
+    folderFilterId === "ALL"
+      ? rows
+      : folderFilterId === "UNSORTED"
+        ? rows.filter((r) => !r.folderId)
+        : rows.filter((r) => r.folderId === folderFilterId);
+
   // Proxy generation happens out-of-band in the worker container, so nothing on this
   // page would otherwise learn a status changed short of a manual reload. Polling only
   // while something's actually in flight (not on a fixed interval forever) keeps this
@@ -134,8 +153,8 @@ export function AdminMediaClient({
 
   useEffect(() => {
     if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < rows.length;
-  }, [selectedIds, rows.length]);
+    selectAllRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < tableRows.length;
+  }, [selectedIds, tableRows.length]);
 
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
@@ -230,6 +249,15 @@ export function AdminMediaClient({
     });
   }
 
+  async function saveFolder(a: Asset, folderId: string | null) {
+    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, folderId } : r)));
+    await fetch(`/api/admin/assets/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folderId }),
+    });
+  }
+
   async function saveContentTitle(a: Asset) {
     const raw = titleDrafts[a.id];
     if (raw === undefined) return;
@@ -310,7 +338,7 @@ export function AdminMediaClient({
   }
 
   function toggleSelectAll() {
-    setSelectedIds((ids) => (ids.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+    setSelectedIds((ids) => (ids.size === tableRows.length ? new Set() : new Set(tableRows.map((r) => r.id))));
   }
 
   async function bulkDelete() {
@@ -335,6 +363,28 @@ export function AdminMediaClient({
       setConfirmingBulkDelete(false);
     }
     setBulkDeleting(false);
+  }
+
+  async function bulkMove() {
+    setMoving(true);
+    setMoveError(null);
+    const folderId = moveTargetId === "UNSORTED" ? null : moveTargetId;
+    const ids = [...selectedIds];
+    const res = await fetch(`/api/admin/assets/bulk-folder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetIds: ids, folderId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setMoveError(data.error ?? "Failed to move assets.");
+      setMoving(false);
+      return;
+    }
+    setRows((rs) => rs.map((r) => (ids.includes(r.id) ? { ...r, folderId } : r)));
+    setSelectedIds(new Set());
+    setMoveTargetId("");
+    setMoving(false);
   }
 
   if (!selectedProjectId) {
@@ -432,6 +482,33 @@ export function AdminMediaClient({
         >
           Import from NAS →
         </Link>
+        <button
+          onClick={() => setFoldersDialogOpen(true)}
+          className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+        >
+          Folders{folders.length > 0 ? ` (${folders.length})` : ""}
+        </button>
+        {folders.length > 0 && (
+          <>
+            <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Folder</span>
+            <select
+              value={folderFilterId}
+              onChange={(e) => {
+                setFolderFilterId(e.target.value);
+                setSelectedIds(new Set());
+              }}
+              className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+            >
+              <option value="ALL">All</option>
+              <option value="UNSORTED">Unsorted</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {weeks.length > 0 && (
@@ -489,6 +566,29 @@ export function AdminMediaClient({
           <span className="text-[12px] font-semibold text-text">
             {selectedIds.size} selected
           </span>
+          <div className="flex items-center gap-2">
+            <select
+              value={moveTargetId}
+              onChange={(e) => setMoveTargetId(e.target.value)}
+              className="bg-bg border border-line2 px-2.5 py-1.5 text-[11px] text-text outline-none"
+            >
+              <option value="">Move to…</option>
+              <option value="UNSORTED">Unsorted</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={bulkMove}
+              disabled={!moveTargetId || moving}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
+            >
+              {moving ? "Moving…" : "Move"}
+            </button>
+          </div>
+          {moveError && <div className="text-[11px] text-accentb">{moveError}</div>}
           {confirmingBulkDelete ? (
             <div className="flex gap-2 items-center flex-wrap">
               <span className="text-[11px] text-muted">Delete permanently?</span>
@@ -538,9 +638,9 @@ export function AdminMediaClient({
           <input
             ref={selectAllRef}
             type="checkbox"
-            checked={rows.length > 0 && selectedIds.size === rows.length}
+            checked={tableRows.length > 0 && selectedIds.size === tableRows.length}
             onChange={toggleSelectAll}
-            disabled={rows.length === 0}
+            disabled={tableRows.length === 0}
             aria-label="Select all"
             className="cursor-pointer w-3.5 h-3.5"
           />
@@ -551,7 +651,7 @@ export function AdminMediaClient({
           <span>Proxy / Thumb</span>
           <span className="text-right">Action</span>
         </div>
-        {rows.map((a) => {
+        {tableRows.map((a) => {
           const status = STATUS_MAP[a.proxyStatus];
           const isMaster = a.format === "Master";
           return (
@@ -615,6 +715,19 @@ export function AdminMediaClient({
                         a.weekOf ? "border-line2 text-text" : "border-accent/50 text-accentb"
                       }`}
                     />
+                    <span className="text-[10px] text-dim uppercase tracking-wide ml-2">Folder</span>
+                    <select
+                      value={a.folderId ?? ""}
+                      onChange={(e) => saveFolder(a, e.target.value || null)}
+                      className="bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent"
+                    >
+                      <option value="">Unsorted</option>
+                      {folders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
                     <span className="text-[10px] text-dim uppercase tracking-wide ml-2">Title</span>
                     <input
                       type="text"
@@ -773,8 +886,10 @@ export function AdminMediaClient({
             </div>
           );
         })}
-        {rows.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-muted">No assets in this project yet.</div>
+        {tableRows.length === 0 && (
+          <div className="px-5 py-10 text-center text-sm text-muted">
+            {rows.length === 0 ? "No assets in this project yet." : "No assets in this folder."}
+          </div>
         )}
       </div>
 
@@ -782,8 +897,18 @@ export function AdminMediaClient({
         <UploadDialog
           projectId={selectedProjectId}
           projectTitle={selectedProjectTitle ?? "this project"}
+          folders={folders}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => router.refresh()}
+        />
+      )}
+
+      {foldersDialogOpen && selectedProjectId && (
+        <ManageFoldersDialog
+          projectId={selectedProjectId}
+          folders={folders}
+          onClose={() => setFoldersDialogOpen(false)}
+          onChanged={() => router.refresh()}
         />
       )}
 

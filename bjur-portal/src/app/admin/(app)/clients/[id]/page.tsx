@@ -9,7 +9,10 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   const client = await db.client.findUnique({
     where: { id },
     include: {
-      users: { orderBy: { createdAt: "asc" } },
+      users: {
+        orderBy: { createdAt: "asc" },
+        include: { projectMemberships: { select: { projectId: true, role: true } } },
+      },
       projects: {
         orderBy: { createdAt: "desc" },
         include: { assets: { select: { id: true, internal: true } } },
@@ -62,6 +65,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         email: u.email,
         role: u.role,
         lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+        projectAccess: u.projectMemberships.map((m) => ({ projectId: m.projectId, role: m.role })),
       }))}
       projects={client.projects.map((p) => ({
         id: p.id,

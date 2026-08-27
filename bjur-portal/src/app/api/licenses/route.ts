@@ -3,14 +3,12 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { licenseTiers, type LicenseTierId } from "@/lib/licensing";
 import { postSlackEvent } from "@/lib/slack";
+import { getProjectAccess } from "@/lib/projectAccess";
 
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
   if (!session || !session.clientId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.role === "VIEWER") {
-    return NextResponse.json({ error: "Your role can't purchase licenses." }, { status: 403 });
   }
 
   const { assetId, tier } = (await req.json()) as { assetId: string; tier: LicenseTierId };
@@ -19,8 +17,15 @@ export async function POST(req: NextRequest) {
     where: { id: assetId },
     include: { project: { include: { client: true } } },
   });
-  if (!asset || asset.project.clientId !== session.clientId) {
+  if (!asset) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const access = await getProjectAccess(session, asset.project);
+  if (!access.allowed) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (access.role === "VIEWER") {
+    return NextResponse.json({ error: "Your role can't purchase licenses." }, { status: 403 });
   }
   if (!asset.licensable || asset.basePrice == null) {
     return NextResponse.json({ error: "This asset isn't licensable." }, { status: 400 });

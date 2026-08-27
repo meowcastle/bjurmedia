@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth";
+import { getProjectAccess } from "@/lib/projectAccess";
 
 type AccessKind = "thumb" | "proxy" | "download";
 
@@ -30,8 +31,10 @@ export async function authorizeAssetAccess(
   const asset = await loadAsset(assetId);
   if (!asset) return { ok: false, status: 404 };
 
+  const access = await getProjectAccess(session, asset.project);
+
   if (!session.isAdmin) {
-    if (asset.project.clientId !== session.clientId) return { ok: false, status: 404 };
+    if (!access.allowed) return { ok: false, status: 404 };
     if (asset.internal) return { ok: false, status: 404 };
     if (asset.project.expiresAt && asset.project.expiresAt.getTime() < Date.now()) {
       return { ok: false, status: 410, reason: "expired" };
@@ -39,7 +42,7 @@ export async function authorizeAssetAccess(
   }
 
   if (kind === "download" && !session.isAdmin) {
-    if (session.role === "VIEWER") return { ok: false, status: 403, reason: "role" };
+    if (!access.allowed || access.role === "VIEWER") return { ok: false, status: 403, reason: "role" };
 
     if (asset.licensable) {
       const license = await db.license.findFirst({

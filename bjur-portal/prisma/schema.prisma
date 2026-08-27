@@ -51,6 +51,7 @@ model User {
   sessions           Session[]
   favorites          Favorite[]
   licenses           License[]
+  projectMemberships ProjectMember[]
 
   @@index([clientId])
 }
@@ -74,8 +75,41 @@ model Project {
   expiresAt   DateTime? // null => permanent (retainer)
   createdAt   DateTime  @default(now())
   assets      Asset[]
+  members     ProjectMember[]
+  folders     Folder[]
 
   @@index([clientId])
+}
+
+// A row here restricts a login to specific projects at a specific per-project
+// role, overriding User.role for that project. A login with zero rows is
+// unrestricted — sees every LIVE project of its client, at User.role.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      Role
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+}
+
+// One level of client-facing sections within a project (e.g. "Ceremony",
+// "Reception"). Deleting a folder un-assigns its assets (Asset.folderId ->
+// null, shown as "Unsorted") rather than deleting them.
+model Folder {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  assets    Asset[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
 
 // ── Assets (registered files) ──────────────────────────────
@@ -114,6 +148,10 @@ model Asset {
   // grouping (57.NYC IG workflow)
   weekOf DateTime?
 
+  // client-facing section within the project — null = Unsorted
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
   // weekly Slack content-calendar text (57.NYC IG workflow)
   contentTitle String? // "TOVA (FAM ONLY)" — guest/topic + collab tag line
   caption      String? // IG & YT caption body (or IG-only body when captionYT is set)
@@ -126,6 +164,7 @@ model Asset {
   socialPosts SocialPost[]
 
   @@index([projectId])
+  @@index([folderId])
 }
 
 enum AssetKind {

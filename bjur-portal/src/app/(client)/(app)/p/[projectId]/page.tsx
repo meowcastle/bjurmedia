@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectDetailClient } from "@/components/ProjectDetailClient";
+import { getProjectAccess } from "@/lib/projectAccess";
 
 export default async function ProjectDetailPage({
   params,
@@ -16,6 +17,7 @@ export default async function ProjectDetailPage({
     where: { id: projectId },
     include: {
       client: true,
+      folders: { orderBy: { createdAt: "asc" } },
       assets: {
         where: { internal: false },
         orderBy: { createdAt: "asc" },
@@ -24,7 +26,10 @@ export default async function ProjectDetailPage({
     },
   });
 
-  if (!project || project.clientId !== session.clientId || project.status !== "LIVE") notFound();
+  if (!project || project.status !== "LIVE") notFound();
+
+  const access = await getProjectAccess(session, project);
+  if (!access.allowed) notFound();
 
   const allSocialPosts = project.assets.flatMap((a) => a.socialPosts);
   const totalViews = allSocialPosts.reduce((sum, p) => sum + p.viewCount, 0);
@@ -48,6 +53,7 @@ export default async function ProjectDetailPage({
         clientName: project.client.name,
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,
+        folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
       totalViews={totalViews}
       totalSocialPosts={totalPosts}
@@ -64,6 +70,7 @@ export default async function ProjectDetailPage({
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
         weekOf: a.weekOf?.toISOString() ?? null,
+        folderId: a.folderId,
         thumbReady: a.thumbRelPath != null,
         viewCount: a.socialPosts.length
           ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
@@ -71,7 +78,7 @@ export default async function ProjectDetailPage({
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
       initialLicensedAssetIds={licenses.map((l) => l.assetId)}
-      role={session.role}
+      role={access.role}
     />
   );
 }

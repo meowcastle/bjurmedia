@@ -11,7 +11,7 @@ import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews } from "@/lib/format";
 
-type Asset = TileAsset & { weekOf: string | null };
+type Asset = TileAsset & { weekOf: string | null; folderId: string | null };
 
 const FORMAT_DEFS: [string, string][] = [
   ["Reel", "Reels"],
@@ -119,6 +119,7 @@ export function ProjectDetailClient({
     clientName: string;
     deliveredAt: string | null;
     expiresAt: string | null;
+    folders: { id: string; name: string }[];
   };
   assets: Asset[];
   initialFavorites: string[];
@@ -129,6 +130,11 @@ export function ProjectDetailClient({
 }) {
   const [filter, setFilter] = useState<string>("ALL");
   const [groupMode, setGroupMode] = useState<"format" | "week">("week");
+  const [folderFilter, setFolderFilter] = useState<string>("ALL");
+  const scoped = useMemo(
+    () => (folderFilter === "ALL" ? assets : assets.filter((a) => a.folderId === folderFilter)),
+    [assets, folderFilter]
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites));
   const [licensedIds, setLicensedIds] = useState<Set<string>>(new Set(initialLicensedAssetIds));
@@ -242,11 +248,11 @@ export function ProjectDetailClient({
 
   const formatCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const a of assets) counts[a.format] = (counts[a.format] ?? 0) + 1;
+    for (const a of scoped) counts[a.format] = (counts[a.format] ?? 0) + 1;
     return counts;
-  }, [assets]);
+  }, [scoped]);
 
-  const favCount = useMemo(() => assets.filter((a) => favorites.has(a.id)).length, [assets, favorites]);
+  const favCount = useMemo(() => scoped.filter((a) => favorites.has(a.id)).length, [scoped, favorites]);
 
   const filters = [
     { id: "ALL", label: "All" },
@@ -263,7 +269,7 @@ export function ProjectDetailClient({
 
   const groups: Group[] = useMemo(() => {
     if (filter === "FAV") {
-      const items = assets.filter((a) => favorites.has(a.id));
+      const items = scoped.filter((a) => favorites.has(a.id));
       return items.length
         ? [{ label: "Favorites", count: `${items.length} item${items.length > 1 ? "s" : ""}`, folder: project.path, cols: "repeat(auto-fill,minmax(220px,1fr))", items }]
         : [];
@@ -272,13 +278,13 @@ export function ProjectDetailClient({
       // Current year (plus anything undated) shows directly; older years are bucketed
       // separately below into collapsible folders so the default view stays focused on
       // this year's weekly deliveries instead of a year-spanning wall of weeks.
-      const byFilter = filter === "ALL" ? assets : assets.filter((a) => a.format === filter);
+      const byFilter = filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
       const items = byFilter.filter((a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear);
       return bucketByWeek(items, project.path);
     }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
       .map((d) => {
-        const items = assets.filter((a) => a.format === d[0]);
+        const items = scoped.filter((a) => a.format === d[0]);
         return {
           label: d[1],
           count: `${items.length} file${items.length > 1 ? "s" : ""}`,
@@ -288,12 +294,12 @@ export function ProjectDetailClient({
         };
       })
       .filter((g) => g.items.length);
-  }, [filter, groupMode, assets, favorites, project.path, currentYear]);
+  }, [filter, groupMode, scoped, favorites, project.path, currentYear]);
 
   type YearFolder = { year: number; count: string; weeks: Group[] };
   const pastYearFolders: YearFolder[] = useMemo(() => {
     if (groupMode !== "week" || filter === "FAV") return [];
-    const byFilter = filter === "ALL" ? assets : assets.filter((a) => a.format === filter);
+    const byFilter = filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
     const byYear = new Map<number, Asset[]>();
     for (const a of byFilter) {
       if (!a.weekOf) continue;
@@ -310,7 +316,7 @@ export function ProjectDetailClient({
         count: `${items.length} file${items.length > 1 ? "s" : ""}`,
         weeks: bucketByWeek(items, `${project.path}/${year}`),
       }));
-  }, [assets, groupMode, filter, project.path, currentYear]);
+  }, [scoped, groupMode, filter, project.path, currentYear]);
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
   const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
@@ -428,6 +434,44 @@ export function ProjectDetailClient({
             />
           ))}
       </div>
+
+      {project.folders.length > 0 && (
+        <div className="inline-flex border border-line2 flex-wrap mt-6">
+          <button
+            onClick={() => setFolderFilter("ALL")}
+            className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+              folderFilter === "ALL" ? "text-bg" : "text-muted"
+            }`}
+          >
+            {folderFilter === "ALL" && (
+              <motion.div
+                layoutId="folderPill"
+                className="absolute inset-0 bg-accent z-0"
+                transition={{ type: "spring", stiffness: 500, damping: 40 }}
+              />
+            )}
+            <span className="relative z-10">All</span>
+          </button>
+          {project.folders.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFolderFilter(f.id)}
+              className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                folderFilter === f.id ? "text-bg" : "text-muted"
+              }`}
+            >
+              {folderFilter === f.id && (
+                <motion.div
+                  layoutId="folderPill"
+                  className="absolute inset-0 bg-accent z-0"
+                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                />
+              )}
+              <span className="relative z-10">{f.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-4 flex-wrap my-6">
         <div className="flex items-center gap-4 flex-wrap">

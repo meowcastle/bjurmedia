@@ -48,12 +48,18 @@ export async function createClient(opts: {
   return { client, tempPassword };
 }
 
-/** Adds an additional seat to an existing client (Owner/Downloader/Viewer). */
+/**
+ * Adds an additional seat to an existing client (Owner/Downloader/Viewer).
+ * Passing `projectAccess` restricts the seat to those specific projects, each
+ * at its own role — omitting it (or an empty array) leaves the seat
+ * unrestricted, seeing every one of the client's projects at `role`.
+ */
 export async function addSeat(opts: {
   clientId: string;
   name: string;
   email: string;
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
+  projectAccess?: { projectId: string; role: "OWNER" | "DOWNLOADER" | "VIEWER" }[];
 }) {
   const tempPassword = genTempPassword();
   const passwordHash = await hashPassword(tempPassword);
@@ -66,6 +72,13 @@ export async function addSeat(opts: {
       passwordHash,
       role: opts.role,
       mustChangePassword: true,
+      ...(opts.projectAccess?.length
+        ? {
+            projectMemberships: {
+              create: opts.projectAccess.map((p) => ({ projectId: p.projectId, role: p.role })),
+            },
+          }
+        : {}),
     },
   });
 
