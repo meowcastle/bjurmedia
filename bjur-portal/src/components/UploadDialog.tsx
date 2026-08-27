@@ -149,25 +149,6 @@ export function UploadDialog({
             Goes straight into &ldquo;{projectTitle}&rdquo;&apos;s inbox — auto-ingested exactly like a NAS drop.
           </div>
 
-          {folders.length > 0 && (
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Folder</span>
-              <select
-                value={folderId}
-                onChange={(e) => setFolderId(e.target.value)}
-                disabled={uploading}
-                className="bg-bg border border-line2 px-3 py-2 text-[13px] text-text outline-none disabled:opacity-40"
-              >
-                <option value="">Unsorted</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <label
             htmlFor="upload-dropzone-input"
             onDragOver={(e) => e.preventDefault()}
@@ -240,6 +221,25 @@ export function UploadDialog({
                 </div>
               ))}
               <div ref={listEndRef} />
+            </div>
+          )}
+
+          {folders.length > 0 && queue.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Folder</span>
+              <select
+                value={folderId}
+                onChange={(e) => setFolderId(e.target.value)}
+                disabled={uploading}
+                className="bg-bg border border-line2 px-3 py-2 text-[13px] text-text outline-none disabled:opacity-40"
+              >
+                <option value="">Unsorted</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
