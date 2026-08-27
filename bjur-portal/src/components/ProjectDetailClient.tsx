@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
@@ -354,7 +354,6 @@ export function ProjectDetailClient({
         key={grp.folder}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         className="mb-9"
       >
@@ -363,22 +362,20 @@ export function ProjectDetailClient({
           <span className="text-[11px] text-muted">{grp.count}</span>
         </div>
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
-          <AnimatePresence mode="popLayout">
-            {grp.items.map((a, i) => (
-              <AssetTile
-                key={a.id}
-                asset={a}
-                index={i}
-                isNew={lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)}
-                selected={selected.has(a.id)}
-                favorite={favorites.has(a.id)}
-                unlocked={licensedIds.has(a.id)}
-                onToggleSelect={() => toggleSelect(a.id)}
-                onToggleFavorite={() => toggleFavorite(a.id)}
-                onOpen={() => openAsset(a)}
-              />
-            ))}
-          </AnimatePresence>
+          {grp.items.map((a, i) => (
+            <AssetTile
+              key={a.id}
+              asset={a}
+              index={i}
+              isNew={lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)}
+              selected={selected.has(a.id)}
+              favorite={favorites.has(a.id)}
+              unlocked={licensedIds.has(a.id)}
+              onToggleSelect={() => toggleSelect(a.id)}
+              onToggleFavorite={() => toggleFavorite(a.id)}
+              onOpen={() => openAsset(a)}
+            />
+          ))}
         </div>
       </motion.div>
     );
@@ -526,7 +523,7 @@ export function ProjectDetailClient({
         </div>
       </div>
 
-      <AnimatePresence mode="popLayout">{groups.map(renderGroup)}</AnimatePresence>
+      {groups.map(renderGroup)}
 
       {pastYearFolders.map((yf) => {
         const isOpen = expandedYears.has(yf.year);
