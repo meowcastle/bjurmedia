@@ -414,22 +414,30 @@ export function ProjectDetailClient({
             )}
           </div>
         </div>
-        {canDownload &&
-          (selected.size > 0 ? (
-            <DownloadButton
-              label={`↓ Download selected (${selected.size})`}
-              onClick={downloadSelected}
-              downloading={downloading}
-              downloadedBytes={downloadedBytes}
-            />
-          ) : (
-            <DownloadButton
-              label="↓ Download all"
-              onClick={downloadAll}
-              downloading={downloading}
-              downloadedBytes={downloadedBytes}
-            />
-          ))}
+        <div className="flex items-center gap-2.5">
+          <Link
+            href={`/p/${project.id}/upload`}
+            className="inline-flex items-center gap-2 font-bold text-[13px] text-text border border-line2 hover:border-text px-5 py-3.5"
+          >
+            ↑ Upload footage
+          </Link>
+          {canDownload &&
+            (selected.size > 0 ? (
+              <DownloadButton
+                label={`↓ Download selected (${selected.size})`}
+                onClick={downloadSelected}
+                downloading={downloading}
+                downloadedBytes={downloadedBytes}
+              />
+            ) : (
+              <DownloadButton
+                label="↓ Download all"
+                onClick={downloadAll}
+                downloading={downloading}
+                downloadedBytes={downloadedBytes}
+              />
+            ))}
+        </div>
       </div>
 
       {project.folders.length > 0 && (

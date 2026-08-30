@@ -8,6 +8,7 @@ services:
       - MEDIA_ROOT=/media
       - DERIVED_ROOT=/media/_derived
       - ARCHIVE_ROOT=/media/_archive
+      - SUBMISSIONS_ROOT=/media/_submissions
       - SESSION_SECRET=${SESSION_SECRET}
       - CRON_SECRET=${CRON_SECRET}
       - PORTAL_URL=${PORTAL_URL}
@@ -22,6 +23,7 @@ services:
       - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes media itself
       - /volume2/BJURMEDIA/_derived:/media/_derived
       - /volume2/BJURMEDIA/_inbox:/media/_inbox # read-write: admin project creation mkdirs new inbox folders here
+      - /volume2/BJURMEDIA/_submissions:/media/_submissions # read-write: client uploads land here directly (web writes chunks itself, no worker handoff needed)
     ports:
       # host 3003 → container 3000 (3000–3002 are taken by other sites on the NAS)
       - "3003:3000"

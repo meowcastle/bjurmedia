@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inboxDirFor, ensureInboxDir } from "@/lib/projects";
 import { INBOX_ROOT } from "@/lib/media";
+import { sanitizeFilename, pumpToFile } from "@/lib/uploads";
 
 export const runtime = "nodejs";
 
@@ -16,11 +17,6 @@ const INGEST_URL = `http://worker:${process.env.INGEST_PORT ?? "3100"}/ingest`;
 // isFilesystemArtifact in worker.ts), and only get moved into the real inbox path
 // once fully written — see the comment above the rename() call below for why.
 const UPLOAD_STAGING_DIR = path.join(INBOX_ROOT, ".uploading");
-
-function sanitizeFilename(name: string) {
-  const base = path.basename(name).trim(); // strip any directory components (path traversal)
-  return base.replace(/[/\\]/g, "_") || "upload";
-}
 
 /**
  * Streams an admin-uploaded file into the project's existing inbox folder, then asks
@@ -77,27 +73,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await mkdir(UPLOAD_STAGING_DIR, { recursive: true });
   const stagingPath = path.join(UPLOAD_STAGING_DIR, `${randomUUID()}-${filename}`);
 
-  // Deliberately not Readable.fromWeb(req.body) + pipeline() here — that conversion has
-  // documented double-buffering/highWaterMark bugs (nodejs/node#48636, #47128, #49938)
-  // that can make the resulting Node stream emit 'end' early on large transfers, with no
-  // error thrown, well before the underlying Web ReadableStream is actually exhausted.
-  // Confirmed on this exact route: packet captures showed the full file arriving intact
-  // at this process's own socket, while Readable.fromWeb's stream still ended ~45MB
-  // short on a 55MB upload. Reading the Web Streams reader directly and pumping chunks
-  // into the file by hand sidesteps that conversion entirely.
   const reader = req.body.getReader();
   const writeStream = createWriteStream(stagingPath);
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!writeStream.write(value)) {
-        await new Promise<void>((resolve) => writeStream.once("drain", () => resolve()));
-      }
-    }
-    await new Promise<void>((resolve, reject) => {
-      writeStream.end((err: NodeJS.ErrnoException | null | undefined) => (err ? reject(err) : resolve()));
-    });
+    await pumpToFile(reader, writeStream);
   } catch (err) {
     writeStream.destroy();
     await unlink(stagingPath).catch(() => {});

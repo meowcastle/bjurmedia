@@ -21,6 +21,12 @@ export const INBOX_ROOT = path.resolve(
 export const ARCHIVE_ROOT = path.resolve(
   /* turbopackIgnore: true */ process.env.ARCHIVE_ROOT ?? path.join(MEDIA_ROOT, "_archive")
 );
+// Client-submitted raw source material (camera originals, NLE project files) — see
+// the Submission model. Distinct from INBOX_ROOT: files here are never picked up by
+// the worker's ingest pipeline, they just sit here for an admin to download.
+export const SUBMISSIONS_ROOT = path.resolve(
+  /* turbopackIgnore: true */ process.env.SUBMISSIONS_ROOT ?? path.join(MEDIA_ROOT, "_submissions")
+);
 
 class PathTraversalError extends Error {}
 
@@ -52,6 +58,10 @@ export function resolveInboxPath(relPath: string) {
 
 export function resolveArchivePath(relPath: string) {
   return resolveWithinRoot(ARCHIVE_ROOT, relPath);
+}
+
+export function resolveSubmissionPath(relPath: string) {
+  return resolveWithinRoot(SUBMISSIONS_ROOT, relPath);
 }
 
 const MIME_BY_EXT: Record<string, string> = {

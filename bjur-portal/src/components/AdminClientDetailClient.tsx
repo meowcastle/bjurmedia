@@ -10,6 +10,7 @@ import { SeatAccessDialog } from "@/components/SeatAccessDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
+import { ClientSubmissionsDialog } from "@/components/ClientSubmissionsDialog";
 import { lighten } from "@/lib/color";
 
 type ProjectAccessGrant = { projectId: string; role: string };
@@ -28,6 +29,7 @@ type ProjectRow = {
   deliveredAt: string | null;
   expiresAt: string | null;
   assetCount: number;
+  submissionCount: number;
   inboxPath: string;
 };
 type ClientInfo = {
@@ -107,6 +109,7 @@ export function AdminClientDetailClient({
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
+  const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [accentColor, setAccentColor] = useState(client.accentColor ?? DEFAULT_ACCENT);
   const [savingAccent, setSavingAccent] = useState(false);
@@ -482,6 +485,14 @@ export function AdminClientDetailClient({
               </span>
             </div>
             <div className="flex gap-2 justify-start md:justify-end">
+              {p.submissionCount > 0 && (
+                <button
+                  onClick={() => setSubmissionsFor(p)}
+                  className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accent/40 hover:border-text px-2.5 py-1.5"
+                >
+                  Client uploads ({p.submissionCount})
+                </button>
+              )}
               <button
                 onClick={() => setUploadingTo(p)}
                 className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
@@ -602,6 +613,13 @@ export function AdminClientDetailClient({
           projectTitle={uploadingTo.title}
           onClose={() => setUploadingTo(null)}
           onUploaded={() => router.refresh()}
+        />
+      )}
+      {submissionsFor && (
+        <ClientSubmissionsDialog
+          projectId={submissionsFor.id}
+          projectTitle={submissionsFor.title}
+          onClose={() => setSubmissionsFor(null)}
         />
       )}
     </div>

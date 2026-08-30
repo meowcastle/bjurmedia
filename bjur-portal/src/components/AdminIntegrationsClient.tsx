@@ -13,6 +13,7 @@ type Config = {
   autoUpload: boolean;
   autoDownload: boolean;
   autoLicense: boolean;
+  autoSubmission: boolean;
 };
 
 type ClientRow = { id: string; name: string; channel: string };
@@ -221,12 +222,20 @@ export function AdminIntegrationsClient({
               <Toggle on={config.autoDownload} onChange={() => patch({ autoDownload: !config.autoDownload })} />
             </div>
 
-            <div className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
               <div>
                 <div className="text-sm font-semibold">BRAW license purchased</div>
                 <div className="text-xs text-muted mt-0.5">Alert when a master is licensed</div>
               </div>
               <Toggle on={config.autoLicense} onChange={() => patch({ autoLicense: !config.autoLicense })} />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <div className="text-sm font-semibold">Client upload</div>
+                <div className="text-xs text-muted mt-0.5">Ping the channel when a client sends footage in</div>
+              </div>
+              <Toggle on={config.autoSubmission} onChange={() => patch({ autoSubmission: !config.autoSubmission })} />
             </div>
           </div>
 

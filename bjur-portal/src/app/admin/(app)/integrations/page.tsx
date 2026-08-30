@@ -25,6 +25,7 @@ export default async function AdminIntegrationsPage() {
           autoUpload: config.autoUpload,
           autoDownload: config.autoDownload,
           autoLicense: config.autoLicense,
+          autoSubmission: config.autoSubmission,
         }}
         clientRows={clients.map((c) => ({
           id: c.id,

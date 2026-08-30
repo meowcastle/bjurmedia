@@ -15,7 +15,7 @@ async function resolveChannel(clientId?: string | null) {
 export async function postSlackEvent(opts: {
   clientId?: string | null;
   blocks: SlackBlock[];
-  toggle: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly";
+  toggle: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly" | "autoSubmission";
 }) {
   try {
     const config = await db.slackConfig.findUnique({ where: { id: 1 } });

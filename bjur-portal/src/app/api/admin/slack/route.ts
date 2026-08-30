@@ -12,6 +12,7 @@ const EDITABLE_FIELDS = [
   "autoUpload",
   "autoDownload",
   "autoLicense",
+  "autoSubmission",
 ] as const;
 
 export async function PATCH(req: NextRequest) {

@@ -15,7 +15,10 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
       },
       projects: {
         orderBy: { createdAt: "desc" },
-        include: { assets: { select: { id: true, internal: true } } },
+        include: {
+          assets: { select: { id: true, internal: true } },
+          _count: { select: { submissions: true } },
+        },
       },
     },
   });
@@ -74,6 +77,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         deliveredAt: p.deliveredAt?.toISOString() ?? null,
         expiresAt: p.expiresAt?.toISOString() ?? null,
         assetCount: p.assets.filter((a) => !a.internal).length,
+        submissionCount: p._count.submissions,
         inboxPath: inboxDirFor(client.username, p.inboxSlug),
       }))}
     />

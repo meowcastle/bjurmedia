@@ -52,6 +52,8 @@ model User {
   favorites          Favorite[]
   licenses           License[]
   projectMemberships ProjectMember[]
+  submissions        Submission[]
+  uploadBatches      UploadBatch[]
 
   @@index([clientId])
 }
@@ -77,6 +79,8 @@ model Project {
   assets      Asset[]
   members     ProjectMember[]
   folders     Folder[]
+  submissions Submission[]
+  uploadBatches UploadBatch[]
 
   @@index([clientId])
 }
@@ -110,6 +114,57 @@ model Folder {
 
   @@unique([projectId, name])
   @@index([projectId])
+}
+
+// One upload session's worth of client-submitted files (a folder drop or a batch of
+// picked files), grouped so they land in one human-readable, SMB-browsable folder
+// instead of a flat bucket — see submissionRelPath() in src/lib/submissions.ts. label
+// is the actual on-disk folder name under SUBMISSIONS_ROOT/<client>/<project>/.
+model UploadBatch {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  label       String
+  createdAt   DateTime     @default(now())
+  submissions Submission[]
+
+  @@index([projectId])
+}
+
+// A client-submitted raw file (camera originals, an NLE project file) for the studio
+// to work from — the reverse direction of Asset (studio -> client). Deliberately kept
+// separate from Asset/ingest.ts: these aren't classified, proxied, or ever shown back
+// to a client as a deliverable — they just need to land durably and be downloadable
+// by an admin. relPath is under SUBMISSIONS_ROOT, not MEDIA_ROOT.
+model Submission {
+  id            String           @id @default(cuid())
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+  batchId       String
+  batch         UploadBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  relativePath  String // client-side folder-relative path, e.g. "A-Cam/GH010001.MP4" — preserved as-is under the batch's on-disk folder
+  filename      String // display basename, the last segment of relativePath
+  relPath       String
+  sizeBytes     BigInt // declared total, from File.size at creation — the integrity target
+  receivedBytes BigInt           @default(0) // bytes confirmed on disk — the resume checkpoint
+  status        SubmissionStatus @default(UPLOADING)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  completedAt   DateTime?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([batchId])
+}
+
+enum SubmissionStatus {
+  UPLOADING
+  COMPLETE
+  FAILED
 }
 
 // ── Assets (registered files) ──────────────────────────────
@@ -263,6 +318,7 @@ model SlackConfig {
   autoUpload     Boolean @default(true)
   autoDownload   Boolean @default(false)
   autoLicense    Boolean @default(true)
+  autoSubmission Boolean @default(true)
 }
 
 model ClientChannel {
