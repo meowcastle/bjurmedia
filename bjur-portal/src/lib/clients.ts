@@ -1,16 +1,12 @@
-import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
+import { genTempPassword } from "@/lib/users";
 
 export function slugifyUsername(name: string) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "")
     .slice(0, 24);
-}
-
-function genTempPassword() {
-  return randomBytes(9).toString("base64url"); // ~12 chars, url-safe
 }
 
 /**
@@ -98,6 +94,45 @@ export async function resetSeatPassword(userId: string) {
     where: { id: userId },
     data: { passwordHash, mustChangePassword: true },
   });
+
+  return { user, tempPassword };
+}
+
+/**
+ * Brings a revoked seat back for the same client, with a fresh temp password and a
+ * clean role/project-access set — what "add seat" does when the email it's given
+ * belongs to someone staff previously removed. Their old licenses and uploads are
+ * still attached, so the history reconnects to the reinstated login.
+ */
+export async function reactivateSeat(opts: {
+  userId: string;
+  name: string;
+  role: "OWNER" | "DOWNLOADER" | "VIEWER";
+  projectAccess?: { projectId: string; role: "OWNER" | "DOWNLOADER" | "VIEWER" }[];
+}) {
+  const tempPassword = genTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  const [, user] = await db.$transaction([
+    db.projectMember.deleteMany({ where: { userId: opts.userId } }),
+    db.user.update({
+      where: { id: opts.userId },
+      data: {
+        name: opts.name,
+        passwordHash,
+        role: opts.role,
+        deactivatedAt: null,
+        mustChangePassword: true,
+        ...(opts.projectAccess?.length
+          ? {
+              projectMemberships: {
+                create: opts.projectAccess.map((p) => ({ projectId: p.projectId, role: p.role })),
+              },
+            }
+          : {}),
+      },
+    }),
+  ]);
 
   return { user, tempPassword };
 }

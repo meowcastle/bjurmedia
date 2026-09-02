@@ -35,7 +35,7 @@ export function AdminSearchBox() {
   const isOpen = open && query.trim().length > 0;
 
   return (
-    <div ref={boxRef} className="relative w-[300px]">
+    <div ref={boxRef} className="relative w-[150px] md:w-[220px] lg:w-[300px]">
       <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2">
         <span className="text-dim text-sm">⌕</span>
         <input

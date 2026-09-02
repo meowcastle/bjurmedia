@@ -30,7 +30,7 @@ export default async function AdminMediaPage({
       : Promise.resolve([]),
     selected
       ? db.user.findMany({
-          where: { clientId: selected.clientId },
+          where: { clientId: selected.clientId, deactivatedAt: null },
           select: { id: true, name: true, email: true },
           orderBy: { name: "asc" },
         })

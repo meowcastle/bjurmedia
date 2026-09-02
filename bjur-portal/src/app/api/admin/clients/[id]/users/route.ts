@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addSeat } from "@/lib/clients";
+import { addSeat, reactivateSeat } from "@/lib/clients";
 import { sendOnboardingEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,21 +39,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const client = await db.client.findUnique({ where: { id: clientId } });
   if (!client) return NextResponse.json({ error: "Client not found." }, { status: 404 });
 
+  // A removed seat keeps its row (and its licenses and uploads), so re-adding that
+  // same person reinstates them here rather than colliding on the unique email.
   const existing = await db.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (existing) {
+  const reinstating = !!existing?.deactivatedAt && existing.clientId === clientId;
+  if (existing && !reinstating) {
     return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
   }
 
-  const { user, tempPassword } = await addSeat({
-    clientId,
-    name: name.trim(),
-    email: email.trim(),
-    role,
-    projectAccess: validatedAccess,
-  });
+  const { user, tempPassword } = reinstating
+    ? await reactivateSeat({
+        userId: existing!.id,
+        name: name.trim(),
+        role,
+        projectAccess: validatedAccess,
+      })
+    : await addSeat({
+        clientId,
+        name: name.trim(),
+        email: email.trim(),
+        role,
+        projectAccess: validatedAccess,
+      });
 
   await db.activity.create({
-    data: { actor: "You", action: `added ${user.name} (${role.toLowerCase()}) to ${client.name}` },
+    data: {
+      actor: "You",
+      action: reinstating
+        ? `reinstated ${user.name} (${role.toLowerCase()}) on ${client.name}`
+        : `added ${user.name} (${role.toLowerCase()}) to ${client.name}`,
+    },
   });
 
   await sendOnboardingEmail(email.trim(), {

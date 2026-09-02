@@ -106,6 +106,9 @@ export function AdminClientDetailClient({
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [resetDialogFor, setResetDialogFor] = useState<Seat | null>(null);
   const [accessDialogFor, setAccessDialogFor] = useState<Seat | null>(null);
+  const [confirmingRemoveSeat, setConfirmingRemoveSeat] = useState<string | null>(null);
+  const [removingSeat, setRemovingSeat] = useState<string | null>(null);
+  const [seatError, setSeatError] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
@@ -187,6 +190,20 @@ export function AdminClientDetailClient({
       }
       return next;
     });
+  }
+
+  async function removeSeat(seat: Seat) {
+    setRemovingSeat(seat.id);
+    setSeatError("");
+    const res = await fetch(`/api/admin/clients/${client.id}/users/${seat.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setRemovingSeat(null);
+    if (!res.ok) {
+      setSeatError(data.error ?? "Failed to remove seat.");
+      return;
+    }
+    setConfirmingRemoveSeat(null);
+    router.refresh();
   }
 
   const active = client.status === "ACTIVE";
@@ -418,40 +435,87 @@ export function AdminClientDetailClient({
           + Add user seat
         </button>
       </div>
+      {seatError && <div className="text-xs text-accentb font-semibold mb-3">{seatError}</div>}
       <div className="border border-line mb-9">
         {seats.map((u) => (
-          <div key={u.id} className="flex items-center gap-3.5 px-5 py-3.5 border-b border-line last:border-b-0">
-            <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-semibold">{u.name}</span>{" "}
-              <span className="text-xs text-dim font-mono">{u.email}</span>
+          <div
+            key={u.id}
+            className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
+            style={{ gridTemplateColumns: "2.1fr .9fr 1fr 3.5rem 21rem" }}
+          >
+            <div className="md:contents">
+              <div className="min-w-0">
+                <span className="text-[13px] font-semibold">{u.name}</span>
+                <div className="text-xs text-dim font-mono mt-0.5 truncate" title={u.email}>
+                  {u.email}
+                </div>
+              </div>
             </div>
-            <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: ROLE_COLOR[u.role] }}>
-              {u.role}
-            </span>
-            <span className="text-[11px] text-dim">
-              {u.projectAccess.length === 0
-                ? "All projects"
-                : `${u.projectAccess.length} project${u.projectAccess.length !== 1 ? "s" : ""}`}
-            </span>
-            <span className="text-[11px] text-dim w-16 text-right">
-              {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
-            </span>
-            <button
-              onClick={() => setAccessDialogFor(u)}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
-            >
-              Manage access
-            </button>
-            <button
-              onClick={() => setResetDialogFor(u)}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
-            >
-              Reset password
-            </button>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
+              <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: ROLE_COLOR[u.role] }}>
+                {u.role}
+              </span>
+              <span className="text-[11px] text-dim">
+                {u.projectAccess.length === 0
+                  ? "All projects"
+                  : `${u.projectAccess.length} project${u.projectAccess.length !== 1 ? "s" : ""}`}
+              </span>
+              <span className="text-[11px] text-dim md:text-right">
+                <span className="md:hidden text-dim">Last login · </span>
+                {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+              </span>
+            </div>
+            {/* Fixed-width action cell: the confirm step swaps the buttons out, and a
+                sized column keeps the rest of the row from shifting under the cursor. */}
+            <div className="flex flex-wrap items-center gap-2 justify-start md:justify-end">
+              {confirmingRemoveSeat === u.id ? (
+                <>
+                  <span className="text-[11px] text-muted">Revoke access?</span>
+                  <button
+                    onClick={() => removeSeat(u)}
+                    disabled={removingSeat === u.id}
+                    className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                  >
+                    {removingSeat === u.id ? "Removing…" : "Confirm remove"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingRemoveSeat(null)}
+                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setAccessDialogFor(u)}
+                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                  >
+                    Manage access
+                  </button>
+                  <button
+                    onClick={() => setResetDialogFor(u)}
+                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                  >
+                    Reset password
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSeatError("");
+                      setConfirmingRemoveSeat(u.id);
+                    }}
+                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+                  >
+                    Remove
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         ))}
         {seats.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted">No seats yet.</div>}
       </div>
+
 
       <div className="flex items-end justify-between mb-4">
         <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">Projects</h2>

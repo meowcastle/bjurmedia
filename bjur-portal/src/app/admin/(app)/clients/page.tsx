@@ -5,7 +5,7 @@ export default async function AdminClientsPage() {
   const clients = await db.client.findMany({
     orderBy: { name: "asc" },
     include: {
-      users: { orderBy: { createdAt: "asc" } },
+      users: { where: { deactivatedAt: null }, orderBy: { createdAt: "asc" } },
       _count: { select: { projects: true } },
     },
   });

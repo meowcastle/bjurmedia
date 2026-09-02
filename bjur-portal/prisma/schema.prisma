@@ -46,6 +46,7 @@ model User {
   notifyDelivery     Boolean    @default(true) // email me when new work is delivered
   notifyExpiry       Boolean    @default(true) // remind me before a gallery expires
   mustChangePassword Boolean    @default(false) // set on temp-password issuance (invite, seat add)
+  deactivatedAt      DateTime? // access revoked by staff: sign-in blocked and hidden from the seat/admin lists, but the row (and every license, upload batch and submission pointing at it) is kept. Re-adding the same email reactivates this row.
   lastLoginAt        DateTime?
   createdAt          DateTime   @default(now())
   sessions           Session[]

@@ -70,6 +70,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   });
   if (!session) return null;
 
+  // Revocation deletes a user's sessions, so this is belt-and-braces against one
+  // created in the same instant as the revoke.
+  if (session.user.deactivatedAt) {
+    await db.session.delete({ where: { id: session.id } }).catch(() => {});
+    return null;
+  }
+
   const age = Date.now() - session.createdAt.getTime();
   if (age > SESSION_TTL_MS) {
     await db.session.delete({ where: { id: session.id } }).catch(() => {});

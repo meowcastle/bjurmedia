@@ -22,8 +22,11 @@ export async function POST(req: NextRequest) {
 
   const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
 
+  // A revoked login fails exactly like a wrong password — no signal that the
+  // account exists at all.
   const scopeOk =
     user &&
+    !user.deactivatedAt &&
     (portal === "admin" ? user.isAdmin : user.clientId !== null);
 
   if (!user || !scopeOk || !(await verifyPassword(user.passwordHash, password))) {

@@ -10,6 +10,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
     where: { id },
     include: {
       users: {
+        where: { deactivatedAt: null },
         orderBy: { createdAt: "asc" },
         include: { projectMemberships: { select: { projectId: true, role: true } } },
       },
