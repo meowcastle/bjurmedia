@@ -20,6 +20,7 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - MAIL_FROM=${MAIL_FROM}
+      - REPLY_TO=${REPLY_TO}
     volumes:
       - ./data:/data
       - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes media itself
@@ -46,6 +47,7 @@ services:
       - PORTAL_URL=${PORTAL_URL}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - MAIL_FROM=${MAIL_FROM}
+      - REPLY_TO=${REPLY_TO}
       - DELIVERY_EMAILS=${DELIVERY_EMAILS}
     volumes:
       - ./data:/data

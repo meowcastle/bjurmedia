@@ -8,6 +8,15 @@ function mailFrom() {
 }
 
 /**
+ * Where client replies should land. The From address is a sending identity with no
+ * mailbox behind it, so without this a client hitting "reply" gets a bounce. Unset
+ * means no header is added, which is the old behaviour.
+ */
+function replyTo() {
+  return process.env.REPLY_TO?.trim() || undefined;
+}
+
+/**
  * Resend's HTTP API. Preferred over SMTP when RESEND_API_KEY is set: no outbound
  * SMTP port to get blocked on the NAS, and failures come back as a readable status
  * + body instead of a socket timeout.
@@ -24,6 +33,7 @@ async function sendViaResend(opts: { to: string; subject: string; html: string }
       to: [opts.to],
       subject: opts.subject,
       html: opts.html,
+      ...(replyTo() ? { reply_to: replyTo() } : {}),
     }),
   });
 
@@ -66,6 +76,7 @@ async function sendMail(opts: { to: string; subject: string; html: string }) {
 
   await transport.sendMail({
     from: mailFrom(),
+    replyTo: replyTo(),
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
