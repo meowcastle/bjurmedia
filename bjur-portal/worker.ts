@@ -10,6 +10,7 @@ import { ingestFile } from "./src/lib/ingest";
 import { generateProxy } from "./src/lib/proxyGen";
 import { postWeeklyDigest } from "./src/lib/slack";
 import { syncAllSocialAccounts } from "./src/lib/socialSync";
+import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
@@ -217,6 +218,25 @@ function startWeeklySocialSyncScheduler() {
   setInterval(() => tick().catch((err) => console.error("[social] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+// Delivery mail goes out from here rather than from the ingest path itself: a drop
+// arrives one file at a time, so the decision to mail can only be made once the whole
+// batch has settled. Each tick mails the projects that have gone quiet for
+// DELIVERY_QUIET_MS. Piggybacks on the same SCHEDULER_POLL_MS poll as the schedulers
+// above — a minute of granularity on a fifteen-minute debounce is irrelevant.
+function startDeliveryMailScheduler() {
+  const tick = async () => {
+    const count = await flushPendingDeliveries();
+    if (count > 0) console.log(`[delivery] flushed ${count} settled delivery batch(es)`);
+  };
+
+  const mode = process.env.DELIVERY_EMAILS === "live" ? "LIVE" : "dry run (logs to Activity)";
+  console.log(
+    `[delivery] mail scheduler checking every ${SCHEDULER_POLL_MS}ms, ` +
+      `${DELIVERY_QUIET_MS / 60000}min quiet period — ${mode}`
+  );
+  setInterval(() => tick().catch((err) => console.error("[delivery] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -322,4 +342,5 @@ startInternalServer();
 startProxyLoop();
 startWeeklyDigestScheduler();
 startWeeklySocialSyncScheduler();
+startDeliveryMailScheduler();
 startSessionSweepScheduler();

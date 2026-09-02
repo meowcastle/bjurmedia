@@ -7,6 +7,7 @@ import { imageSizeFromFile } from "image-size/fromFile";
 import { db } from "@/lib/db";
 import { MEDIA_ROOT, INBOX_ROOT } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
+import { markDeliveryPending } from "@/lib/deliveryNotify";
 
 const execFileAsync = promisify(execFile);
 
@@ -288,6 +289,8 @@ export async function ingestFile(absPath: string) {
       data: { status: "LIVE", deliveredAt: new Date() },
     });
   }
+
+  await markDeliveryPending(project.id);
 
   const verb = existing ? "replaced" : "auto-ingested";
 

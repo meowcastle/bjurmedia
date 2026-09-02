@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MEDIA_ROOT, resolveArchivePath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
+import { markDeliveryPending } from "@/lib/deliveryNotify";
 
 type Item = {
   path: string;
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (registered > 0) {
+    await markDeliveryPending(projectId);
     await db.activity.create({
       data: { actor: "You", action: `imported ${registered} file(s) from the library into ${project.title}` },
     });

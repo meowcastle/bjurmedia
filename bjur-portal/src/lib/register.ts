@@ -3,6 +3,7 @@ import path from "path";
 import { db } from "@/lib/db";
 import { MEDIA_ROOT, resolveMediaPath } from "@/lib/media";
 import { classifyMedia } from "@/lib/ingest";
+import { markDeliveryPending } from "@/lib/deliveryNotify";
 
 /**
  * Registers files already sitting under MEDIA_ROOT/<relDir> into a project, without
@@ -62,6 +63,8 @@ export async function registerFromNasPath(projectId: string, relDir: string) {
       data: { status: "LIVE", deliveredAt: new Date() },
     });
   }
+
+  if (registered.length) await markDeliveryPending(projectId);
 
   return { registered, skipped };
 }

@@ -76,6 +76,16 @@ model Project {
   status      String    @default("LIVE")
   deliveredAt DateTime?
   expiresAt   DateTime? // null => permanent (retainer)
+
+  // Delivery-email debounce. Assets arrive one file at a time (ingest.ts runs per
+  // file), so a 40-clip drop would be 40 emails. Instead each arrival pushes
+  // deliveryPendingAt forward, and the worker only mails once nothing new has landed
+  // for DELIVERY_QUIET_MS — one email describing the whole batch. Since marks where
+  // the batch began, so the mail can summarise exactly what arrived in it.
+  deliveryPendingSince DateTime?
+  deliveryPendingAt    DateTime?
+  deliveryNotifiedAt   DateTime?
+
   createdAt   DateTime  @default(now())
   assets      Asset[]
   members     ProjectMember[]

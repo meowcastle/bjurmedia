@@ -18,6 +18,8 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - MAIL_FROM=${MAIL_FROM}
     volumes:
       - ./data:/data
       - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes media itself
@@ -41,6 +43,10 @@ services:
       - ARCHIVE_ROOT=/media/_archive
       - WORKER_CONCURRENCY=1
       - CRON_SECRET=${CRON_SECRET}
+      - PORTAL_URL=${PORTAL_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - MAIL_FROM=${MAIL_FROM}
+      - DELIVERY_EMAILS=${DELIVERY_EMAILS}
     volumes:
       - ./data:/data
       # read-write: the ingest watcher moves finished exports from _inbox into the
