@@ -16,11 +16,14 @@ async function resolveChannel(clientId?: string | null) {
 export async function postSlackEvent(opts: {
   clientId?: string | null;
   blocks: SlackBlock[];
-  toggle: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly" | "autoSubmission" | "autoContentCalendar";
+  /** Which studio toggle gates this event. Omit for events that must always be seen —
+   *  a client reporting they cannot sign in should not be swallowed by a preference. */
+  toggle?: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly" | "autoSubmission" | "autoContentCalendar";
 }) {
   try {
     const config = await db.slackConfig.findUnique({ where: { id: 1 } });
-    if (!config || !config.connected || !config.webhookUrl || !config[opts.toggle]) return;
+    if (!config || !config.connected || !config.webhookUrl) return;
+    if (opts.toggle && !config[opts.toggle]) return;
 
     const channel = (await resolveChannel(opts.clientId)) || config.defaultChannel;
 

@@ -12,7 +12,6 @@ export function LoginForm({
   blurb,
   eyebrow,
   formTitle,
-  address,
   demoEmail,
   switchHref,
   switchLabel,
@@ -25,7 +24,6 @@ export function LoginForm({
   blurb: string;
   eyebrow: string;
   formTitle: string;
-  address: string;
   demoEmail: string;
   switchHref: string;
   switchLabel: string;
@@ -36,6 +34,19 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  async function requestReset() {
+    // Fire and forget: the endpoint answers the same either way, so there is nothing
+    // to branch on and nothing useful to say about a failure.
+    setResetSent(true);
+    await fetch("/api/auth/forgot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).catch(() => {});
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,11 +100,6 @@ export function LoginForm({
       {/* right: sign-in form */}
       <div className="flex flex-col justify-center px-[5vw] bg-s1 md:bg-transparent">
         <div className="w-full max-w-[360px] mx-auto bjfade">
-          <div className="flex items-center gap-2 text-[11px] font-mono text-dim bg-bg border border-line px-3 py-2 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-success flex-none" />
-            <span className="text-muted">https://</span>
-            {address}
-          </div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-muted font-bold mb-2.5">
             {eyebrow}
           </div>
@@ -101,29 +107,60 @@ export function LoginForm({
 
           <form onSubmit={onSubmit}>
             <div className="mb-4">
-              <label className="block text-[11px] tracking-wide uppercase text-muted font-semibold mb-2">
-                Username
+              <label htmlFor="login-email" className="block text-[11px] tracking-wide uppercase text-muted font-semibold mb-2">
+                Email
               </label>
               <input
+                id="login-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                type="email"
                 autoComplete="username"
                 placeholder={demoEmail}
-                className="w-full bg-bg border border-line2 text-text text-sm px-3.5 py-3 outline-none font-mono focus:border-accent transition-colors"
+                className={`w-full bg-bg border text-text text-[15px] px-3.5 py-3.5 outline-none focus:border-accent transition-colors ${
+                  error ? "border-accentb" : "border-line2"
+                }`}
               />
             </div>
             <div className="mb-5">
-              <label className="block text-[11px] tracking-wide uppercase text-muted font-semibold mb-2">
-                Password
-              </label>
+              <div className="flex items-baseline justify-between gap-2 mb-2">
+                <label htmlFor="login-password" className="block text-[11px] tracking-wide uppercase text-muted font-semibold">
+                  Password
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="cursor-pointer text-[11px] font-bold uppercase text-muted hover:text-text py-2"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={requestReset}
+                    className="cursor-pointer text-[11px] font-bold uppercase text-accentb hover:text-accent py-2"
+                  >
+                    Forgot?
+                  </button>
+                </div>
+              </div>
               <input
+                id="login-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full bg-bg border border-line2 text-text text-sm px-3.5 py-3 outline-none focus:border-accent transition-colors"
+                className={`w-full bg-bg border text-text text-[15px] px-3.5 py-3.5 outline-none focus:border-accent transition-colors ${
+                  error ? "border-accentb" : "border-line2"
+                }`}
               />
+              {resetSent && (
+                <div className="mt-3 border border-success/50 p-3 text-xs text-muted">
+                  We&apos;ve told the studio you need a reset. You&apos;ll get an email from Bjur
+                  Media shortly.
+                </div>
+              )}
             </div>
             {error && (
               <div className="flex items-center gap-2 text-xs text-accentb mb-4 font-semibold">
@@ -138,11 +175,18 @@ export function LoginForm({
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center gap-2 text-[11px] text-dim">
-            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Encrypted session · rate-limited · argon2 hashed
+          <div className="mt-4 text-[11px] text-dim">
+            Need access or a new login?{" "}
+            <a href="mailto:hello@bjur.media" className="font-bold text-muted hover:text-accent">
+              Contact Bjur Media
+            </a>
           </div>
-          <div className="mt-6 pt-5 border-t border-line text-[11px] text-dim leading-relaxed">
+
+          <div className="mt-6 pt-5 border-t border-line flex items-center justify-between gap-3 text-[11px] text-dim">
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-success" />
+              Secure connection
+            </span>
             <a href={switchHref} className="cursor-pointer text-dim font-semibold hover:text-accent">
               {switchLabel}
             </a>
