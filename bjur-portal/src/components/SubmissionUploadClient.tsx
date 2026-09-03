@@ -5,7 +5,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
 const CHUNK_SIZE = 16 * 1024 * 1024; // 16MB
-const MAX_CHUNK_RETRIES = 3;
+// A 300GB delivery is ~19,200 chunks. Three attempts with a 2s ceiling is plenty for a
+// 2GB file and far too thin for a transfer that runs for hours over a client's home
+// uplink: any single chunk that exhausts its budget fails the whole file, and the
+// client is the one sitting there watching it die at 60%. Budget enough wall-clock to
+// ride out a brief WAN drop or a container restart on the NAS (which does stop
+// containers on its own) instead of just a momentary burst of packet loss.
+const MAX_CHUNK_RETRIES = 8;
+const MAX_RETRY_BACKOFF_MS = 30_000;
 
 const JUNK_BASENAMES = new Set([".DS_Store", "Thumbs.db", "desktop.ini"]);
 const JUNK_DIR_SEGMENTS = new Set([".Spotlight-V100", ".Trashes", ".fseventsd", ".TemporaryItems"]);
@@ -137,7 +144,9 @@ function putChunk(
   totalBytes: number,
   onProgress: (loadedInChunk: number) => void
 ) {
-  return new Promise<{ receivedBytes: number; complete: boolean } | { error: string }>((resolve) => {
+  return new Promise<
+    { receivedBytes: number; complete: boolean } | { error: string; retryable: boolean }
+  >((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", `/api/projects/${projectId}/submissions/${submissionId}/chunk`);
     xhr.setRequestHeader("Content-Range", `bytes ${start}-${start + chunk.size - 1}/${totalBytes}`);
@@ -159,10 +168,14 @@ function putChunk(
       } else if (xhr.status === 409 && typeof body.receivedBytes === "number") {
         resolve({ receivedBytes: body.receivedBytes, complete: body.complete ?? false });
       } else {
-        resolve({ error: body.error ?? `Upload failed (${xhr.status})` });
+        // 5xx/408/429 are worth another attempt. Any other 4xx is a decision the server
+        // won't reverse on a retry (submission already COMPLETE, gone, or not ours), so
+        // spending the retry budget on it only delays the error the client needs to see.
+        const retryable = xhr.status >= 500 || xhr.status === 408 || xhr.status === 429;
+        resolve({ error: body.error ?? `Upload failed (${xhr.status})`, retryable });
       }
     };
-    xhr.onerror = () => resolve({ error: "Network error" });
+    xhr.onerror = () => resolve({ error: "Network error", retryable: true });
     xhr.send(chunk);
   });
 }
@@ -191,7 +204,12 @@ async function uploadFile(
         onProgress(start + loaded)
       );
       if (!("error" in result)) break;
-      if (attempt < MAX_CHUNK_RETRIES - 1) await sleep(1000 * 2 ** attempt);
+      if (!result.retryable) break;
+      // Exponential, but capped — an uncapped 2**attempt would reach ~2min by the last
+      // try and read as a hang rather than a retry.
+      if (attempt < MAX_CHUNK_RETRIES - 1) {
+        await sleep(Math.min(1000 * 2 ** attempt, MAX_RETRY_BACKOFF_MS));
+      }
     }
     if (!result || "error" in result) {
       return { ok: false, note: result?.error ?? "Chunk failed after retries" };
