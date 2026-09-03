@@ -16,6 +16,7 @@ export default async function SettingsPage() {
   return (
     <SettingsClient
       companyName={client.name}
+      role={user.role}
       initialName={user.name}
       initialEmail={user.email}
       initialNotifyDelivery={user.notifyDelivery}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { timeAgo } from "@/lib/format";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +33,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 
 export function SettingsClient({
   companyName,
+  role,
   initialName,
   initialEmail,
   initialNotifyDelivery,
@@ -39,6 +41,7 @@ export function SettingsClient({
   initialSessions,
 }: {
   companyName: string;
+  role: string;
   initialName: string;
   initialEmail: string;
   initialNotifyDelivery: boolean;
@@ -59,6 +62,16 @@ export function SettingsClient({
   const [notifyExpiry, setNotifyExpiry] = useState(initialNotifyExpiry);
 
   const [sessions, setSessions] = useState(initialSessions);
+
+  const initials =
+    initialName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("") || "?";
+  // OWNER -> Owner. The enum is shouted in the database; it should not be here.
+  const roleLabel = role.charAt(0) + role.slice(1).toLowerCase();
 
   async function saveProfile() {
     setProfileMsg("Saving…");
@@ -111,20 +124,25 @@ export function SettingsClient({
   }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[820px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[720px] mx-auto bjfade">
       <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
         ← All projects
       </Link>
-      <div className="border-b-2 border-line2 pb-6 mb-8">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
-          {companyName}
+      <div className="flex items-center gap-4 border-b-2 border-line2 pb-6 mb-8">
+        <div className="w-14 h-14 flex-none bg-s3 border border-line2 grid place-items-center text-lg font-black">
+          {initials}
         </div>
-        <h1 className="text-[28px] sm:text-[38px] tracking-[-0.025em] font-black">Account settings</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl tracking-[-0.02em] font-extrabold truncate">{name}</h1>
+          <div className="text-xs text-muted mt-1 truncate">
+            {companyName} · <span className="text-success font-semibold">{roleLabel}</span> · {email}
+          </div>
+        </div>
       </div>
 
       <div className="border border-line bg-s1 p-6 mb-5">
         <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-4">Profile</div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Field label="Display name" htmlFor="name">
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
@@ -156,7 +174,7 @@ export function SettingsClient({
           {pwMsg && <span className="text-xs text-muted">{pwMsg}</span>}
         </div>
         <div className="mt-3 text-[11px] text-dim">
-          Argon2 hashed · updating your password signs out all other sessions.
+          Changing your password signs out your other devices.
         </div>
       </div>
 
@@ -173,14 +191,13 @@ export function SettingsClient({
       </div>
 
       <div className="border border-line bg-s1 p-6">
-        <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-1.5">Active sessions</div>
+        <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-1.5">Signed-in devices</div>
         {sessions.map((s) => (
           <div key={s.id} className="flex items-center justify-between gap-4 py-3.5 border-b border-line last:border-b-0">
             <div>
               <div className="text-sm font-semibold">{s.device}</div>
               <div className="text-xs text-muted mt-0.5">
-                {s.location ?? "Unknown location"} ·{" "}
-                <span>{new Date(s.lastSeenAt).toLocaleString()}</span>
+                {s.location ?? "Unknown location"} · <span>{timeAgo(s.lastSeenAt)}</span>
               </div>
             </div>
             {s.isCurrent ? (
@@ -190,7 +207,7 @@ export function SettingsClient({
                 onClick={() => revoke(s.id)}
                 className="text-[11px] font-semibold text-muted border border-line2 px-3 py-1.5 hover:text-accentb hover:border-accentb cursor-pointer"
               >
-                Revoke
+                Sign out
               </button>
             )}
           </div>
