@@ -49,6 +49,63 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
+  // §9 "Needs attention". Two sources, both of which clear themselves once acted on —
+  // a card that cannot go quiet is one people stop reading.
+  //
+  // The handoff lists a third (upload batches "not yet reviewed"), which is left out
+  // deliberately: UploadBatch has no reviewed flag and nothing would ever set one, so
+  // those rows would sit there permanently.
+  const [soonExpiring, unscheduledRetainer] = await Promise.all([
+    db.project.findMany({
+      where: {
+        status: "LIVE",
+        // new Date() rather than Date.now(): the purity lint rejects the latter, and
+        // the queries above already take this form.
+        expiresAt: { gt: new Date(), lte: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { expiresAt: "asc" },
+      take: 5,
+      include: { client: { select: { name: true } } },
+    }),
+    // Retainer clients are the ones on a posting schedule, so an asset of theirs with
+    // no delivery week is a file nobody has decided a date for — and it is invisible
+    // to both the calendar and the weekly Slack post until someone does.
+    db.asset.groupBy({
+      by: ["projectId"],
+      where: { internal: false, weekOf: null, project: { client: { type: "RETAINER", status: "ACTIVE" } } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const unscheduledProjects = unscheduledRetainer.length
+    ? await db.project.findMany({
+        where: { id: { in: unscheduledRetainer.map((r) => r.projectId) } },
+        include: { client: { select: { name: true } } },
+      })
+    : [];
+  const unscheduledCountByProject = new Map(
+    unscheduledRetainer.map((r) => [r.projectId, r._count._all])
+  );
+
+  const attention = [
+    ...soonExpiring.map((p) => ({
+      id: `expiry-${p.id}`,
+      kind: "expiry" as const,
+      subject: `${p.title} expires ${formatDate(p.expiresAt)}`,
+      body: `${p.client.name} · the client loses access on that date`,
+      href: `/admin/projects/${p.id}`,
+      action: "Open",
+    })),
+    ...unscheduledProjects.map((p) => ({
+      id: `unscheduled-${p.id}`,
+      kind: "unscheduled" as const,
+      subject: `${unscheduledCountByProject.get(p.id) ?? 0} files with no delivery week`,
+      body: `${p.client.name} · ${p.title} — not in the calendar or the Slack post`,
+      href: `/admin/media?project=${p.id}`,
+      action: "Schedule",
+    })),
+  ];
+
   const summarizedActivity = summarizeActivity(recentActivity).slice(0, 8);
 
   const dateLabel = new Date().toLocaleDateString("en-US", {
@@ -72,6 +129,7 @@ export default async function AdminDashboardPage() {
         { value: String(assets.length), label: "Deliverables" },
         { value: formatBytes(totalBytes), label: "Storage indexed" },
       ]}
+      attention={attention}
       workerOnline={workerOnline}
       queueCount={queueCount}
       failedCount={failedCount}

@@ -22,9 +22,19 @@ type ClientOption = { id: string; name: string; type: "RETAINER" | "ONEOFF" };
 type SocialErrorRow = { id: string; clientName: string; platform: string; error: string };
 type TopSocialPostRow = { id: string; assetName: string; clientName: string; projectId: string; views: string };
 
+type AttentionRow = {
+  id: string;
+  kind: "expiry" | "unscheduled";
+  subject: string;
+  body: string;
+  href: string;
+  action: string;
+};
+
 export function AdminDashboardClient({
   dateLabel,
   stats,
+  attention,
   workerOnline,
   queueCount,
   failedCount,
@@ -37,6 +47,7 @@ export function AdminDashboardClient({
 }: {
   dateLabel: string;
   stats: Stat[];
+  attention: AttentionRow[];
   workerOnline: boolean;
   queueCount: number;
   failedCount: number;
@@ -51,7 +62,7 @@ export function AdminDashboardClient({
   const [dialog, setDialog] = useState<"client" | "project" | null>(null);
 
   return (
-    <div className="px-10 py-10 max-w-[1400px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-10 max-w-[1400px] mx-auto bjfade">
       <div className="flex items-end justify-between gap-5 flex-wrap mb-7">
         <div>
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
@@ -67,7 +78,7 @@ export function AdminDashboardClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5 mb-3.5">
+      <div className="grid gap-3.5 mb-7 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {stats.map((s) => (
           <div key={s.label} className="bg-s1 border border-line p-5">
             <div className="text-[34px] font-black tracking-tight tabular-nums">{s.value}</div>
@@ -76,38 +87,59 @@ export function AdminDashboardClient({
             </div>
           </div>
         ))}
-      </div>
 
-      <div className="flex items-center justify-between gap-4 bg-s1 border border-line px-5 py-4 mb-7">
-        <div className="flex items-center gap-3">
-          <span className={`w-2 h-2 rounded-full ${workerOnline ? "bg-success" : "bg-dim"}`} />
-          <span className="text-[13px] text-muted">
-            ffmpeg worker {workerOnline ? "online" : "offline"} · 1 process
-          </span>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[13px] text-muted">Proxies in queue</span>
-          <span className={`text-lg font-black tabular-nums ${queueCount > 0 ? "text-accentb" : "text-text"}`}>
-            {queueCount}
-          </span>
-          <span className="w-px h-4 bg-line2 mx-1" />
-          <span className="text-[13px] text-muted">Failed</span>
-          <Link
-            href="/admin/media"
-            className={`text-lg font-black tabular-nums ${failedCount > 0 ? "text-accent" : "text-text"}`}
-          >
-            {failedCount}
-          </Link>
-          <Link
-            href="/admin/library"
-            className="text-xs font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5 ml-1.5"
-          >
-            Import library →
-          </Link>
+        {/* §9: the worker's own row becomes the fifth stat, so its state reads at the
+            same glance as the rest instead of in a bar of its own. */}
+        <div className="bg-s1 border border-line p-5 max-[1100px]:col-span-full">
+          <div className="flex items-baseline gap-3">
+            <span className={`text-[34px] font-black tracking-tight tabular-nums ${queueCount > 0 ? "text-accentb" : ""}`}>
+              {queueCount}
+            </span>
+            {failedCount > 0 && (
+              <Link href="/admin/media" className="text-sm font-bold text-accent hover:underline">
+                {failedCount} failed
+              </Link>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] tracking-wide uppercase text-muted font-semibold mt-1.5">
+            <span className={`w-1.5 h-1.5 flex-none ${workerOnline ? "bg-success" : "bg-dim"}`} />
+            In queue · worker {workerOnline ? "online" : "offline"}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-[1.5fr_1fr] gap-5 items-start mb-7">
+      <div className="grid grid-cols-1 min-[1000px]:grid-cols-[1.5fr_1fr] gap-5 items-start mb-7">
+        <div>
+        {attention.length > 0 && (
+          <div className="border border-line mb-5">
+            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold flex items-center gap-2">
+              Needs attention
+              <span className="text-accentb tabular-nums">{attention.length}</span>
+            </div>
+            {attention.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 px-5 py-3.5 border-b border-line last:border-b-0"
+              >
+                <span
+                  className="w-2 h-2 flex-none"
+                  style={{ background: a.kind === "expiry" ? "var(--accentb)" : "var(--muted)" }}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold truncate">{a.subject}</span>
+                  <span className="block text-[11px] text-muted truncate">{a.body}</span>
+                </span>
+                <Link
+                  href={a.href}
+                  className="flex-none text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5"
+                >
+                  {a.action}
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="border border-line">
           <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
             Recent activity
@@ -125,6 +157,8 @@ export function AdminDashboardClient({
             <div className="px-5 py-8 text-center text-sm text-muted">No activity yet.</div>
           )}
         </div>
+        </div>
+
         <div className="flex flex-col gap-5">
           <div className="border border-line">
             <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
