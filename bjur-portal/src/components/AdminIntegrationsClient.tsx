@@ -10,15 +10,26 @@ type Config = {
   weeklyDay: string;
   weeklyTime: string;
   autoWeekly: boolean;
+  autoContentCalendar: boolean;
   autoUpload: boolean;
   autoDownload: boolean;
   autoLicense: boolean;
   autoSubmission: boolean;
 };
 
-type ClientRow = { id: string; name: string; channel: string };
+type ClientRow = {
+  id: string;
+  name: string;
+  channel: string;
+  autoPostSlack: boolean;
+  autoPostDay: number;
+  autoPostHour: number;
+};
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Indexed by Date.getDay(), which the worker compares against — Sunday is 0 there,
+// not the Monday-first order the weekly digest's day picker uses above.
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
@@ -77,12 +88,14 @@ export function AdminIntegrationsClient({
     setTestMsg(res.ok ? `Posted to ${config.defaultChannel} ✓` : (data.error ?? "Failed."));
   }
 
-  async function saveChannel(clientId: string, channel: string) {
-    setChannels((rows) => rows.map((r) => (r.id === clientId ? { ...r, channel } : r)));
+  // Sends only the fields that changed; the route applies partial updates so saving a
+  // channel name never resets the schedule.
+  async function saveChannel(clientId: string, fields: Partial<Omit<ClientRow, "id" | "name">>) {
+    setChannels((rows) => rows.map((r) => (r.id === clientId ? { ...r, ...fields } : r)));
     await fetch(`/api/admin/slack/channels/${clientId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel }),
+      body: JSON.stringify(fields),
     });
   }
 
@@ -208,6 +221,19 @@ export function AdminIntegrationsClient({
 
             <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
               <div>
+                <div className="text-sm font-semibold">Content calendar</div>
+                <div className="text-xs text-muted mt-0.5">
+                  Posts each client&apos;s scheduled posts for the week ahead. Turn on per client below.
+                </div>
+              </div>
+              <Toggle
+                on={config.autoContentCalendar}
+                onChange={() => patch({ autoContentCalendar: !config.autoContentCalendar })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
+              <div>
                 <div className="text-sm font-semibold">New delivery / upload</div>
                 <div className="text-xs text-muted mt-0.5">Ping the channel when new media is registered</div>
               </div>
@@ -244,18 +270,59 @@ export function AdminIntegrationsClient({
               Per-client channels
             </div>
             {channels.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-4 py-2.5 border-t border-line">
-                <span className="text-sm font-semibold">{c.name}</span>
-                <input
-                  defaultValue={c.channel}
-                  onBlur={(e) => saveChannel(c.id, e.target.value)}
-                  placeholder={config.defaultChannel}
-                  className="w-56 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
-                />
+              <div key={c.id} className="py-2.5 border-t border-line">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-semibold">{c.name}</span>
+                  <input
+                    defaultValue={c.channel}
+                    onBlur={(e) => saveChannel(c.id, { channel: e.target.value })}
+                    placeholder={config.defaultChannel}
+                    className="w-56 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-4 mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted">Auto-post content calendar</span>
+                    {c.autoPostSlack && (
+                      <>
+                        <select
+                          value={WEEKDAYS[c.autoPostDay]}
+                          onChange={(e) =>
+                            saveChannel(c.id, { autoPostDay: WEEKDAYS.indexOf(e.target.value) })
+                          }
+                          className="bg-bg border border-line2 text-text text-[12px] px-2 py-1 outline-none"
+                        >
+                          {WEEKDAYS.map((d) => (
+                            <option key={d}>{d}</option>
+                          ))}
+                        </select>
+                        <span className="text-xs text-dim">at</span>
+                        <select
+                          value={String(c.autoPostHour)}
+                          onChange={(e) =>
+                            saveChannel(c.id, { autoPostHour: Number(e.target.value) })
+                          }
+                          className="bg-bg border border-line2 text-text text-[12px] font-mono px-2 py-1 outline-none"
+                        >
+                          {Array.from({ length: 24 }, (_, h) => (
+                            <option key={h} value={h}>{`${String(h).padStart(2, "0")}:00`}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                  </div>
+                  <Toggle
+                    on={c.autoPostSlack}
+                    onChange={() => saveChannel(c.id, { autoPostSlack: !c.autoPostSlack })}
+                  />
+                </div>
               </div>
             ))}
             <div className="text-xs text-dim mt-3.5">
               Route each client&apos;s updates to their own channel. Blank = default channel.
+              Auto-post sends that client&apos;s scheduled posts for the coming week; a week with
+              nothing scheduled posts nothing.
             </div>
           </div>
         </>

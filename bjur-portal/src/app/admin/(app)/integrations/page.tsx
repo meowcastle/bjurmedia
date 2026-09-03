@@ -10,7 +10,7 @@ export default async function AdminIntegrationsPage() {
     db.socialConfig.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} }),
   ]);
 
-  const channelByClient = new Map(channels.map((c) => [c.clientId, c.channel]));
+  const channelByClient = new Map(channels.map((c) => [c.clientId, c]));
 
   return (
     <>
@@ -22,16 +22,23 @@ export default async function AdminIntegrationsPage() {
           weeklyDay: config.weeklyDay,
           weeklyTime: config.weeklyTime,
           autoWeekly: config.autoWeekly,
+          autoContentCalendar: config.autoContentCalendar,
           autoUpload: config.autoUpload,
           autoDownload: config.autoDownload,
           autoLicense: config.autoLicense,
           autoSubmission: config.autoSubmission,
         }}
-        clientRows={clients.map((c) => ({
-          id: c.id,
-          name: c.name,
-          channel: channelByClient.get(c.id) ?? "",
-        }))}
+        clientRows={clients.map((c) => {
+          const ch = channelByClient.get(c.id);
+          return {
+            id: c.id,
+            name: c.name,
+            channel: ch?.channel ?? "",
+            autoPostSlack: ch?.autoPostSlack ?? false,
+            autoPostDay: ch?.autoPostDay ?? 0,
+            autoPostHour: ch?.autoPostHour ?? 21,
+          };
+        })}
       />
       <AdminSocialIntegrationsClient
         initialConfig={{

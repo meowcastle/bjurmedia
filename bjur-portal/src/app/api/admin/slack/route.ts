@@ -9,6 +9,7 @@ const EDITABLE_FIELDS = [
   "weeklyDay",
   "weeklyTime",
   "autoWeekly",
+  "autoContentCalendar",
   "autoUpload",
   "autoDownload",
   "autoLicense",
