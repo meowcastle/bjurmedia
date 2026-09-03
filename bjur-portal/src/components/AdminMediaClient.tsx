@@ -8,6 +8,7 @@ import { formatViews, formatDate, timeAgo } from "@/lib/format";
 import { mondayOfWeek } from "@/lib/weeks";
 import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { UploadDialog } from "@/components/UploadDialog";
+import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 import { ManageFoldersDialog, type FolderRow } from "@/components/ManageFoldersDialog";
 
@@ -75,6 +76,7 @@ export function AdminMediaClient({
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>("");
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [view, setView] = useState<"files" | "calendar">("files");
   const [grantingLicenseFor, setGrantingLicenseFor] = useState<Asset | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -246,6 +248,17 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weekOf }),
+    });
+  }
+
+  // The calendar edits the same rows the table does, so it goes through here to keep
+  // both views and the server in step from one place.
+  async function patchAsset(id: string, fields: Record<string, unknown>) {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...fields } : r)));
+    await fetch(`/api/admin/assets/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
     });
   }
 
@@ -470,6 +483,19 @@ export function AdminMediaClient({
             </select>
           </>
         )}
+        <div className="flex border border-line2">
+          {(["files", "calendar"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`cursor-pointer text-[11px] font-semibold uppercase px-3 py-2 ${
+                view === v ? "bg-accent text-bg" : "text-muted hover:text-text"
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
         <button
           onClick={() => setUploadOpen(true)}
           className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
@@ -511,6 +537,15 @@ export function AdminMediaClient({
         )}
       </div>
 
+      {view === "calendar" && (
+        <AdminMediaCalendar
+          rows={tableRows}
+          onPatch={(id, fields) => patchAsset(id, fields)}
+        />
+      )}
+
+      {view === "files" && (
+      <>
       {weeks.length > 0 && (
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Slack post</span>
@@ -892,6 +927,8 @@ export function AdminMediaClient({
           </div>
         )}
       </div>
+      </>
+      )}
 
       {uploadOpen && selectedProjectId && (
         <UploadDialog
