@@ -45,14 +45,13 @@ COPY --from=build /app/worker.ts ./worker.ts
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 
-# Apply pending migrations before the worker starts. This runs here rather than in
-# runtime-web because the web image is Next's standalone bundle, which traces only
-# what the route graph imports — `prisma` is a devDependency CLI, so it isn't in
-# there, while this image copies node_modules wholesale and does have it.
+# Migrations deliberately do NOT run here. This container starting is not a moment
+# when the database is quiet: the web container holds SQLite connections open in WAL
+# mode, and a migration that rebuilds a table (which is most of them — SQLite cannot
+# add a column to a constrained table in place) needs an exclusive lock those readers
+# block indefinitely. Putting `migrate deploy` in this CMD makes the worker fail,
+# restart, and fail again for as long as web is up.
 #
-# It runs in exactly one container on purpose: two of them racing `migrate deploy`
-# against the same SQLite file is a lock error waiting to happen.
-#
-# Failing here is deliberate. A worker that can't migrate should stop loudly rather
-# than run against a schema it doesn't match.
-CMD ["sh", "-c", "npx prisma migrate deploy && pnpm worker"]
+# ./deploy.sh takes everything down, migrates against a quiet database, and brings it
+# back. Use it rather than `docker-compose up --build` when a migration is pending.
+CMD ["pnpm", "worker"]
