@@ -184,8 +184,11 @@ async function uploadFile(
   projectId: string,
   batchId: string,
   item: QueueItem,
-  onProgress: (receivedBytes: number) => void
-): Promise<{ ok: boolean; note?: string }> {
+  onProgress: (receivedBytes: number) => void,
+  /** Checked between chunks. Pausing mid-chunk would throw away work already on the
+   *  wire; the server resumes from receivedBytes either way. */
+  shouldPause: () => boolean
+): Promise<{ ok: boolean; note?: string; paused?: boolean }> {
   let submissionId = item.submissionId;
   if (!submissionId) {
     try {
@@ -197,6 +200,7 @@ async function uploadFile(
 
   let start = item.receivedBytes;
   while (start < item.sizeBytes) {
+    if (shouldPause()) return { ok: false, paused: true };
     const chunk = item.file.slice(start, Math.min(start + CHUNK_SIZE, item.sizeBytes));
     let result: Awaited<ReturnType<typeof putChunk>> | null = null;
     for (let attempt = 0; attempt < MAX_CHUNK_RETRIES; attempt++) {
@@ -224,6 +228,20 @@ async function uploadFile(
   return { ok: true };
 }
 
+function fmtBytes(n: number) {
+  const mb = n / (1024 * 1024);
+  if (mb < 1000) return `${Math.round(mb)} MB`;
+  return `${(mb / 1024).toFixed(1)} GB`;
+}
+
+function fmtEta(secs: number) {
+  if (!isFinite(secs) || secs <= 0) return null;
+  if (secs < 90) return `~${Math.round(secs)}s left`;
+  const mins = Math.round(secs / 60);
+  if (mins < 90) return `~${mins} min left`;
+  return `~${(mins / 60).toFixed(1)} hr left`;
+}
+
 export function SubmissionUploadClient({
   project,
   expired,
@@ -236,7 +254,15 @@ export function SubmissionUploadClient({
   const [batchId, setBatchId] = useState<string | null>(null);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
   const listEndRef = useRef<HTMLDivElement>(null);
+  // (timestamp, total bytes sent) samples for the rolling throughput estimate. A ref,
+  // not state: it updates on every chunk progress event and must not drive a render.
+  const samplesRef = useRef<{ t: number; bytes: number }[]>([]);
+  const queueRef = useRef<QueueItem[]>([]);
+  queueRef.current = queue;
+  const [rate, setRate] = useState(0); // bytes/sec, rolling
 
   useEffect(() => {
     fetch(`/api/projects/${project.id}/submissions`)
@@ -317,29 +343,89 @@ export function SubmissionUploadClient({
 
   async function startUpload() {
     if (!batchId) return;
+    pausedRef.current = false;
+    setPaused(false);
     setUploading(true);
-    for (const item of queue) {
-      if (item.status !== "pending") continue;
+
+    // Snapshot rather than iterating `queue`: the array is replaced on every progress
+    // update, and a stale closure would upload the wrong set on resume.
+    const pending = () => queueRef.current.filter((q) => q.status === "pending");
+
+    for (let item = pending()[0]; item; item = pending()[0]) {
+      if (pausedRef.current) break;
       setQueue((q) => q.map((qi) => (qi.file === item.file ? { ...qi, status: "uploading" } : qi)));
-      const result = await uploadFile(project.id, batchId, item, (receivedBytes) => {
-        setQueue((q) =>
-          q.map((qi) =>
-            qi.file === item.file ? { ...qi, progress: Math.round((receivedBytes / qi.sizeBytes) * 100) } : qi
-          )
-        );
-      });
+
+      const result = await uploadFile(
+        project.id,
+        batchId,
+        item,
+        (receivedBytes) => {
+          setQueue((q) =>
+            q.map((qi) =>
+              qi.file === item.file
+                ? { ...qi, receivedBytes, progress: Math.round((receivedBytes / qi.sizeBytes) * 100) }
+                : qi
+            )
+          );
+          noteThroughput();
+        },
+        () => pausedRef.current
+      );
+
       setQueue((q) =>
         q.map((qi) =>
           qi.file === item.file
-            ? { ...qi, status: result.ok ? "done" : "error", note: result.note, progress: result.ok ? 100 : qi.progress }
+            ? result.paused
+              ? { ...qi, status: "pending" }
+              : {
+                  ...qi,
+                  status: result.ok ? "done" : "error",
+                  note: result.note,
+                  progress: result.ok ? 100 : qi.progress,
+                }
             : qi
         )
       );
+      if (result.paused) break;
     }
+
     setUploading(false);
   }
 
+  function pause() {
+    pausedRef.current = true;
+    setPaused(true);
+  }
+
+  function retry(file: File) {
+    setQueue((q) => q.map((qi) => (qi.file === file ? { ...qi, status: "pending", note: undefined } : qi)));
+  }
+
+  /** Rolling 10s average, so the estimate settles instead of chasing each chunk. */
+  function noteThroughput() {
+    const now = Date.now();
+    const bytes = queueRef.current.reduce(
+      (n, q) => n + (q.status === "done" ? q.sizeBytes : q.receivedBytes),
+      0
+    );
+    const s = samplesRef.current;
+    s.push({ t: now, bytes });
+    while (s.length > 1 && now - s[0].t > 10_000) s.shift();
+    const first = s[0];
+    const secs = (now - first.t) / 1000;
+    if (secs >= 1) setRate((bytes - first.bytes) / secs);
+  }
+
   const hasPending = queue.some((q) => q.status === "pending");
+  const doneCount = queue.filter((q) => q.status === "done").length;
+  const errorCount = queue.filter((q) => q.status === "error").length;
+  const totalBytes = queue.reduce((n, q) => n + q.sizeBytes, 0);
+  // A finished file counts whole; an in-flight one counts what the server has
+  // acknowledged, which is what resume would start from.
+  const uploadedBytes = queue.reduce(
+    (n, q) => n + (q.status === "done" ? q.sizeBytes : q.receivedBytes),
+    0
+  );
 
   if (expired) {
     return (
@@ -399,7 +485,13 @@ export function SubmissionUploadClient({
         }}
         className="block cursor-pointer border border-dashed border-line2 hover:border-accent px-5 py-14 text-center text-sm text-muted mb-1"
       >
-        Drop files or folders here or click to browse
+        <span className="block text-[15px] font-bold text-text mb-1">
+          Drop files or folders here
+        </span>
+        <span className="block text-[13px] text-muted">
+          Drag in whole folders; we keep your structure. If the page reloads or the
+          connection drops, re-drop the same folder to resume.
+        </span>
       </label>
       <div className="text-center mb-4">
         <label htmlFor="submission-folder-input" className="text-xs font-semibold text-muted hover:text-text cursor-pointer">
@@ -432,31 +524,113 @@ export function SubmissionUploadClient({
       />
 
       {queue.length > 0 && (
-        <div className="flex flex-col gap-3 mb-6">
-          {queue.map((item, i) => (
-            <div key={i}>
-              <div className="flex justify-between gap-3 mb-1 text-xs">
-                <span className="truncate text-text">{item.relativePath}</span>
-                <span className="flex-none text-dim">
-                  {item.status === "done" ? "✓" : item.status === "error" ? item.note : `${item.progress}%`}
-                </span>
-              </div>
-              <div className="h-1 bg-bg border border-line2">
-                <div
-                  className={`h-full ${item.status === "error" ? "bg-accentb" : "bg-accent"}`}
-                  style={{ width: `${item.progress}%` }}
-                />
-              </div>
-            </div>
-          ))}
-          <div ref={listEndRef} />
+        <div className="sticky top-[70px] z-20 bg-s1 border border-line2 px-5 py-4 mb-4">
+          <div className="text-[11px] tracking-wide uppercase font-bold text-muted mb-1">
+            {errorCount > 0 && !uploading
+              ? "Finished with errors"
+              : uploading
+                ? "Uploading"
+                : paused
+                  ? "Paused"
+                  : doneCount === queue.length
+                    ? "Complete"
+                    : "Ready"}
+          </div>
+          <div className="text-[22px] font-black tabular-nums mb-2">
+            {doneCount} of {queue.length} files
+          </div>
+          <div className="flex items-baseline justify-between gap-3 text-xs text-muted mb-2 flex-wrap">
+            <span className="tabular-nums">
+              {fmtBytes(uploadedBytes)} of {fmtBytes(totalBytes)}
+            </span>
+            {uploading && rate > 0 && (
+              <span className="tabular-nums">
+                {[fmtEta((totalBytes - uploadedBytes) / rate), `${fmtBytes(rate)}/s`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            )}
+          </div>
+          <div className="h-1.5 bg-bg border border-line2 mb-3">
+            <div
+              className="h-full bg-accent transition-[width] duration-300"
+              style={{ width: `${totalBytes ? (uploadedBytes / totalBytes) * 100 : 0}%` }}
+            />
+          </div>
+
+          {uploading ? (
+            <button
+              onClick={pause}
+              className="cursor-pointer border border-line2 hover:border-text text-[11px] uppercase font-bold text-muted hover:text-text px-4 py-2.5"
+            >
+              Pause
+            </button>
+          ) : hasPending ? (
+            <Button onClick={startUpload}>
+              {paused ? "Resume" : `Upload ${queue.filter((q) => q.status === "pending").length}`}
+            </Button>
+          ) : (
+            <Link
+              href={`/p/${project.id}`}
+              className="inline-block bg-accent hover:bg-accentb text-bg text-[11px] uppercase font-bold px-4 py-2.5"
+            >
+              Back to project
+            </Link>
+          )}
         </div>
       )}
 
       {queue.length > 0 && (
-        <Button onClick={startUpload} disabled={uploading || !hasPending}>
-          {uploading ? "Uploading…" : `Upload ${queue.filter((q) => q.status === "pending").length || queue.length}`}
-        </Button>
+        <div className="border border-line mb-6">
+          {queue.map((item, i) => (
+            <div
+              key={i}
+              className="relative grid grid-cols-[20px_1fr_auto_auto] gap-3.5 items-center px-4 py-3 border-t border-line first:border-t-0"
+            >
+              {/* Progress reads as a faint fill behind the row rather than a separate bar. */}
+              <div
+                aria-hidden
+                className="absolute inset-y-0 left-0 bg-accent/[.08] pointer-events-none transition-[width] duration-300"
+                style={{ width: `${item.progress}%` }}
+              />
+              <span
+                className={`relative text-sm leading-none ${
+                  item.status === "done"
+                    ? "text-success"
+                    : item.status === "error"
+                      ? "text-accentb"
+                      : item.status === "uploading"
+                        ? "text-accentb"
+                        : "text-dim"
+                }`}
+              >
+                {item.status === "done" ? "✓" : item.status === "error" ? "!" : item.status === "uploading" ? "↑" : "·"}
+              </span>
+              <span className="relative min-w-0">
+                <span className="block text-xs font-semibold truncate">{item.relativePath}</span>
+                {item.note && <span className="block text-[11px] text-accentb truncate">{item.note}</span>}
+              </span>
+              <span className="relative text-xs text-dim tabular-nums">{fmtBytes(item.sizeBytes)}</span>
+              <span className="relative text-xs font-semibold tabular-nums">
+                {item.status === "done" ? (
+                  <span className="text-success">Done</span>
+                ) : item.status === "error" ? (
+                  <button
+                    onClick={() => retry(item.file)}
+                    className="cursor-pointer text-accentb hover:text-accent uppercase text-[11px] font-bold"
+                  >
+                    Retry
+                  </button>
+                ) : item.status === "uploading" ? (
+                  <span className="text-muted">{item.progress}%</span>
+                ) : (
+                  <span className="text-dim">Queued</span>
+                )}
+              </span>
+            </div>
+          ))}
+          <div ref={listEndRef} />
+        </div>
       )}
     </div>
   );
