@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { VideoSlide } from "@/components/VideoSlide";
 import { VideoChrome } from "@/components/VideoChrome";
+import { SwipeHint } from "@/components/SwipeHint";
 import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCarousel";
 
 export type VideoNavAsset = {
@@ -56,6 +57,8 @@ export function VideoViewer({
   const lastTimeUpdateRef = useRef(0);
 
   const carousel = useMediaCarousel({
+    onClose,
+    onTogglePlay: togglePlay,
     items,
     initialId,
     onCommit: () => activeVideoRef.current?.pause(),
@@ -154,6 +157,8 @@ export function VideoViewer({
             onTap={() => carousel.setChromeVisible((v) => !v)}
           />
         </div>
+
+        <SwipeHint visible={carousel.swipeHintVisible} />
 
         <VideoChrome
           visible={carousel.chromeVisible}

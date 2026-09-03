@@ -13,6 +13,8 @@ const CHIP = "w-9 h-9 grid place-items-center bg-black/40 hover:bg-black/60 text
 export function PhotoChrome({
   visible,
   name,
+  index,
+  total,
   hasPrev,
   hasNext,
   onClose,
@@ -21,6 +23,8 @@ export function PhotoChrome({
 }: {
   visible: boolean;
   name: string;
+  index: number;
+  total: number;
   hasPrev: boolean;
   hasNext: boolean;
   onClose: () => void;
@@ -35,9 +39,12 @@ export function PhotoChrome({
       }`}
     >
       <div
-        className="absolute top-0 left-0 right-0 flex justify-end px-4 pb-3 pointer-events-none"
+        className="absolute top-0 left-0 right-0 flex items-center justify-between gap-3 px-4 pb-3 pointer-events-none"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
+        <span className="text-xs font-bold text-white/70 tabular-nums">
+          {index + 1} / {total}
+        </span>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -57,7 +64,7 @@ export function PhotoChrome({
             onPrev();
           }}
           aria-label="Previous photo"
-          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
+          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
           ‹
         </button>
@@ -69,7 +76,7 @@ export function PhotoChrome({
             onNext();
           }}
           aria-label="Next photo"
-          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
+          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
           ›
         </button>

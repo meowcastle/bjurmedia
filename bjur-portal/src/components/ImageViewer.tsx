@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { ImageSlide, type PhotoNavAsset } from "@/components/ImageSlide";
 import { PhotoChrome } from "@/components/PhotoChrome";
+import { SwipeHint } from "@/components/SwipeHint";
 import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCarousel";
 
 export type { PhotoNavAsset };
@@ -30,7 +31,8 @@ export function ImageViewer({
   initialId: string;
   onClose: () => void;
 }) {
-  const carousel = useMediaCarousel({ items, initialId });
+  const carousel = useMediaCarousel({
+    onClose, items, initialId });
 
   const currentItem = carousel.currentItem;
   if (!currentItem) return null;
@@ -73,9 +75,13 @@ export function ImageViewer({
           />
         </div>
 
+        <SwipeHint visible={carousel.swipeHintVisible} />
+
         <PhotoChrome
           visible={carousel.chromeVisible}
           name={currentItem.name}
+          index={carousel.currentIndex}
+          total={items.length}
           hasPrev={carousel.hasPrev}
           hasNext={carousel.hasNext}
           onClose={onClose}

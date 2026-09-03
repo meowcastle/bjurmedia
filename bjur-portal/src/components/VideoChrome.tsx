@@ -90,7 +90,7 @@ export function VideoChrome({
             onPrev();
           }}
           aria-label="Previous video"
-          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
+          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
           ‹
         </button>
@@ -102,7 +102,7 @@ export function VideoChrome({
             onNext();
           }}
           aria-label="Next video"
-          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
+          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
           ›
         </button>

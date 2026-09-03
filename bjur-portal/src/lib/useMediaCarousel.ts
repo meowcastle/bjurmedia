@@ -39,10 +39,14 @@ export const OVERDAMPED_DRAG_TRANSITION = { bounceStiffness: 1_000_000, bounceDa
  * but the correctness-critical parts (index/animation sync, the rebase math,
  * the settle debounce) live in exactly one place.
  */
+const SWIPE_HINT_KEY = "bjur:swipeHint";
+
 export function useMediaCarousel<T extends { id: string }>({
   items,
   initialId,
   onCommit,
+  onClose,
+  onTogglePlay,
 }: {
   items: T[];
   initialId: string;
@@ -50,12 +54,42 @@ export function useMediaCarousel<T extends { id: string }>({
    * carousel gets — e.g. video pausing the outgoing slide. Stills need nothing
    * here. */
   onCommit?: (direction: 1 | -1) => void;
+  /** Esc. Both viewers were keyboard-inert before this: no escape, no arrows. */
+  onClose?: () => void;
+  /** Space. Video only; stills have nothing to toggle. */
+  onTogglePlay?: () => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     const i = items.findIndex((v) => v.id === initialId);
     return i >= 0 ? i : 0;
   });
   const [chromeVisible, setChromeVisible] = useState(false);
+
+  // §4: a one-time "swipe for next" hint, because the ‹ › chips are gone on mobile and
+  // nothing else says the carousel is swipeable.
+  //
+  // Read in the initialiser rather than an effect. That is normally a hydration hazard,
+  // but both viewers mount only when someone opens a file — they are never server
+  // rendered, so there is no server output for this to disagree with, and setting it
+  // from an effect would just cost an extra render.
+  const [swipeHintVisible, setSwipeHintVisible] = useState(() => {
+    if (typeof window === "undefined" || items.length < 2) return false;
+    try {
+      return !localStorage.getItem(SWIPE_HINT_KEY);
+    } catch {
+      // Private mode and blocked storage both throw on access; the hint is a nicety.
+      return false;
+    }
+  });
+
+  function dismissSwipeHint() {
+    setSwipeHintVisible(false);
+    try {
+      localStorage.setItem(SWIPE_HINT_KEY, "1");
+    } catch {
+      // Ignore — worst case the hint shows again next visit.
+    }
+  }
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
@@ -116,6 +150,7 @@ export function useMediaCarousel<T extends { id: string }>({
   // interrupt with anything, since state is already correct by the time any
   // animation even starts.
   function commitAndSlide(direction: 1 | -1) {
+    dismissSwipeHint();
     // .jump() (not .set()) — framer's own drag implementation starts its own
     // boundary-correction animation on this same value synchronously on
     // release, before onDragEnd even fires (it's deferred to frame.postRender).
@@ -159,6 +194,32 @@ export function useMediaCarousel<T extends { id: string }>({
     else animate(x, -width, SPRING); // snap back, no state change
   }
 
+  // Keyboard lives here rather than in each viewer so photo and video behave the same
+  // and neither can drift. Bound to window: the viewer is an overlay and focus may sit
+  // on the page behind it.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      // Never hijack typing.
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+
+      if (e.key === "Escape") {
+        onClose?.();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (hasPrev) commitAndSlide(-1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (hasNext) commitAndSlide(1);
+      } else if (e.key === " " && onTogglePlay) {
+        e.preventDefault(); // stop the page scrolling underneath
+        onTogglePlay();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   function goPrev() {
     if (hasPrev) commitAndSlide(-1);
   }
@@ -188,5 +249,7 @@ export function useMediaCarousel<T extends { id: string }>({
     handleDragEnd,
     goPrev,
     goNext,
+    swipeHintVisible,
+    dismissSwipeHint,
   };
 }
