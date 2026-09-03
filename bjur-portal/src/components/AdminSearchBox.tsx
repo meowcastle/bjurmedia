@@ -11,6 +11,7 @@ export function AdminSearchBox() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Stale results are harmless here — isOpen already hides the dropdown once the
@@ -23,6 +24,26 @@ export function AdminSearchBox() {
     }, 200);
     return () => clearTimeout(handle);
   }, [query]);
+
+  // §8: ⌘K / Ctrl-K focuses search from anywhere in the admin, and Escape lets go of
+  // it again. The badge in the box was going to advertise a shortcut that did not
+  // exist, which is worse than no badge.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        return;
+      }
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -39,12 +60,20 @@ export function AdminSearchBox() {
       <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2">
         <span className="text-dim text-sm">⌕</span>
         <input
+          ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           placeholder="Search clients, projects, files…"
+          aria-label="Search clients, projects and files"
+          aria-keyshortcuts="Meta+K Control+K"
           className="flex-1 bg-transparent border-0 text-text text-[13px] outline-none min-w-0"
         />
+        {!isOpen && !query && (
+          <span className="hidden lg:inline flex-none text-[10px] font-semibold text-dim border border-line2 px-1.5 py-0.5">
+            ⌘K
+          </span>
+        )}
         {isOpen && (
           <span onClick={() => { setQuery(""); setOpen(false); }} className="cursor-pointer text-dim text-xs">
             ✕
