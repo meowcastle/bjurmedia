@@ -23,10 +23,17 @@ export function middleware(req: NextRequest) {
     req.headers.get("x-forwarded-proto") === "http" &&
     !pathname.startsWith("/.well-known/")
   ) {
-    const url = req.nextUrl.clone();
-    url.protocol = "https:";
-    url.port = "";
-    return NextResponse.redirect(url, 301);
+    // Build the target from the request's own Host header, NOT req.nextUrl. Behind the
+    // standalone server, nextUrl's host is the *container's* hostname, so cloning it
+    // sent browsers to https://<container-id>/ — a name that resolves nowhere.
+    const rawHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    const host = rawHost?.replace(/:80$/, "");
+    // A host with no dot is the container name or "localhost" — i.e. someone reaching
+    // the app directly rather than through the proxy. Redirecting that to https would
+    // point at a host with no TLS listener, so leave those requests alone.
+    if (host && host.includes(".")) {
+      return NextResponse.redirect(`https://${host}${pathname}${req.nextUrl.search}`, 301);
+    }
   }
 
   const hasSession = req.cookies.has(SESSION_COOKIE);
