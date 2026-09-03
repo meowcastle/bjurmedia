@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectListClient } from "@/components/ProjectListClient";
 import { WeeklyDigest } from "@/components/WeeklyDigest";
 import { mondayOfWeek } from "@/lib/weeks";
 import { getAccessibleProjectIds } from "@/lib/projectAccess";
@@ -20,9 +20,10 @@ export default async function ProjectListPage() {
     },
     orderBy: { deliveredAt: "desc" },
     include: {
+      client: { select: { name: true } },
       assets: {
         where: { internal: false },
-        select: { kind: true },
+        select: { kind: true, sizeBytes: true },
       },
     },
   });
@@ -71,7 +72,7 @@ export default async function ProjectListPage() {
       <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
         <div>
           <div className="text-[11px] tracking-[0.24em] uppercase text-accent font-bold mb-3">
-            Your Deliveries
+            {projects[0]?.client.name ? `${projects[0].client.name} · ` : ""}Your Deliveries
           </div>
           <h1 className="text-[32px] sm:text-[44px] tracking-[-0.025em] font-black">Projects</h1>
         </div>
@@ -82,21 +83,22 @@ export default async function ProjectListPage() {
 
       <WeeklyDigest totalsByFormat={totalsByFormat} projects={digestProjects} />
 
-      <div className="grid grid-cols-1 gap-6 sm:[grid-template-columns:repeat(auto-fill,minmax(330px,1fr))]">
-        {projects.map((p) => (
-          <ProjectCard
-            key={p.id}
-            id={p.id}
-            title={p.title}
-            deliveredAt={p.deliveredAt}
-            expiresAt={p.expiresAt}
-            photoCount={p.assets.filter((a) => a.kind === "PHOTO").length}
-            videoCount={p.assets.filter((a) => a.kind === "VIDEO").length}
-            coverAssetId={coverByProject.get(p.id) ?? null}
-            hasNewThisWeek={perProjectTotals.has(p.id)}
-          />
-        ))}
-      </div>
+      <ProjectListClient
+        projects={projects.map((p) => ({
+          id: p.id,
+          title: p.title,
+          deliveredAt: p.deliveredAt?.toISOString() ?? null,
+          expiresAt: p.expiresAt?.toISOString() ?? null,
+          photoCount: p.assets.filter((a) => a.kind === "PHOTO").length,
+          videoCount: p.assets.filter((a) => a.kind === "VIDEO").length,
+          coverAssetId: coverByProject.get(p.id) ?? null,
+          // "N new" = files whose delivery week is the current one, the same column
+          // the digest above is built from.
+          newCount: Object.values(perProjectTotals.get(p.id) ?? {}).reduce((a, b) => a + b, 0),
+          // BigInt cannot cross the RSC boundary; summed here and serialised.
+          totalBytes: String(p.assets.reduce((n, a) => n + Number(a.sizeBytes), 0)),
+        }))}
+      />
     </div>
   );
 }
