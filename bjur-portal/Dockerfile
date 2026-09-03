@@ -45,4 +45,14 @@ COPY --from=build /app/worker.ts ./worker.ts
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 
-CMD ["pnpm", "worker"]
+# Apply pending migrations before the worker starts. This runs here rather than in
+# runtime-web because the web image is Next's standalone bundle, which traces only
+# what the route graph imports — `prisma` is a devDependency CLI, so it isn't in
+# there, while this image copies node_modules wholesale and does have it.
+#
+# It runs in exactly one container on purpose: two of them racing `migrate deploy`
+# against the same SQLite file is a lock error waiting to happen.
+#
+# Failing here is deliberate. A worker that can't migrate should stop loudly rather
+# than run against a schema it doesn't match.
+CMD ["sh", "-c", "npx prisma migrate deploy && pnpm worker"]
