@@ -1,5 +1,5 @@
 import { createWriteStream } from "fs";
-import { stat } from "fs/promises";
+import { stat, truncate } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -65,11 +65,21 @@ export async function PUT(
   if (!absPath) return new NextResponse(null, { status: 404 });
 
   const reader = req.body.getReader();
-  const writeStream = createWriteStream(absPath, { flags: "a" });
+  let writeStream: ReturnType<typeof createWriteStream> | undefined;
   try {
+    // Disk can legitimately sit AHEAD of receivedBytes. If a previous chunk's bytes
+    // landed but the process died before the db.submission.update() below, the file
+    // holds data the DB never acknowledged — and this NAS stops containers on its own,
+    // so that window does get hit. Appending from there would write the new chunk past
+    // the bytes we already have, duplicating that range and pushing the file beyond
+    // sizeBytes, at which point `complete` can never become true and the upload wedges
+    // (with a corrupt file) instead of resuming. Roll disk back to the offset we
+    // actually committed, so the append below starts exactly where the client thinks.
+    await truncate(absPath, currentReceived);
+    writeStream = createWriteStream(absPath, { flags: "a" });
     await pumpToFile(reader, writeStream);
   } catch (err) {
-    writeStream.destroy();
+    writeStream?.destroy();
     return NextResponse.json({ error: `Chunk failed: ${(err as Error).message.slice(0, 200)}` }, { status: 500 });
   }
 
