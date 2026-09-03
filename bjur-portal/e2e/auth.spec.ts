@@ -39,9 +39,14 @@ test.describe("admin auth", () => {
     await expect(page).toHaveURL("/admin/login");
   });
 
-  test("admin session can't reach the client surface", async ({ page }) => {
+  // A staff login has no clientId, so there is no client portal to render for it.
+  // This used to assert a 404, which is what the app did until the bare hostname
+  // turned out to hit it: signing in as admin and then typing "portal.justinbjur.com"
+  // returned a 404 page, invisible in a private window where middleware redirects to
+  // /login instead. Staff now get sent to the surface they actually have.
+  test("admin session is redirected to /admin, not the client surface", async ({ page }) => {
     await loginAsAdmin(page);
-    const res = await page.goto("/");
-    expect(res?.status()).toBe(404);
+    await page.goto("/");
+    await expect(page).toHaveURL("/admin");
   });
 });

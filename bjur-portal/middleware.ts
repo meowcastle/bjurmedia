@@ -4,6 +4,31 @@ const SESSION_COOKIE = "bjur_session";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Typing a bare "portal.justinbjur.com" makes the browser try http:// first. On the
+  // NAS, port 80 has no vhost for this host, so nginx falls through to its default
+  // site — a static page that meta-refreshes to https://media.moon.group, i.e. a
+  // *different* machine's login screen. Clients hitting the portal for the first time
+  // on a phone landed on someone else's NAS. HSTS fixes every subsequent visit, but
+  // only after one successful HTTPS load, so the first one has to be corrected here.
+  //
+  // TLS terminates at the reverse proxy, so req.nextUrl.protocol is always "http:"
+  // inside middleware; x-forwarded-proto is the only truthful signal of how the client
+  // actually connected.
+  //
+  // /.well-known is deliberately exempt: Let's Encrypt validates over plain HTTP on
+  // port 80, and redirecting the challenge would break renewal silently — the failure
+  // would surface as an expired cert months later, not as an error now.
+  if (
+    req.headers.get("x-forwarded-proto") === "http" &&
+    !pathname.startsWith("/.well-known/")
+  ) {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+    url.port = "";
+    return NextResponse.redirect(url, 301);
+  }
+
   const hasSession = req.cookies.has(SESSION_COOKIE);
 
   const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/login";
