@@ -47,10 +47,18 @@ echo "==> Applying migrations"
 docker-compose run --rm --no-deps worker npx prisma migrate deploy
 
 echo "==> Starting worker and web"
-docker-compose up -d worker web
+# --force-recreate matters. These containers were stopped rather than removed, and a
+# plain `up -d` will start the existing ones again — image ID unchanged, new build
+# ignored. That failed silently: the images were rebuilt, the containers came back
+# healthy, and production carried on serving the previous release.
+docker-compose up -d --force-recreate worker web
 
 echo "==> Status"
 docker-compose ps
+
+echo
+echo "==> Running commit"
+git -C .. log --oneline -1 2>/dev/null || true
 
 cat <<'NOTE'
 
