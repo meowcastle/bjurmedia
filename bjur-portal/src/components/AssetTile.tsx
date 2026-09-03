@@ -14,6 +14,8 @@ export type TileAsset = {
   name: string;
   dims: string | null;
   durationSec: number | null;
+  /** Decimal string — BigInt cannot cross the server/client boundary. */
+  sizeBytes: string;
   licensable: boolean;
   basePrice: number | null;
   createdAt: string;
@@ -21,6 +23,14 @@ export type TileAsset = {
   thumbReady: boolean;
   viewCount: number | null;
 };
+
+/** §3: `< 1000 MB → "N MB"`, else `"N.N GB"`. Exported so the grid, the group headers
+ *  and the selection bar all read the same way. */
+export function formatSize(bytes: number) {
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1000) return `${Math.round(mb)} MB`;
+  return `${(mb / 1024).toFixed(1)} GB`;
+}
 
 function fmtDuration(sec: number | null) {
   if (sec == null) return "";
@@ -114,12 +124,25 @@ export function AssetTile({
           </div>
         )}
 
+        {/* A click-only div here meant selection was unreachable by keyboard and
+            unnamed to assistive tech — and untargetable by any selector that is not
+            a CSS path. */}
         <div
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`Select ${asset.name}`}
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect();
           }}
-          className={`absolute top-2.5 left-2.5 w-[22px] h-[22px] border-[1.5px] grid place-items-center z-[4] cursor-pointer ${
+          onKeyDown={(e) => {
+            if (e.key !== " " && e.key !== "Enter") return;
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSelect();
+          }}
+          className={`absolute top-2.5 left-2.5 w-[22px] h-[22px] border-[1.5px] grid place-items-center z-[4] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
             selected ? "bg-accent border-accent" : "bg-black/35 border-white/70"
           }`}
         >
@@ -163,11 +186,10 @@ export function AssetTile({
           </div>
         )}
       </motion.div>
-      {stamp.text && (
-        <div className={`pt-1.5 text-[10.5px] ${stamp.isUpdate ? "text-accentb" : "text-dim"}`}>
-          {stamp.text}
-        </div>
-      )}
+      <div className="pt-1.5 flex items-baseline justify-between gap-2 text-[10.5px]">
+        <span className={stamp.isUpdate ? "text-accentb" : "text-dim"}>{stamp.text}</span>
+        <span className="text-dim tabular-nums flex-none">{formatSize(Number(asset.sizeBytes))}</span>
+      </div>
     </motion.div>
   );
 }

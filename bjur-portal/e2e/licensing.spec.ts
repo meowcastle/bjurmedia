@@ -7,7 +7,7 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
   await page.getByText("Brand Anthem — Delivery").click();
   await expect(page).toHaveURL(/\/p\/.+/);
 
-  await page.getByRole("button", { name: "Masters", exact: true }).click();
+  await page.getByRole("button", { name: /^Masters\b/ }).click();
 
   const tile = page.getByText("Halcyon_Anthem_MASTER.braw");
   await expect(tile).toBeVisible();

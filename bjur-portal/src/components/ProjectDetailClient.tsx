@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AssetTile, type TileAsset } from "@/components/AssetTile";
+import { AssetTile, type TileAsset, formatSize } from "@/components/AssetTile";
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
@@ -129,7 +129,9 @@ export function ProjectDetailClient({
   totalSocialPosts: number;
 }) {
   const [filter, setFilter] = useState<string>("ALL");
-  const [groupMode, setGroupMode] = useState<"format" | "week">("week");
+  // §3: format is the default. Week grouping remains available, but a client opening a
+  // delivery wants it sorted by what the files *are*, not which week they landed.
+  const [groupMode, setGroupMode] = useState<"format" | "week">("format");
   const [folderFilter, setFolderFilter] = useState<string>("ALL");
   const scoped = useMemo(
     () => (folderFilter === "ALL" ? assets : assets.filter((a) => a.folderId === folderFilter)),
@@ -246,6 +248,10 @@ export function ProjectDetailClient({
     });
   }
 
+  const bytesOf = (items: Asset[]) => items.reduce((n, a) => n + Number(a.sizeBytes), 0);
+  const totalBytes = useMemo(() => bytesOf(scoped), [scoped]);
+  const selectedAssets = useMemo(() => scoped.filter((a) => selected.has(a.id)), [scoped, selected]);
+
   const formatCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const a of scoped) counts[a.format] = (counts[a.format] ?? 0) + 1;
@@ -255,9 +261,12 @@ export function ProjectDetailClient({
   const favCount = useMemo(() => scoped.filter((a) => favorites.has(a.id)).length, [scoped, favorites]);
 
   const filters = [
-    { id: "ALL", label: "All" },
-    ...FORMAT_DEFS.filter((d) => formatCounts[d[0]]).map((d) => ({ id: d[0], label: d[1].split(" · ")[0] })),
-    { id: "FAV", label: `♥ Favorites${favCount ? ` (${favCount})` : ""}` },
+    { id: "ALL", label: `All ${scoped.length}` },
+    ...FORMAT_DEFS.filter((d) => formatCounts[d[0]]).map((d) => ({
+      id: d[0],
+      label: `${d[1].split(" · ")[0]} ${formatCounts[d[0]]}`,
+    })),
+    { id: "FAV", label: `♥ Favorites${favCount ? ` ${favCount}` : ""}` },
   ];
 
   const metaAssets = FORMAT_DEFS.map((d) => [formatCounts[d[0]] ?? 0, d[1]] as const)
@@ -359,7 +368,28 @@ export function ProjectDetailClient({
       >
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
           <span className="text-[15px] font-extrabold">{grp.label}</span>
-          <span className="text-[11px] text-muted">{grp.count}</span>
+          <span className="text-[11px] text-muted">
+            {grp.count} · {formatSize(bytesOf(grp.items))}
+          </span>
+          {canDownload && (
+            <button
+              onClick={() => {
+                const ids = grp.items.map((i) => i.id);
+                const allIn = ids.every((id) => selected.has(id));
+                setSelected((prev) => {
+                  const next = new Set(prev);
+                  for (const id of ids) {
+                    if (allIn) next.delete(id);
+                    else next.add(id);
+                  }
+                  return next;
+                });
+              }}
+              className="ml-auto cursor-pointer text-[11px] font-semibold text-muted hover:text-text"
+            >
+              {grp.items.every((i) => selected.has(i.id)) ? "Clear" : `Select all in ${grp.label}`}
+            </button>
+          )}
         </div>
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
           {grp.items.map((a, i) => (
@@ -396,6 +426,8 @@ export function ProjectDetailClient({
           <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">
             <span>{metaAssets}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
+            <span className="tabular-nums">{formatSize(totalBytes)}</span>
+            <span className="w-1 h-1 rounded-full bg-dim" />
             <span>Delivered {fmtDate(project.deliveredAt)}</span>
             {project.expiresAt && (
               <>
@@ -421,62 +453,16 @@ export function ProjectDetailClient({
           >
             ↑ Upload footage
           </Link>
-          {canDownload &&
-            (selected.size > 0 ? (
-              <DownloadButton
-                label={`↓ Download selected (${selected.size})`}
-                onClick={downloadSelected}
-                downloading={downloading}
-                downloadedBytes={downloadedBytes}
-              />
-            ) : (
-              <DownloadButton
-                label="↓ Download all"
-                onClick={downloadAll}
-                downloading={downloading}
-                downloadedBytes={downloadedBytes}
-              />
-            ))}
+          {canDownload && (
+            <DownloadButton
+              label={`↓ Download all · ${formatSize(totalBytes)}`}
+              onClick={downloadAll}
+              downloading={downloading}
+              downloadedBytes={downloadedBytes}
+            />
+          )}
         </div>
       </div>
-
-      {project.folders.length > 0 && (
-        <div className="inline-flex border border-line2 flex-wrap mt-6">
-          <button
-            onClick={() => setFolderFilter("ALL")}
-            className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-              folderFilter === "ALL" ? "text-bg" : "text-muted"
-            }`}
-          >
-            {folderFilter === "ALL" && (
-              <motion.div
-                layoutId="folderPill"
-                className="absolute inset-0 bg-accent z-0"
-                transition={{ type: "spring", stiffness: 500, damping: 40 }}
-              />
-            )}
-            <span className="relative z-10">All</span>
-          </button>
-          {project.folders.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFolderFilter(f.id)}
-              className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-                folderFilter === f.id ? "text-bg" : "text-muted"
-              }`}
-            >
-              {folderFilter === f.id && (
-                <motion.div
-                  layoutId="folderPill"
-                  className="absolute inset-0 bg-accent z-0"
-                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                />
-              )}
-              <span className="relative z-10">{f.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="flex items-center justify-between gap-4 flex-wrap my-6">
         <div className="flex items-center gap-4 flex-wrap">
@@ -500,13 +486,19 @@ export function ProjectDetailClient({
               </button>
             ))}
           </div>
-          {canDownload && (
-            <button
-              onClick={() => setSelected(allVisibleSelected ? new Set() : new Set(visibleIds))}
-              className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted hover:text-text px-1"
+          {project.folders.length > 0 && (
+            <select
+              value={folderFilter}
+              onChange={(e) => setFolderFilter(e.target.value)}
+              className="bg-bg border border-line2 text-muted text-xs font-semibold px-3 py-2.5 outline-none focus:border-accent"
             >
-              {allVisibleSelected ? "Clear selection" : "Select all"}
-            </button>
+              <option value="ALL">Folder: All</option>
+              {project.folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  Folder: {f.name}
+                </option>
+              ))}
+            </select>
           )}
         </div>
         <div className="inline-flex border border-line2">
@@ -594,6 +586,40 @@ export function ProjectDetailClient({
             setLicensingAsset(null);
           }}
         />
+      )}
+
+      {/* §3 selection bar. Replaces swapping the header button's label, which put the
+          count somewhere the eye is not while selecting, and gave no way to clear or
+          favourite a selection without scrolling back up. */}
+      {canDownload && selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise">
+          <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(0,0,0,.6)] flex items-center gap-3 sm:gap-4 flex-wrap">
+            <span className="text-sm font-extrabold tabular-nums">{selected.size} selected</span>
+            <span className="text-[13px] text-muted tabular-nums">
+              {formatSize(bytesOf(selectedAssets))}
+            </span>
+            <div className="flex-1" />
+            <button
+              onClick={() => setSelected(new Set())}
+              className="cursor-pointer text-[11px] font-semibold uppercase text-muted hover:text-text"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setSelected(new Set(visibleIds))}
+              className="cursor-pointer text-[11px] font-semibold uppercase text-muted hover:text-text"
+              hidden={allVisibleSelected}
+            >
+              Select all
+            </button>
+            <DownloadButton
+              label={`↓ Download ${selected.size} · ${formatSize(bytesOf(selectedAssets))}`}
+              onClick={downloadSelected}
+              downloading={downloading}
+              downloadedBytes={downloadedBytes}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

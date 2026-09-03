@@ -20,7 +20,7 @@ test("project detail: filters, photo viewer, and favorites", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Spring Campaign 2026" })).toBeVisible();
 
   // Filter down to Stills only
-  await page.getByRole("button", { name: "Stills", exact: true }).click();
+  await page.getByRole("button", { name: /^Stills\b/ }).click();
   await expect(page.getByText("SSH_Still_012.jpg")).toBeVisible();
   await expect(page.getByText("SSH_Reel_Hero.mp4")).not.toBeVisible();
 
@@ -43,7 +43,7 @@ test("project detail: filters, photo viewer, and favorites", async ({ page }) =>
 
 test("project detail: video plays inline and can be closed", async ({ page }) => {
   await page.getByText("Spring Campaign 2026").click();
-  await page.getByRole("button", { name: "Reels", exact: true }).click();
+  await page.getByRole("button", { name: /^Reels\b/ }).click();
   await page.getByText("SSH_Reel_Hero.mp4").click();
 
   const video = page.getByTestId("active-video");
@@ -63,5 +63,5 @@ test("internal retainer masters never appear to the client", async ({ page }) =>
   await page.getByText("Spring Campaign 2026").click();
   // SSH is a retainer client — its BRAW masters are internal working files.
   await expect(page.getByText("SSH_HeroCut_MASTER.braw")).not.toBeVisible();
-  await expect(page.getByRole("button", { name: "Masters", exact: true })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: /^Masters\b/ })).not.toBeVisible();
 });

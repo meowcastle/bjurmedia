@@ -65,6 +65,8 @@ export default async function ProjectDetailPage({
         name: a.name,
         dims: a.dims,
         durationSec: a.durationSec,
+        // Serialised: sizeBytes is a BigInt, which does not survive the RSC boundary.
+        sizeBytes: a.sizeBytes.toString(),
         licensable: a.licensable,
         basePrice: a.basePrice,
         createdAt: a.createdAt.toISOString(),
