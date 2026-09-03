@@ -326,6 +326,9 @@ model SlackConfig {
   weeklyDay      String  @default("Monday")
   weeklyTime     String  @default("09:00")
   autoWeekly     Boolean @default(true)
+  // Global kill switch for the per-client weekly content calendar, matching the
+  // toggle-per-event-type pattern of the fields around it.
+  autoContentCalendar Boolean @default(true)
   autoUpload     Boolean @default(true)
   autoDownload   Boolean @default(false)
   autoLicense    Boolean @default(true)
@@ -336,6 +339,16 @@ model ClientChannel {
   clientId String @id
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   channel  String // "#ssh-deliveries" (empty => use default)
+
+  // Weekly content-calendar auto-post (the block Justin used to hand-type and paste).
+  // Deliberately opt-in per client rather than the default-on the handoff proposed:
+  // this posts into a *client's* channel, and a ClientChannel row exists purely to
+  // override a channel name, so defaulting to true would start messaging every client
+  // that happens to have an override the moment this ships.
+  autoPostSlack Boolean   @default(false)
+  autoPostDay   Int       @default(0) // 0 = Sunday, JS getDay()
+  autoPostHour  Int       @default(21) // local hour, 0-23
+  lastPostedAt  DateTime? // set after a successful post; guards against double-posting
 }
 
 // ── Social insights (weekly IG/YouTube view counts) ────────

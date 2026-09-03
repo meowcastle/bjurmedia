@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 
 type SlackBlock = Record<string, unknown>;
 
@@ -15,7 +16,7 @@ async function resolveChannel(clientId?: string | null) {
 export async function postSlackEvent(opts: {
   clientId?: string | null;
   blocks: SlackBlock[];
-  toggle: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly" | "autoSubmission";
+  toggle: "autoUpload" | "autoDownload" | "autoLicense" | "autoWeekly" | "autoSubmission" | "autoContentCalendar";
 }) {
   try {
     const config = await db.slackConfig.findUnique({ where: { id: 1 } });
@@ -96,4 +97,63 @@ export async function postWeeklyDigest() {
   await postSlackEvent({ toggle: "autoWeekly", blocks });
 
   return { deliveredProjects: delivered.length, expiringProjects: expiring.length };
+}
+
+/**
+ * Posts one client's weekly content calendar — the day-by-day block Justin used to
+ * hand-type and paste every Sunday. buildWeeklySlackPost() already reproduced that
+ * format exactly for the admin "copy" button; this sends it instead of putting it on
+ * the clipboard.
+ *
+ * Looks *forward*: the week starting `weekStart`. That is the opposite of
+ * postWeeklyDigest() above, which reports the week just gone (deliveries made,
+ * projects expiring). The two are different messages to different audiences and both
+ * are meant to exist.
+ *
+ * Returns what happened so the caller can log it and decide whether to stamp
+ * lastPostedAt — a week with nothing scheduled posts nothing at all, rather than
+ * sending a client a block of "OPEN" lines every Sunday.
+ */
+export async function postWeeklyContentCalendar(clientId: string, weekStart: Date) {
+  const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const assets = await db.asset.findMany({
+    where: {
+      internal: false,
+      weekOf: { gte: weekStart, lt: weekEnd },
+      project: { clientId },
+    },
+    select: { weekOf: true, contentTitle: true, caption: true, captionYT: true },
+    orderBy: { weekOf: "asc" },
+  });
+
+  const scheduled = assets.filter((a) => a.contentTitle?.trim() || a.caption?.trim());
+  if (scheduled.length === 0) return { posted: false, assets: 0 };
+
+  const text = buildWeeklySlackPost(
+    weekStart,
+    scheduled.map((a) => ({
+      weekOf: a.weekOf!,
+      contentTitle: a.contentTitle,
+      caption: a.caption,
+      captionYT: a.captionYT,
+    }))
+  );
+
+  const weekLabel = weekStart.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  });
+
+  await postSlackEvent({
+    clientId,
+    toggle: "autoContentCalendar",
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: `Content calendar — week of ${weekLabel}` } },
+      { type: "section", text: { type: "mrkdwn", text } },
+    ],
+  });
+
+  return { posted: true, assets: scheduled.length };
 }
