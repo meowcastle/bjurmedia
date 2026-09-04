@@ -21,6 +21,7 @@ type Asset = {
   /** Decimal string — sizeBytes is a BigInt server-side. */
   sizeBytes: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
+  thumbReady: boolean;
   reingestCount: number;
   lastReplacedAt: string | null;
   internal: boolean;
@@ -79,6 +80,8 @@ export function AdminMediaClient({
   const [view, setView] = useState<"files" | "calendar">("files");
   const [grantingLicenseFor, setGrantingLicenseFor] = useState<Asset | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  // A thumb that 404s falls back to the gradient rather than an empty broken-image box.
+  const [thumbFailed, setThumbFailed] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -682,7 +685,7 @@ export function AdminMediaClient({
       <div className="border border-line">
         <div
           className="hidden md:grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
-          style={{ gridTemplateColumns: "24px 56px 2.4fr 1fr 1fr 1.4fr 56px" }}
+          style={{ gridTemplateColumns: "24px 96px 2.4fr 1fr 1fr 1.4fr 56px" }}
         >
           <input
             ref={selectAllRef}
@@ -708,7 +711,7 @@ export function AdminMediaClient({
               key={a.id}
               data-testid={`asset-row-${a.id}`}
               className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-3.5 md:px-5 md:py-3.5 md:items-center"
-              style={{ gridTemplateColumns: "24px 56px 2.4fr 1fr 1fr 1.4fr 56px" }}
+              style={{ gridTemplateColumns: "24px 96px 2.4fr 1fr 1fr 1.4fr 56px" }}
             >
               {/* Thumbnail + filename/badges/week share a row on mobile (display:contents
                   at md: makes this wrapper disappear, restoring the plain 7-col grid). */}
@@ -720,9 +723,27 @@ export function AdminMediaClient({
                   aria-label={`Select ${a.name}`}
                   className="cursor-pointer w-3.5 h-3.5 mt-1.5 shrink-0"
                 />
-                <div className="w-14 h-[34px] relative shrink-0" style={{ background: gradientFor(a.id) }}>
+                {/* §10: 96×54. The pipeline has been generating a poster all along
+                    (Asset.thumbRelPath) and the client gallery shows it; the admin table
+                    was drawing a gradient over the top of it, so the one screen used to
+                    identify a file was the one that never showed the frame. The gradient
+                    stays as the ground behind it, which is what shows while a proxy is
+                    still generating or if the thumb 404s. */}
+                <div className="w-24 h-[54px] relative shrink-0 overflow-hidden" style={{ background: gradientFor(a.id) }}>
+                  {a.thumbReady && !thumbFailed.has(a.id) && (
+                    // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
+                    <img
+                      src={`/api/assets/${a.id}/thumb`}
+                      alt=""
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={() => setThumbFailed((s) => new Set(s).add(a.id))}
+                    />
+                  )}
                   {a.kind === "VIDEO" && (
-                    <div className="absolute inset-0 grid place-items-center text-white text-[9px]">▶</div>
+                    <div className="absolute inset-0 grid place-items-center text-white/90 text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,.8)]">
+                      ▶
+                    </div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

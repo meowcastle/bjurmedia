@@ -1,10 +1,78 @@
 import { PrismaClient, AssetKind, ClientType, Role } from "@prisma/client";
+import { execFile } from "node:child_process";
+import { mkdir, access } from "node:fs/promises";
+import path from "node:path";
 import { hashPassword } from "../src/lib/auth";
 import { ensureInboxDir } from "../src/lib/projects";
 
 const db = new PrismaClient();
 
 const DEV_PASSWORD = "bjurmedia2026";
+
+function run(cmd: string, args: string[]) {
+  return new Promise<boolean>((resolve) => execFile(cmd, args, (err) => resolve(!err)));
+}
+
+/**
+ * Give the seeded assets the poster the proxy worker would have written.
+ *
+ * proxyGen.ts renders _derived/<assetId>/thumb.jpg and stores that in thumbRelPath, and
+ * the client gallery, the admin media table and the reports page all read it. The seed
+ * marked every asset proxyStatus READY but left thumbRelPath null, so in dev and in the
+ * e2e run every one of those fell back to its gradient and no test ever reached the
+ * thumb route at all.
+ *
+ * A flat colour per asset rather than a real frame — enough to be a distinguishable,
+ * decodable JPEG at the same shape the pipeline produces. Skipped without ffmpeg or
+ * DERIVED_ROOT, which just leaves thumbRelPath null as before.
+ */
+async function seedThumbs() {
+  const derivedRoot = process.env.DERIVED_ROOT;
+  if (!derivedRoot) {
+    console.log("No DERIVED_ROOT — skipping poster fixtures.");
+    return;
+  }
+  if (!(await run("ffmpeg", ["-version"]))) {
+    console.log("No ffmpeg on PATH — skipping poster fixtures.");
+    return;
+  }
+
+  const assets = await db.asset.findMany({ select: { id: true } });
+  let written = 0;
+  for (const a of assets) {
+    const relPath = `${a.id}/thumb.jpg`;
+    const outPath = path.resolve(derivedRoot, relPath);
+
+    // Never overwrite a poster that already exists — a re-seed against an environment
+    // that has run the real pipeline would otherwise replace frames with flat colour.
+    const exists = await access(outPath).then(
+      () => true,
+      () => false
+    );
+    if (!exists) {
+      await mkdir(path.dirname(outPath), { recursive: true });
+      let hash = 0;
+      for (const ch of a.id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+      const colour = `0x${(hash & 0x3f3f3f).toString(16).padStart(6, "0")}`;
+      const ok = await run("ffmpeg", [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=c=${colour}:s=960x540`,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "3",
+        outPath,
+      ]);
+      if (!ok) continue;
+    }
+    await db.asset.update({ where: { id: a.id }, data: { thumbRelPath: relPath } });
+    written++;
+  }
+  console.log(`Posters: ${written} assets given a thumbRelPath under ${derivedRoot}`);
+}
 
 function dur(mmss: string) {
   const [m, s] = mmss.split(":").map(Number);
@@ -340,6 +408,8 @@ async function main() {
       { actor: "Worker", action: "finished proxies for Rooftop Series (6 assets)" },
     ],
   });
+
+  await seedThumbs();
 
   console.log("Done. Dev login password for every seeded user: " + DEV_PASSWORD);
   console.log("Admin:  admin@bjurmedia.nyc");
