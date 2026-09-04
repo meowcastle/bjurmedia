@@ -89,18 +89,32 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 }
 
+export type TopPost = {
+  id: string;
+  title: string;
+  platform: "IG" | "YT";
+  handle: string;
+  postedAt: string;
+  views: number;
+  permalink: string | null;
+};
+
 export function AdminClientDetailClient({
   client,
   seats,
   projects,
   socialAccounts,
   licenses,
+  topPosts,
+  postsSyncedAt,
 }: {
   client: ClientInfo;
   seats: Seat[];
   projects: ProjectRow[];
   socialAccounts: SocialAccountRow[];
   licenses: LicenseRow[];
+  topPosts: TopPost[];
+  postsSyncedAt: string | null;
 }) {
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
@@ -516,6 +530,59 @@ export function AdminClientDetailClient({
         {seats.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted">No seats yet.</div>}
       </div>
 
+
+      {/* §10c. Which delivered files are actually performing — the question a
+          retainer conversation opens with. No change-vs-last-period figure: only the
+          current viewCount is stored, so a delta would have to be invented. */}
+      {topPosts.length > 0 && (
+        <div className="mb-9" data-testid="top-posts">
+          <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
+            <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
+              Top posts · last 30 days
+            </h2>
+            {postsSyncedAt && (
+              <span className="text-[11px] text-dim">
+                synced {new Date(postsSyncedAt).toISOString().slice(0, 10)}
+              </span>
+            )}
+          </div>
+          <div className="border border-line bg-s1">
+            {topPosts.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-4 px-5 py-3.5 border-b border-line last:border-b-0 flex-wrap"
+              >
+                <span className="text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5 flex-none">
+                  {p.platform}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {p.permalink ? (
+                    <a
+                      href={p.permalink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[13px] font-semibold text-text hover:text-accentb truncate block"
+                    >
+                      {p.title} ↗
+                    </a>
+                  ) : (
+                    <span className="text-[13px] font-semibold truncate block">{p.title}</span>
+                  )}
+                  <div className="text-[11px] text-dim truncate">
+                    {p.handle} · {new Date(p.postedAt).toISOString().slice(0, 10)}
+                  </div>
+                </div>
+                <div className="text-right flex-none">
+                  <div className="text-[15px] font-black tabular-nums">
+                    {p.views.toLocaleString("en-US")}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wide text-dim">views</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-end justify-between mb-4">
         <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">Projects</h2>

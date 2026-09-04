@@ -25,12 +25,25 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   });
   if (!client) notFound();
 
-  const [socialAccounts, licenses] = await Promise.all([
+  // §10c "Top posts · last 30 days". No delta against the previous period: only the
+  // current viewCount is stored, so a change figure would have to be invented.
+  const since = new Date(new Date().getTime() - 30 * 86_400_000);
+
+  const [socialAccounts, licenses, topPosts] = await Promise.all([
     db.socialAccount.findMany({ where: { clientId: client.id } }),
     db.license.findMany({
       where: { clientId: client.id },
       orderBy: { purchasedAt: "desc" },
       include: { asset: { select: { name: true } }, user: { select: { name: true } } },
+    }),
+    db.socialPost.findMany({
+      where: { socialAccount: { clientId: client.id }, postedAt: { gte: since } },
+      orderBy: { viewCount: "desc" },
+      take: 5,
+      include: {
+        socialAccount: { select: { platform: true, handle: true, lastSyncedAt: true } },
+        asset: { select: { name: true } },
+      },
     }),
   ]);
 
@@ -55,6 +68,20 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         expiresAt: l.expiresAt?.toISOString() ?? null,
         userName: l.user.name,
       }))}
+      topPosts={topPosts.map((p) => ({
+        id: p.id,
+        // The asset name is the thing an admin recognises; the caption is what
+        // Instagram shows. Fall back through both before giving up on a label.
+        title: p.asset?.name ?? p.caption ?? "Untitled post",
+        platform: p.socialAccount.platform === "INSTAGRAM" ? "IG" : "YT",
+        handle: p.socialAccount.handle,
+        postedAt: p.postedAt.toISOString(),
+        views: p.viewCount,
+        permalink: p.permalink,
+      }))}
+      postsSyncedAt={
+        topPosts[0]?.socialAccount.lastSyncedAt?.toISOString() ?? null
+      }
       socialAccounts={socialAccounts.map((s) => ({
         platform: s.platform,
         externalId: s.externalId,
