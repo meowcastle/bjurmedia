@@ -74,6 +74,14 @@ export default async function ProjectDetailPage({
         weekOf: a.weekOf?.toISOString() ?? null,
         folderId: a.folderId,
         thumbReady: a.thumbRelPath != null,
+        contentTitle: a.contentTitle,
+        caption: a.caption,
+        publishAt: a.publishAt?.toISOString() ?? null,
+        publishIg: a.publishIg,
+        publishYt: a.publishYt,
+        publishState: a.publishState,
+        approvalDueAt: a.approvalDueAt?.toISOString() ?? null,
+        heldAt: a.heldAt?.toISOString() ?? null,
         viewCount: a.socialPosts.length
           ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
           : null,

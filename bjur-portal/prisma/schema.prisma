@@ -9,19 +9,24 @@ generator client {
 
 // ── Orgs & users ───────────────────────────────────────────
 model Client {
-  id          String         @id @default(cuid())
-  name        String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
-  username    String         @unique // login handle for the org
-  type        ClientType     @default(RETAINER)
-  status      ClientStatus   @default(ACTIVE)
-  accentColor String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
-  logoUrl     String? // brand logo, admin-set — null = initials fallback
-  createdAt   DateTime       @default(now())
-  users       User[]
-  projects    Project[]
-  licenses    License[]
-  channel     ClientChannel?
-  socialAccounts SocialAccount[]
+  id                String          @id @default(cuid())
+  name              String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username          String          @unique // login handle for the org
+  type              ClientType      @default(RETAINER)
+  status            ClientStatus    @default(ACTIVE)
+  accentColor       String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  logoUrl           String? // brand logo, admin-set — null = initials fallback
+  // approval policy. Required by default: publishing to a client's own channels
+  // without their sign-off is the failure nobody forgives.
+  approvalRequired  Boolean         @default(true)
+  approvalAutoHours Int             @default(24)
+  notifyWeekly      Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  users             User[]
+  projects          Project[]
+  licenses          License[]
+  channel           ClientChannel?
+  socialAccounts    SocialAccount[]
 }
 
 enum ClientType {
@@ -35,26 +40,27 @@ enum ClientStatus {
 }
 
 model User {
-  id                 String     @id @default(cuid())
+  id                 String          @id @default(cuid())
   clientId           String? // null => staff/admin user
-  client             Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client             Client?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name               String
-  email              String     @unique
+  email              String          @unique
   passwordHash       String // argon2id
-  role               Role       @default(VIEWER)
-  isAdmin            Boolean    @default(false) // staff portal access
-  notifyDelivery     Boolean    @default(true) // email me when new work is delivered
-  notifyExpiry       Boolean    @default(true) // remind me before a gallery expires
-  mustChangePassword Boolean    @default(false) // set on temp-password issuance (invite, seat add)
+  role               Role            @default(VIEWER)
+  isAdmin            Boolean         @default(false) // staff portal access
+  notifyDelivery     Boolean         @default(true) // email me when new work is delivered
+  notifyExpiry       Boolean         @default(true) // remind me before a gallery expires
+  mustChangePassword Boolean         @default(false) // set on temp-password issuance (invite, seat add)
   deactivatedAt      DateTime? // access revoked by staff: sign-in blocked and hidden from the seat/admin lists, but the row (and every license, upload batch and submission pointing at it) is kept. Re-adding the same email reactivates this row.
   lastLoginAt        DateTime?
-  createdAt          DateTime   @default(now())
+  createdAt          DateTime        @default(now())
   sessions           Session[]
   favorites          Favorite[]
   licenses           License[]
   projectMemberships ProjectMember[]
   submissions        Submission[]
   uploadBatches      UploadBatch[]
+  approvedAssets     Asset[]         @relation("AssetApprovals")
 
   @@index([clientId])
 }
@@ -86,11 +92,11 @@ model Project {
   deliveryPendingAt    DateTime?
   deliveryNotifiedAt   DateTime?
 
-  createdAt   DateTime  @default(now())
-  assets      Asset[]
-  members     ProjectMember[]
-  folders     Folder[]
-  submissions Submission[]
+  createdAt     DateTime        @default(now())
+  assets        Asset[]
+  members       ProjectMember[]
+  folders       Folder[]
+  submissions   Submission[]
   uploadBatches UploadBatch[]
 
   @@index([clientId])
@@ -223,14 +229,35 @@ model Asset {
   caption      String? // IG & YT caption body (or IG-only body when captionYT is set)
   captionYT    String? // set only when YT copy differs from IG — null in the common case
 
-  createdAt DateTime   @default(now()) // "Added"
-  updatedAt DateTime   @updatedAt // "Updated"
-  favorites Favorite[]
-  licenses  License[]
+  // publishing (Phase 1). publishAt is the exact post datetime and is separate from
+  // weekOf, which stays what it was: the grouping key the calendar and the weekly Slack
+  // post read. Overloading weekOf for both would have made "which week is this in" and
+  // "when exactly does it go out" the same field, and they are not.
+  publishAt       DateTime?
+  publishIg       Boolean      @default(false)
+  publishYt       Boolean      @default(false)
+  collaborators   String? // JSON string[] of IG handles
+  publishState    PublishState @default(NONE)
+  approvedById    String?
+  approvedBy      User?        @relation("AssetApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt      DateTime?
+  heldAt          DateTime? // client pressed Hold — blocks auto-approve until staff clear it
+  approvalDueAt   DateTime? // when auto-approve fires; set on entering AWAITING
+  publishAttempts Int          @default(0)
+  publishError    String?
+  igMediaId       String?
+  ytVideoId       String?
+
+  createdAt   DateTime     @default(now()) // "Added"
+  updatedAt   DateTime     @updatedAt // "Updated"
+  favorites   Favorite[]
+  licenses    License[]
   socialPosts SocialPost[]
 
   @@index([projectId])
   @@index([folderId])
+  // The publisher and the auto-approve sweep both scan by state and due time.
+  @@index([publishState, publishAt])
 }
 
 enum AssetKind {
@@ -264,7 +291,7 @@ model License {
   termMonths Int? // null = perpetuity
   territory  String? // null = "Worldwide"
   channels   String? // JSON array: ["organic_social","paid_social","ooh","broadcast"]
-  exclusive  Boolean @default(false)
+  exclusive  Boolean   @default(false)
   expiresAt  DateTime? // purchasedAt + termMonths, computed once at creation
 
   @@index([assetId])
@@ -318,21 +345,21 @@ model WorkerHeartbeat {
 
 // ── Integrations ───────────────────────────────────────────
 model SlackConfig {
-  id             Int     @id @default(1) // singleton row
-  connected      Boolean @default(false)
-  workspace      String?
-  webhookUrl     String?
-  defaultChannel String  @default("#client-deliveries")
-  weeklyDay      String  @default("Monday")
-  weeklyTime     String  @default("09:00")
-  autoWeekly     Boolean @default(true)
+  id                  Int     @id @default(1) // singleton row
+  connected           Boolean @default(false)
+  workspace           String?
+  webhookUrl          String?
+  defaultChannel      String  @default("#client-deliveries")
+  weeklyDay           String  @default("Monday")
+  weeklyTime          String  @default("09:00")
+  autoWeekly          Boolean @default(true)
   // Global kill switch for the per-client weekly content calendar, matching the
   // toggle-per-event-type pattern of the fields around it.
   autoContentCalendar Boolean @default(true)
-  autoUpload     Boolean @default(true)
-  autoDownload   Boolean @default(false)
-  autoLicense    Boolean @default(true)
-  autoSubmission Boolean @default(true)
+  autoUpload          Boolean @default(true)
+  autoDownload        Boolean @default(false)
+  autoLicense         Boolean @default(true)
+  autoSubmission      Boolean @default(true)
 }
 
 model ClientChannel {
@@ -352,22 +379,41 @@ model ClientChannel {
 }
 
 // ── Social insights (weekly IG/YouTube view counts) ────────
+/**
+ * NONE      nothing scheduled
+ * DRAFT     scheduled, not yet sent to the client
+ * AWAITING  client has been asked; auto-approves at approvalDueAt unless held
+ * APPROVED  cleared to publish
+ * PUBLISHING/PUBLISHED/FAILED  the worker's own states
+ */
+enum PublishState {
+  NONE
+  DRAFT
+  AWAITING
+  APPROVED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
 enum SocialPlatform {
   INSTAGRAM
   YOUTUBE
 }
 
 model SocialAccount {
-  id            String         @id @default(cuid())
-  clientId      String
-  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  platform      SocialPlatform
-  externalId    String // IG Business Account ID, or YouTube Channel ID
-  handle        String // "@ssh_studio" — display only
-  accessToken   String? // IG long-lived token; null for YouTube (uses SocialConfig.youtubeApiKey)
-  lastSyncedAt  DateTime?
-  lastSyncError String?
-  posts         SocialPost[]
+  id             String         @id @default(cuid())
+  clientId       String
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform       SocialPlatform
+  externalId     String // IG Business Account ID, or YouTube Channel ID
+  handle         String // "@ssh_studio" — display only
+  accessToken    String? // IG long-lived token; null for YouTube (uses SocialConfig.youtubeApiKey)
+  tokenExpiresAt DateTime? // IG long-lived tokens expire in 60 days; staff alert under 10
+  refreshToken   String? // YouTube OAuth refresh token
+  lastSyncedAt   DateTime?
+  lastSyncError  String?
+  posts          SocialPost[]
 
   @@unique([clientId, platform])
 }
@@ -391,9 +437,9 @@ model SocialPost {
 }
 
 model SocialConfig {
-  id            Int      @id @default(1) // singleton row
+  id            Int     @id @default(1) // singleton row
   youtubeApiKey String?
-  weeklyDay     String   @default("Tuesday")
-  weeklyTime    String   @default("09:00")
-  autoWeekly    Boolean  @default(true)
+  weeklyDay     String  @default("Tuesday")
+  weeklyTime    String  @default("09:00")
+  autoWeekly    Boolean @default(true)
 }

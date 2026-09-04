@@ -293,6 +293,50 @@ function startDeliveryMailScheduler() {
   setInterval(() => tick().catch((err) => console.error("[delivery] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+/**
+ * §13 auto-approve. A post the client was asked about, and did not act on, goes out at
+ * the deadline rather than quietly missing its slot — that is the whole point of
+ * Client.approvalAutoHours.
+ *
+ * heldAt is the escape hatch: a client who pressed Hold has said no, and Hold moves the
+ * post back to DRAFT with approvalDueAt cleared, so it cannot be picked up here at all.
+ * The state filter is what actually guarantees that; the heldAt check is belt and braces
+ * against a row left inconsistent by an older code path.
+ */
+function startApprovalSweepScheduler() {
+  const tick = async () => {
+    const due = await db.asset.findMany({
+      where: {
+        publishState: "AWAITING",
+        heldAt: null,
+        approvalDueAt: { not: null, lte: new Date() },
+      },
+      select: { id: true, name: true, project: { select: { client: { select: { name: true } } } } },
+    });
+    if (due.length === 0) return;
+
+    for (const asset of due) {
+      await db.asset.update({
+        where: { id: asset.id },
+        data: { publishState: "APPROVED", approvedAt: new Date(), approvalDueAt: null },
+      });
+      // Recorded as the client's own approval-by-default, attributed to nobody, so the
+      // history does not claim a person pressed a button they never pressed.
+      await db.activity.create({
+        data: {
+          actor: "Portal",
+          action: `auto-approved "${asset.name}" for ${asset.project.client.name} — no response before the deadline`,
+        },
+      });
+    }
+    console.log(`[approvals] auto-approved ${due.length} post(s) past their deadline`);
+  };
+
+  console.log(`[approvals] auto-approve sweep checking every ${SCHEDULER_POLL_MS}ms`);
+  tick().catch((err) => console.error("[approvals] initial sweep failed:", err));
+  setInterval(() => tick().catch((err) => console.error("[approvals] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -401,3 +445,4 @@ startWeeklyContentCalendarScheduler();
 startWeeklySocialSyncScheduler();
 startDeliveryMailScheduler();
 startSessionSweepScheduler();
+startApprovalSweepScheduler();

@@ -77,6 +77,10 @@ export default async function globalSetup() {
     { file: "admin.json", email: "admin@bjurmedia.nyc", portal: "admin" },
     { file: "sasha.json", email: "sasha@ssh.studio", portal: "client" },
     { file: "ivy.json", email: "ivy@halcyon.film", portal: "client" },
+    // 57.NYC's owner and a downloader on the same account — §13 approval is owner-only,
+    // and "a downloader cannot approve" needs a real downloader session to prove it.
+    { file: "studio57.json", email: "studio@57.nyc", portal: "client" },
+    { file: "dana57.json", email: "dana@57.nyc", portal: "client" },
   ];
 
   for (const id of identities) {

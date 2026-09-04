@@ -55,6 +55,8 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         username: client.username,
         type: client.type,
         status: client.status,
+        approvalRequired: client.approvalRequired,
+        approvalAutoHours: client.approvalAutoHours,
         accentColor: client.accentColor,
         logoUrl: client.logoUrl,
       }}

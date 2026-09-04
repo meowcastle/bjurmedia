@@ -39,6 +39,8 @@ type ClientInfo = {
   username: string;
   type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
+  approvalRequired: boolean;
+  approvalAutoHours: number;
   accentColor: string | null;
   logoUrl: string | null;
 };
@@ -132,6 +134,33 @@ export function AdminClientDetailClient({
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [approvalRequired, setApprovalRequired] = useState(
+    client.approvalRequired,
+  );
+  const [approvalHours, setApprovalHours] = useState(
+    String(client.approvalAutoHours),
+  );
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+
+  async function saveApproval(fields: {
+    approvalRequired?: boolean;
+    approvalAutoHours?: number;
+  }) {
+    setApprovalError(null);
+    const res = await fetch(`/api/admin/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setApprovalError(body.error ?? "Could not save that.");
+      // Put the control back rather than showing a state the database never took.
+      setApprovalRequired(client.approvalRequired);
+      setApprovalHours(String(client.approvalAutoHours));
+    }
+  }
+
   const [accentColor, setAccentColor] = useState(
     client.accentColor ?? DEFAULT_ACCENT,
   );
@@ -617,6 +646,72 @@ export function AdminClientDetailClient({
             No seats yet.
           </div>
         )}
+      </div>
+
+      {/* §13. The policy the approval loop runs on. Without a control here these two
+          columns existed but nothing could change them, so every client was pinned to
+          "approval required, 24 hours". */}
+      <div className="mb-9" data-testid="approval-policy">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
+          Publishing approval
+        </h2>
+        <div className="border border-line bg-s1 p-5 flex flex-col gap-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={approvalRequired}
+              onChange={(e) => {
+                setApprovalRequired(e.target.checked);
+                saveApproval({ approvalRequired: e.target.checked });
+              }}
+              className="mt-1 w-3.5 h-3.5 cursor-pointer"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">
+                Ask before publishing
+              </span>
+              <span className="block text-xs text-muted mt-1">
+                Scheduled posts go to this client&apos;s owner for sign-off.
+                Turn this off and they publish on their date without asking.
+              </span>
+            </span>
+          </label>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[11px] uppercase tracking-wide text-dim">
+              Auto-approve after
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={168}
+              value={approvalHours}
+              disabled={!approvalRequired}
+              aria-label="Auto-approve after (hours)"
+              onChange={(e) => setApprovalHours(e.target.value)}
+              onBlur={() => {
+                const n = Number(approvalHours);
+                if (Number.isInteger(n) && n >= 1 && n <= 168)
+                  saveApproval({ approvalAutoHours: n });
+                else {
+                  setApprovalHours(String(client.approvalAutoHours));
+                  setApprovalError(
+                    "Hours must be a whole number between 1 and 168.",
+                  );
+                }
+              }}
+              className="w-20 bg-bg border border-line2 text-text text-[12px] px-2 py-1.5 outline-none focus:border-accent disabled:opacity-40"
+            />
+            <span className="text-[11px] text-dim">
+              hours of silence — never later than the post&apos;s own publish
+              time
+            </span>
+          </div>
+
+          {approvalError && (
+            <div className="text-[12px] text-accentb">{approvalError}</div>
+          )}
+        </div>
       </div>
 
       {/* §10c. Which delivered files are actually performing — the question a

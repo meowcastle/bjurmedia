@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
+import {
+  ClientPostsPanel,
+  type ScheduledPost,
+  type PostsView,
+} from "@/components/ClientPostsPanel";
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
@@ -11,7 +16,18 @@ import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
 
-type Asset = TileAsset & { weekOf: string | null; folderId: string | null };
+type Asset = TileAsset & {
+  weekOf: string | null;
+  folderId: string | null;
+  contentTitle: string | null;
+  caption: string | null;
+  publishAt: string | null;
+  publishIg: boolean;
+  publishYt: boolean;
+  publishState: ScheduledPost["publishState"];
+  approvalDueAt: string | null;
+  heldAt: string | null;
+};
 
 const FORMAT_DEFS: [string, string][] = [
   ["Reel", "Reels"],
@@ -63,7 +79,9 @@ function DownloadButton({
         />
       )}
       <span className="relative z-10">
-        {downloading ? `↓ Downloading… ${formatProgressBytes(downloadedBytes)}` : label}
+        {downloading
+          ? `↓ Downloading… ${formatProgressBytes(downloadedBytes)}`
+          : label}
       </span>
     </button>
   );
@@ -143,6 +161,15 @@ export function ProjectDetailClient({
   totalViews: number;
   totalSocialPosts: number;
 }) {
+  // §13. Anything with a publish date is a post as far as the client is concerned.
+  const scheduled: ScheduledPost[] = assets
+    .filter((a) => a.publishState !== "NONE")
+    .sort((x, y) => (x.publishAt ?? "").localeCompare(y.publishAt ?? ""));
+
+  // "All files" stays the default even when posts are waiting: someone who came here to
+  // download should still land on the gallery. The banner is what redirects them.
+  const [postsView, setPostsView] = useState<PostsView>("files");
+
   const [filter, setFilter] = useState<string>("ALL");
   // §3: format is the default. Week grouping remains available, but a client opening a
   // delivery wants it sorted by what the files *are*, not which week they landed.
@@ -539,102 +566,122 @@ export function ProjectDetailClient({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 flex-wrap my-6">
-        <div className="flex items-center gap-4 flex-wrap">
+      {/* §13. Only for projects that actually have posts — a delivery of stills has
+          nothing to approve and should not grow a tab strip saying so. */}
+      {scheduled.length > 0 && (
+        <ClientPostsPanel
+          projectId={project.id}
+          posts={scheduled}
+          role={role}
+          view={postsView}
+          onViewChange={setPostsView}
+        />
+      )}
+
+      <div hidden={scheduled.length > 0 && postsView !== "files"}>
+        <div className="flex items-center justify-between gap-4 flex-wrap my-6">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="inline-flex border border-line2">
+              {filters.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                    filter === f.id ? "text-bg" : "text-muted"
+                  }`}
+                >
+                  {filter === f.id && (
+                    <motion.div
+                      layoutId="filterPill"
+                      className="absolute inset-0 bg-accent z-0"
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 40,
+                      }}
+                    />
+                  )}
+                  <span className="relative z-10">{f.label}</span>
+                </button>
+              ))}
+            </div>
+            {project.folders.length > 0 && (
+              <select
+                value={folderFilter}
+                onChange={(e) => setFolderFilter(e.target.value)}
+                className="bg-bg border border-line2 text-muted text-xs font-semibold px-3 py-2.5 outline-none focus:border-accent"
+              >
+                <option value="ALL">Folder: All</option>
+                {project.folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    Folder: {f.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div className="inline-flex border border-line2">
-            {filters.map((f) => (
+            {(["format", "week"] as const).map((g) => (
               <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-                  filter === f.id ? "text-bg" : "text-muted"
+                key={g}
+                onClick={() => setGroupMode(g)}
+                className={`relative cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2.5 border-l border-line2 first:border-l-0 ${
+                  groupMode === g ? "text-bg" : "text-muted"
                 }`}
               >
-                {filter === f.id && (
+                {groupMode === g && (
                   <motion.div
-                    layoutId="filterPill"
+                    layoutId="groupModePill"
                     className="absolute inset-0 bg-accent z-0"
                     transition={{ type: "spring", stiffness: 500, damping: 40 }}
                   />
                 )}
-                <span className="relative z-10">{f.label}</span>
+                <span className="relative z-10">
+                  By {g === "format" ? "Format" : "Week"}
+                </span>
               </button>
             ))}
           </div>
-          {project.folders.length > 0 && (
-            <select
-              value={folderFilter}
-              onChange={(e) => setFolderFilter(e.target.value)}
-              className="bg-bg border border-line2 text-muted text-xs font-semibold px-3 py-2.5 outline-none focus:border-accent"
-            >
-              <option value="ALL">Folder: All</option>
-              {project.folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  Folder: {f.name}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
-        <div className="inline-flex border border-line2">
-          {(["format", "week"] as const).map((g) => (
-            <button
-              key={g}
-              onClick={() => setGroupMode(g)}
-              className={`relative cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2.5 border-l border-line2 first:border-l-0 ${
-                groupMode === g ? "text-bg" : "text-muted"
-              }`}
-            >
-              {groupMode === g && (
-                <motion.div
-                  layoutId="groupModePill"
-                  className="absolute inset-0 bg-accent z-0"
-                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                />
+
+        {groups.map(renderGroup)}
+
+        {pastYearFolders.map((yf) => {
+          const isOpen = expandedYears.has(yf.year);
+          return (
+            <div key={yf.year} className="mb-9">
+              <button
+                onClick={() =>
+                  setExpandedYears((s) => {
+                    const next = new Set(s);
+                    if (next.has(yf.year)) next.delete(yf.year);
+                    else next.add(yf.year);
+                    return next;
+                  })
+                }
+                className="cursor-pointer w-full flex items-center gap-3 border-b border-line2 pb-2.5 mb-4 text-left"
+              >
+                <span className="text-[11px]">{isOpen ? "▾" : "▸"}</span>
+                <span className="text-[15px] font-extrabold">{yf.year}</span>
+                <span className="text-[11px] text-muted">{yf.count}</span>
+              </button>
+              {isOpen && (
+                <div className="pl-6">{yf.weeks.map(renderGroup)}</div>
               )}
-              <span className="relative z-10">
-                By {g === "format" ? "Format" : "Week"}
-              </span>
-            </button>
-          ))}
-        </div>
+            </div>
+          );
+        })}
+
+        {filter === "FAV" && groups.length === 0 && (
+          <div className="border border-line px-6 py-16 text-center mt-0.5">
+            <div className="text-2xl text-dim mb-3">♥</div>
+            <div className="text-[15px] font-bold mb-1.5">No favorites yet</div>
+            <div className="text-[13px] text-muted">
+              Tap the heart on any still to add it to this collection.
+            </div>
+          </div>
+        )}
       </div>
-
-      {groups.map(renderGroup)}
-
-      {pastYearFolders.map((yf) => {
-        const isOpen = expandedYears.has(yf.year);
-        return (
-          <div key={yf.year} className="mb-9">
-            <button
-              onClick={() =>
-                setExpandedYears((s) => {
-                  const next = new Set(s);
-                  if (next.has(yf.year)) next.delete(yf.year);
-                  else next.add(yf.year);
-                  return next;
-                })
-              }
-              className="cursor-pointer w-full flex items-center gap-3 border-b border-line2 pb-2.5 mb-4 text-left"
-            >
-              <span className="text-[11px]">{isOpen ? "▾" : "▸"}</span>
-              <span className="text-[15px] font-extrabold">{yf.year}</span>
-              <span className="text-[11px] text-muted">{yf.count}</span>
-            </button>
-            {isOpen && <div className="pl-6">{yf.weeks.map(renderGroup)}</div>}
-          </div>
-        );
-      })}
-
-      {filter === "FAV" && groups.length === 0 && (
-        <div className="border border-line px-6 py-16 text-center mt-0.5">
-          <div className="text-2xl text-dim mb-3">♥</div>
-          <div className="text-[15px] font-bold mb-1.5">No favorites yet</div>
-          <div className="text-[13px] text-muted">
-            Tap the heart on any still to add it to this collection.
-          </div>
-        </div>
-      )}
 
       {openPhotoId && (
         <ImageViewer

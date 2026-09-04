@@ -103,6 +103,79 @@ async function seedSocial() {
 }
 
 /**
+ * §13 publish states on 57.NYC's IG Posting project.
+ *
+ * Without these every publishState is NONE, the client posts panel never renders, and
+ * the approval loop — the highest-priority thing in the handoff — has nothing to test
+ * against. Four states, because each one shows a different set of controls: one waiting
+ * on the client, one they already approved, one already out, one they held.
+ */
+async function seedPublishStates() {
+  const assets = await db.asset.findMany({
+    where: { projectId: "p8" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (assets.length < 4) return;
+
+  const at = (days: number, hour: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + days);
+    d.setUTCHours(hour, 0, 0, 0);
+    return d;
+  };
+
+  // Waiting on the client, with a deadline far enough out that the worker's auto-approve
+  // sweep cannot fire mid-suite and change what a test is looking at.
+  await db.asset.update({
+    where: { id: assets[0].id },
+    data: {
+      publishAt: at(3, 10),
+      publishIg: true,
+      publishYt: true,
+      publishState: "AWAITING",
+      approvalDueAt: at(2, 10),
+      caption: "Behind the scenes from the rooftop set — full film out Friday.",
+      contentTitle: "TOVA (FAM ONLY)",
+    },
+  });
+
+  await db.asset.update({
+    where: { id: assets[1].id },
+    data: {
+      publishAt: at(5, 17),
+      publishIg: true,
+      publishState: "APPROVED",
+      approvedAt: new Date(),
+      caption: "Nothing beats golden hour on the roof.",
+    },
+  });
+
+  await db.asset.update({
+    where: { id: assets[2].id },
+    data: {
+      publishAt: at(-4, 10),
+      publishIg: true,
+      publishState: "PUBLISHED",
+      caption: "Out now.",
+    },
+  });
+
+  // Held by the client: back to DRAFT with the auto-approve clock cleared, which is
+  // exactly what the hold endpoint does.
+  await db.asset.update({
+    where: { id: assets[3].id },
+    data: {
+      publishAt: at(6, 11),
+      publishIg: true,
+      publishState: "DRAFT",
+      heldAt: new Date(),
+      caption: "Needs a different opening line.",
+    },
+  });
+}
+
+/**
  * Give the seeded assets the poster the proxy worker would have written.
  *
  * proxyGen.ts renders _derived/<assetId>/thumb.jpg and stores that in thumbRelPath, and
@@ -502,6 +575,7 @@ async function main() {
   });
 
   await seedSocial();
+  await seedPublishStates();
   await seedThumbs();
 
   console.log("Done. Dev login password for every seeded user: " + DEV_PASSWORD);
