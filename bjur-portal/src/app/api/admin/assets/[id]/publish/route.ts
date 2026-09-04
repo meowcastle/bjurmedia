@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendApprovalRequest } from "@/lib/approvalMail";
 
 type Action = "schedule" | "request-approval" | "approve" | "unschedule" | "release-hold";
 
@@ -103,10 +104,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const updated = await db.asset.update({
       where: { id },
-      data: { publishState: "AWAITING", approvalDueAt: dueAt, heldAt: null, approvedAt: null, approvedById: null },
+      data: {
+        publishState: "AWAITING",
+        approvalDueAt: dueAt,
+        heldAt: null,
+        approvedAt: null,
+        approvedById: null,
+        approvalRemindedAt: null,
+      },
       select: { publishState: true, approvalDueAt: true },
     });
-    return NextResponse.json({ ok: true, ...updated });
+
+    // After the state change, and it cannot throw: a post left in AWAITING with no email
+    // is recoverable, one the admin believes is still a draft is not.
+    const { sent } = await sendApprovalRequest(id);
+    return NextResponse.json({ ok: true, ...updated, emailsSent: sent });
   }
 
   if (body.action === "approve" || body.action === "release-hold") {

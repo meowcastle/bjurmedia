@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getProjectAccess } from "@/lib/projectAccess";
 import { db } from "@/lib/db";
 import { postSlackEvent } from "@/lib/slack";
+import { applyPostAction } from "@/lib/postActions";
 
 type Action = "approve" | "hold" | "caption";
 
@@ -54,70 +55,11 @@ export async function POST(
   const { action, caption } = (await req.json()) as { action: Action; caption?: string };
 
   if (action === "approve" || action === "hold") {
-    // Only a post actually waiting on the client can be approved or held. Approving
-    // something already PUBLISHING or PUBLISHED is meaningless, and letting it through
-    // would overwrite the worker's own state mid-flight.
-    if (asset.publishState !== "AWAITING") {
-      return NextResponse.json(
-        { error: "This post isn't waiting for approval." },
-        { status: 409 }
-      );
-    }
-  }
-
-  if (action === "approve") {
-    const updated = await db.asset.update({
-      where: { id: assetId },
-      data: {
-        publishState: "APPROVED",
-        approvedById: session.id,
-        approvedAt: new Date(),
-        heldAt: null,
-      },
-      select: { publishState: true, approvedAt: true },
-    });
-    await db.activity.create({
-      data: { actor: project.client.name, action: `approved "${asset.name}" for publishing` },
-    });
-    await postSlackEvent({
-      clientId: project.clientId,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:white_check_mark: *${project.client.name}* approved *${asset.name}* for publishing`,
-          },
-        },
-      ],
-    });
-    return NextResponse.json({ ok: true, ...updated });
-  }
-
-  if (action === "hold") {
-    // Hold stops the clock rather than cancelling: the post stays scheduled and staff
-    // decide what happens next. Auto-approve checks heldAt, so it will not fire.
-    const updated = await db.asset.update({
-      where: { id: assetId },
-      data: { publishState: "DRAFT", heldAt: new Date(), approvalDueAt: null },
-      select: { publishState: true, heldAt: true },
-    });
-    await db.activity.create({
-      data: { actor: project.client.name, action: `held "${asset.name}" — needs a change before publishing` },
-    });
-    await postSlackEvent({
-      clientId: project.clientId,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:raised_hand: *${project.client.name}* put *${asset.name}* on hold — it will not auto-publish`,
-          },
-        },
-      ],
-    });
-    return NextResponse.json({ ok: true, ...updated });
+    // Shared with the signed-link route the approval email points at, so the two cannot
+    // drift into enforcing different rules.
+    const result = await applyPostAction(assetId, action, { kind: "user", userId: session.id });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json({ ok: true, publishState: result.state });
   }
 
   if (action === "caption") {

@@ -3,6 +3,7 @@ import { resolveDerivedPath } from "@/lib/media";
 import { refreshAccessToken, youtubeOAuthConfigured } from "@/lib/youtubeAuth";
 import { uploadVideo } from "@/lib/youtubeUpload";
 import { postSlackEvent } from "@/lib/slack";
+import { sendStaffAlert } from "@/lib/approvalMail";
 
 /** Three tries, then it stops and asks a human rather than hammering someone's channel. */
 export const MAX_PUBLISH_ATTEMPTS = 3;
@@ -40,6 +41,27 @@ async function alertStaff(text: string) {
   await postSlackEvent({
     blocks: [{ type: "section", text: { type: "mrkdwn", text } }],
   }).catch(() => {});
+}
+
+/**
+ * Email #8 as well as the Slack ping. A publish that gave up needs someone to act, and
+ * Slack is only a notification if a person happens to be looking at the time — these
+ * fire at scheduled publish times, which are routinely evenings and weekends.
+ */
+async function alertStaffByEmail(
+  headline: string,
+  facts: { label: string; value: string }[],
+  detail: string | null,
+  actionPath: string
+) {
+  await sendStaffAlert({
+    kind: "publish-failed",
+    headline,
+    facts,
+    detail,
+    actionLabel: "Open in the portal",
+    actionPath,
+  });
 }
 
 /**
@@ -99,7 +121,7 @@ export async function publishDuePosts(now = new Date(), deps: Partial<PublishDep
       publishIg: true,
       igMediaId: true,
       publishAttempts: true,
-      project: { select: { clientId: true, title: true, client: { select: { name: true } } } },
+      project: { select: { id: true, clientId: true, title: true, client: { select: { name: true } } } },
     },
     orderBy: { publishAt: "asc" },
   });
@@ -210,6 +232,16 @@ export async function publishDuePosts(now = new Date(), deps: Partial<PublishDep
           `:x: Publishing *${asset.name}* (${asset.project.client.name} — ${asset.project.title}) failed${
             permanent ? "" : ` after ${attempt} attempts`
           }: ${message}`
+        );
+        await alertStaffByEmail(
+          `Publishing "${asset.name}" failed`,
+          [
+            { label: "Client", value: asset.project.client.name },
+            { label: "Project", value: asset.project.title },
+            { label: "Attempts", value: permanent ? "stopped immediately — needs a fix, not a retry" : String(attempt) },
+          ],
+          message,
+          `/admin/media?project=${asset.project.id}`
         );
       } else {
         console.warn(`[publish] attempt ${attempt} for ${asset.name} failed, will retry: ${message}`);

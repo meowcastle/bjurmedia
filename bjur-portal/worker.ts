@@ -11,6 +11,7 @@ import { generateProxy } from "./src/lib/proxyGen";
 import { postWeeklyDigest, postWeeklyContentCalendar } from "./src/lib/slack";
 import { syncAllSocialAccounts } from "./src/lib/socialSync";
 import { publishDuePosts } from "./src/lib/publisher";
+import { sendApprovalRequest, sendStaffAlert } from "./src/lib/approvalMail";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 
@@ -362,6 +363,76 @@ function startPublishScheduler() {
   setInterval(() => tick().catch((err) => console.error("[publish] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+/**
+ * The T-12h nudge on email #4, and the Instagram token warning on #8.
+ *
+ * The reminder is marked on the row rather than tracked in memory: a worker restart
+ * would otherwise re-send every outstanding reminder, and a client getting the same
+ * "publishes soon" mail four times is how people start filtering the sender.
+ */
+function startApprovalReminderScheduler() {
+  const REMIND_WITHIN_MS = 12 * 60 * 60 * 1000;
+  const TOKEN_WARN_DAYS = 10;
+  let lastTokenCheckOn: string | null = null;
+
+  const tick = async () => {
+    const due = await db.asset.findMany({
+      where: {
+        publishState: "AWAITING",
+        heldAt: null,
+        approvalRemindedAt: null,
+        approvalDueAt: { not: null, lte: new Date(Date.now() + REMIND_WITHIN_MS), gt: new Date() },
+      },
+      select: { id: true, name: true },
+    });
+
+    for (const asset of due) {
+      // Marked first. If the send throws we would rather miss a nudge than loop on one.
+      await db.asset.update({ where: { id: asset.id }, data: { approvalRemindedAt: new Date() } });
+      await sendApprovalRequest(asset.id, { isReminder: true });
+    }
+    if (due.length > 0) console.log(`[approvals] sent ${due.length} reminder(s)`);
+
+    // Token expiry is a once-a-day question, not a once-a-minute one.
+    const dateKey = new Date().toISOString().slice(0, 10);
+    if (lastTokenCheckOn === dateKey) return;
+    lastTokenCheckOn = dateKey;
+
+    const expiring = await db.socialAccount.findMany({
+      where: {
+        tokenExpiresAt: { not: null, lte: new Date(Date.now() + TOKEN_WARN_DAYS * 86_400_000) },
+      },
+      select: {
+        platform: true,
+        handle: true,
+        tokenExpiresAt: true,
+        clientId: true,
+        client: { select: { name: true } },
+      },
+    });
+
+    for (const account of expiring) {
+      const days = Math.max(0, Math.ceil((account.tokenExpiresAt!.getTime() - Date.now()) / 86_400_000));
+      await sendStaffAlert({
+        kind: "token-expiring",
+        headline: `${account.client.name}'s ${account.platform} connection expires in ${days} day${days === 1 ? "" : "s"}`,
+        facts: [
+          { label: "Client", value: account.client.name },
+          { label: "Account", value: account.handle || account.platform },
+          { label: "Expires", value: account.tokenExpiresAt!.toUTCString() },
+        ],
+        detail: "Reconnect the account from the client's page. Publishing and view counts both stop when it lapses.",
+        actionLabel: "Open the client",
+        actionPath: `/admin/clients/${account.clientId}`,
+      });
+    }
+    if (expiring.length > 0) console.log(`[approvals] warned staff about ${expiring.length} expiring token(s)`);
+  };
+
+  console.log(`[approvals] reminder + token-expiry sweep checking every ${SCHEDULER_POLL_MS}ms`);
+  setInterval(() => tick().catch((err) => console.error("[approvals] reminder tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -472,3 +543,4 @@ startDeliveryMailScheduler();
 startSessionSweepScheduler();
 startApprovalSweepScheduler();
 startPublishScheduler();
+startApprovalReminderScheduler();

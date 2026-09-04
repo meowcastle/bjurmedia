@@ -2,6 +2,8 @@ import nodemailer from "nodemailer";
 import { db } from "@/lib/db";
 import { renderOnboardingEmailHtml, type OnboardingEmailProps } from "@/emails/onboarding";
 import { renderDeliveryEmailHtml, type DeliveryEmailProps } from "@/emails/delivery";
+import { renderApprovalEmailHtml, type ApprovalEmailProps } from "@/emails/approval";
+import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/staffAlert";
 
 function mailFrom() {
   return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? "Bjur Media <hello@bjur.media>";
@@ -98,4 +100,17 @@ export async function sendDeliveryEmail(to: string, props: DeliveryEmailProps) {
     ? `${props.projectTitle} has been updated`
     : `Your ${props.projectTitle} deliverables are ready`;
   return sendMail({ to, subject, html });
+}
+
+export async function sendApprovalEmail(to: string, props: ApprovalEmailProps) {
+  const html = renderApprovalEmailHtml(props);
+  const subject = props.isReminder
+    ? `Reminder: "${props.title}" publishes soon`
+    : `Approve "${props.title}" before it publishes`;
+  return sendMail({ to, subject, html });
+}
+
+export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProps) {
+  const html = renderStaffAlertEmailHtml(props);
+  return sendMail({ to, subject: `[Bjur] ${props.headline}`, html });
 }

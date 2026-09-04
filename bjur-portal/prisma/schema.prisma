@@ -233,20 +233,21 @@ model Asset {
   // weekOf, which stays what it was: the grouping key the calendar and the weekly Slack
   // post read. Overloading weekOf for both would have made "which week is this in" and
   // "when exactly does it go out" the same field, and they are not.
-  publishAt       DateTime?
-  publishIg       Boolean      @default(false)
-  publishYt       Boolean      @default(false)
-  collaborators   String? // JSON string[] of IG handles
-  publishState    PublishState @default(NONE)
-  approvedById    String?
-  approvedBy      User?        @relation("AssetApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
-  approvedAt      DateTime?
-  heldAt          DateTime? // client pressed Hold — blocks auto-approve until staff clear it
-  approvalDueAt   DateTime? // when auto-approve fires; set on entering AWAITING
-  publishAttempts Int          @default(0)
-  publishError    String?
-  igMediaId       String?
-  ytVideoId       String?
+  publishAt          DateTime?
+  publishIg          Boolean      @default(false)
+  publishYt          Boolean      @default(false)
+  collaborators      String? // JSON string[] of IG handles
+  publishState       PublishState @default(NONE)
+  approvedById       String?
+  approvedBy         User?        @relation("AssetApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt         DateTime?
+  heldAt             DateTime? // client pressed Hold — blocks auto-approve until staff clear it
+  approvalDueAt      DateTime? // when auto-approve fires; set on entering AWAITING
+  approvalRemindedAt DateTime? // T-12h nudge sent; cleared whenever the post re-enters AWAITING
+  publishAttempts    Int          @default(0)
+  publishError       String?
+  igMediaId          String?
+  ytVideoId          String?
 
   createdAt   DateTime     @default(now()) // "Added"
   updatedAt   DateTime     @updatedAt // "Updated"
