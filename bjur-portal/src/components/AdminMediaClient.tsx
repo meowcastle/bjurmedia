@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
-import { formatViews, formatDate, timeAgo } from "@/lib/format";
-import { mondayOfWeek } from "@/lib/weeks";
-import { buildWeeklySlackPost } from "@/lib/slackCalendar";
+import {formatViews, timeAgo } from "@/lib/format";
 import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
+import { formatSize } from "@/components/AssetTile";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 import { ManageFoldersDialog, type FolderRow } from "@/components/ManageFoldersDialog";
 
@@ -18,6 +17,8 @@ type Asset = {
   kind: "PHOTO" | "VIDEO";
   format: string;
   size: string;
+  /** Decimal string — sizeBytes is a BigInt server-side. */
+  sizeBytes: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
   reingestCount: number;
   lastReplacedAt: string | null;
@@ -73,8 +74,6 @@ export function AdminMediaClient({
   const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>({});
   const [captionYTDrafts, setCaptionYTDrafts] = useState<Record<string, string>>({});
   const [ytExpanded, setYtExpanded] = useState<Set<string>>(new Set());
-  const [selectedWeekKey, setSelectedWeekKey] = useState<string>("");
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [view, setView] = useState<"files" | "calendar">("files");
   const [grantingLicenseFor, setGrantingLicenseFor] = useState<Asset | null>(null);
@@ -88,6 +87,9 @@ export function AdminMediaClient({
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
   const [folderFilterId, setFolderFilterId] = useState<string>("ALL");
+  // "NEEDS_WEEK" is not a format — it is the set the content calendar and the weekly
+  // Slack post both ignore, which is exactly the set worth finding quickly.
+  const [formatFilter, setFormatFilter] = useState<string>("ALL");
   const [moveTargetId, setMoveTargetId] = useState<string>("");
   const [moving, setMoving] = useState(false);
   const [moveError, setMoveError] = useState<string | null>(null);
@@ -109,7 +111,7 @@ export function AdminMediaClient({
     setCaptionDrafts({});
     setCaptionYTDrafts({});
     setYtExpanded(new Set());
-    setSelectedWeekKey("");
+    setFormatFilter("ALL");
     setConfirmingDeleteId(null);
     setDeleteError(null);
     setSelectedIds(new Set());
@@ -135,12 +137,25 @@ export function AdminMediaClient({
     setSelectedIds((ids) => new Set([...ids].filter((id) => stillPresent.has(id))));
   }
 
-  const tableRows =
+  const byFolder =
     folderFilterId === "ALL"
       ? rows
       : folderFilterId === "UNSORTED"
         ? rows.filter((r) => !r.folderId)
         : rows.filter((r) => r.folderId === folderFilterId);
+
+  const tableRows =
+    formatFilter === "ALL"
+      ? byFolder
+      : formatFilter === "NEEDS_WEEK"
+        ? byFolder.filter((r) => !r.weekOf && !r.internal)
+        : byFolder.filter((r) => r.format === formatFilter);
+
+  const needsWeekCount = byFolder.filter((r) => !r.weekOf && !r.internal).length;
+  const formatCounts = byFolder.reduce<Record<string, number>>((acc, r) => {
+    acc[r.format] = (acc[r.format] ?? 0) + 1;
+    return acc;
+  }, {});
 
   // Proxy generation happens out-of-band in the worker container, so nothing on this
   // page would otherwise learn a status changed short of a manual reload. Polling only
@@ -158,42 +173,12 @@ export function AdminMediaClient({
     selectAllRef.current.indeterminate = selectedIds.size > 0 && selectedIds.size < tableRows.length;
   }, [selectedIds, tableRows.length]);
 
+  const totalBytes = rows.reduce((n, r) => n + Number(r.sizeBytes), 0);
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
   const failed = rows.filter((a) => a.proxyStatus === "FAILED").length;
 
-  // Distinct weeks present among this project's assets, newest first — the
-  // source list for the "Copy Slack post" week picker.
-  const weeks = useMemo(() => {
-    const map = new Map<string, Date>();
-    for (const a of rows) {
-      if (!a.weekOf) continue;
-      const monday = mondayOfWeek(new Date(a.weekOf));
-      map.set(monday.toISOString(), monday);
-    }
-    return [...map.values()].sort((a, b) => b.getTime() - a.getTime());
-  }, [rows]);
 
-  const activeWeekKey = selectedWeekKey || weeks[0]?.toISOString() || "";
-
-  async function copySlackPost() {
-    const weekStart = weeks.find((w) => w.toISOString() === activeWeekKey);
-    if (!weekStart) return;
-    const text = buildWeeklySlackPost(
-      weekStart,
-      rows
-        .filter((a): a is Asset & { weekOf: string } => a.weekOf != null)
-        .map((a) => ({
-          weekOf: new Date(a.weekOf),
-          contentTitle: a.contentTitle,
-          caption: a.caption,
-          captionYT: a.captionYT,
-        }))
-    );
-    await navigator.clipboard.writeText(text);
-    setCopyStatus("copied");
-    setTimeout(() => setCopyStatus("idle"), 2000);
-  }
 
   function selectProject(id: string) {
     router.push(`/admin/media?project=${id}`);
@@ -546,54 +531,66 @@ export function AdminMediaClient({
 
       {view === "files" && (
       <>
-      {weeks.length > 0 && (
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Slack post</span>
-          <select
-            value={activeWeekKey}
-            onChange={(e) => setSelectedWeekKey(e.target.value)}
-            className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
-          >
-            {weeks.map((w) => (
-              <option key={w.toISOString()} value={w.toISOString()}>
-                Week of {formatDate(w)}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={copySlackPost}
-            className="cursor-pointer text-[11px] font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2.5"
-          >
-            {copyStatus === "copied" ? "Copied ✓" : "Copy Slack post"}
-          </button>
-        </div>
-      )}
+      {/* §10: five stat tiles replaced by one line. They spent a whole row restating
+          what the table shows, and the fifth ("Workers online: 1") was a hardcoded
+          literal — it never reflected anything. */}
+      <div className="flex items-center gap-2.5 flex-wrap text-[13px] text-muted mb-4">
+        <span>{rows.length} assets</span>
+        <span className="w-1 h-1 rounded-full bg-dim" />
+        <span className="tabular-nums">{formatSize(totalBytes)}</span>
+        <span className="w-1 h-1 rounded-full bg-dim" />
+        <span className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-success" />
+          {ready} ready
+        </span>
+        {generating > 0 && (
+          <>
+            <span className="w-1 h-1 rounded-full bg-dim" />
+            <span className="text-accentb">{generating} generating</span>
+          </>
+        )}
+        {failed > 0 && (
+          <>
+            <span className="w-1 h-1 rounded-full bg-dim" />
+            <Link href="/admin/media" className="text-accent font-semibold">
+              {failed} failed
+            </Link>
+          </>
+        )}
+      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 mb-6">
-        <div className="bg-s1 border border-line px-4 py-4">
-          <div className="text-[26px] font-black tracking-tight tabular-nums">{rows.length}</div>
-          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Assets</div>
-        </div>
-        <div className="bg-s1 border border-line px-4 py-4">
-          <div className="text-[26px] font-black tracking-tight tabular-nums text-success">{ready}</div>
-          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Proxies ready</div>
-        </div>
-        <div className="bg-s1 border border-line px-4 py-4">
-          <div className={`text-[26px] font-black tracking-tight tabular-nums ${generating ? "text-accentb" : "text-dim"}`}>
-            {generating}
-          </div>
-          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">In queue</div>
-        </div>
-        <div className="bg-s1 border border-line px-4 py-4">
-          <div className={`text-[26px] font-black tracking-tight tabular-nums ${failed ? "text-accent" : "text-dim"}`}>
-            {failed}
-          </div>
-          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Failed</div>
-        </div>
-        <div className="bg-s1 border border-line px-4 py-4">
-          <div className="text-[26px] font-black tracking-tight tabular-nums">1</div>
-          <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">Workers online</div>
-        </div>
+      <div className="flex items-center gap-2 flex-wrap mb-5">
+        {[
+          { id: "ALL", label: `All ${byFolder.length}` },
+          ...Object.keys(formatCounts)
+            .sort()
+            .map((f) => ({ id: f, label: `${f} ${formatCounts[f]}` })),
+        ].map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setFormatFilter(c.id)}
+            className={`cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2 border ${
+              formatFilter === c.id
+                ? "bg-text text-bg border-text"
+                : "border-line2 text-muted hover:text-text"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+        {needsWeekCount > 0 && (
+          <button
+            onClick={() => setFormatFilter("NEEDS_WEEK")}
+            title="Client-visible files with no delivery week — invisible to the calendar and the weekly Slack post"
+            className={`cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2 border ${
+              formatFilter === "NEEDS_WEEK"
+                ? "bg-accentb text-bg border-accentb"
+                : "border-accentb/60 text-accentb hover:border-accentb"
+            }`}
+          >
+            Needs week {needsWeekCount}
+          </button>
+        )}
       </div>
 
       {selectedIds.size > 0 && (

@@ -77,6 +77,7 @@ export default async function AdminMediaPage({
         kind: a.kind,
         format: a.format,
         size: formatBytes(a.sizeBytes),
+        sizeBytes: a.sizeBytes.toString(),
         proxyStatus: a.proxyStatus,
         reingestCount: a.reingestCount,
         lastReplacedAt: a.lastReplacedAt?.toISOString() ?? null,
