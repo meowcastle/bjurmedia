@@ -4,6 +4,9 @@ import { renderOnboardingEmailHtml, type OnboardingEmailProps } from "@/emails/o
 import { renderDeliveryEmailHtml, type DeliveryEmailProps } from "@/emails/delivery";
 import { renderApprovalEmailHtml, type ApprovalEmailProps } from "@/emails/approval";
 import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/staffAlert";
+import { renderWeeklyDigestEmailHtml, type WeeklyDigestEmailProps } from "@/emails/weekly";
+import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
+import { renderLicenseEmailHtml, type LicenseEmailProps } from "@/emails/license";
 
 function mailFrom() {
   return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? "Bjur Media <hello@bjur.media>";
@@ -113,4 +116,33 @@ export async function sendApprovalEmail(to: string, props: ApprovalEmailProps) {
 export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProps) {
   const html = renderStaffAlertEmailHtml(props);
   return sendMail({ to, subject: `[Bjur] ${props.headline}`, html });
+}
+
+export async function sendWeeklyDigestEmail(to: string, props: WeeklyDigestEmailProps) {
+  return sendMail({
+    to,
+    subject: `Your week of ${props.weekLabel}`,
+    html: renderWeeklyDigestEmailHtml(props),
+  });
+}
+
+export async function sendExpiryEmail(to: string, props: ExpiryEmailProps) {
+  return sendMail({
+    to,
+    subject:
+      props.daysLeft <= 3
+        ? `Last chance: ${props.projectTitle} closes in ${props.daysLeft} days`
+        : `${props.projectTitle} closes in ${props.daysLeft} days`,
+    html: renderExpiryEmailHtml(props),
+  });
+}
+
+export async function sendLicenseEmail(to: string, props: LicenseEmailProps) {
+  return sendMail({
+    to,
+    subject: props.granted
+      ? `${props.assetName} has been licensed to ${props.clientName}`
+      : `Your license for ${props.assetName}`,
+    html: renderLicenseEmailHtml(props),
+  });
 }

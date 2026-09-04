@@ -12,6 +12,7 @@ import { postWeeklyDigest, postWeeklyContentCalendar } from "./src/lib/slack";
 import { syncAllSocialAccounts } from "./src/lib/socialSync";
 import { publishDuePosts } from "./src/lib/publisher";
 import { sendApprovalRequest, sendStaffAlert } from "./src/lib/approvalMail";
+import { sendWeeklyDigests, sendExpiryReminders } from "./src/lib/clientMail";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 
@@ -433,6 +434,49 @@ function startApprovalReminderScheduler() {
   setInterval(() => tick().catch((err) => console.error("[approvals] reminder tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+/**
+ * Emails #3 and #5.
+ *
+ * The digest fires Monday 08:00 UTC and is guarded by a persisted marker rather than an
+ * in-memory flag: the older digest scheduler tracks its last run in a variable, so a
+ * restart on a Monday morning sends everything twice. Expiry is swept continuously
+ * because its own marker lives on the project row.
+ */
+function startClientMailScheduler() {
+  const DIGEST_DAY = 1; // Monday
+  const DIGEST_HOUR = 8;
+
+  const tick = async () => {
+    const now = new Date();
+
+    if (now.getUTCDay() === DIGEST_DAY && now.getUTCHours() >= DIGEST_HOUR) {
+      const weekStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)
+      );
+      const config = await db.socialConfig.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+      const already = config.lastWeeklyDigestOn === weekStart.toISOString().slice(0, 10);
+
+      if (!already) {
+        // Recorded before sending. A crash halfway through is a digest some people miss;
+        // re-running it is a digest everyone gets twice, which is worse.
+        await db.socialConfig.update({
+          where: { id: 1 },
+          data: { lastWeeklyDigestOn: weekStart.toISOString().slice(0, 10) },
+        });
+        const { sent } = await sendWeeklyDigests(weekStart);
+        if (sent > 0) console.log(`[client-mail] weekly digest sent to ${sent} recipient(s)`);
+      }
+    }
+
+    const { sent } = await sendExpiryReminders();
+    if (sent > 0) console.log(`[client-mail] ${sent} expiry reminder(s) sent`);
+  };
+
+  console.log(`[client-mail] digest + expiry scheduler checking every ${SCHEDULER_POLL_MS}ms`);
+  tick().catch((err) => console.error("[client-mail] initial run failed:", err));
+  setInterval(() => tick().catch((err) => console.error("[client-mail] tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -544,3 +588,4 @@ startSessionSweepScheduler();
 startApprovalSweepScheduler();
 startPublishScheduler();
 startApprovalReminderScheduler();
+startClientMailScheduler();

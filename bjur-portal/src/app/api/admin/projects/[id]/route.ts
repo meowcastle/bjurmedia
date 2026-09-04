@@ -30,6 +30,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       );
     }
     data.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
+    // Re-arm both reminders. Extending a gallery otherwise leaves a client who was
+    // warned once against the old date and never warned again against the new one.
+    data.expiryReminderSentFor = null;
   }
 
   const updated = await db.project.update({ where: { id }, data });

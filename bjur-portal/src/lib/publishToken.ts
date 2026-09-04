@@ -66,3 +66,41 @@ export function verifyPublishToken(token: string | null | undefined): PublishTok
 
   return payload;
 }
+
+
+/**
+ * Signed thumbnail URLs for email.
+ *
+ * Mail clients fetch images with no cookies, so /api/assets/:id/thumb would 401 for
+ * every recipient. A short-lived signature lets the image load without opening the
+ * asset to anyone who guesses an id: it names one asset and dies in seven days.
+ */
+export function signThumbUrl(portalUrl: string, assetId: string, ttlMs = 7 * 86_400_000) {
+  const exp = Date.now() + ttlMs;
+  const body = Buffer.from(JSON.stringify({ assetId, exp })).toString("base64url");
+  return `${portalUrl}/api/assets/${assetId}/thumb?sig=${body}.${sign(body)}`;
+}
+
+export function verifyThumbSignature(assetId: string, sig: string | null | undefined) {
+  if (!sig) return false;
+  const [body, mac] = sig.split(".");
+  if (!body || !mac) return false;
+
+  let expected: string;
+  try {
+    expected = sign(body);
+  } catch {
+    return false;
+  }
+  const a = Buffer.from(mac);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+
+  try {
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as { assetId: string; exp: number };
+    // Bound to the asset in the path: one signature cannot be moved to another file.
+    return payload.assetId === assetId && Date.now() <= payload.exp;
+  } catch {
+    return false;
+  }
+}

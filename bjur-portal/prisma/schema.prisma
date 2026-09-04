@@ -92,12 +92,15 @@ model Project {
   deliveryPendingAt    DateTime?
   deliveryNotifiedAt   DateTime?
 
-  createdAt     DateTime        @default(now())
-  assets        Asset[]
-  members       ProjectMember[]
-  folders       Folder[]
-  submissions   Submission[]
-  uploadBatches UploadBatch[]
+  createdAt             DateTime        @default(now())
+  assets                Asset[]
+  members               ProjectMember[]
+  folders               Folder[]
+  submissions           Submission[]
+  uploadBatches         UploadBatch[]
+  // Which reminder threshold has already gone out (14 or 3). Null = none yet, and it
+  // resets whenever expiresAt moves, so extending a gallery re-arms both.
+  expiryReminderSentFor Int?
 
   @@index([clientId])
 }
@@ -438,9 +441,12 @@ model SocialPost {
 }
 
 model SocialConfig {
-  id            Int     @id @default(1) // singleton row
-  youtubeApiKey String?
-  weeklyDay     String  @default("Tuesday")
-  weeklyTime    String  @default("09:00")
-  autoWeekly    Boolean @default(true)
+  id                 Int     @id @default(1) // singleton row
+  youtubeApiKey      String?
+  weeklyDay          String  @default("Tuesday")
+  weeklyTime         String  @default("09:00")
+  autoWeekly         Boolean @default(true)
+  // ISO date of the Monday the client digest last went out. Persisted rather than held
+  // in memory: a worker restart on a Monday morning would otherwise re-send it.
+  lastWeeklyDigestOn String?
 }

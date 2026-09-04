@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { composeCustomScope, computeExpiresAt } from "@/lib/licensing";
 import { postSlackEvent } from "@/lib/slack";
+import { sendLicenseReceipt } from "@/lib/clientMail";
 
 /**
  * Admin-granted enterprise license — the negotiated-deal counterpart to the
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest) {
       expiresAt,
     },
   });
+
+  // Email #6. Fire-and-forget by design: a receipt that fails must not roll back a
+  // license the client already holds.
+  await sendLicenseReceipt(license.id);
 
   await db.activity.create({
     data: {
