@@ -9,6 +9,7 @@ import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { formatSize } from "@/components/AssetTile";
 import { RowMenu, RowMenuItem } from "@/components/RowMenu";
+import { AdminProxyViewer } from "@/components/AdminProxyViewer";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 import { ManageFoldersDialog, type FolderRow } from "@/components/ManageFoldersDialog";
 
@@ -22,6 +23,11 @@ type Asset = {
   sizeBytes: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
   thumbReady: boolean;
+  dims: string | null;
+  durationSec: number | null;
+  masterCodec: string | null;
+  proxyRes: string | null;
+  relPath: string;
   reingestCount: number;
   lastReplacedAt: string | null;
   internal: boolean;
@@ -82,6 +88,7 @@ export function AdminMediaClient({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   // A thumb that 404s falls back to the gradient rather than an empty broken-image box.
   const [thumbFailed, setThumbFailed] = useState<Set<string>>(new Set());
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -600,6 +607,20 @@ export function AdminMediaClient({
         )}
       </div>
 
+      {previewId && (
+        <AdminProxyViewer
+          // Keyed on the active file: moving to the next one remounts, which resets
+          // playback state without an effect that writes state on every id change.
+          key={previewId}
+          assets={tableRows}
+          activeId={previewId}
+          onNavigate={setPreviewId}
+          onClose={() => setPreviewId(null)}
+          onRegenerate={(a) => retry(rows.find((r) => r.id === a.id)!)}
+          onToggleInternal={(a) => toggleInternal(rows.find((r) => r.id === a.id)!)}
+        />
+      )}
+
       {/* §10: the bulk actions were an inline block that pushed the table down and
           scrolled away with it. Fixed to the bottom, matching the client-side selection
           bar, so the count and the actions stay where the eye is while selecting.
@@ -911,6 +932,14 @@ export function AdminMediaClient({
                     <RowMenu label={`Actions for ${a.name}`}>
                       {(close) => (
                         <>
+                          <RowMenuItem
+                            onClick={() => {
+                              setPreviewId(a.id);
+                              close();
+                            }}
+                          >
+                            Preview proxy
+                          </RowMenuItem>
                           <RowMenuItem
                             onClick={() => {
                               toggleInternal(a);

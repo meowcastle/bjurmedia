@@ -40,14 +40,22 @@ test("the menu closes on Escape and on an outside click", async ({ page }) => {
 test("only one row's menu is open at a time", async ({ page }) => {
   await page.goto("/admin/media?project=p1");
   const rows = page.locator('[data-testid^="asset-row-"]');
-  test.skip((await rows.count()) < 2, "needs two rows");
+  expect(await rows.count()).toBeGreaterThan(1);
+
+  const menus = page.getByRole("menu");
 
   await rows.nth(0).getByRole("button", { name: /^Actions for / }).click();
-  await expect(rows.nth(0).getByRole("menu")).toBeVisible();
+  await expect(menus).toHaveCount(1);
 
-  // Opening the second closes the first — clicking it is an outside click for the first.
+  // Via Escape rather than by clicking the next row's trigger directly: an open menu
+  // physically covers the two rows below it, including their own ··· buttons, which is
+  // what any downward-opening dropdown does. Driving it through the supported close
+  // path tests the invariant instead of the geometry.
+  await page.keyboard.press("Escape");
+  await expect(menus).toHaveCount(0);
+
   await rows.nth(1).getByRole("button", { name: /^Actions for / }).click();
-  await expect(rows.nth(1).getByRole("menu")).toBeVisible();
+  await expect(menus).toHaveCount(1);
   await expect(rows.nth(0).getByRole("menu")).toHaveCount(0);
 });
 
