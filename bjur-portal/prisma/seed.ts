@@ -9,8 +9,85 @@ const db = new PrismaClient();
 
 const DEV_PASSWORD = "bjurmedia2026";
 
+function daysAgo(n: number) {
+  return new Date(new Date().getTime() - n * 86_400_000);
+}
+
 function run(cmd: string, args: string[]) {
   return new Promise<boolean>((resolve) => execFile(cmd, args, (err) => resolve(!err)));
+}
+
+/**
+ * Social accounts and the posts they report views for.
+ *
+ * The seed created neither, so every surface that reads them — the view-count chips on
+ * the admin media rows, the reports page's top posts, and the Integrations page's client
+ * accounts roll-up — rendered its empty state and nothing else, in dev and under test
+ * alike.
+ *
+ * One account is deliberately left with a lastSyncError. A token that has expired or
+ * been revoked is otherwise completely silent: the account still reads as connected and
+ * the numbers simply stop moving.
+ */
+async function seedSocial() {
+  const igAccount = await db.socialAccount.create({
+    data: {
+      clientId: "c2",
+      platform: "INSTAGRAM",
+      externalId: "17841400000000001",
+      handle: "@57nyc",
+      accessToken: "seed-not-a-real-token",
+      lastSyncedAt: daysAgo(1),
+    },
+  });
+
+  await db.socialAccount.create({
+    data: {
+      clientId: "c1",
+      platform: "YOUTUBE",
+      externalId: "UCseedSSHchannelid",
+      handle: "@sshstudio",
+      lastSyncedAt: daysAgo(1),
+    },
+  });
+
+  // Connected, and quietly broken.
+  await db.socialAccount.create({
+    data: {
+      clientId: "c3",
+      platform: "INSTAGRAM",
+      externalId: "17841400000000002",
+      handle: "@suyinsama",
+      accessToken: "seed-expired-token",
+      lastSyncedAt: daysAgo(9),
+      lastSyncError: "Token expired — reconnect the account to resume syncing.",
+    },
+  });
+
+  const igAssets = await db.asset.findMany({
+    where: { projectId: "p8" },
+    orderBy: { createdAt: "asc" },
+    take: 4,
+    select: { id: true, name: true },
+  });
+
+  let n = 0;
+  for (const a of igAssets) {
+    n++;
+    await db.socialPost.create({
+      data: {
+        socialAccountId: igAccount.id,
+        assetId: a.id,
+        externalPostId: `seed_ig_${n}`,
+        permalink: `https://www.instagram.com/p/seed${n}/`,
+        caption: a.name,
+        postedAt: daysAgo(n * 3),
+        viewCount: [48210, 19340, 7120, 2405][n - 1] ?? 1000,
+        matchConfidence: "auto",
+        lastFetchedAt: daysAgo(1),
+      },
+    });
+  }
 }
 
 /**
@@ -409,6 +486,7 @@ async function main() {
     ],
   });
 
+  await seedSocial();
   await seedThumbs();
 
   console.log("Done. Dev login password for every seeded user: " + DEV_PASSWORD);
