@@ -168,7 +168,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                   </span>
                   <button
                     onClick={() => toggleExpand(c.id)}
-                    className="cursor-pointer text-left text-[12px] text-dim hover:text-text inline-flex items-center gap-1.5"
+                    className="cursor-pointer text-left text-[12px] text-dim hover:text-text inline-flex items-center gap-1.5 py-2.5 -my-2.5"
                   >
                     <span className="text-[11px]">
                       {isExpanded ? "▾" : "▸"}

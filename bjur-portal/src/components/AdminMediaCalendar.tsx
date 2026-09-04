@@ -169,21 +169,21 @@ export function AdminMediaCalendar({
             <button
               onClick={() => setWeekStart((w) => addDays(w, -7))}
               aria-label="Previous week"
-              className="border border-line2 px-2.5 py-1 text-sm text-muted hover:text-text hover:border-text"
+              className="border border-line2 px-3 py-2 text-sm text-muted hover:text-text hover:border-text"
             >
               ‹
             </button>
             <button
               onClick={() => setWeekStart((w) => addDays(w, 7))}
               aria-label="Next week"
-              className="border border-line2 px-2.5 py-1 text-sm text-muted hover:text-text hover:border-text"
+              className="border border-line2 px-3 py-2 text-sm text-muted hover:text-text hover:border-text"
             >
               ›
             </button>
           </div>
           <button
             onClick={() => setWeekStart(mondayOfWeek(new Date()))}
-            className="border border-line2 px-3 py-1 text-[11px] uppercase font-bold text-muted hover:text-text hover:border-text"
+            className="border border-line2 px-3 py-2 text-[11px] uppercase font-bold text-muted hover:text-text hover:border-text"
           >
             Today
           </button>
@@ -386,7 +386,7 @@ export function AdminMediaCalendar({
             </div>
             <button
               onClick={copyPreview}
-              className="text-[10.5px] uppercase font-bold text-muted hover:text-text"
+              className="cursor-pointer text-[10.5px] uppercase font-bold text-muted hover:text-text px-2.5 py-2 -mr-2.5 -my-1"
             >
               {copied ? "Copied ✓" : "Copy"}
             </button>

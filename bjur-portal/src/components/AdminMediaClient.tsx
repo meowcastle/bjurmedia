@@ -536,7 +536,7 @@ export function AdminMediaClient({
         {selectedClientName && selectedClientId && (
           <Link
             href={`/admin/clients/${selectedClientId}`}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4 py-2.5 -my-2.5"
           >
             ← {selectedClientName}
           </Link>
@@ -866,13 +866,17 @@ export function AdminMediaClient({
                   {/* Thumbnail + filename/badges/week share a row on mobile (display:contents
                   at md: makes this wrapper disappear, restoring the plain 7-col grid). */}
                   <div className="flex items-start gap-3 md:contents">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(a.id)}
-                      onChange={() => toggleSelectOne(a.id)}
-                      aria-label={`Select ${a.name}`}
-                      className="cursor-pointer w-3.5 h-3.5 mt-1.5 shrink-0"
-                    />
+                    {/* The tap target is the label, not the 14px box: padding has no
+                        effect on a checkbox, and a thumb does not hit 14px reliably. */}
+                    <label className="flex items-center cursor-pointer p-2.5 -m-1.5 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(a.id)}
+                        onChange={() => toggleSelectOne(a.id)}
+                        aria-label={`Select ${a.name}`}
+                        className="cursor-pointer w-3.5 h-3.5 shrink-0"
+                      />
+                    </label>
                     {/* §10: 96×54. The pipeline has been generating a poster all along
                     (Asset.thumbRelPath) and the client gallery shows it; the admin table
                     was drawing a gradient over the top of it, so the one screen used to
@@ -973,7 +977,7 @@ export function AdminMediaClient({
                           }
                           onBlur={() => saveWeekOf(a)}
                           aria-label={`Delivery week for ${a.name}`}
-                          className={`bg-bg border text-[11px] px-1.5 py-1 outline-none focus:border-accent ${
+                          className={`bg-bg border text-[11px] px-1.5 py-2 outline-none focus:border-accent ${
                             a.weekOf
                               ? "border-line2 text-text"
                               : "border-accent/50 text-accentb"
@@ -992,7 +996,7 @@ export function AdminMediaClient({
                             })
                           }
                           aria-expanded={expandedRows.has(a.id)}
-                          className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-dim hover:text-text ml-2"
+                          className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-dim hover:text-text ml-2 py-2.5 -my-2.5"
                         >
                           {expandedRows.has(a.id) ? "Hide details" : "Details"}
                           {!expandedRows.has(a.id) &&
@@ -1112,7 +1116,7 @@ export function AdminMediaClient({
                             href={p.permalink}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[11px] font-semibold text-accentb hover:text-text"
+                            className="text-[11px] font-semibold text-accentb hover:text-text py-2 -my-2 inline-block"
                           >
                             ▶ {formatViews(p.viewCount)} views ↗
                           </a>
@@ -1123,7 +1127,7 @@ export function AdminMediaClient({
                         )}
                         <button
                           onClick={() => unlinkSocialPost(a.id, p.id)}
-                          className="cursor-pointer text-[10px] text-dim hover:text-accentb"
+                          className="cursor-pointer text-[10px] text-dim hover:text-accentb px-2.5 py-2 -mx-1 -my-1"
                           title="Unlink this post"
                         >
                           ✕

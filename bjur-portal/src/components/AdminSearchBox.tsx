@@ -57,7 +57,7 @@ export function AdminSearchBox() {
 
   return (
     <div ref={boxRef} className="relative w-[150px] md:w-[220px] lg:w-[300px]">
-      <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2">
+      <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2.5 md:py-2">
         <span className="text-dim text-sm">⌕</span>
         <input
           ref={inputRef}
@@ -67,7 +67,7 @@ export function AdminSearchBox() {
           placeholder="Search clients, projects, files…"
           aria-label="Search clients, projects and files"
           aria-keyshortcuts="Meta+K Control+K"
-          className="flex-1 bg-transparent border-0 text-text text-[13px] outline-none min-w-0"
+          className="flex-1 bg-transparent border-0 text-text text-[13px] outline-none min-w-0 py-1.5 md:py-0"
         />
         {!isOpen && !query && (
           <span className="hidden lg:inline flex-none text-[10px] font-semibold text-dim border border-line2 px-1.5 py-0.5">

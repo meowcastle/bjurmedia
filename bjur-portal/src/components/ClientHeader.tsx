@@ -23,7 +23,7 @@ export function ClientHeader({
 
   return (
     <div className="flex items-center gap-4 px-4 sm:px-6 md:px-10 py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
-      <Link href="/" className="flex items-center gap-2.5 flex-none">
+      <Link href="/" className="flex items-center gap-2.5 flex-none py-2.5 -my-2.5">
         <div className="w-3.5 h-3.5 bg-accent flex-none" />
         <span className="font-black text-[15px]">BJUR</span>
         <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">

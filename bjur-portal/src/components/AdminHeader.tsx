@@ -51,7 +51,7 @@ export function AdminHeader({ userName }: { userName: string }) {
 
   return (
     <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-2 px-4 md:px-10 py-3 md:py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
-      <Link href="/admin" className="flex items-center gap-2.5 flex-none">
+      <Link href="/admin" className="flex items-center gap-2.5 flex-none py-2.5 -my-2.5">
         <div className="w-3.5 h-3.5 bg-accent" />
         <span className="font-black text-[15px]">BJUR</span>
         <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">MEDIA</span>
