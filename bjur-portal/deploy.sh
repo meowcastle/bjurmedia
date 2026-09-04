@@ -36,6 +36,47 @@ else
   echo "    no database yet, skipping"
 fi
 
+# Pull first. This script used to build whatever happened to be checked out, which
+# meant a deploy could run start to finish, report success, and ship the previous
+# release — the same silent no-op as the --force-recreate bug below, in a different
+# place. The commit is now printed before the build as well as after, so a stale
+# checkout is visible rather than something you find out about later.
+# Git runs as whoever owns the repo, not as root. Two reasons, both of which bite:
+# objects written by root in a justin-owned repo leave files the owner can no longer
+# update, and the HTTPS remote's credentials live in the owner's home, not root's.
+REPO_OWNER=$(stat -c '%U' ../.git 2>/dev/null || echo root)
+git_as() {
+  if [ "$(id -un)" = "$REPO_OWNER" ]; then
+    git -C .. "$@"
+  else
+    sudo -u "$REPO_OWNER" git -C .. "$@"
+  fi
+}
+
+echo "==> Fetching as $REPO_OWNER"
+if ! git_as fetch --quiet origin; then
+  echo "    Could not reach origin. Deploying what is already checked out." >&2
+fi
+
+BEHIND=$(git_as rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+DIRTY=$(git_as status --porcelain | wc -l | tr -d ' ')
+
+if [ "$DIRTY" != "0" ]; then
+  echo "    Working tree has $DIRTY uncommitted change(s) — not pulling."
+  echo "    Deploying what is checked out. Commit or stash them if that is not what you want."
+elif [ "$BEHIND" = "0" ]; then
+  echo "    Already up to date with origin/main."
+else
+  echo "    $BEHIND commit(s) behind origin/main:"
+  git_as log --oneline HEAD..origin/main | sed 's/^/      /'
+  # --ff-only: a deploy is not the place to resolve a merge.
+  git_as pull --ff-only --quiet origin main
+  echo "    Pulled."
+fi
+
+echo "==> Deploying commit"
+git_as log --oneline -1 | sed 's/^/    /'
+
 echo "==> Building images"
 docker-compose build web worker
 
@@ -58,7 +99,7 @@ docker-compose ps
 
 echo
 echo "==> Running commit"
-git -C .. log --oneline -1 2>/dev/null || true
+git_as log --oneline -1 2>/dev/null || true
 
 cat <<'NOTE'
 
