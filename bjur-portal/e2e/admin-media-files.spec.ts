@@ -37,8 +37,9 @@ test("the Needs week chip finds files with no delivery week", async ({ page }) =
   const expected = Number((await chip.textContent())!.replace(/\D/g, ""));
   expect(expected).toBeGreaterThan(0);
 
-  // One "Regenerate" per row, so it counts the rows the table is showing.
-  const rowCount = () => page.getByRole("button", { name: "Regenerate" }).count();
+  // Count the rows themselves. This used to count "Regenerate" buttons, one per row,
+  // which stopped being one-per-row when the row actions moved behind a ··· menu.
+  const rowCount = () => page.locator('[data-testid^="asset-row-"]').count();
   const before = await rowCount();
 
   await chip.click();

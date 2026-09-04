@@ -8,6 +8,7 @@ import {formatViews, timeAgo } from "@/lib/format";
 import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { formatSize } from "@/components/AssetTile";
+import { RowMenu, RowMenuItem } from "@/components/RowMenu";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 import { ManageFoldersDialog, type FolderRow } from "@/components/ManageFoldersDialog";
 
@@ -174,6 +175,9 @@ export function AdminMediaClient({
   }, [selectedIds, tableRows.length]);
 
   const totalBytes = rows.reduce((n, r) => n + Number(r.sizeBytes), 0);
+  const selectedBytes = rows
+    .filter((r) => selectedIds.has(r.id))
+    .reduce((n, r) => n + Number(r.sizeBytes), 0);
   const ready = rows.filter((a) => a.proxyStatus === "READY").length;
   const generating = rows.filter((a) => a.proxyStatus === "GENERATING" || a.proxyStatus === "PENDING").length;
   const failed = rows.filter((a) => a.proxyStatus === "FAILED").length;
@@ -436,7 +440,7 @@ export function AdminMediaClient({
   }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 pb-32 max-w-[1400px] mx-auto bjfade">
       <div className="mb-6">
         {selectedClientName && selectedClientId && (
           <Link
@@ -593,79 +597,92 @@ export function AdminMediaClient({
         )}
       </div>
 
+      {/* §10: the bulk actions were an inline block that pushed the table down and
+          scrolled away with it. Fixed to the bottom, matching the client-side selection
+          bar, so the count and the actions stay where the eye is while selecting.
+
+          No bulk "set week" here on purpose: weekOf is the post's day, and the calendar
+          and Slack post both render one file per date. Setting twelve files to one week
+          would silently drop eleven of them. */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-3 flex-wrap bg-s1 border border-line px-4 py-3">
-          <span className="text-[12px] font-semibold text-text">
-            {selectedIds.size} selected
-          </span>
-          <div className="flex items-center gap-2">
-            <select
-              value={moveTargetId}
-              onChange={(e) => setMoveTargetId(e.target.value)}
-              className="bg-bg border border-line2 px-2.5 py-1.5 text-[11px] text-text outline-none"
-            >
-              <option value="">Move to…</option>
-              <option value="UNSORTED">Unsorted</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={bulkMove}
-              disabled={!moveTargetId || moving}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
-            >
-              {moving ? "Moving…" : "Move"}
-            </button>
-          </div>
-          {moveError && <div className="text-[11px] text-accentb">{moveError}</div>}
-          {confirmingBulkDelete ? (
-            <div className="flex gap-2 items-center flex-wrap">
-              <span className="text-[11px] text-muted">Delete permanently?</span>
-              <button
-                onClick={bulkDelete}
-                disabled={bulkDeleting}
-                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+        <div data-testid="bulk-bar" className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise">
+          <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(0,0,0,.6)] flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-extrabold tabular-nums">{selectedIds.size} selected</span>
+            <span className="text-[13px] text-muted tabular-nums">{formatSize(selectedBytes)}</span>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={moveTargetId}
+                onChange={(e) => setMoveTargetId(e.target.value)}
+                className="bg-bg border border-line2 px-2.5 py-1.5 text-[11px] text-text outline-none"
               >
-                {bulkDeleting ? "Deleting…" : `Confirm delete (${selectedIds.size})`}
-              </button>
+                <option value="">Move to…</option>
+                <option value="UNSORTED">Unsorted</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
               <button
-                onClick={() => {
-                  setConfirmingBulkDelete(false);
-                  setBulkDeleteError(null);
-                }}
-                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                onClick={bulkMove}
+                disabled={!moveTargetId || moving}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
               >
-                Cancel
+                {moving ? "Moving…" : "Move"}
               </button>
             </div>
-          ) : (
+
+            <div className="flex-1" />
+
+            {moveError && <span className="text-[11px] text-accentb">{moveError}</span>}
+            {bulkDeleteError && <span className="text-[11px] text-accentb">{bulkDeleteError}</span>}
+
+            {confirmingBulkDelete ? (
+              <div className="flex gap-2 items-center flex-wrap">
+                <span className="text-[11px] text-muted">Delete permanently?</span>
+                <button
+                  onClick={bulkDelete}
+                  disabled={bulkDeleting}
+                  className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                >
+                  {bulkDeleting ? "Deleting…" : `Confirm (${selectedIds.size})`}
+                </button>
+                <button
+                  onClick={() => {
+                    setConfirmingBulkDelete(false);
+                    setBulkDeleteError(null);
+                  }}
+                  className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setBulkDeleteError(null);
+                  setConfirmingBulkDelete(true);
+                }}
+                className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+              >
+                Delete
+              </button>
+            )}
             <button
-              onClick={() => {
-                setBulkDeleteError(null);
-                setConfirmingBulkDelete(true);
-              }}
-              className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+              onClick={() => setSelectedIds(new Set())}
+              className="cursor-pointer text-[11px] font-semibold uppercase text-muted hover:text-text px-2.5 py-1.5"
             >
-              Delete selected
+              Clear
             </button>
-          )}
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
-          >
-            Clear selection
-          </button>
-          {bulkDeleteError && <div className="text-[11px] text-accentb">{bulkDeleteError}</div>}
+          </div>
         </div>
       )}
 
       <div className="border border-line">
         <div
           className="hidden md:grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
-          style={{ gridTemplateColumns: "24px 56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
+          style={{ gridTemplateColumns: "24px 56px 2.4fr 1fr 1fr 1.4fr 56px" }}
         >
           <input
             ref={selectAllRef}
@@ -691,7 +708,7 @@ export function AdminMediaClient({
               key={a.id}
               data-testid={`asset-row-${a.id}`}
               className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-3.5 md:px-5 md:py-3.5 md:items-center"
-              style={{ gridTemplateColumns: "24px 56px 2.2fr 1fr 1fr 1.4fr 1.6fr" }}
+              style={{ gridTemplateColumns: "24px 56px 2.4fr 1fr 1fr 1.4fr 56px" }}
             >
               {/* Thumbnail + filename/badges/week share a row on mobile (display:contents
                   at md: makes this wrapper disappear, restoring the plain 7-col grid). */}
@@ -857,62 +874,81 @@ export function AdminMediaClient({
                   </div>
                 ) : (
                   <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
-                    <button
-                      onClick={() => toggleInternal(a)}
-                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
-                    >
-                      {a.internal ? "Show client" : "Hide"}
-                    </button>
-                    {a.proxyStatus !== "GENERATING" && (
-                      <button
-                        onClick={() => retry(a)}
-                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
-                      >
-                        {a.proxyStatus === "READY" ? "Regenerate" : "Retry"}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setDeleteError(null);
-                        setConfirmingDeleteId(a.id);
-                      }}
-                      className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-                {confirmingDeleteId === a.id && deleteError && (
-                  <div className="text-[11px] text-accentb text-left md:text-right max-w-[240px]">{deleteError}</div>
-                )}
-                {isMaster && (
-                  <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
-                    <button
-                      onClick={() => toggleLicensable(a)}
-                      className={`cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 border ${
-                        a.licensable ? "text-accentb border-accent/40" : "text-muted border-line2 hover:text-text hover:border-text"
-                      }`}
-                    >
-                      {a.licensable ? "Licensable" : "License off"}
-                    </button>
-                    {a.licensable && (
+                    {/* The price is data rather than an action, so it stays on the row
+                        where it can be read without opening anything. Everything you *do*
+                        to a file moved into the menu. */}
+                    {isMaster && a.licensable && (
                       <input
                         defaultValue={a.basePrice ?? ""}
                         onChange={(e) => setPriceDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
                         onBlur={() => savePrice(a)}
                         placeholder="Base $"
+                        aria-label={`Base price for ${a.name}`}
                         className="w-20 bg-bg border border-line2 text-text text-[11px] px-2 py-1.5 outline-none focus:border-accent"
                       />
                     )}
-                    {a.licensable && a.basePrice != null && (
-                      <button
-                        onClick={() => setGrantingLicenseFor(a)}
-                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 whitespace-nowrap"
-                      >
-                        Grant custom license
-                      </button>
-                    )}
+                    <RowMenu label={`Actions for ${a.name}`}>
+                      {(close) => (
+                        <>
+                          <RowMenuItem
+                            onClick={() => {
+                              toggleInternal(a);
+                              close();
+                            }}
+                          >
+                            {a.internal ? "Show client" : "Hide from client"}
+                          </RowMenuItem>
+                          {a.proxyStatus !== "GENERATING" && (
+                            <RowMenuItem
+                              onClick={() => {
+                                retry(a);
+                                close();
+                              }}
+                            >
+                              {a.proxyStatus === "READY" ? "Regenerate proxy" : "Retry proxy"}
+                            </RowMenuItem>
+                          )}
+                          {isMaster && (
+                            <>
+                              <div className="h-px bg-line my-1" />
+                              <RowMenuItem
+                                onClick={() => {
+                                  toggleLicensable(a);
+                                  close();
+                                }}
+                              >
+                                {a.licensable ? "License off" : "Licensable"}
+                              </RowMenuItem>
+                              {a.licensable && a.basePrice != null && (
+                                <RowMenuItem
+                                  onClick={() => {
+                                    setGrantingLicenseFor(a);
+                                    close();
+                                  }}
+                                >
+                                  Grant custom license
+                                </RowMenuItem>
+                              )}
+                            </>
+                          )}
+                          <div className="h-px bg-line my-1" />
+                          <RowMenuItem
+                            tone="danger"
+                            onClick={() => {
+                              setDeleteError(null);
+                              setConfirmingDeleteId(a.id);
+                              close();
+                            }}
+                          >
+                            Delete
+                          </RowMenuItem>
+                        </>
+                      )}
+                    </RowMenu>
                   </div>
+                )}
+                {confirmingDeleteId === a.id && deleteError && (
+                  <div className="text-[11px] text-accentb text-left md:text-right max-w-[240px]">{deleteError}</div>
                 )}
               </div>
             </div>

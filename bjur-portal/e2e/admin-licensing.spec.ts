@@ -22,10 +22,16 @@ test("admin grants a custom enterprise license", async ({ page }) => {
   // colliding with the identical "License off" button other Master rows also have.
   const row = page.locator('[data-testid^="asset-row-"]').filter({ hasText: "SSH_HeroCut_MASTER.braw" });
   await row.scrollIntoViewIfNeeded();
-  await row.getByRole("button", { name: "License off" }).click();
-  await expect(row.getByRole("button", { name: "Licensable" })).toBeVisible();
 
-  await row.getByRole("button", { name: "Grant custom license" }).click();
+  // The row actions sit behind a ··· menu now, and the menu items are verbs: "Licensable"
+  // turns licensing on. Whether it *is* on reads off the row's PAYWALLED badge.
+  const menu = row.getByRole("button", { name: /^Actions for / });
+  await menu.click();
+  await row.getByRole("menuitem", { name: "Licensable" }).click();
+  await expect(row.getByText("PAYWALLED")).toBeVisible();
+
+  await menu.click();
+  await row.getByRole("menuitem", { name: "Grant custom license" }).click();
 
   const dialog = page.locator(".fixed.inset-0.z-50");
   await expect(dialog.getByText("Grant custom license")).toBeVisible();
@@ -61,6 +67,7 @@ test("admin grants a custom enterprise license", async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/media\?project=.+/);
   const rowAgain = page.locator('[data-testid^="asset-row-"]').filter({ hasText: "SSH_HeroCut_MASTER.braw" });
   await rowAgain.scrollIntoViewIfNeeded();
-  await rowAgain.getByRole("button", { name: "Licensable" }).click();
-  await expect(rowAgain.getByRole("button", { name: "License off" })).toBeVisible();
+  await rowAgain.getByRole("button", { name: /^Actions for / }).click();
+  await rowAgain.getByRole("menuitem", { name: "License off" }).click();
+  await expect(rowAgain.getByText("PAYWALLED")).toHaveCount(0);
 });
