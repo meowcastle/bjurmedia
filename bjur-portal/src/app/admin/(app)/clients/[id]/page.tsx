@@ -55,6 +55,10 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         username: client.username,
         type: client.type,
         status: client.status,
+        // A refresh token is what separates "we can read this channel's view counts"
+        // from "we can put a video on it".
+        ytPublishReady: socialAccounts.some((a) => a.platform === "YOUTUBE" && a.refreshToken != null),
+        ytHandle: socialAccounts.find((a) => a.platform === "YOUTUBE")?.handle ?? null,
         approvalRequired: client.approvalRequired,
         approvalAutoHours: client.approvalAutoHours,
         accentColor: client.accentColor,

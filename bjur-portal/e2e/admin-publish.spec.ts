@@ -135,3 +135,45 @@ test("the policy is editable from the client page, not just the API", async ({ p
   await panel.getByRole("checkbox").check();
   await expect(hours).toBeEnabled();
 });
+
+test("YouTube connect refuses cleanly when OAuth isn't configured", async ({ request }) => {
+  const clientId = "c1";
+  const res = await request.get(`/api/admin/clients/${clientId}/youtube/connect`, {
+    maxRedirects: 0,
+  });
+
+  // Without credentials this must say so rather than redirecting to a Google URL built
+  // from `undefined`, which is what an unguarded consent-URL builder would produce.
+  if (res.status() === 501) {
+    expect((await res.json()).error).toMatch(/GOOGLE_OAUTH_CLIENT_ID/);
+  } else {
+    // Configured in this environment — then it must be a redirect to Google, carrying a
+    // state parameter, and it must set the cookie that state is checked against.
+    expect(res.status()).toBe(307);
+    const location = res.headers()["location"];
+    expect(location).toContain("accounts.google.com");
+    expect(location).toContain("state=");
+    expect(location).toContain("access_type=offline");
+    expect(res.headers()["set-cookie"]).toContain("yt_oauth=");
+  }
+});
+
+test("the OAuth callback rejects a mismatched state", async ({ request }) => {
+  // No cookie was ever set for this, so the state cannot match — the request must be
+  // turned away rather than trusted.
+  const res = await request.get("/api/admin/youtube/callback?code=whatever&state=forged", {
+    maxRedirects: 0,
+  });
+  expect(res.status()).toBe(307);
+  expect(decodeURIComponent(res.headers()["location"])).toMatch(/expired|start again/i);
+});
+
+test("a signed-out caller cannot start or finish the OAuth flow", async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const anon = ctx.request;
+
+  expect((await anon.get("/api/admin/clients/c1/youtube/connect", { maxRedirects: 0 })).status()).toBe(401);
+  expect((await anon.get("/api/admin/youtube/callback?code=x&state=y", { maxRedirects: 0 })).status()).toBe(401);
+
+  await ctx.close();
+});

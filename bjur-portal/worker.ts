@@ -10,6 +10,7 @@ import { ingestFile } from "./src/lib/ingest";
 import { generateProxy } from "./src/lib/proxyGen";
 import { postWeeklyDigest, postWeeklyContentCalendar } from "./src/lib/slack";
 import { syncAllSocialAccounts } from "./src/lib/socialSync";
+import { publishDuePosts } from "./src/lib/publisher";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 
@@ -337,6 +338,30 @@ function startApprovalSweepScheduler() {
   setInterval(() => tick().catch((err) => console.error("[approvals] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+/**
+ * Publishes approved posts once their time comes.
+ *
+ * Polls on the same interval as the other schedulers rather than sleeping until the next
+ * publishAt: a restart would lose a pending timer, and a post that missed its slot
+ * because the NAS rebooted is exactly the failure this is supposed to prevent. Anything
+ * already due is picked up on the next tick regardless of how long the worker was down.
+ */
+function startPublishScheduler() {
+  const tick = async () => {
+    const { published, failed, skipped } = await publishDuePosts();
+    if (published || failed || skipped) {
+      console.log(`[publish] ${published} published, ${failed} failed, ${skipped} already claimed`);
+    }
+  };
+
+  const configured = Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET);
+  console.log(
+    `[publish] scheduler checking every ${SCHEDULER_POLL_MS}ms — ` +
+      (configured ? "YouTube configured" : "idle, GOOGLE_OAUTH_CLIENT_ID/SECRET not set")
+  );
+  setInterval(() => tick().catch((err) => console.error("[publish] scheduler tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -446,3 +471,4 @@ startWeeklySocialSyncScheduler();
 startDeliveryMailScheduler();
 startSessionSweepScheduler();
 startApprovalSweepScheduler();
+startPublishScheduler();

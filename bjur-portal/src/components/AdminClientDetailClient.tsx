@@ -39,6 +39,8 @@ type ClientInfo = {
   username: string;
   type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
+  ytPublishReady: boolean;
+  ytHandle: string | null;
   approvalRequired: boolean;
   approvalAutoHours: number;
   accentColor: string | null;
@@ -134,6 +136,8 @@ export function AdminClientDetailClient({
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const ytPublishReady = client.ytPublishReady;
+  const ytHandle = client.ytHandle;
   const [approvalRequired, setApprovalRequired] = useState(
     client.approvalRequired,
   );
@@ -489,8 +493,28 @@ export function AdminClientDetailClient({
           <div className="border-t border-line pt-5">
             <div className="text-sm font-bold mb-1">YouTube</div>
             <div className="text-xs text-muted mb-3">
-              Channel ID only — view counts are pulled with the shared YouTube
-              API key set on the Integrations page.
+              Connect the channel to publish to it. View counts alone need only
+              a channel ID and the shared API key on the Integrations page —
+              publishing needs the channel&apos;s own consent, which is what
+              Connect asks for.
+            </div>
+            {/* The manual channel-ID fields below still exist because they are all
+                read-only insights need, and because a channel can be worth tracking
+                before anyone decides to publish to it. */}
+            <div className="flex flex-wrap items-center gap-2.5 mb-3">
+              <a
+                href={`/api/admin/clients/${client.id}/youtube/connect`}
+                className="text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2"
+              >
+                {ytPublishReady
+                  ? "Reconnect for publishing"
+                  : "Connect for publishing"}
+              </a>
+              <span className="text-xs text-muted">
+                {ytPublishReady
+                  ? `Publishing enabled${ytHandle ? ` · ${ytHandle}` : ""}`
+                  : "Not connected for publishing"}
+              </span>
             </div>
             <div className="flex flex-wrap gap-2.5">
               <input
