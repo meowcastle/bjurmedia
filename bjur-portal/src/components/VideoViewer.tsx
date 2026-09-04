@@ -25,6 +25,8 @@ export type VideoNavAsset = {
   name: string;
   licensable: boolean;
   licensed: boolean;
+  /** Formatted master size for the download control. */
+  size: string;
 };
 
 /**
@@ -170,6 +172,7 @@ export function VideoViewer({
           hasPrev={carousel.hasPrev}
           hasNext={carousel.hasNext}
           canDownload={canDownload}
+          size={currentItem.size}
           locked={activeLocked}
           assetId={currentItem.id}
           onTogglePlay={togglePlay}

@@ -29,6 +29,7 @@ export function VideoChrome({
   canDownload,
   locked,
   assetId,
+  size,
   onTogglePlay,
   onToggleMute,
   onSeek,
@@ -48,6 +49,8 @@ export function VideoChrome({
   canDownload: boolean;
   locked: boolean;
   assetId: string;
+  /** Formatted master size, e.g. "1.9 GB". */
+  size: string | null;
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onSeek: (t: number) => void;
@@ -61,6 +64,11 @@ export function VideoChrome({
   const interactive = visible ? "pointer-events-auto" : "pointer-events-none";
   return (
     <div
+      // Hidden chrome leaves the accessibility tree too, not just the eye. It is already
+      // fully click-through when hidden, so a screen reader announcing a Close button
+      // nobody can reach — and a test asserting one is on screen when it is at opacity
+      // zero — were both reading a control that is not really there.
+      aria-hidden={!visible}
       className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
@@ -130,8 +138,12 @@ export function VideoChrome({
           <span className="text-[11px] text-white/70 font-mono tabular-nums w-9">{fmtTime(duration)}</span>
         </div>
 
-        <div className={`flex items-center justify-between gap-3 ${interactive}`}>
-          <div className="flex items-center gap-2">
+        {/* The filename and the download used to share one non-shrinking row, so on a
+            phone "↓ Download master" ran off the right edge and the only way to save a
+            single clip was invisible. The name gives up its space first now, and the
+            control keeps its own. */}
+        <div className={`flex items-center justify-between gap-2 ${interactive}`}>
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -152,7 +164,7 @@ export function VideoChrome({
             >
               {muted ? "🔇" : "🔊"}
             </button>
-            <span className="text-sm text-white/80 truncate max-w-[40vw]">{name}</span>
+            <span className="text-sm text-white/80 truncate min-w-0">{name}</span>
           </div>
           {locked ? (
             <button
@@ -160,7 +172,7 @@ export function VideoChrome({
                 e.stopPropagation();
                 onRequestLicense();
               }}
-              className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-4 py-2.5 hover:bg-accentb cursor-pointer"
+              className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb cursor-pointer whitespace-nowrap"
             >
               🔒 Unlock master
             </button>
@@ -169,9 +181,9 @@ export function VideoChrome({
               <a
                 href={`/api/assets/${assetId}/download`}
                 onClick={(e) => e.stopPropagation()}
-                className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-4 py-2.5 hover:bg-accentb"
+                className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb whitespace-nowrap"
               >
-                ↓ Download master
+                ↓ Master{size ? ` · ${size}` : ""}
               </a>
             )
           )}

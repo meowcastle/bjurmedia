@@ -63,7 +63,12 @@ export function useMediaCarousel<T extends { id: string }>({
     const i = items.findIndex((v) => v.id === initialId);
     return i >= 0 ? i : 0;
   });
-  const [chromeVisible, setChromeVisible] = useState(false);
+  // Chrome starts *visible*. It used to start hidden, so opening a clip on a phone gave
+  // you a full-screen video with no close button, no download and nothing saying either
+  // existed — you had to already know to tap the screen. A tap still hides it for anyone
+  // who wants the frame clear; nothing takes it away on its own, because controls that
+  // vanish while you are reaching for them are the same complaint in a quieter form.
+  const [chromeVisible, setChromeVisible] = useState(true);
 
   // §4: a one-time "swipe for next" hint, because the ‹ › chips are gone on mobile and
   // nothing else says the carousel is swipeable.

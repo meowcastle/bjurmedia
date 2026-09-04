@@ -24,14 +24,12 @@ test("project detail: filters, photo viewer, and favorites", async ({ page }) =>
   await expect(page.getByText("SSH_Still_012.jpg")).toBeVisible();
   await expect(page.getByText("SSH_Reel_Hero.mp4")).not.toBeVisible();
 
-  // Open a still in the fullscreen photo viewer. Chrome (including the close
-  // button) is hidden until the photo area is tapped once, same as the video
-  // viewer — the tap target is a gesture-capture surface layered above the
-  // <img>, not the image itself.
+  // Open a still in the fullscreen photo viewer. The chrome, close button included,
+  // is up as soon as the viewer opens — it used to be hidden until you tapped, which
+  // meant a full-screen image with no visible way out.
   await page.getByText("SSH_Still_012.jpg").click();
   const photo = page.getByTestId("active-photo");
   await expect(photo).toBeVisible();
-  await page.getByTestId("photo-gesture-surface").click();
   await page.getByRole("button", { name: "Close" }).click();
   await expect(photo).not.toBeVisible();
 
@@ -50,11 +48,8 @@ test("project detail: video plays inline and can be closed", async ({ page }) =>
   await expect(video).toBeVisible();
   await expect(video).toHaveAttribute("src", /\/api\/assets\/.+\/proxy/);
 
-  // Chrome (including the close button) is hidden until the video area is tapped
-  // once. The tap target is a dedicated gesture-capture surface layered above the
-  // <video> element (not the video itself) — native <video> can intercept touch
-  // input, so drag/tap handling lives on this overlay instead.
-  await page.getByTestId("video-gesture-surface").click();
+  // The chrome is up on open now. Tapping the gesture surface — a dedicated overlay
+  // above the <video>, since native video intercepts touch — is what hides it.
   await page.getByRole("button", { name: "Close" }).click();
   await expect(video).not.toBeVisible();
 });
