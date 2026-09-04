@@ -1,5 +1,7 @@
 "use client";
 
+import { IconClose, IconPrev, IconNext } from "@/components/ui/Icon";
+
 const CHIP = "w-9 h-9 grid place-items-center bg-black/40 hover:bg-black/60 text-white/80 hover:text-white cursor-pointer";
 
 /**
@@ -53,7 +55,7 @@ export function PhotoChrome({
           aria-label="Close"
           className={`${CHIP} ${interactive} text-xl`}
         >
-          ✕
+          <IconClose />
         </button>
       </div>
 
@@ -66,7 +68,7 @@ export function PhotoChrome({
           aria-label="Previous photo"
           className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
-          ‹
+          <IconPrev />
         </button>
       )}
       {hasNext && (
@@ -78,7 +80,7 @@ export function PhotoChrome({
           aria-label="Next photo"
           className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
-          ›
+          <IconNext />
         </button>
       )}
 

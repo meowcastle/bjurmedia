@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { IconCheck, IconUpload } from "@/components/ui/Icon";
 
 const CHUNK_SIZE = 16 * 1024 * 1024; // 16MB
 // A 300GB delivery is ~19,200 chunks. Three attempts with a 2s ceiling is plenty for a
@@ -15,7 +16,12 @@ const MAX_CHUNK_RETRIES = 8;
 const MAX_RETRY_BACKOFF_MS = 30_000;
 
 const JUNK_BASENAMES = new Set([".DS_Store", "Thumbs.db", "desktop.ini"]);
-const JUNK_DIR_SEGMENTS = new Set([".Spotlight-V100", ".Trashes", ".fseventsd", ".TemporaryItems"]);
+const JUNK_DIR_SEGMENTS = new Set([
+  ".Spotlight-V100",
+  ".Trashes",
+  ".fseventsd",
+  ".TemporaryItems",
+]);
 
 function isJunkPath(relativePath: string) {
   const segments = relativePath.split("/");
@@ -34,7 +40,13 @@ type QueueItem = {
   note?: string;
 };
 
-type Resumable = { id: string; batchId: string; relativePath: string; sizeBytes: number; receivedBytes: number };
+type Resumable = {
+  id: string;
+  batchId: string;
+  relativePath: string;
+  sizeBytes: number;
+  receivedBytes: number;
+};
 
 type DroppedEntry = { file: File; relativePath: string };
 
@@ -50,7 +62,9 @@ function sleep(ms: number) {
 
 // webkitGetAsEntry() is a de-facto standard (Chrome/Safari/Firefox) but isn't part of
 // the DataTransferItem DOM typings.
-type ChromeDataTransferItem = DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null };
+type ChromeDataTransferItem = DataTransferItem & {
+  webkitGetAsEntry?: () => FileSystemEntry | null;
+};
 
 function readEntryFile(entry: FileSystemFileEntry): Promise<File> {
   return new Promise((resolve, reject) => entry.file(resolve, reject));
@@ -59,7 +73,9 @@ function readEntryFile(entry: FileSystemFileEntry): Promise<File> {
 // FileSystemDirectoryReader.readEntries() does NOT guarantee the full listing in one
 // call for larger directories (a documented Chrome quirk) — it must be called
 // repeatedly until it returns an empty array.
-function readAllDirectoryEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+function readAllDirectoryEntries(
+  reader: FileSystemDirectoryReader,
+): Promise<FileSystemEntry[]> {
   return new Promise((resolve, reject) => {
     const all: FileSystemEntry[] = [];
     function readBatch() {
@@ -76,13 +92,19 @@ function readAllDirectoryEntries(reader: FileSystemDirectoryReader): Promise<Fil
   });
 }
 
-async function walkEntry(entry: FileSystemEntry, prefix: string, out: DroppedEntry[]) {
+async function walkEntry(
+  entry: FileSystemEntry,
+  prefix: string,
+  out: DroppedEntry[],
+) {
   const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
   if (entry.isFile) {
     const file = await readEntryFile(entry as FileSystemFileEntry);
     out.push({ file, relativePath });
   } else if (entry.isDirectory) {
-    const entries = await readAllDirectoryEntries((entry as FileSystemDirectoryEntry).createReader());
+    const entries = await readAllDirectoryEntries(
+      (entry as FileSystemDirectoryEntry).createReader(),
+    );
     for (const child of entries) await walkEntry(child, relativePath, out);
   }
 }
@@ -95,7 +117,9 @@ async function walkEntry(entry: FileSystemEntry, prefix: string, out: DroppedEnt
  * received them returns, so the entry references must be captured up front; only the
  * actual directory walk below is async.
  */
-async function entriesFromDataTransfer(dataTransfer: DataTransfer): Promise<DroppedEntry[]> {
+async function entriesFromDataTransfer(
+  dataTransfer: DataTransfer,
+): Promise<DroppedEntry[]> {
   const topLevel: FileSystemEntry[] = [];
   for (const item of Array.from(dataTransfer.items)) {
     if (item.kind !== "file") continue;
@@ -104,7 +128,10 @@ async function entriesFromDataTransfer(dataTransfer: DataTransfer): Promise<Drop
   }
   if (topLevel.length === 0) {
     // Fallback for a browser without webkitGetAsEntry — flat files only.
-    return Array.from(dataTransfer.files).map((file) => ({ file, relativePath: file.name }));
+    return Array.from(dataTransfer.files).map((file) => ({
+      file,
+      relativePath: file.name,
+    }));
   }
   const out: DroppedEntry[] = [];
   for (const entry of topLevel) await walkEntry(entry, "", out);
@@ -118,12 +145,19 @@ function entriesFromFileList(files: FileList): DroppedEntry[] {
   return Array.from(files).map((file) => {
     const withRelPath = file as File & { webkitRelativePath?: string };
     const rel = withRelPath.webkitRelativePath;
-    const relativePath = rel ? rel.split("/").slice(1).join("/") || file.name : file.name;
+    const relativePath = rel
+      ? rel.split("/").slice(1).join("/") || file.name
+      : file.name;
     return { file, relativePath };
   });
 }
 
-async function createSubmission(projectId: string, batchId: string, relativePath: string, sizeBytes: number) {
+async function createSubmission(
+  projectId: string,
+  batchId: string,
+  relativePath: string,
+  sizeBytes: number,
+) {
   const res = await fetch(`/api/projects/${projectId}/submissions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -142,17 +176,25 @@ function putChunk(
   chunk: Blob,
   start: number,
   totalBytes: number,
-  onProgress: (loadedInChunk: number) => void
+  onProgress: (loadedInChunk: number) => void,
 ) {
   return new Promise<
-    { receivedBytes: number; complete: boolean } | { error: string; retryable: boolean }
+    | { receivedBytes: number; complete: boolean }
+    | { error: string; retryable: boolean }
   >((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `/api/projects/${projectId}/submissions/${submissionId}/chunk`);
-    xhr.setRequestHeader("Content-Range", `bytes ${start}-${start + chunk.size - 1}/${totalBytes}`);
+    xhr.open(
+      "PUT",
+      `/api/projects/${projectId}/submissions/${submissionId}/chunk`,
+    );
+    xhr.setRequestHeader(
+      "Content-Range",
+      `bytes ${start}-${start + chunk.size - 1}/${totalBytes}`,
+    );
     xhr.upload.onprogress = (e) => onProgress(e.loaded);
     xhr.onload = () => {
-      let body: { receivedBytes?: number; complete?: boolean; error?: string } = {};
+      let body: { receivedBytes?: number; complete?: boolean; error?: string } =
+        {};
       try {
         body = JSON.parse(xhr.responseText);
       } catch {
@@ -164,15 +206,25 @@ function putChunk(
       // submission itself is no longer accepting chunks (already COMPLETE/FAILED),
       // which is a real failure, not something to silently loop on.
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ receivedBytes: body.receivedBytes ?? start, complete: body.complete ?? false });
+        resolve({
+          receivedBytes: body.receivedBytes ?? start,
+          complete: body.complete ?? false,
+        });
       } else if (xhr.status === 409 && typeof body.receivedBytes === "number") {
-        resolve({ receivedBytes: body.receivedBytes, complete: body.complete ?? false });
+        resolve({
+          receivedBytes: body.receivedBytes,
+          complete: body.complete ?? false,
+        });
       } else {
         // 5xx/408/429 are worth another attempt. Any other 4xx is a decision the server
         // won't reverse on a retry (submission already COMPLETE, gone, or not ours), so
         // spending the retry budget on it only delays the error the client needs to see.
-        const retryable = xhr.status >= 500 || xhr.status === 408 || xhr.status === 429;
-        resolve({ error: body.error ?? `Upload failed (${xhr.status})`, retryable });
+        const retryable =
+          xhr.status >= 500 || xhr.status === 408 || xhr.status === 429;
+        resolve({
+          error: body.error ?? `Upload failed (${xhr.status})`,
+          retryable,
+        });
       }
     };
     xhr.onerror = () => resolve({ error: "Network error", retryable: true });
@@ -187,12 +239,17 @@ async function uploadFile(
   onProgress: (receivedBytes: number) => void,
   /** Checked between chunks. Pausing mid-chunk would throw away work already on the
    *  wire; the server resumes from receivedBytes either way. */
-  shouldPause: () => boolean
+  shouldPause: () => boolean,
 ): Promise<{ ok: boolean; note?: string; paused?: boolean }> {
   let submissionId = item.submissionId;
   if (!submissionId) {
     try {
-      submissionId = await createSubmission(projectId, batchId, item.relativePath, item.sizeBytes);
+      submissionId = await createSubmission(
+        projectId,
+        batchId,
+        item.relativePath,
+        item.sizeBytes,
+      );
     } catch (err) {
       return { ok: false, note: (err as Error).message };
     }
@@ -201,11 +258,19 @@ async function uploadFile(
   let start = item.receivedBytes;
   while (start < item.sizeBytes) {
     if (shouldPause()) return { ok: false, paused: true };
-    const chunk = item.file.slice(start, Math.min(start + CHUNK_SIZE, item.sizeBytes));
+    const chunk = item.file.slice(
+      start,
+      Math.min(start + CHUNK_SIZE, item.sizeBytes),
+    );
     let result: Awaited<ReturnType<typeof putChunk>> | null = null;
     for (let attempt = 0; attempt < MAX_CHUNK_RETRIES; attempt++) {
-      result = await putChunk(projectId, submissionId, chunk, start, item.sizeBytes, (loaded) =>
-        onProgress(start + loaded)
+      result = await putChunk(
+        projectId,
+        submissionId,
+        chunk,
+        start,
+        item.sizeBytes,
+        (loaded) => onProgress(start + loaded),
       );
       if (!("error" in result)) break;
       if (!result.retryable) break;
@@ -269,17 +334,21 @@ export function SubmissionUploadClient({
       .then((res) => (res.ok ? res.json() : { submissions: [] }))
       .then((data) => {
         setResumable(
-          (
-            data.submissions ?? []
-          ).map(
-            (s: { id: string; batchId: string; relativePath: string; sizeBytes: string; receivedBytes: string }) => ({
+          (data.submissions ?? []).map(
+            (s: {
+              id: string;
+              batchId: string;
+              relativePath: string;
+              sizeBytes: string;
+              receivedBytes: string;
+            }) => ({
               id: s.id,
               batchId: s.batchId,
               relativePath: s.relativePath,
               sizeBytes: Number(s.sizeBytes),
               receivedBytes: Number(s.receivedBytes),
-            })
-          )
+            }),
+          ),
         );
       })
       .catch(() => {});
@@ -291,14 +360,19 @@ export function SubmissionUploadClient({
   async function ensureBatch(entries: DroppedEntry[]): Promise<string> {
     if (batchId) return batchId;
     for (const e of entries) {
-      const match = resumable.find((r) => r.relativePath === e.relativePath && r.sizeBytes === e.file.size);
+      const match = resumable.find(
+        (r) => r.relativePath === e.relativePath && r.sizeBytes === e.file.size,
+      );
       if (match) {
         setBatchId(match.batchId);
         return match.batchId;
       }
     }
-    const res = await fetch(`/api/projects/${project.id}/upload-batches`, { method: "POST" });
-    if (!res.ok) throw new Error(`Couldn't start an upload session (${res.status})`);
+    const res = await fetch(`/api/projects/${project.id}/upload-batches`, {
+      method: "POST",
+    });
+    if (!res.ok)
+      throw new Error(`Couldn't start an upload session (${res.status})`);
     const data = await res.json();
     setBatchId(data.id);
     return data.id as string;
@@ -317,28 +391,37 @@ export function SubmissionUploadClient({
     setBatchError(null);
 
     setQueue((q) => {
-      const existing = new Set(q.map((item) => `${item.relativePath}:${item.file.size}`));
+      const existing = new Set(
+        q.map((item) => `${item.relativePath}:${item.file.size}`),
+      );
       const additions: QueueItem[] = [];
       let nextResumable = resumable;
       for (const { file, relativePath } of entries) {
         const key = `${relativePath}:${file.size}`;
         if (existing.has(key)) continue;
-        const match = nextResumable.find((r) => r.relativePath === relativePath && r.sizeBytes === file.size);
-        if (match) nextResumable = nextResumable.filter((r) => r.id !== match.id);
+        const match = nextResumable.find(
+          (r) => r.relativePath === relativePath && r.sizeBytes === file.size,
+        );
+        if (match)
+          nextResumable = nextResumable.filter((r) => r.id !== match.id);
         additions.push({
           file,
           relativePath,
           submissionId: match?.id ?? null,
           receivedBytes: match?.receivedBytes ?? 0,
           sizeBytes: file.size,
-          progress: match ? Math.round((match.receivedBytes / file.size) * 100) : 0,
+          progress: match
+            ? Math.round((match.receivedBytes / file.size) * 100)
+            : 0,
           status: "pending",
         });
       }
       setResumable(nextResumable);
       return [...q, ...additions];
     });
-    requestAnimationFrame(() => listEndRef.current?.scrollIntoView({ block: "nearest" }));
+    requestAnimationFrame(() =>
+      listEndRef.current?.scrollIntoView({ block: "nearest" }),
+    );
   }
 
   async function startUpload() {
@@ -349,11 +432,16 @@ export function SubmissionUploadClient({
 
     // Snapshot rather than iterating `queue`: the array is replaced on every progress
     // update, and a stale closure would upload the wrong set on resume.
-    const pending = () => queueRef.current.filter((q) => q.status === "pending");
+    const pending = () =>
+      queueRef.current.filter((q) => q.status === "pending");
 
     for (let item = pending()[0]; item; item = pending()[0]) {
       if (pausedRef.current) break;
-      setQueue((q) => q.map((qi) => (qi.file === item.file ? { ...qi, status: "uploading" } : qi)));
+      setQueue((q) =>
+        q.map((qi) =>
+          qi.file === item.file ? { ...qi, status: "uploading" } : qi,
+        ),
+      );
 
       const result = await uploadFile(
         project.id,
@@ -363,13 +451,17 @@ export function SubmissionUploadClient({
           setQueue((q) =>
             q.map((qi) =>
               qi.file === item.file
-                ? { ...qi, receivedBytes, progress: Math.round((receivedBytes / qi.sizeBytes) * 100) }
-                : qi
-            )
+                ? {
+                    ...qi,
+                    receivedBytes,
+                    progress: Math.round((receivedBytes / qi.sizeBytes) * 100),
+                  }
+                : qi,
+            ),
           );
           noteThroughput();
         },
-        () => pausedRef.current
+        () => pausedRef.current,
       );
 
       setQueue((q) =>
@@ -383,8 +475,8 @@ export function SubmissionUploadClient({
                   note: result.note,
                   progress: result.ok ? 100 : qi.progress,
                 }
-            : qi
-        )
+            : qi,
+        ),
       );
       if (result.paused) break;
     }
@@ -398,7 +490,11 @@ export function SubmissionUploadClient({
   }
 
   function retry(file: File) {
-    setQueue((q) => q.map((qi) => (qi.file === file ? { ...qi, status: "pending", note: undefined } : qi)));
+    setQueue((q) =>
+      q.map((qi) =>
+        qi.file === file ? { ...qi, status: "pending", note: undefined } : qi,
+      ),
+    );
   }
 
   /** Rolling 10s average, so the estimate settles instead of chasing each chunk. */
@@ -406,7 +502,7 @@ export function SubmissionUploadClient({
     const now = Date.now();
     const bytes = queueRef.current.reduce(
       (n, q) => n + (q.status === "done" ? q.sizeBytes : q.receivedBytes),
-      0
+      0,
     );
     const s = samplesRef.current;
     s.push({ t: now, bytes });
@@ -424,7 +520,7 @@ export function SubmissionUploadClient({
   // acknowledged, which is what resume would start from.
   const uploadedBytes = queue.reduce(
     (n, q) => n + (q.status === "done" ? q.sizeBytes : q.receivedBytes),
-    0
+    0,
   );
 
   if (expired) {
@@ -432,7 +528,8 @@ export function SubmissionUploadClient({
       <div className="px-4 sm:px-6 md:px-10 py-12 max-w-[640px] mx-auto text-center">
         <div className="text-lg font-black mb-2">This project has expired</div>
         <div className="text-sm text-muted">
-          Get in touch if you still need to send footage over — we can extend it.
+          Get in touch if you still need to send footage over — we can extend
+          it.
         </div>
       </div>
     );
@@ -448,13 +545,18 @@ export function SubmissionUploadClient({
       </Link>
 
       <div className="border-b-2 border-line2 pb-6 mb-6">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">Send us footage</div>
-        <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3">Upload to &ldquo;{project.title}&rdquo;</h1>
+        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
+          Send us footage
+        </div>
+        <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3">
+          Upload to &ldquo;{project.title}&rdquo;
+        </h1>
         <div className="text-[13px] text-muted">
-          Camera originals, audio, a project file — drag in whole folders and we&apos;ll keep them organized
-          exactly as you dropped them. Large files upload in chunks, so if this page reloads or your
-          connection drops mid-upload, just re-drop the same folder or file and it&apos;ll pick up where it
-          left off.
+          Camera originals, audio, a project file — drag in whole folders and
+          we&apos;ll keep them organized exactly as you dropped them. Large
+          files upload in chunks, so if this page reloads or your connection
+          drops mid-upload, just re-drop the same folder or file and it&apos;ll
+          pick up where it left off.
         </div>
       </div>
 
@@ -466,11 +568,15 @@ export function SubmissionUploadClient({
 
       {resumable.length > 0 && (
         <div className="mb-4 border border-accent/40 bg-accent/5 px-4 py-3 text-[13px]">
-          <div className="font-bold text-accentb mb-1">Unfinished upload{resumable.length > 1 ? "s" : ""}</div>
+          <div className="font-bold text-accentb mb-1">
+            Unfinished upload{resumable.length > 1 ? "s" : ""}
+          </div>
           {resumable.map((r) => (
             <div key={r.id} className="text-muted">
-              {r.relativePath} — {Math.round((r.receivedBytes / r.sizeBytes) * 100)}% ({formatBytes(r.receivedBytes)}{" "}
-              of {formatBytes(r.sizeBytes)}). Re-drop the same file or folder below to resume.
+              {r.relativePath} —{" "}
+              {Math.round((r.receivedBytes / r.sizeBytes) * 100)}% (
+              {formatBytes(r.receivedBytes)} of {formatBytes(r.sizeBytes)}).
+              Re-drop the same file or folder below to resume.
             </div>
           ))}
         </div>
@@ -489,12 +595,15 @@ export function SubmissionUploadClient({
           Drop files or folders here
         </span>
         <span className="block text-[13px] text-muted">
-          Drag in whole folders; we keep your structure. If the page reloads or the
-          connection drops, re-drop the same folder to resume.
+          Drag in whole folders; we keep your structure. If the page reloads or
+          the connection drops, re-drop the same folder to resume.
         </span>
       </label>
       <div className="text-center mb-4">
-        <label htmlFor="submission-folder-input" className="text-xs font-semibold text-muted hover:text-text cursor-pointer">
+        <label
+          htmlFor="submission-folder-input"
+          className="text-xs font-semibold text-muted hover:text-text cursor-pointer"
+        >
           or choose a folder
         </label>
       </div>
@@ -545,7 +654,10 @@ export function SubmissionUploadClient({
             </span>
             {uploading && rate > 0 && (
               <span className="tabular-nums">
-                {[fmtEta((totalBytes - uploadedBytes) / rate), `${fmtBytes(rate)}/s`]
+                {[
+                  fmtEta((totalBytes - uploadedBytes) / rate),
+                  `${fmtBytes(rate)}/s`,
+                ]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
@@ -554,7 +666,9 @@ export function SubmissionUploadClient({
           <div className="h-1.5 bg-bg border border-line2 mb-3">
             <div
               className="h-full bg-accent transition-[width] duration-300"
-              style={{ width: `${totalBytes ? (uploadedBytes / totalBytes) * 100 : 0}%` }}
+              style={{
+                width: `${totalBytes ? (uploadedBytes / totalBytes) * 100 : 0}%`,
+              }}
             />
           </div>
 
@@ -567,7 +681,9 @@ export function SubmissionUploadClient({
             </button>
           ) : hasPending ? (
             <Button onClick={startUpload}>
-              {paused ? "Resume" : `Upload ${queue.filter((q) => q.status === "pending").length}`}
+              {paused
+                ? "Resume"
+                : `Upload ${queue.filter((q) => q.status === "pending").length}`}
             </Button>
           ) : (
             <Link
@@ -604,13 +720,29 @@ export function SubmissionUploadClient({
                         : "text-dim"
                 }`}
               >
-                {item.status === "done" ? "✓" : item.status === "error" ? "!" : item.status === "uploading" ? "↑" : "·"}
+                {item.status === "done" ? (
+                  <IconCheck />
+                ) : item.status === "error" ? (
+                  "!"
+                ) : item.status === "uploading" ? (
+                  <IconUpload />
+                ) : (
+                  "·"
+                )}
               </span>
               <span className="relative min-w-0">
-                <span className="block text-xs font-semibold truncate">{item.relativePath}</span>
-                {item.note && <span className="block text-[11px] text-accentb truncate">{item.note}</span>}
+                <span className="block text-xs font-semibold truncate">
+                  {item.relativePath}
+                </span>
+                {item.note && (
+                  <span className="block text-[11px] text-accentb truncate">
+                    {item.note}
+                  </span>
+                )}
               </span>
-              <span className="relative text-xs text-dim tabular-nums">{fmtBytes(item.sizeBytes)}</span>
+              <span className="relative text-xs text-dim tabular-nums">
+                {fmtBytes(item.sizeBytes)}
+              </span>
               <span className="relative text-xs font-semibold tabular-nums">
                 {item.status === "done" ? (
                   <span className="text-success">Done</span>

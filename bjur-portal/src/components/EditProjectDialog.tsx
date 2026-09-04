@@ -32,7 +32,9 @@ export function EditProjectDialog({
 }) {
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
-  const [deliveredAt, setDeliveredAt] = useState(toDateInput(project.deliveredAt));
+  const [deliveredAt, setDeliveredAt] = useState(
+    toDateInput(project.deliveredAt),
+  );
   const [expiresAt, setExpiresAt] = useState(toDateInput(project.expiresAt));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +46,9 @@ export function EditProjectDialog({
   async function deleteProject() {
     setDeleting(true);
     setError("");
-    const res = await fetch(`/api/admin/projects/${project.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/projects/${project.id}`, {
+      method: "DELETE",
+    });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(data.error ?? "Failed to delete.");
@@ -79,82 +83,112 @@ export function EditProjectDialog({
 
   return (
     <Portal>
-    <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise">
-        <div className="text-[22px] font-black tracking-tight mb-6">Edit project</div>
-
-        <div className="flex flex-col gap-4">
-          <Field label="Project title" htmlFor="etitle">
-            <Input id="etitle" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </Field>
-
-          <Field label="Status" htmlFor="estatus">
-            <select
-              id="estatus"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
-            >
-              <option value="DRAFT">Draft — hidden from client</option>
-              <option value="LIVE">Live — visible to client</option>
-            </select>
-          </Field>
-
-          <Field label="Delivered" htmlFor="edelivered">
-            <Input id="edelivered" type="date" value={deliveredAt} onChange={(e) => setDeliveredAt(e.target.value)} />
-          </Field>
-
-          {isRetainer ? (
-            <div className="text-xs text-dim">Permanent library — retainer clients never expire.</div>
-          ) : (
-            <Field label="Expires" htmlFor="eexpires">
-              <Input id="eexpires" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-            </Field>
-          )}
-        </div>
-
-        {error && <div className="text-xs text-accentb mt-4 font-semibold">{error}</div>}
-
-        <div className="flex items-center justify-between gap-2.5 mt-7">
-          <div>
-            {project.assetCount === 0 &&
-              (confirmingDelete ? (
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs text-muted">Delete this project?</span>
-                  <button
-                    onClick={deleteProject}
-                    disabled={deleting}
-                    className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
-                  >
-                    {deleting ? "Deleting…" : "Confirm delete"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmingDelete(false)}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmingDelete(true)}
-                  className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
-                >
-                  Delete project
-                </button>
-              ))}
+      <div
+        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
+        >
+          <div className="text-[22px] font-black tracking-tight mb-6">
+            Edit project
           </div>
-          <div className="flex justify-end gap-2.5">
-            <Button variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={submit} disabled={loading}>
-              {loading ? "Saving…" : "Save changes"}
-            </Button>
+
+          <div className="flex flex-col gap-4">
+            <Field label="Project title" htmlFor="etitle">
+              <Input
+                id="etitle"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+
+            <Field label="Status" htmlFor="estatus">
+              <select
+                id="estatus"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
+              >
+                <option value="DRAFT">Draft — hidden from client</option>
+                <option value="LIVE">Live — visible to client</option>
+              </select>
+            </Field>
+
+            <Field label="Delivered" htmlFor="edelivered">
+              <Input
+                id="edelivered"
+                type="date"
+                value={deliveredAt}
+                onChange={(e) => setDeliveredAt(e.target.value)}
+              />
+            </Field>
+
+            {isRetainer ? (
+              <div className="text-xs text-dim">
+                Permanent library — retainer clients never expire.
+              </div>
+            ) : (
+              <Field label="Expires" htmlFor="eexpires">
+                <Input
+                  id="eexpires"
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                />
+              </Field>
+            )}
+          </div>
+
+          {error && (
+            <div className="text-xs text-accentb mt-4 font-semibold">
+              {error}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2.5 mt-7">
+            <div>
+              {project.assetCount === 0 &&
+                (confirmingDelete ? (
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs text-muted">
+                      Delete this project?
+                    </span>
+                    <button
+                      onClick={deleteProject}
+                      disabled={deleting}
+                      className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                    >
+                      {deleting ? "Deleting…" : "Confirm delete"}
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDelete(false)}
+                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingDelete(true)}
+                    className="cursor-pointer text-[11px] font-semibold text-dim hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+                  >
+                    Delete project
+                  </button>
+                ))}
+            </div>
+            <div className="flex justify-end gap-2.5">
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={submit} disabled={loading}>
+                {loading ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </Portal>
   );
 }

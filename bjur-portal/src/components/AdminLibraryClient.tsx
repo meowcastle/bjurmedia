@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatBytes } from "@/lib/format";
 import { Portal } from "@/components/ui/Portal";
+import { IconCheck, IconClose } from "@/components/ui/Icon";
 
 type Entry = { name: string; path: string; isFolder: boolean; size?: number };
 type ProjectOption = { id: string; title: string; clientName: string };
@@ -69,7 +70,7 @@ function TreeNode({
             isPicked ? "bg-accent border-accent" : "border-line2"
           }`}
         >
-          {isPicked && <span className="text-bg text-[11px] font-extrabold leading-none">✓</span>}
+          {isPicked && <IconCheck className="text-bg text-[11px]" />}
         </div>
         <span className="text-[13px] font-mono text-text truncate flex-1 min-w-0">{entry.name}</span>
         {!entry.isFolder && entry.size !== undefined && (
@@ -361,7 +362,7 @@ export function AdminLibraryClient({
                     onClick={() => removeFromPreview(r.path)}
                     className="cursor-pointer text-dim hover:text-accentb text-sm px-1"
                   >
-                    ✕
+                    <IconClose />
                   </button>
                 </div>
               ))}

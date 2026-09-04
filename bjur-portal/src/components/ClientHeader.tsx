@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { initials } from "@/lib/initials";
+import { IconMore } from "@/components/ui/Icon";
 
 export function ClientHeader({
   clientName,
@@ -59,7 +60,7 @@ export function ClientHeader({
           aria-expanded={menuOpen}
           className="w-9 h-9 grid place-items-center text-text cursor-pointer flex-none"
         >
-          <span className="text-2xl leading-none tracking-[2px]">⋮</span>
+          <IconMore className="text-2xl" />
         </button>
         {menuOpen && (
           <>

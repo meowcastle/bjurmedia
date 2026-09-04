@@ -9,7 +9,7 @@ const PHONE = { width: 390, height: 844 };
  * except for its tap targets: back links 16px tall, row checkboxes 14px, an unlink
  * control 8px wide. Nothing was clipped — things were simply too small to hit.
  */
-type Audit = { pageOverflow: number; offEdge: string[]; tiny: string[] };
+type Audit = { pageOverflow: number; offEdge: string[]; tiny: string[]; unnamed: string[] };
 
 async function audit(page: Page): Promise<Audit> {
   await page.waitForTimeout(400);
@@ -17,6 +17,7 @@ async function audit(page: Page): Promise<Audit> {
     const vw = window.innerWidth;
     const offEdge: string[] = [];
     const tiny: string[] = [];
+    const unnamed: string[] = [];
 
     const desc = (el: Element) => {
       const t = (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40);
@@ -38,6 +39,19 @@ async function audit(page: Page): Promise<Audit> {
       if (r.right > vw + 1 && !inScroller(el) && el.children.length === 0) {
         offEdge.push(`${desc(el)} right=${Math.round(r.right)}`);
       }
+      if (["BUTTON", "A"].includes(el.tagName)) {
+        // Controls whose only content is an icon. Swapping a ✕ character for an
+        // aria-hidden SVG silently removes a button's accessible name, which is the
+        // one way an icon pass can regress something a screenshot will never show.
+        const name = (
+          el.getAttribute("aria-label") ||
+          el.getAttribute("title") ||
+          (el.textContent || "")
+        )
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!name) unnamed.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 50)}`);
+      }
       if (["BUTTON", "A", "INPUT"].includes(el.tagName)) {
         // A control inside a label is tapped via the label, so that is the real target.
         const label = el.closest("label");
@@ -51,6 +65,7 @@ async function audit(page: Page): Promise<Audit> {
       pageOverflow: Math.max(0, document.documentElement.scrollWidth - vw),
       offEdge: [...new Set(offEdge)],
       tiny: [...new Set(tiny)],
+      unnamed: [...new Set(unnamed)],
     };
   });
 }
@@ -63,6 +78,7 @@ async function check(page: Page, url: string) {
   expect(r.pageOverflow, `${url} scrolls sideways`).toBeLessThanOrEqual(1);
   expect(r.offEdge, `${url} has content past the right edge`).toEqual([]);
   expect(r.tiny, `${url} has tap targets under 30px`).toEqual([]);
+  expect(r.unnamed, `${url} has controls with no accessible name`).toEqual([]);
 }
 
 test.describe("client portal on a phone", () => {
@@ -104,6 +120,7 @@ test.describe("admin portal on a phone", () => {
     expect(r.pageOverflow, "calendar scrolls sideways").toBeLessThanOrEqual(1);
     expect(r.offEdge, "calendar has content past the right edge").toEqual([]);
     expect(r.tiny, "calendar has tap targets under 30px").toEqual([]);
+    expect(r.unnamed, "calendar has controls with no accessible name").toEqual([]);
   });
 
   test("the row checkbox can be hit without hitting the 14px box", async ({ page }) => {

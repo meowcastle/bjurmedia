@@ -25,7 +25,9 @@ export function SeatAccessDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const initial = new Map(initialAccess.map((a) => [a.projectId, a.role as Role]));
+  const initial = new Map(
+    initialAccess.map((a) => [a.projectId, a.role as Role]),
+  );
   const [restricted, setRestricted] = useState(initialAccess.length > 0);
   const [grants, setGrants] = useState<Map<string, Role>>(initial);
   const [loading, setLoading] = useState(false);
@@ -48,18 +50,24 @@ export function SeatAccessDialog({
     setLoading(true);
     setError("");
     const projectAccess = restricted
-      ? Array.from(grants.entries()).map(([projectId, role]) => ({ projectId, role }))
+      ? Array.from(grants.entries()).map(([projectId, role]) => ({
+          projectId,
+          role,
+        }))
       : [];
     if (restricted && projectAccess.length === 0) {
       setError("Select at least one project, or switch to all projects.");
       setLoading(false);
       return;
     }
-    const res = await fetch(`/api/admin/clients/${clientId}/users/${seatId}/access`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectAccess }),
-    });
+    const res = await fetch(
+      `/api/admin/clients/${clientId}/users/${seatId}/access`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectAccess }),
+      },
+    );
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(data.error ?? "Failed to update access.");
@@ -72,16 +80,26 @@ export function SeatAccessDialog({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade" onClick={onClose}>
-        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise">
-          <div className="text-xl font-black tracking-tight mb-1.5">Manage access</div>
+      <div
+        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
+        >
+          <div className="text-xl font-black tracking-tight mb-1.5">
+            Manage access
+          </div>
           <div className="text-[13px] text-muted mb-6">{seatName}</div>
 
           <div className="flex gap-2 mb-5">
             <button
               onClick={() => setRestricted(false)}
               className={`flex-1 text-xs font-semibold px-3 py-2.5 border cursor-pointer ${
-                !restricted ? "border-accent text-accent bg-accent/10" : "border-line2 text-muted hover:text-text"
+                !restricted
+                  ? "border-accent text-accent bg-accent/10"
+                  : "border-line2 text-muted hover:text-text"
               }`}
             >
               All projects
@@ -89,7 +107,9 @@ export function SeatAccessDialog({
             <button
               onClick={() => setRestricted(true)}
               className={`flex-1 text-xs font-semibold px-3 py-2.5 border cursor-pointer ${
-                restricted ? "border-accent text-accent bg-accent/10" : "border-line2 text-muted hover:text-text"
+                restricted
+                  ? "border-accent text-accent bg-accent/10"
+                  : "border-line2 text-muted hover:text-text"
               }`}
             >
               Specific projects
@@ -111,7 +131,9 @@ export function SeatAccessDialog({
                       onChange={(e) => toggleProject(p.id, e.target.checked)}
                       className="cursor-pointer"
                     />
-                    <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">{p.title}</span>
+                    <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">
+                      {p.title}
+                    </span>
                     {checked && (
                       <select
                         value={grants.get(p.id)}
@@ -127,12 +149,18 @@ export function SeatAccessDialog({
                 );
               })}
               {projects.length === 0 && (
-                <div className="px-4 py-6 text-center text-sm text-muted">No projects yet.</div>
+                <div className="px-4 py-6 text-center text-sm text-muted">
+                  No projects yet.
+                </div>
               )}
             </div>
           )}
 
-          {error && <div className="text-xs text-accentb mt-4 font-semibold">{error}</div>}
+          {error && (
+            <div className="text-xs text-accentb mt-4 font-semibold">
+              {error}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2.5 mt-7">
             <Button variant="secondary" onClick={onClose}>

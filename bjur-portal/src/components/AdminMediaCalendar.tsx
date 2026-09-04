@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { buildWeeklySlackPost } from "@/lib/slackCalendar";
 import { mondayOfWeek } from "@/lib/weeks";
+import { IconPrev, IconNext, IconClose, IconCheck } from "@/components/ui/Icon";
 
 /** The subset of an admin Asset this view needs. Mirrors AdminMediaClient's type. */
 export type CalendarRow = {
@@ -171,14 +172,14 @@ export function AdminMediaCalendar({
               aria-label="Previous week"
               className="border border-line2 px-3 py-2 text-sm text-muted hover:text-text hover:border-text"
             >
-              ‹
+              <IconPrev />
             </button>
             <button
               onClick={() => setWeekStart((w) => addDays(w, 7))}
               aria-label="Next week"
               className="border border-line2 px-3 py-2 text-sm text-muted hover:text-text hover:border-text"
             >
-              ›
+              <IconNext />
             </button>
           </div>
           <button
@@ -308,7 +309,7 @@ export function AdminMediaCalendar({
                 aria-label="Close"
                 className="text-muted hover:text-text text-sm leading-none"
               >
-                ✕
+                <IconClose />
               </button>
             </div>
 
@@ -388,7 +389,13 @@ export function AdminMediaCalendar({
               onClick={copyPreview}
               className="cursor-pointer text-[10.5px] uppercase font-bold text-muted hover:text-text px-2.5 py-2 -mr-2.5 -my-1"
             >
-              {copied ? "Copied ✓" : "Copy"}
+              {copied ? (
+                <span className="inline-flex items-center gap-1">
+                  Copied <IconCheck />
+                </span>
+              ) : (
+                "Copy"
+              )}
             </button>
           </div>
           <pre className="bg-bg border border-line2 p-3 text-[11px] font-mono leading-relaxed whitespace-pre-wrap max-h-72 overflow-auto text-muted">

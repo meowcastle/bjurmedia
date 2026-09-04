@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Portal } from "@/components/ui/Portal";
+import { IconClose, IconDownload } from "@/components/ui/Icon";
 
 export type ProxyViewerAsset = {
   id: string;
@@ -174,7 +175,7 @@ export function AdminProxyViewer({
               aria-label="Close preview"
               className="cursor-pointer text-white/60 hover:text-white text-lg leading-none flex-none"
             >
-              ✕
+              <IconClose />
             </button>
           </div>
 
@@ -225,7 +226,9 @@ export function AdminProxyViewer({
               href={`/api/assets/${asset.id}/download`}
               className="text-center text-[12px] font-semibold text-accentb hover:text-text border border-accent/40 hover:border-text px-3 py-2"
             >
-              ↓ Download master · {asset.size}
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <IconDownload /> Download master · {asset.size}
+              </span>
             </a>
           </div>
         </div>

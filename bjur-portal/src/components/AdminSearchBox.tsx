@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconSearch, IconClose } from "@/components/ui/Icon";
 
 type Group = { label: string; items: { title: string; sub: string; href: string }[] };
 
@@ -58,7 +59,7 @@ export function AdminSearchBox() {
   return (
     <div ref={boxRef} className="relative w-[150px] md:w-[220px] lg:w-[300px]">
       <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2.5 md:py-2">
-        <span className="text-dim text-sm">⌕</span>
+        <IconSearch className="text-dim text-sm" />
         <input
           ref={inputRef}
           value={query}
@@ -75,9 +76,17 @@ export function AdminSearchBox() {
           </span>
         )}
         {isOpen && (
-          <span onClick={() => { setQuery(""); setOpen(false); }} className="cursor-pointer text-dim text-xs">
-            ✕
-          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setOpen(false);
+            }}
+            aria-label="Clear search"
+            className="cursor-pointer text-dim hover:text-text text-xs flex-none px-1 py-2 -my-1"
+          >
+            <IconClose />
+          </button>
         )}
       </div>
       {isOpen && (

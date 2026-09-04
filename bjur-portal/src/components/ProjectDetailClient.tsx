@@ -15,6 +15,7 @@ import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
+import { IconPlay, IconHeart } from "@/components/ui/Icon";
 
 type Asset = TileAsset & {
   weekOf: string | null;
@@ -321,12 +322,17 @@ export function ProjectDetailClient({
   );
 
   const filters = [
-    { id: "ALL", label: `All ${scoped.length}` },
+    { id: "ALL", label: `All ${scoped.length}`, icon: null as React.ReactNode },
     ...FORMAT_DEFS.filter((d) => formatCounts[d[0]]).map((d) => ({
       id: d[0],
       label: `${d[1].split(" · ")[0]} ${formatCounts[d[0]]}`,
+      icon: null as React.ReactNode,
     })),
-    { id: "FAV", label: `♥ Favorites${favCount ? ` ${favCount}` : ""}` },
+    {
+      id: "FAV",
+      label: `Favorites${favCount ? ` ${favCount}` : ""}`,
+      icon: <IconHeart fill="currentColor" />,
+    },
   ];
 
   const metaAssets = FORMAT_DEFS.map(
@@ -542,8 +548,8 @@ export function ProjectDetailClient({
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
                 <span className="text-accentb font-semibold">
-                  ▶ {formatViews(totalViews)} views across {totalSocialPosts}{" "}
-                  post
+                  <IconPlay fill="currentColor" /> {formatViews(totalViews)}{" "}
+                  views across {totalSocialPosts} post
                   {totalSocialPosts > 1 ? "s" : ""}
                 </span>
               </>
@@ -603,7 +609,10 @@ export function ProjectDetailClient({
                       }}
                     />
                   )}
-                  <span className="relative z-10">{f.label}</span>
+                  <span className="relative z-10 inline-flex items-center gap-1.5">
+                    {f.icon}
+                    {f.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -676,7 +685,9 @@ export function ProjectDetailClient({
 
         {filter === "FAV" && groups.length === 0 && (
           <div className="border border-line px-6 py-16 text-center mt-0.5">
-            <div className="text-2xl text-dim mb-3">♥</div>
+            <div className="text-2xl text-dim mb-3 flex justify-center">
+              <IconHeart />
+            </div>
             <div className="text-[15px] font-bold mb-1.5">No favorites yet</div>
             <div className="text-[13px] text-muted">
               Tap the heart on any still to add it to this collection.

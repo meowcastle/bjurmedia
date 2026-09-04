@@ -10,6 +10,7 @@ import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { RowMenu, RowMenuItem } from "@/components/RowMenu";
 import { AdminProxyViewer } from "@/components/AdminProxyViewer";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
+import { IconPlay, IconRetry, IconClose } from "@/components/ui/Icon";
 import {
   ManageFoldersDialog,
   type FolderRow,
@@ -901,7 +902,7 @@ export function AdminMediaClient({
                       )}
                       {a.kind === "VIDEO" && (
                         <div className="absolute inset-0 grid place-items-center text-white/90 text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,.8)]">
-                          ▶
+                          <IconPlay fill="currentColor" />
                         </div>
                       )}
                       {a.proxyStatus === "GENERATING" ? (
@@ -940,9 +941,9 @@ export function AdminMediaClient({
                         {a.reingestCount > 0 && (
                           <span
                             title="Re-uploaded to this same path after its first ingest — worth a second look if playback seems off"
-                            className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accentb/40 px-1.5 py-0.5"
+                            className="flex-none inline-flex items-center gap-1 text-[9px] font-bold tracking-wide text-accentb border border-accentb/40 px-1.5 py-0.5"
                           >
-                            ↻ RE-UPLOADED
+                            <IconRetry /> RE-UPLOADED
                             {a.reingestCount > 1 ? ` ×${a.reingestCount}` : ""}
                             {a.lastReplacedAt
                               ? ` · ${timeAgo(a.lastReplacedAt)}`
@@ -1116,21 +1117,22 @@ export function AdminMediaClient({
                             href={p.permalink}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[11px] font-semibold text-accentb hover:text-text py-2 -my-2 inline-block"
+                            className="text-[11px] font-semibold text-accentb hover:text-text py-2 -my-2 inline-flex items-center gap-1"
                           >
-                            ▶ {formatViews(p.viewCount)} views ↗
+                            <IconPlay fill="currentColor" /> {formatViews(p.viewCount)} views ↗
                           </a>
                         ) : (
                           <span className="text-[11px] font-semibold text-accentb">
-                            ▶ {formatViews(p.viewCount)} views
+                            <IconPlay fill="currentColor" /> {formatViews(p.viewCount)} views
                           </span>
                         )}
                         <button
                           onClick={() => unlinkSocialPost(a.id, p.id)}
-                          className="cursor-pointer text-[10px] text-dim hover:text-accentb px-2.5 py-2 -mx-1 -my-1"
+                          className="cursor-pointer text-[10px] text-dim hover:text-accentb px-2.5 py-2.5 -mx-1 -my-1"
+                          aria-label="Unlink this post"
                           title="Unlink this post"
                         >
-                          ✕
+                          <IconClose />
                         </button>
                       </div>
                     ))}

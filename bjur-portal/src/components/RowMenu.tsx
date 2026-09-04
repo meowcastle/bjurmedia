@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconMore } from "@/components/ui/Icon";
 
 /**
  * §10. A row's action column had grown to six buttons — Hide, Regenerate, Delete, and
@@ -49,7 +50,7 @@ export function RowMenu({
         aria-label={label}
         className="cursor-pointer w-8 h-8 grid place-items-center border border-line2 text-muted hover:text-text hover:border-text text-[15px] leading-none"
       >
-        ···
+        <IconMore />
       </button>
       {open && (
         <div

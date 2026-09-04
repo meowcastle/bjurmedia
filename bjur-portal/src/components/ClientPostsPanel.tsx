@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { gradientFor } from "@/lib/gradients";
+import { IconPlay } from "@/components/ui/Icon";
 
 export type ScheduledPost = {
   id: string;
@@ -195,7 +196,7 @@ export function ClientPostsPanel({
                   )}
                   {p.kind === "VIDEO" && (
                     <div className="absolute inset-0 grid place-items-center text-white/90 text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,.8)]">
-                      ▶
+                      <IconPlay fill="currentColor" />
                     </div>
                   )}
                 </div>

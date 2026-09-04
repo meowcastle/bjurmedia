@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
+import { IconPlay } from "@/components/ui/Icon";
 
 type Stat = { value: string; label: string };
 type ActivityRow = { id: string; who: string; action: string; when: string; dot: string };
@@ -199,7 +200,7 @@ export function AdminDashboardClient({
               >
                 <div className="text-[13px] font-semibold truncate">{p.assetName}</div>
                 <div className="text-xs text-muted mt-1">
-                  {p.clientName} · <span className="text-accentb">▶ {p.views} views</span>
+                  {p.clientName} · <span className="text-accentb inline-flex items-center gap-1"><IconPlay fill="currentColor" /> {p.views} views</span>
                 </div>
               </Link>
             ))}

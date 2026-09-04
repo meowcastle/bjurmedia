@@ -4,7 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Portal } from "@/components/ui/Portal";
-import { CHANNEL_OPTIONS, composeCustomScope, type ChannelKey } from "@/lib/licensing";
+import {
+  CHANNEL_OPTIONS,
+  composeCustomScope,
+  type ChannelKey,
+} from "@/lib/licensing";
 
 type Seat = { id: string; name: string; email: string };
 
@@ -40,7 +44,9 @@ export function GrantLicenseDialog({
   });
 
   function toggleChannel(key: ChannelKey) {
-    setChannels((cs) => (cs.includes(key) ? cs.filter((c) => c !== key) : [...cs, key]));
+    setChannels((cs) =>
+      cs.includes(key) ? cs.filter((c) => c !== key) : [...cs, key],
+    );
   }
 
   async function submit() {
@@ -79,9 +85,17 @@ export function GrantLicenseDialog({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade" onClick={onClose}>
-        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[480px] bg-s2 border border-line2 p-7 bjrise">
-          <div className="text-xl font-black tracking-tight mb-1.5">Grant custom license</div>
+      <div
+        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-[480px] bg-s2 border border-line2 p-7 bjrise"
+        >
+          <div className="text-xl font-black tracking-tight mb-1.5">
+            Grant custom license
+          </div>
           <div className="text-[13px] text-muted mb-6">
             {assetName} · {clientName}
           </div>
@@ -94,7 +108,9 @@ export function GrantLicenseDialog({
                 onChange={(e) => setUserId(e.target.value)}
                 className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
               >
-                {seats.length === 0 && <option value="">No seats on this client yet</option>}
+                {seats.length === 0 && (
+                  <option value="">No seats on this client yet</option>
+                )}
                 {seats.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.email})
@@ -144,21 +160,38 @@ export function GrantLicenseDialog({
             </Field>
 
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input type="checkbox" checked={exclusive} onChange={(e) => setExclusive(e.target.checked)} className="w-4 h-4" />
+              <input
+                type="checkbox"
+                checked={exclusive}
+                onChange={(e) => setExclusive(e.target.checked)}
+                className="w-4 h-4"
+              />
               <span className="text-sm text-text">Exclusive</span>
             </label>
 
             <Field label="Amount ($)" htmlFor="gl-amount">
-              <Input id="gl-amount" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input
+                id="gl-amount"
+                type="number"
+                min={0}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
             </Field>
 
             <div className="bg-bg border border-line2 px-3.5 py-3 text-[12px] text-muted">
-              <span className="text-[10px] uppercase tracking-widest text-dim block mb-1">Scope preview</span>
+              <span className="text-[10px] uppercase tracking-widest text-dim block mb-1">
+                Scope preview
+              </span>
               {scopePreview}
             </div>
           </div>
 
-          {error && <div className="text-xs text-accentb mt-4 font-semibold">{error}</div>}
+          {error && (
+            <div className="text-xs text-accentb mt-4 font-semibold">
+              {error}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2.5 mt-7">
             <Button variant="secondary" onClick={onClose}>

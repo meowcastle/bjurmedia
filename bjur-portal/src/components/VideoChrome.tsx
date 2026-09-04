@@ -1,5 +1,17 @@
 "use client";
 
+import {
+  IconClose,
+  IconPrev,
+  IconNext,
+  IconPlay,
+  IconPause,
+  IconVolumeOn,
+  IconVolumeOff,
+  IconLock,
+  IconDownload,
+} from "@/components/ui/Icon";
+
 function fmtTime(sec: number) {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
   const m = Math.floor(sec / 60);
@@ -86,7 +98,7 @@ export function VideoChrome({
           aria-label="Close"
           className={`${CHIP} ${interactive} text-xl`}
         >
-          ✕
+          <IconClose />
         </button>
       </div>
 
@@ -100,7 +112,7 @@ export function VideoChrome({
           aria-label="Previous video"
           className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
-          ‹
+          <IconPrev />
         </button>
       )}
       {hasNext && (
@@ -112,7 +124,7 @@ export function VideoChrome({
           aria-label="Next video"
           className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
         >
-          ›
+          <IconNext />
         </button>
       )}
 
@@ -152,7 +164,7 @@ export function VideoChrome({
               aria-label={playing ? "Pause" : "Play"}
               className={CHIP}
             >
-              {playing ? "⏸" : "▶"}
+              {playing ? <IconPause /> : <IconPlay />}
             </button>
             <button
               onClick={(e) => {
@@ -162,7 +174,7 @@ export function VideoChrome({
               aria-label={muted ? "Unmute" : "Mute"}
               className={CHIP}
             >
-              {muted ? "🔇" : "🔊"}
+              {muted ? <IconVolumeOff /> : <IconVolumeOn />}
             </button>
             <span className="text-sm text-white/80 truncate min-w-0">{name}</span>
           </div>
@@ -174,7 +186,7 @@ export function VideoChrome({
               }}
               className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb cursor-pointer whitespace-nowrap"
             >
-              🔒 Unlock master
+              <span className="inline-flex items-center gap-1.5"><IconLock /> Unlock master</span>
             </button>
           ) : (
             canDownload && (
@@ -183,7 +195,9 @@ export function VideoChrome({
                 onClick={(e) => e.stopPropagation()}
                 className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb whitespace-nowrap"
               >
-                ↓ Master{size ? ` · ${size}` : ""}
+                <span className="inline-flex items-center gap-1.5">
+                  <IconDownload /> Master{size ? ` · ${size}` : ""}
+                </span>
               </a>
             )
           )}

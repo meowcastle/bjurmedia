@@ -6,6 +6,7 @@ import { gradientFor } from "@/lib/gradients";
 import { formatBytes } from "@/lib/format";
 import { licenseTiers } from "@/lib/licensing";
 import { formatViews } from "@/lib/format";
+import { IconCheck, IconHeart, IconPlay, IconLock } from "@/components/ui/Icon";
 
 export type TileAsset = {
   id: string;
@@ -167,7 +168,7 @@ export function AssetTile({
         >
           {selected && (
             <span className="text-bg text-[13px] font-extrabold leading-none">
-              ✓
+              <IconCheck />
             </span>
           )}
         </div>
@@ -182,12 +183,12 @@ export function AssetTile({
             favorite ? "text-accent" : "text-white/80"
           }`}
         >
-          ♥
+          <IconHeart fill="currentColor" />
         </div>
 
         {asset.viewCount != null && asset.viewCount > 0 && (
           <div className="absolute top-10 left-2.5 z-[3] bg-black/45 text-white/90 text-[10px] font-semibold px-1.5 py-0.5">
-            ▶ {formatViews(asset.viewCount)} views
+            <IconPlay fill="currentColor" /> {formatViews(asset.viewCount)} views
           </div>
         )}
 
@@ -199,8 +200,8 @@ export function AssetTile({
 
         {locked ? (
           <div className="absolute left-0 right-0 bottom-0 z-[5] px-3 py-2.5 bg-gradient-to-t from-black/85 to-transparent flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold text-white truncate">
-              🔒 {asset.name}
+            <span className="text-[11px] font-bold text-white truncate inline-flex items-center gap-1">
+              <IconLock /> {asset.name}
             </span>
             <span className="text-[11px] font-extrabold text-accentb whitespace-nowrap">
               {priceLabel}

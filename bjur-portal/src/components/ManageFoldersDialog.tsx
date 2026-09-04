@@ -23,7 +23,9 @@ export function ManageFoldersDialog({
   const [error, setError] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null,
+  );
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function addFolder() {
@@ -91,17 +93,28 @@ export function ManageFoldersDialog({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade" onClick={onClose}>
-        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise">
-          <div className="text-xl font-black tracking-tight mb-1.5">Folders</div>
+      <div
+        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
+        >
+          <div className="text-xl font-black tracking-tight mb-1.5">
+            Folders
+          </div>
           <div className="text-[13px] text-muted mb-6">
-            Client-facing sections within this project. Deleting a folder doesn&apos;t delete its assets — they
-            just become Unsorted.
+            Client-facing sections within this project. Deleting a folder
+            doesn&apos;t delete its assets — they just become Unsorted.
           </div>
 
           <div className="border border-line2 mb-4">
             {folders.map((f) => (
-              <div key={f.id} className="flex items-center gap-3 px-4 py-3 border-b border-line last:border-b-0">
+              <div
+                key={f.id}
+                className="flex items-center gap-3 px-4 py-3 border-b border-line last:border-b-0"
+              >
                 {renamingId === f.id ? (
                   <input
                     autoFocus
@@ -149,7 +162,9 @@ export function ManageFoldersDialog({
               </div>
             ))}
             {folders.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm text-muted">No folders yet.</div>
+              <div className="px-4 py-6 text-center text-sm text-muted">
+                No folders yet.
+              </div>
             )}
           </div>
 
@@ -165,7 +180,11 @@ export function ManageFoldersDialog({
             </Button>
           </div>
 
-          {error && <div className="text-xs text-accentb mt-4 font-semibold">{error}</div>}
+          {error && (
+            <div className="text-xs text-accentb mt-4 font-semibold">
+              {error}
+            </div>
+          )}
 
           <div className="flex justify-end mt-7">
             <Button variant="secondary" onClick={onClose}>
