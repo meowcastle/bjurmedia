@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gradientFor } from "@/lib/gradients";
-import { formatViews, timeAgo } from "@/lib/format";
+import { formatViews, timeAgo, formatBytes } from "@/lib/format";
 import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
-import { formatSize } from "@/components/AssetTile";
 import { RowMenu, RowMenuItem } from "@/components/RowMenu";
 import { AdminProxyViewer } from "@/components/AdminProxyViewer";
 import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
@@ -641,7 +640,7 @@ export function AdminMediaClient({
           <div className="flex items-center gap-2.5 flex-wrap text-[13px] text-muted mb-4">
             <span>{rows.length} assets</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
-            <span className="tabular-nums">{formatSize(totalBytes)}</span>
+            <span className="tabular-nums">{formatBytes(totalBytes)}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-success" />
@@ -730,7 +729,7 @@ export function AdminMediaClient({
                   {selectedIds.size} selected
                 </span>
                 <span className="text-[13px] text-muted tabular-nums">
-                  {formatSize(selectedBytes)}
+                  {formatBytes(selectedBytes)}
                 </span>
 
                 <div className="flex items-center gap-2">

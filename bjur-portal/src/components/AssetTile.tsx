@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
+import { formatBytes } from "@/lib/format";
 import { licenseTiers } from "@/lib/licensing";
 import { formatViews } from "@/lib/format";
 
@@ -26,12 +27,6 @@ export type TileAsset = {
 
 /** §3: `< 1000 MB → "N MB"`, else `"N.N GB"`. Exported so the grid, the group headers
  *  and the selection bar all read the same way. */
-export function formatSize(bytes: number) {
-  const mb = bytes / (1024 * 1024);
-  if (mb < 1000) return `${Math.round(mb)} MB`;
-  return `${(mb / 1024).toFixed(1)} GB`;
-}
-
 function fmtDuration(sec: number | null) {
   if (sec == null) return "";
   const m = Math.floor(sec / 60);
@@ -43,14 +38,21 @@ function fmtStamp(createdAt: string, updatedAt: string) {
   const created = new Date(createdAt).getTime();
   const updated = new Date(updatedAt).getTime();
   if (updated - created > 60_000) {
-    return { text: `Updated ${new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, isUpdate: true };
+    return {
+      text: `Updated ${new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      isUpdate: true,
+    };
   }
-  return { text: `Added ${new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, isUpdate: false };
+  return {
+    text: `Added ${new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    isUpdate: false,
+  };
 }
 
 function aspectFor(a: TileAsset) {
   if (a.format === "Reel") return "9 / 16";
-  if (a.format === "Still") return a.orientation === "portrait" ? "3 / 4" : "3 / 2";
+  if (a.format === "Still")
+    return a.orientation === "portrait" ? "3 / 4" : "3 / 2";
   return "16 / 9";
 }
 
@@ -77,18 +79,32 @@ export function AssetTile({
 }) {
   const locked = asset.licensable && !unlocked;
   const stamp = fmtStamp(asset.createdAt, asset.updatedAt);
-  const badge = asset.kind === "VIDEO" ? fmtDuration(asset.durationSec) : asset.dims ?? "";
-  const priceLabel = locked && asset.basePrice ? `from $${licenseTiers(asset.basePrice)[0].amount}` : "";
+  const badge =
+    asset.kind === "VIDEO"
+      ? fmtDuration(asset.durationSec)
+      : (asset.dims ?? "");
+  const priceLabel =
+    locked && asset.basePrice
+      ? `from $${licenseTiers(asset.basePrice)[0].amount}`
+      : "";
   const [thumbFailed, setThumbFailed] = useState(false);
 
-  const borderColor = selected ? "border-accent" : locked ? "border-accent/40" : "border-line";
+  const borderColor = selected
+    ? "border-accent"
+    : locked
+      ? "border-accent/40"
+      : "border-line";
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: "easeOut", delay: Math.min((index ?? 0) * 0.03, 0.4) }}
+      transition={{
+        duration: 0.22,
+        ease: "easeOut",
+        delay: Math.min((index ?? 0) * 0.03, 0.4),
+      }}
     >
       <motion.div
         onClick={onOpen}
@@ -96,7 +112,10 @@ export function AssetTile({
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`cursor-pointer relative overflow-hidden border hover:border-accent transition-colors ${borderColor}`}
-        style={{ aspectRatio: aspectFor(asset), background: gradientFor(asset.id) }}
+        style={{
+          aspectRatio: aspectFor(asset),
+          background: gradientFor(asset.id),
+        }}
       >
         {asset.thumbReady && !thumbFailed && (
           // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
@@ -146,7 +165,11 @@ export function AssetTile({
             selected ? "bg-accent border-accent" : "bg-black/35 border-white/70"
           }`}
         >
-          {selected && <span className="text-bg text-[13px] font-extrabold leading-none">✓</span>}
+          {selected && (
+            <span className="text-bg text-[13px] font-extrabold leading-none">
+              ✓
+            </span>
+          )}
         </div>
 
         <div
@@ -176,19 +199,31 @@ export function AssetTile({
 
         {locked ? (
           <div className="absolute left-0 right-0 bottom-0 z-[5] px-3 py-2.5 bg-gradient-to-t from-black/85 to-transparent flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold text-white truncate">🔒 {asset.name}</span>
-            <span className="text-[11px] font-extrabold text-accentb whitespace-nowrap">{priceLabel}</span>
+            <span className="text-[11px] font-bold text-white truncate">
+              🔒 {asset.name}
+            </span>
+            <span className="text-[11px] font-extrabold text-accentb whitespace-nowrap">
+              {priceLabel}
+            </span>
           </div>
         ) : (
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2 z-[3]">
-            <span className="text-[11px] text-white/90 font-semibold truncate">{asset.name}</span>
-            <span className="text-[10px] text-white/62 whitespace-nowrap">{badge}</span>
+            <span className="text-[11px] text-white/90 font-semibold truncate">
+              {asset.name}
+            </span>
+            <span className="text-[10px] text-white/62 whitespace-nowrap">
+              {badge}
+            </span>
           </div>
         )}
       </motion.div>
       <div className="pt-1.5 flex items-baseline justify-between gap-2 text-[10.5px]">
-        <span className={stamp.isUpdate ? "text-accentb" : "text-dim"}>{stamp.text}</span>
-        <span className="text-dim tabular-nums flex-none">{formatSize(Number(asset.sizeBytes))}</span>
+        <span className={stamp.isUpdate ? "text-accentb" : "text-dim"}>
+          {stamp.text}
+        </span>
+        <span className="text-dim tabular-nums flex-none">
+          {formatBytes(Number(asset.sizeBytes))}
+        </span>
       </div>
     </motion.div>
   );

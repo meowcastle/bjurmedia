@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AssetTile, type TileAsset, formatSize } from "@/components/AssetTile";
+import { AssetTile, type TileAsset } from "@/components/AssetTile";
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
-import { formatViews } from "@/lib/format";
+import { formatViews, formatBytes } from "@/lib/format";
 
 type Asset = TileAsset & { weekOf: string | null; folderId: string | null };
 
@@ -26,7 +26,10 @@ function colsFor(format: string) {
   return "repeat(auto-fill,minmax(340px,1fr))";
 }
 
-function formatBytes(n: number) {
+/** Live byte counter for a streaming download — B/KB/MB, not the file-size formatter.
+ *  Named apart from formatBytes because it shadowed it, which is how a decimal-GB size
+ *  column and a binary-GB total ended up disagreeing about the same file. */
+function formatProgressBytes(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -59,14 +62,20 @@ function DownloadButton({
           transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
         />
       )}
-      <span className="relative z-10">{downloading ? `↓ Downloading… ${formatBytes(downloadedBytes)}` : label}</span>
+      <span className="relative z-10">
+        {downloading ? `↓ Downloading… ${formatProgressBytes(downloadedBytes)}` : label}
+      </span>
     </button>
   );
 }
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 /** Monday (UTC midnight) of the calendar week containing `d`, as an ISO date string. */
@@ -74,7 +83,13 @@ function mondayOfWeek(d: Date) {
   return mondayOfWeekDate(d).toISOString();
 }
 
-type Group = { label: string; count: string; folder: string; cols: string; items: Asset[] };
+type Group = {
+  label: string;
+  count: string;
+  folder: string;
+  cols: string;
+  items: Asset[];
+};
 
 /** Buckets assets by the Monday of their weekOf's calendar week, newest first, Undated last. */
 function bucketByWeek(items: Asset[], folderBase: string): Group[] {
@@ -134,12 +149,19 @@ export function ProjectDetailClient({
   const [groupMode, setGroupMode] = useState<"format" | "week">("format");
   const [folderFilter, setFolderFilter] = useState<string>("ALL");
   const scoped = useMemo(
-    () => (folderFilter === "ALL" ? assets : assets.filter((a) => a.folderId === folderFilter)),
-    [assets, folderFilter]
+    () =>
+      folderFilter === "ALL"
+        ? assets
+        : assets.filter((a) => a.folderId === folderFilter),
+    [assets, folderFilter],
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavorites));
-  const [licensedIds, setLicensedIds] = useState<Set<string>>(new Set(initialLicensedAssetIds));
+  const [favorites, setFavorites] = useState<Set<string>>(
+    new Set(initialFavorites),
+  );
+  const [licensedIds, setLicensedIds] = useState<Set<string>>(
+    new Set(initialLicensedAssetIds),
+  );
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
@@ -164,7 +186,11 @@ export function ProjectDetailClient({
   const [downloading, setDownloading] = useState(false);
   const [downloadedBytes, setDownloadedBytes] = useState(0);
 
-  async function downloadZip(opts: { method: "GET" | "POST"; body?: { assetIds: string[] }; filename: string }) {
+  async function downloadZip(opts: {
+    method: "GET" | "POST";
+    body?: { assetIds: string[] };
+    filename: string;
+  }) {
     setDownloading(true);
     setDownloadedBytes(0);
     try {
@@ -248,9 +274,13 @@ export function ProjectDetailClient({
     });
   }
 
-  const bytesOf = (items: Asset[]) => items.reduce((n, a) => n + Number(a.sizeBytes), 0);
+  const bytesOf = (items: Asset[]) =>
+    items.reduce((n, a) => n + Number(a.sizeBytes), 0);
   const totalBytes = useMemo(() => bytesOf(scoped), [scoped]);
-  const selectedAssets = useMemo(() => scoped.filter((a) => selected.has(a.id)), [scoped, selected]);
+  const selectedAssets = useMemo(
+    () => scoped.filter((a) => selected.has(a.id)),
+    [scoped, selected],
+  );
 
   const formatCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -258,7 +288,10 @@ export function ProjectDetailClient({
     return counts;
   }, [scoped]);
 
-  const favCount = useMemo(() => scoped.filter((a) => favorites.has(a.id)).length, [scoped, favorites]);
+  const favCount = useMemo(
+    () => scoped.filter((a) => favorites.has(a.id)).length,
+    [scoped, favorites],
+  );
 
   const filters = [
     { id: "ALL", label: `All ${scoped.length}` },
@@ -269,7 +302,9 @@ export function ProjectDetailClient({
     { id: "FAV", label: `♥ Favorites${favCount ? ` ${favCount}` : ""}` },
   ];
 
-  const metaAssets = FORMAT_DEFS.map((d) => [formatCounts[d[0]] ?? 0, d[1]] as const)
+  const metaAssets = FORMAT_DEFS.map(
+    (d) => [formatCounts[d[0]] ?? 0, d[1]] as const,
+  )
     .filter(([c]) => c)
     .map(([c, label]) => `${c} ${label.split(" · ")[0].toLowerCase()}`)
     .join(" · ");
@@ -280,15 +315,26 @@ export function ProjectDetailClient({
     if (filter === "FAV") {
       const items = scoped.filter((a) => favorites.has(a.id));
       return items.length
-        ? [{ label: "Favorites", count: `${items.length} item${items.length > 1 ? "s" : ""}`, folder: project.path, cols: "repeat(auto-fill,minmax(220px,1fr))", items }]
+        ? [
+            {
+              label: "Favorites",
+              count: `${items.length} item${items.length > 1 ? "s" : ""}`,
+              folder: project.path,
+              cols: "repeat(auto-fill,minmax(220px,1fr))",
+              items,
+            },
+          ]
         : [];
     }
     if (groupMode === "week") {
       // Current year (plus anything undated) shows directly; older years are bucketed
       // separately below into collapsible folders so the default view stays focused on
       // this year's weekly deliveries instead of a year-spanning wall of weeks.
-      const byFilter = filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
-      const items = byFilter.filter((a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear);
+      const byFilter =
+        filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
+      const items = byFilter.filter(
+        (a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear,
+      );
       return bucketByWeek(items, project.path);
     }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
@@ -308,7 +354,8 @@ export function ProjectDetailClient({
   type YearFolder = { year: number; count: string; weeks: Group[] };
   const pastYearFolders: YearFolder[] = useMemo(() => {
     if (groupMode !== "week" || filter === "FAV") return [];
-    const byFilter = filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
+    const byFilter =
+      filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
     const byYear = new Map<number, Asset[]>();
     for (const a of byFilter) {
       if (!a.weekOf) continue;
@@ -328,25 +375,38 @@ export function ProjectDetailClient({
   }, [scoped, groupMode, filter, project.path, currentYear]);
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
-  const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.id)), [groups]);
-  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const visibleIds = useMemo(
+    () => groups.flatMap((g) => g.items.map((i) => i.id)),
+    [groups],
+  );
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
 
   // Follows the same grouped/filtered visual order the grid is actually rendered in
   // (week or format buckets, current filter) rather than raw upload order, so swipe
   // navigation in the video/photo viewers matches what's on screen.
   const videoOrder = useMemo(
     () => groups.flatMap((g) => g.items.filter((i) => i.kind === "VIDEO")),
-    [groups]
+    [groups],
   );
   const videoNavItems = useMemo(
-    () => videoOrder.map((v) => ({ id: v.id, name: v.name, licensable: v.licensable, licensed: licensedIds.has(v.id) })),
-    [videoOrder, licensedIds]
+    () =>
+      videoOrder.map((v) => ({
+        id: v.id,
+        name: v.name,
+        licensable: v.licensable,
+        licensed: licensedIds.has(v.id),
+      })),
+    [videoOrder, licensedIds],
   );
   const photoOrder = useMemo(
     () => groups.flatMap((g) => g.items.filter((i) => i.kind === "PHOTO")),
-    [groups]
+    [groups],
   );
-  const photoNavItems = useMemo(() => photoOrder.map((p) => ({ id: p.id, name: p.name })), [photoOrder]);
+  const photoNavItems = useMemo(
+    () => photoOrder.map((p) => ({ id: p.id, name: p.name })),
+    [photoOrder],
+  );
 
   function openAsset(a: Asset) {
     if (a.kind === "VIDEO") {
@@ -369,7 +429,7 @@ export function ProjectDetailClient({
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
           <span className="text-[15px] font-extrabold">{grp.label}</span>
           <span className="text-[11px] text-muted">
-            {grp.count} · {formatSize(bytesOf(grp.items))}
+            {grp.count} · {formatBytes(bytesOf(grp.items))}
           </span>
           {canDownload && (
             <button
@@ -387,17 +447,24 @@ export function ProjectDetailClient({
               }}
               className="ml-auto cursor-pointer text-[11px] font-semibold text-muted hover:text-text"
             >
-              {grp.items.every((i) => selected.has(i.id)) ? "Clear" : `Select all in ${grp.label}`}
+              {grp.items.every((i) => selected.has(i.id))
+                ? "Clear"
+                : `Select all in ${grp.label}`}
             </button>
           )}
         </div>
-        <div className="grid gap-4 items-start" style={{ gridTemplateColumns: grp.cols }}>
+        <div
+          className="grid gap-4 items-start"
+          style={{ gridTemplateColumns: grp.cols }}
+        >
           {grp.items.map((a, i) => (
             <AssetTile
               key={a.id}
               asset={a}
               index={i}
-              isNew={lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)}
+              isNew={
+                lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)
+              }
               selected={selected.has(a.id)}
               favorite={favorites.has(a.id)}
               unlocked={licensedIds.has(a.id)}
@@ -413,7 +480,10 @@ export function ProjectDetailClient({
 
   return (
     <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[1500px] mx-auto bjfade">
-      <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
+      >
         ← All projects
       </Link>
 
@@ -422,24 +492,29 @@ export function ProjectDetailClient({
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
             {project.clientName}
           </div>
-          <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3.5">{project.title}</h1>
+          <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3.5">
+            {project.title}
+          </h1>
           <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">
             <span>{metaAssets}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
-            <span className="tabular-nums">{formatSize(totalBytes)}</span>
+            <span className="tabular-nums">{formatBytes(totalBytes)}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
             <span>Delivered {fmtDate(project.deliveredAt)}</span>
             {project.expiresAt && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb font-semibold">Available until {fmtDate(project.expiresAt)}</span>
+                <span className="text-accentb font-semibold">
+                  Available until {fmtDate(project.expiresAt)}
+                </span>
               </>
             )}
             {totalSocialPosts > 0 && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
                 <span className="text-accentb font-semibold">
-                  ▶ {formatViews(totalViews)} views across {totalSocialPosts} post
+                  ▶ {formatViews(totalViews)} views across {totalSocialPosts}{" "}
+                  post
                   {totalSocialPosts > 1 ? "s" : ""}
                 </span>
               </>
@@ -455,7 +530,7 @@ export function ProjectDetailClient({
           </Link>
           {canDownload && (
             <DownloadButton
-              label={`↓ Download all · ${formatSize(totalBytes)}`}
+              label={`↓ Download all · ${formatBytes(totalBytes)}`}
               onClick={downloadAll}
               downloading={downloading}
               downloadedBytes={downloadedBytes}
@@ -517,7 +592,9 @@ export function ProjectDetailClient({
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}
-              <span className="relative z-10">By {g === "format" ? "Format" : "Week"}</span>
+              <span className="relative z-10">
+                By {g === "format" ? "Format" : "Week"}
+              </span>
             </button>
           ))}
         </div>
@@ -553,12 +630,18 @@ export function ProjectDetailClient({
         <div className="border border-line px-6 py-16 text-center mt-0.5">
           <div className="text-2xl text-dim mb-3">♥</div>
           <div className="text-[15px] font-bold mb-1.5">No favorites yet</div>
-          <div className="text-[13px] text-muted">Tap the heart on any still to add it to this collection.</div>
+          <div className="text-[13px] text-muted">
+            Tap the heart on any still to add it to this collection.
+          </div>
         </div>
       )}
 
       {openPhotoId && (
-        <ImageViewer items={photoNavItems} initialId={openPhotoId} onClose={() => setOpenPhotoId(null)} />
+        <ImageViewer
+          items={photoNavItems}
+          initialId={openPhotoId}
+          onClose={() => setOpenPhotoId(null)}
+        />
       )}
 
       {openVideoId && (
@@ -594,9 +677,11 @@ export function ProjectDetailClient({
       {canDownload && selected.size > 0 && (
         <div className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise">
           <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(0,0,0,.6)] flex items-center gap-3 sm:gap-4 flex-wrap">
-            <span className="text-sm font-extrabold tabular-nums">{selected.size} selected</span>
+            <span className="text-sm font-extrabold tabular-nums">
+              {selected.size} selected
+            </span>
             <span className="text-[13px] text-muted tabular-nums">
-              {formatSize(bytesOf(selectedAssets))}
+              {formatBytes(bytesOf(selectedAssets))}
             </span>
             <div className="flex-1" />
             <button
@@ -613,7 +698,7 @@ export function ProjectDetailClient({
               Select all
             </button>
             <DownloadButton
-              label={`↓ Download ${selected.size} · ${formatSize(bytesOf(selectedAssets))}`}
+              label={`↓ Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
               onClick={downloadSelected}
               downloading={downloading}
               downloadedBytes={downloadedBytes}

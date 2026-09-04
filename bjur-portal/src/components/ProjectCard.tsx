@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { gradientFor } from "@/lib/gradients";
-import { formatSize } from "@/components/AssetTile";
+import { formatBytes } from "@/lib/format";
 
 function formatDate(d: Date) {
-  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function ProjectCard({
@@ -65,12 +69,14 @@ export function ProjectCard({
             {parts.join(" · ")}
           </span>
           <span className="text-[11px] text-white/82 font-semibold tabular-nums">
-            {formatSize(totalBytes)}
+            {formatBytes(totalBytes)}
           </span>
         </div>
       </div>
       <div className="px-4 pt-4 pb-5">
-        <div className="text-xl font-extrabold tracking-tight leading-snug mb-2.5">{title}</div>
+        <div className="text-xl font-extrabold tracking-tight leading-snug mb-2.5">
+          {title}
+        </div>
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-xs text-dim">
             Delivered {deliveredAt ? formatDate(deliveredAt) : "—"}
