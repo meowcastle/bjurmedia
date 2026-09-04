@@ -48,7 +48,8 @@ async function seedSocial() {
       platform: "INSTAGRAM",
       externalId: "17841400000000001",
       handle: "@57nyc",
-      accessToken: "seed-not-a-real-token",
+      // No accessToken on purpose: a fixture token is not a real credential, and having
+      // one here means every test-suite sync makes a doomed call to Meta.
       lastSyncedAt: daysAgo(1),
     },
   });
@@ -70,7 +71,6 @@ async function seedSocial() {
       platform: "INSTAGRAM",
       externalId: "17841400000000002",
       handle: "@suyinsama",
-      accessToken: "seed-expired-token",
       lastSyncedAt: daysAgo(9),
       lastSyncError: "Token expired — reconnect the account to resume syncing.",
     },

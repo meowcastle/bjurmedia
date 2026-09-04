@@ -19,12 +19,27 @@ type VideoStats = {
  * global API key (no per-channel OAuth needed for public statistics on public
  * videos). Throws on failure — same non-fatal-catching split as instagram.ts.
  */
+/**
+ * Either the studio-wide API key or a channel's own OAuth access token. A channel
+ * connected for publishing already has a refresh token, so its stats can be read without
+ * anyone having to also paste the shared key on the Integrations page.
+ */
+export type YouTubeAuth = { apiKey: string } | { accessToken: string };
+
+function authFor(auth: YouTubeAuth) {
+  return "apiKey" in auth
+    ? { query: `&key=${auth.apiKey}`, headers: {} as Record<string, string> }
+    : { query: "", headers: { Authorization: `Bearer ${auth.accessToken}` } };
+}
+
 export async function fetchYouTubeVideos(
   account: { externalId: string },
-  apiKey: string
+  auth: YouTubeAuth
 ): Promise<YouTubePost[]> {
+  const { query, headers } = authFor(auth);
   const channelRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${account.externalId}&key=${apiKey}`
+    `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${account.externalId}${query}`,
+    { headers }
   );
   if (!channelRes.ok) {
     throw new Error(`YouTube channel fetch failed: ${channelRes.status} ${await channelRes.text()}`);
@@ -36,7 +51,8 @@ export async function fetchYouTubeVideos(
   if (!uploadsPlaylistId) return [];
 
   const itemsRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=25&key=${apiKey}`
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=25${query}`,
+    { headers }
   );
   if (!itemsRes.ok) {
     throw new Error(`YouTube playlistItems fetch failed: ${itemsRes.status} ${await itemsRes.text()}`);
@@ -46,7 +62,8 @@ export async function fetchYouTubeVideos(
   if (videoIds.length === 0) return [];
 
   const statsRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(",")}&key=${apiKey}`
+    `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds.join(",")}${query}`,
+    { headers }
   );
   if (!statsRes.ok) {
     throw new Error(`YouTube videos fetch failed: ${statsRes.status} ${await statsRes.text()}`);
