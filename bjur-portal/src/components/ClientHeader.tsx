@@ -3,17 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { initials } from "@/lib/initials";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-export function ClientHeader({ clientName, userName }: { clientName: string; userName: string }) {
+export function ClientHeader({
+  clientName,
+  userName,
+}: {
+  clientName: string;
+  userName: string;
+}) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -28,12 +26,17 @@ export function ClientHeader({ clientName, userName }: { clientName: string; use
       <Link href="/" className="flex items-center gap-2.5 flex-none">
         <div className="w-3.5 h-3.5 bg-accent flex-none" />
         <span className="font-black text-[15px]">BJUR</span>
-        <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">MEDIA</span>
+        <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">
+          MEDIA
+        </span>
       </Link>
 
       {/* Desktop/tablet: full inline actions */}
       <div className="ml-auto hidden sm:flex items-center gap-4">
-        <Link href="/settings" className="flex items-center gap-3 hover:opacity-80">
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 hover:opacity-80"
+        >
           <span className="text-[13px] text-muted">{clientName}</span>
           <div className="w-[30px] h-[30px] bg-s3 grid place-items-center text-xs font-bold flex-none">
             {initials(userName)}
@@ -60,11 +63,18 @@ export function ClientHeader({ clientName, userName }: { clientName: string; use
         </button>
         {menuOpen && (
           <>
-            <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setMenuOpen(false)}
+            />
             <div className="absolute right-0 top-full mt-2 w-60 bg-s2 border border-line2 z-40 bjfade">
               <div className="px-4 py-3 border-b border-line">
-                <div className="text-[10px] text-dim uppercase tracking-wide font-semibold">Signed in as</div>
-                <div className="text-sm font-semibold truncate mt-0.5">{clientName}</div>
+                <div className="text-[10px] text-dim uppercase tracking-wide font-semibold">
+                  Signed in as
+                </div>
+                <div className="text-sm font-semibold truncate mt-0.5">
+                  {clientName}
+                </div>
               </div>
               <Link
                 href="/settings"

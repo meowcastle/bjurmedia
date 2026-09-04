@@ -59,6 +59,8 @@ export default async function AdminIntegrationsPage() {
           name: c.name,
           type: c.type.charAt(0) + c.type.slice(1).toLowerCase(),
           channel: channelByClient.get(c.id)?.channel ?? "",
+          accentColor: c.accentColor,
+          logoUrl: c.logoUrl,
           instagram: platformState(c.id, "INSTAGRAM"),
           youtube: platformState(c.id, "YOUTUBE"),
         }))}

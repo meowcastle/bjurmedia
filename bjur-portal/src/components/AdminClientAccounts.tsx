@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { initials } from "@/lib/initials";
+import { lighten } from "@/lib/color";
+
+const DEFAULT_ACCENT = "#ec3013";
 
 export type ClientAccountRow = {
   id: string;
   name: string;
   type: string;
   channel: string;
+  accentColor: string | null;
+  logoUrl: string | null;
   instagram: PlatformState | null;
   youtube: PlatformState | null;
 };
@@ -17,17 +23,6 @@ export type PlatformState = {
   lastSyncError: string | null;
 };
 
-function initials(name: string) {
-  return (
-    name
-      .split(/[\s.]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
-}
-
 function ago(iso: string) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
   if (days <= 0) return "today";
@@ -35,7 +30,13 @@ function ago(iso: string) {
   return `${days}d ago`;
 }
 
-function Platform({ tag, state }: { tag: string; state: PlatformState | null }) {
+function Platform({
+  tag,
+  state,
+}: {
+  tag: string;
+  state: PlatformState | null;
+}) {
   if (!state) {
     return (
       <div className="flex items-center gap-2 min-w-0">
@@ -51,16 +52,24 @@ function Platform({ tag, state }: { tag: string; state: PlatformState | null }) 
       <span className="text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5 flex-none">
         {tag}
       </span>
-      <span className="text-[11px] text-text truncate">{state.handle || "connected"}</span>
+      <span className="text-[11px] text-text truncate">
+        {state.handle || "connected"}
+      </span>
       {state.lastSyncError ? (
         // A token that has expired or been revoked is otherwise completely silent: the
         // account still looks connected and the numbers just stop moving.
-        <span className="text-[11px] text-accentb truncate" title={state.lastSyncError}>
+        <span
+          className="text-[11px] text-accentb truncate"
+          title={state.lastSyncError}
+        >
           · sync failing
         </span>
       ) : (
         <span className="text-[11px] text-dim flex-none">
-          · {state.lastSyncedAt ? `synced ${ago(state.lastSyncedAt)}` : "never synced"}
+          ·{" "}
+          {state.lastSyncedAt
+            ? `synced ${ago(state.lastSyncedAt)}`
+            : "never synced"}
         </span>
       )}
     </div>
@@ -77,19 +86,24 @@ function Platform({ tag, state }: { tag: string; state: PlatformState | null }) 
 export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
   const connected = rows.filter((r) => r.instagram || r.youtube).length;
   const failing = rows.filter(
-    (r) => r.instagram?.lastSyncError || r.youtube?.lastSyncError
+    (r) => r.instagram?.lastSyncError || r.youtube?.lastSyncError,
   ).length;
 
   return (
-    <div className="px-10 pb-12 max-w-[820px] mx-auto -mt-6" data-testid="client-accounts">
+    <div
+      className="px-10 pb-12 max-w-[820px] mx-auto -mt-6"
+      data-testid="client-accounts"
+    >
       <div className="mb-5">
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
           Connections
         </div>
-        <h1 className="text-[26px] tracking-tight font-black">Client accounts</h1>
+        <h1 className="text-[26px] tracking-tight font-black">
+          Client accounts
+        </h1>
         <p className="text-[13px] text-muted mt-2">
-          Nothing publishes or reports views for a client until their Instagram or YouTube
-          account is connected.
+          Nothing publishes or reports views for a client until their Instagram
+          or YouTube account is connected.
         </p>
       </div>
 
@@ -106,7 +120,9 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
         </div>
 
         {rows.length === 0 ? (
-          <div className="px-5 py-6 text-[13px] text-muted">No active clients yet.</div>
+          <div className="px-5 py-6 text-[13px] text-muted">
+            No active clients yet.
+          </div>
         ) : (
           rows.map((c) => (
             <div
@@ -114,11 +130,38 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
               data-testid={`account-row-${c.id}`}
               className="flex items-center gap-4 px-5 py-3.5 border-b border-line last:border-b-0 flex-wrap"
             >
-              <div className="w-8 h-8 grid place-items-center bg-s3 border border-line2 text-[11px] font-black flex-none">
-                {initials(c.name)}
+              {/* Same avatar treatment as the clients list — logo if the client has
+                  one, otherwise initials on their own accent. */}
+              <div
+                className="w-9 h-9 grid place-items-center overflow-hidden flex-none"
+                style={
+                  c.logoUrl
+                    ? { background: "var(--s3)" }
+                    : {
+                        background: `linear-gradient(135deg, ${c.accentColor ?? DEFAULT_ACCENT}, ${lighten(
+                          c.accentColor ?? DEFAULT_ACCENT,
+                          0.6,
+                        )})`,
+                      }
+                }
+              >
+                {c.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
+                  <img
+                    src={c.logoUrl}
+                    alt=""
+                    className="w-full h-full object-contain bg-bg"
+                  />
+                ) : (
+                  <span className="text-[11px] font-black text-bg">
+                    {initials(c.name)}
+                  </span>
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-semibold truncate">{c.name}</div>
+                <div className="text-[13px] font-semibold truncate">
+                  {c.name}
+                </div>
                 <div className="text-[11px] text-dim truncate">
                   {c.type}
                   {c.channel ? ` · ${c.channel}` : ""}

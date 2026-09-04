@@ -106,7 +106,7 @@ export function AdminProxyViewer({
     <Portal>
       <div
         data-testid="admin-proxy-viewer"
-        className="fixed inset-0 z-50 bg-black/92 flex flex-col lg:flex-row"
+        className="fixed inset-0 z-50 bg-black flex flex-col lg:flex-row"
       >
         {/* Media */}
         <div className="relative flex-1 min-h-0 grid place-items-center p-4 lg:p-8">
@@ -118,7 +118,12 @@ export function AdminProxyViewer({
                   ? "Still encoding — this file will be previewable when the worker finishes."
                   : asset.proxyStatus === "FAILED"
                     ? "The last encode failed. Regenerate it from the rail."
-                    : "This file has no proxy yet."}
+                    : mediaFailed
+                      ? // The row says READY but nothing streams: the derived file has
+                        // gone missing or was never finished. Saying "no proxy yet"
+                        // here would contradict the rail and hide real drift.
+                        "The row says this proxy is ready, but the file will not load. Regenerate it from the rail."
+                      : "This file has no proxy yet."}
               </div>
             </div>
           ) : asset.kind === "VIDEO" ? (
@@ -177,11 +182,18 @@ export function AdminProxyViewer({
             <Row
               label="Proxy"
               value={
-                hasPlayableProxy
-                  ? (asset.proxyRes ?? "Ready")
-                  : asset.kind === "PHOTO"
-                    ? "Stills have no proxy"
-                    : asset.proxyStatus.charAt(0) + asset.proxyStatus.slice(1).toLowerCase()
+                // A failed load beats whatever the row says: the database claiming READY
+                // while the file will not stream is exactly the drift worth surfacing,
+                // and reprinting "1080p H.264" next to "no proxy to preview" hides it.
+                mediaFailed ? (
+                  <span className="text-accentb">Missing on disk — regenerate</span>
+                ) : hasPlayableProxy ? (
+                  (asset.proxyRes ?? "Ready")
+                ) : asset.kind === "PHOTO" ? (
+                  "Stills have no proxy"
+                ) : (
+                  asset.proxyStatus.charAt(0) + asset.proxyStatus.slice(1).toLowerCase()
+                )
               }
             />
             <Row label="Visible to client" value={asset.internal ? "No — internal" : "Yes"} />

@@ -127,3 +127,30 @@ test("a proxy that will not load explains itself instead of showing a dead playe
   await expect(viewer.getByText("Visible to client")).toBeVisible();
   await expect(viewer.getByRole("link", { name: /Download master/ })).toBeVisible();
 });
+
+test("the rail says the file is missing rather than reprinting a resolution", async ({ page }) => {
+  // The database claiming READY while nothing streams is real drift — a derived file
+  // deleted under the app, a half-finished encode. The rail must not keep asserting
+  // "1080p H.264" next to a player saying there is no proxy.
+  await page.route("**/api/assets/*/proxy", (route) => route.fulfill({ status: 404 }));
+  await page.goto(PROJECT);
+
+  const rows = page.locator('[data-testid^="asset-row-"]');
+  const count = await rows.count();
+  let videoIndex = -1;
+  for (let i = 0; i < count; i++) {
+    if ((await rows.nth(i).getByText(/^(REEL|FILM|MASTER)$/).count()) > 0) {
+      videoIndex = i;
+      break;
+    }
+  }
+  expect(videoIndex).toBeGreaterThanOrEqual(0);
+
+  await openPreview(page, videoIndex);
+  const viewer = page.getByTestId("admin-proxy-viewer");
+  await expect(viewer.getByText("Missing on disk — regenerate")).toBeVisible();
+  // And the centre says the same thing rather than "no proxy yet", which would
+  // contradict the rail and read as a file that was simply never encoded.
+  await expect(viewer.getByText(/the file will not load/)).toBeVisible();
+  await expect(viewer.getByText(/H\.264/)).toHaveCount(0);
+});

@@ -12,6 +12,7 @@ import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
 import { ClientSubmissionsDialog } from "@/components/ClientSubmissionsDialog";
 import { lighten } from "@/lib/color";
+import { initials } from "@/lib/initials";
 
 type ProjectAccessGrant = { projectId: string; role: string };
 type Seat = {
@@ -42,9 +43,6 @@ type ClientInfo = {
   logoUrl: string | null;
 };
 
-function initials(name: string) {
-  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
 type SocialAccountRow = {
   platform: "INSTAGRAM" | "YOUTUBE";
   externalId: string;
@@ -86,7 +84,11 @@ const STATUS_COLOR: Record<string, string> = {
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 export type TopPost = {
@@ -120,7 +122,9 @@ export function AdminClientDetailClient({
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [resetDialogFor, setResetDialogFor] = useState<Seat | null>(null);
   const [accessDialogFor, setAccessDialogFor] = useState<Seat | null>(null);
-  const [confirmingRemoveSeat, setConfirmingRemoveSeat] = useState<string | null>(null);
+  const [confirmingRemoveSeat, setConfirmingRemoveSeat] = useState<
+    string | null
+  >(null);
   const [removingSeat, setRemovingSeat] = useState<string | null>(null);
   const [seatError, setSeatError] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -128,7 +132,9 @@ export function AdminClientDetailClient({
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
-  const [accentColor, setAccentColor] = useState(client.accentColor ?? DEFAULT_ACCENT);
+  const [accentColor, setAccentColor] = useState(
+    client.accentColor ?? DEFAULT_ACCENT,
+  );
   const [savingAccent, setSavingAccent] = useState(false);
   const [logoUrl, setLogoUrl] = useState(client.logoUrl);
   const [logoDraft, setLogoDraft] = useState(client.logoUrl ?? "");
@@ -136,14 +142,16 @@ export function AdminClientDetailClient({
   const [social, setSocial] = useState(socialAccounts);
 
   function socialRow(platform: "INSTAGRAM" | "YOUTUBE"): SocialAccountRow {
-    return social.find((s) => s.platform === platform) ?? {
-      platform,
-      externalId: "",
-      handle: "",
-      hasToken: false,
-      lastSyncedAt: null,
-      lastSyncError: null,
-    };
+    return (
+      social.find((s) => s.platform === platform) ?? {
+        platform,
+        externalId: "",
+        handle: "",
+        hasToken: false,
+        lastSyncedAt: null,
+        lastSyncError: null,
+      }
+    );
   }
 
   const [igDraft, setIgDraft] = useState(() => {
@@ -154,7 +162,9 @@ export function AdminClientDetailClient({
     const r = socialRow("YOUTUBE");
     return { externalId: r.externalId, handle: r.handle };
   });
-  const [savingSocial, setSavingSocial] = useState<"INSTAGRAM" | "YOUTUBE" | null>(null);
+  const [savingSocial, setSavingSocial] = useState<
+    "INSTAGRAM" | "YOUTUBE" | null
+  >(null);
 
   async function saveIg() {
     setSavingSocial("INSTAGRAM");
@@ -169,21 +179,25 @@ export function AdminClientDetailClient({
 
   async function saveYt() {
     setSavingSocial("YOUTUBE");
-    await saveSocialAccount("YOUTUBE", { externalId: ytDraft.externalId, handle: ytDraft.handle });
+    await saveSocialAccount("YOUTUBE", {
+      externalId: ytDraft.externalId,
+      handle: ytDraft.handle,
+    });
     setSavingSocial(null);
   }
 
   async function unlinkSocial(platform: "INSTAGRAM" | "YOUTUBE") {
     setSavingSocial(platform);
     await saveSocialAccount(platform, { externalId: "", handle: "" });
-    if (platform === "INSTAGRAM") setIgDraft({ externalId: "", handle: "", accessToken: "" });
+    if (platform === "INSTAGRAM")
+      setIgDraft({ externalId: "", handle: "", accessToken: "" });
     else setYtDraft({ externalId: "", handle: "" });
     setSavingSocial(null);
   }
 
   async function saveSocialAccount(
     platform: "INSTAGRAM" | "YOUTUBE",
-    fields: { externalId: string; handle: string; accessToken?: string }
+    fields: { externalId: string; handle: string; accessToken?: string },
   ) {
     await fetch(`/api/admin/clients/${client.id}/social`, {
       method: "PATCH",
@@ -197,7 +211,10 @@ export function AdminClientDetailClient({
           platform,
           externalId: fields.externalId.trim(),
           handle: fields.handle.trim(),
-          hasToken: fields.accessToken !== undefined ? !!fields.accessToken.trim() : rows.find((r) => r.platform === platform)?.hasToken ?? false,
+          hasToken:
+            fields.accessToken !== undefined
+              ? !!fields.accessToken.trim()
+              : (rows.find((r) => r.platform === platform)?.hasToken ?? false),
           lastSyncedAt: null,
           lastSyncError: null,
         });
@@ -209,7 +226,10 @@ export function AdminClientDetailClient({
   async function removeSeat(seat: Seat) {
     setRemovingSeat(seat.id);
     setSeatError("");
-    const res = await fetch(`/api/admin/clients/${client.id}/users/${seat.id}`, { method: "DELETE" });
+    const res = await fetch(
+      `/api/admin/clients/${client.id}/users/${seat.id}`,
+      { method: "DELETE" },
+    );
     const data = await res.json().catch(() => ({}));
     setRemovingSeat(null);
     if (!res.ok) {
@@ -259,7 +279,10 @@ export function AdminClientDetailClient({
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
-      <Link href="/admin/clients" className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6">
+      <Link
+        href="/admin/clients"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
+      >
         ← All clients
       </Link>
 
@@ -267,25 +290,41 @@ export function AdminClientDetailClient({
         <div className="flex items-center gap-4">
           <div
             className="w-14 h-14 flex-none grid place-items-center overflow-hidden bg-s3"
-            style={!logoUrl ? { background: `linear-gradient(135deg, ${accentColor}, ${lighten(accentColor, 0.6)})` } : undefined}
+            style={
+              !logoUrl
+                ? {
+                    background: `linear-gradient(135deg, ${accentColor}, ${lighten(accentColor, 0.6)})`,
+                  }
+                : undefined
+            }
           >
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
-              <img src={logoUrl} alt="" className="w-full h-full object-contain bg-bg" />
+              <img
+                src={logoUrl}
+                alt=""
+                className="w-full h-full object-contain bg-bg"
+              />
             ) : (
-              <span className="text-lg font-black text-bg">{initials(client.name)}</span>
+              <span className="text-lg font-black text-bg">
+                {initials(client.name)}
+              </span>
             )}
           </div>
           <div>
             <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
               @{client.username}
             </div>
-            <h1 className="text-4xl tracking-tight font-black mb-3">{client.name}</h1>
+            <h1 className="text-4xl tracking-tight font-black mb-3">
+              {client.name}
+            </h1>
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
                 {client.type === "RETAINER" ? "Retainer" : "One-off"}
               </span>
-              <span className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}>
+              <span
+                className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}
+              >
                 {active ? "Active" : "Disabled"}
               </span>
             </div>
@@ -293,11 +332,15 @@ export function AdminClientDetailClient({
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted">Logo URL</span>
+            <span className="text-[11px] font-semibold text-muted">
+              Logo URL
+            </span>
             <input
               value={logoDraft}
               onChange={(e) => setLogoDraft(e.target.value)}
-              onBlur={() => logoDraft.trim() !== (logoUrl ?? "") && saveLogoUrl(logoDraft)}
+              onBlur={() =>
+                logoDraft.trim() !== (logoUrl ?? "") && saveLogoUrl(logoDraft)
+              }
               placeholder="https://…"
               disabled={savingLogo}
               className="w-44 bg-bg border border-line2 text-text text-[12px] font-mono px-2.5 py-2 outline-none focus:border-accent disabled:opacity-40"
@@ -316,7 +359,9 @@ export function AdminClientDetailClient({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted">Portal accent</span>
+            <span className="text-[11px] font-semibold text-muted">
+              Portal accent
+            </span>
             <input
               type="color"
               value={accentColor}
@@ -353,31 +398,44 @@ export function AdminClientDetailClient({
           <div>
             <div className="text-sm font-bold mb-1">Instagram</div>
             <div className="text-xs text-muted mb-3">
-              Business/Creator Account ID + a long-lived access token — powers weekly
-              view counts, matched automatically to delivered reels/stills.
+              Business/Creator Account ID + a long-lived access token — powers
+              weekly view counts, matched automatically to delivered
+              reels/stills.
             </div>
             <div className="flex flex-wrap gap-2.5">
               <input
                 value={igDraft.handle}
-                onChange={(e) => setIgDraft((d) => ({ ...d, handle: e.target.value }))}
+                onChange={(e) =>
+                  setIgDraft((d) => ({ ...d, handle: e.target.value }))
+                }
                 placeholder="@handle"
                 className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
               />
               <input
                 value={igDraft.externalId}
-                onChange={(e) => setIgDraft((d) => ({ ...d, externalId: e.target.value }))}
+                onChange={(e) =>
+                  setIgDraft((d) => ({ ...d, externalId: e.target.value }))
+                }
                 placeholder="IG Business Account ID"
                 className="w-52 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
               />
               <input
                 value={igDraft.accessToken}
-                onChange={(e) => setIgDraft((d) => ({ ...d, accessToken: e.target.value }))}
-                placeholder={socialRow("INSTAGRAM").hasToken ? "•••• (saved — paste to replace)" : "Long-lived access token"}
+                onChange={(e) =>
+                  setIgDraft((d) => ({ ...d, accessToken: e.target.value }))
+                }
+                placeholder={
+                  socialRow("INSTAGRAM").hasToken
+                    ? "•••• (saved — paste to replace)"
+                    : "Long-lived access token"
+                }
                 className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
               />
               <button
                 onClick={saveIg}
-                disabled={savingSocial === "INSTAGRAM" || !igDraft.externalId.trim()}
+                disabled={
+                  savingSocial === "INSTAGRAM" || !igDraft.externalId.trim()
+                }
                 className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
               >
                 Save
@@ -393,32 +451,40 @@ export function AdminClientDetailClient({
               )}
             </div>
             {socialRow("INSTAGRAM").lastSyncError && (
-              <div className="text-xs text-accentb mt-2">{socialRow("INSTAGRAM").lastSyncError}</div>
+              <div className="text-xs text-accentb mt-2">
+                {socialRow("INSTAGRAM").lastSyncError}
+              </div>
             )}
           </div>
 
           <div className="border-t border-line pt-5">
             <div className="text-sm font-bold mb-1">YouTube</div>
             <div className="text-xs text-muted mb-3">
-              Channel ID only — view counts are pulled with the shared YouTube API key
-              set on the Integrations page.
+              Channel ID only — view counts are pulled with the shared YouTube
+              API key set on the Integrations page.
             </div>
             <div className="flex flex-wrap gap-2.5">
               <input
                 value={ytDraft.handle}
-                onChange={(e) => setYtDraft((d) => ({ ...d, handle: e.target.value }))}
+                onChange={(e) =>
+                  setYtDraft((d) => ({ ...d, handle: e.target.value }))
+                }
                 placeholder="Channel name"
                 className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
               />
               <input
                 value={ytDraft.externalId}
-                onChange={(e) => setYtDraft((d) => ({ ...d, externalId: e.target.value }))}
+                onChange={(e) =>
+                  setYtDraft((d) => ({ ...d, externalId: e.target.value }))
+                }
                 placeholder="YouTube Channel ID"
                 className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
               />
               <button
                 onClick={saveYt}
-                disabled={savingSocial === "YOUTUBE" || !ytDraft.externalId.trim()}
+                disabled={
+                  savingSocial === "YOUTUBE" || !ytDraft.externalId.trim()
+                }
                 className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
               >
                 Save
@@ -434,14 +500,18 @@ export function AdminClientDetailClient({
               )}
             </div>
             {socialRow("YOUTUBE").lastSyncError && (
-              <div className="text-xs text-accentb mt-2">{socialRow("YOUTUBE").lastSyncError}</div>
+              <div className="text-xs text-accentb mt-2">
+                {socialRow("YOUTUBE").lastSyncError}
+              </div>
             )}
           </div>
         </div>
       </div>
 
       <div className="flex items-end justify-between mb-4">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">Seats</h2>
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
+          Seats
+        </h2>
         <button
           onClick={() => setSeatDialogOpen(true)}
           className="cursor-pointer text-xs font-semibold text-muted hover:text-text border border-dashed border-line2 hover:border-text px-3.5 py-2"
@@ -449,7 +519,11 @@ export function AdminClientDetailClient({
           + Add user seat
         </button>
       </div>
-      {seatError && <div className="text-xs text-accentb font-semibold mb-3">{seatError}</div>}
+      {seatError && (
+        <div className="text-xs text-accentb font-semibold mb-3">
+          {seatError}
+        </div>
+      )}
       <div className="border border-line mb-9">
         {seats.map((u) => (
           <div
@@ -460,13 +534,19 @@ export function AdminClientDetailClient({
             <div className="md:contents">
               <div className="min-w-0">
                 <span className="text-[13px] font-semibold">{u.name}</span>
-                <div className="text-xs text-dim font-mono mt-0.5 truncate" title={u.email}>
+                <div
+                  className="text-xs text-dim font-mono mt-0.5 truncate"
+                  title={u.email}
+                >
                   {u.email}
                 </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
-              <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: ROLE_COLOR[u.role] }}>
+              <span
+                className="text-[11px] font-bold tracking-wide uppercase"
+                style={{ color: ROLE_COLOR[u.role] }}
+              >
                 {u.role}
               </span>
               <span className="text-[11px] text-dim">
@@ -476,7 +556,12 @@ export function AdminClientDetailClient({
               </span>
               <span className="text-[11px] text-dim md:text-right">
                 <span className="md:hidden text-dim">Last login · </span>
-                {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                {u.lastLoginAt
+                  ? new Date(u.lastLoginAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "—"}
               </span>
             </div>
             {/* Fixed-width action cell: the confirm step swaps the buttons out, and a
@@ -527,9 +612,12 @@ export function AdminClientDetailClient({
             </div>
           </div>
         ))}
-        {seats.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted">No seats yet.</div>}
+        {seats.length === 0 && (
+          <div className="px-5 py-8 text-center text-sm text-muted">
+            No seats yet.
+          </div>
+        )}
       </div>
-
 
       {/* §10c. Which delivered files are actually performing — the question a
           retainer conversation opens with. No change-vs-last-period figure: only the
@@ -566,17 +654,22 @@ export function AdminClientDetailClient({
                       {p.title} ↗
                     </a>
                   ) : (
-                    <span className="text-[13px] font-semibold truncate block">{p.title}</span>
+                    <span className="text-[13px] font-semibold truncate block">
+                      {p.title}
+                    </span>
                   )}
                   <div className="text-[11px] text-dim truncate">
-                    {p.handle} · {new Date(p.postedAt).toISOString().slice(0, 10)}
+                    {p.handle} ·{" "}
+                    {new Date(p.postedAt).toISOString().slice(0, 10)}
                   </div>
                 </div>
                 <div className="text-right flex-none">
                   <div className="text-[15px] font-black tabular-nums">
                     {p.views.toLocaleString("en-US")}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wide text-dim">views</div>
+                  <div className="text-[10px] uppercase tracking-wide text-dim">
+                    views
+                  </div>
                 </div>
               </div>
             ))}
@@ -585,7 +678,9 @@ export function AdminClientDetailClient({
       )}
 
       <div className="flex items-end justify-between mb-4">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">Projects</h2>
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
+          Projects
+        </h2>
         <Button onClick={() => setNewProjectOpen(true)}>+ New project</Button>
       </div>
       <div className="border border-line">
@@ -597,17 +692,25 @@ export function AdminClientDetailClient({
           >
             <div className="md:contents">
               <div>
-                <Link href={`/admin/media?project=${p.id}`} className="font-semibold text-sm hover:text-accent">
+                <Link
+                  href={`/admin/media?project=${p.id}`}
+                  className="font-semibold text-sm hover:text-accent"
+                >
                   {p.title}
                 </Link>
-                <div className="text-[10.5px] font-mono text-dim mt-1 truncate" title={p.inboxPath}>
+                <div
+                  className="text-[10.5px] font-mono text-dim mt-1 truncate"
+                  title={p.inboxPath}
+                >
                   {p.inboxPath}
                 </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
               <span className="text-muted">{p.assetCount} assets</span>
-              <span className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}>
+              <span
+                className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}
+              >
                 {p.status}
               </span>
               <span className="text-muted md:text-right">
@@ -640,18 +743,31 @@ export function AdminClientDetailClient({
           </div>
         ))}
         {projects.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-muted">No projects yet.</div>
+          <div className="px-5 py-10 text-center text-sm text-muted">
+            No projects yet.
+          </div>
         )}
       </div>
 
       <div className="mt-9">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">Licenses</h2>
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
+          Licenses
+        </h2>
         <div className="border border-line">
           {licenses.map((l) => {
             const now = new Date();
             const expired = l.expiresAt != null && new Date(l.expiresAt) < now;
-            const statusLabel = l.expiresAt == null ? "Perpetual" : expired ? "Expired" : "Active";
-            const statusColor = expired ? "text-accent" : l.expiresAt == null ? "text-muted" : "text-success";
+            const statusLabel =
+              l.expiresAt == null
+                ? "Perpetual"
+                : expired
+                  ? "Expired"
+                  : "Active";
+            const statusColor = expired
+              ? "text-accent"
+              : l.expiresAt == null
+                ? "text-muted"
+                : "text-success";
             return (
               <div
                 key={l.id}
@@ -659,7 +775,11 @@ export function AdminClientDetailClient({
               >
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-sm font-semibold">{l.assetName}</span>
-                  <span className={`text-[11px] font-bold tracking-wide uppercase ${statusColor}`}>{statusLabel}</span>
+                  <span
+                    className={`text-[11px] font-bold tracking-wide uppercase ${statusColor}`}
+                  >
+                    {statusLabel}
+                  </span>
                 </div>
                 <div className="text-xs text-muted">
                   {TIER_LABEL[l.tier]} · ${l.amount} · {l.scope}
@@ -672,7 +792,9 @@ export function AdminClientDetailClient({
             );
           })}
           {licenses.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm text-muted">No licenses yet.</div>
+            <div className="px-5 py-8 text-center text-sm text-muted">
+              No licenses yet.
+            </div>
           )}
         </div>
       </div>

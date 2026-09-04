@@ -8,8 +8,15 @@ import { NewClientDialog } from "@/components/NewClientDialog";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
 import { lighten } from "@/lib/color";
+import { initials } from "@/lib/initials";
 
-type Seat = { id: string; name: string; email: string; role: string; lastLoginAt: string | null };
+type Seat = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  lastLoginAt: string | null;
+};
 type ClientRow = {
   id: string;
   name: string;
@@ -24,10 +31,6 @@ type ClientRow = {
 
 const DEFAULT_ACCENT = "#ec3013";
 
-function initials(name: string) {
-  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
 const ROLE_COLOR: Record<string, string> = {
   OWNER: "#2ec36b",
   DOWNLOADER: "var(--accentb)",
@@ -39,7 +42,10 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [seatDialogFor, setSeatDialogFor] = useState<ClientRow | null>(null);
-  const [resetDialogFor, setResetDialogFor] = useState<{ client: ClientRow; seat: Seat } | null>(null);
+  const [resetDialogFor, setResetDialogFor] = useState<{
+    client: ClientRow;
+    seat: Seat;
+  } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   function toggleExpand(id: string) {
@@ -56,7 +62,9 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
     await fetch(`/api/admin/clients/${c.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: c.status === "ACTIVE" ? "DISABLED" : "ACTIVE" }),
+      body: JSON.stringify({
+        status: c.status === "ACTIVE" ? "DISABLED" : "ACTIVE",
+      }),
     });
     setBusyId(null);
     router.refresh();
@@ -93,25 +101,47 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
             <div
               key={c.id}
               className="border-b border-line last:border-b-0"
-              style={{ borderLeft: `3px solid ${active ? accent : "var(--line2)"}` }}
+              style={{
+                borderLeft: `3px solid ${active ? accent : "var(--line2)"}`,
+              }}
             >
               <div
                 className="flex flex-col gap-3 px-4 py-5 md:grid md:gap-4 md:px-5 md:py-5 md:items-center"
-                style={{ gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr", background: active ? "transparent" : "rgba(255,255,255,.015)" }}
+                style={{
+                  gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr",
+                  background: active ? "transparent" : "rgba(255,255,255,.015)",
+                }}
               >
                 {/* Identity + type share a row on mobile (display:contents at md: restores
                     the plain 5-col grid, same as the Media pipeline table). */}
                 <div className="flex items-center gap-3.5 md:contents">
-                  <Link href={`/admin/clients/${c.id}`} className="flex items-center gap-3.5 min-w-0 flex-1 group">
+                  <Link
+                    href={`/admin/clients/${c.id}`}
+                    className="flex items-center gap-3.5 min-w-0 flex-1 group"
+                  >
                     <div
                       className="w-12 h-12 flex-none grid place-items-center overflow-hidden"
-                      style={!c.logoUrl ? { background: `linear-gradient(135deg, ${accent}, ${lighten(accent, 0.6)})` } : { background: "var(--s3)" }}
+                      style={
+                        !c.logoUrl
+                          ? {
+                              background: `linear-gradient(135deg, ${accent}, ${lighten(accent, 0.6)})`,
+                            }
+                          : { background: "var(--s3)" }
+                      }
                     >
                       {c.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
-                        <img src={c.logoUrl} alt="" className="w-full h-full object-contain bg-bg" />
+                        <img
+                          src={c.logoUrl}
+                          alt=""
+                          className="w-full h-full object-contain bg-bg"
+                        />
                       ) : (
-                        <span className={`text-sm font-black ${active ? "text-bg" : "text-dim"}`}>{initials(c.name)}</span>
+                        <span
+                          className={`text-sm font-black ${active ? "text-bg" : "text-dim"}`}
+                        >
+                          {initials(c.name)}
+                        </span>
                       )}
                     </div>
                     <div className="min-w-0">
@@ -120,7 +150,9 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                       >
                         {c.name}
                       </div>
-                      <div className="text-[11px] text-dim font-mono">@{c.username}</div>
+                      <div className="text-[11px] text-dim font-mono">
+                        @{c.username}
+                      </div>
                     </div>
                   </Link>
                   <span className="flex-none">
@@ -138,7 +170,9 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                     onClick={() => toggleExpand(c.id)}
                     className="cursor-pointer text-left text-[12px] text-dim hover:text-text inline-flex items-center gap-1.5"
                   >
-                    <span className="text-[11px]">{isExpanded ? "▾" : "▸"}</span>
+                    <span className="text-[11px]">
+                      {isExpanded ? "▾" : "▸"}
+                    </span>
                     {c.seats.length} seat{c.seats.length !== 1 ? "s" : ""}
                   </button>
                 </div>
@@ -163,10 +197,17 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                     Client logins
                   </div>
                   {c.seats.map((u) => (
-                    <div key={u.id} className="flex items-center gap-3.5 py-2.5 border-t border-line">
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-3.5 py-2.5 border-t border-line"
+                    >
                       <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-semibold">{u.name}</span>{" "}
-                        <span className="text-xs text-dim font-mono">{u.email}</span>
+                        <span className="text-[13px] font-semibold">
+                          {u.name}
+                        </span>{" "}
+                        <span className="text-xs text-dim font-mono">
+                          {u.email}
+                        </span>
                       </div>
                       <span
                         className="text-[11px] font-bold tracking-wide uppercase"
@@ -175,10 +216,17 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                         {u.role}
                       </span>
                       <span className="text-[11px] text-dim w-16 text-right">
-                        {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                        {u.lastLoginAt
+                          ? new Date(u.lastLoginAt).toLocaleDateString(
+                              "en-US",
+                              { month: "short", day: "numeric" },
+                            )
+                          : "—"}
                       </span>
                       <button
-                        onClick={() => setResetDialogFor({ client: c, seat: u })}
+                        onClick={() =>
+                          setResetDialogFor({ client: c, seat: u })
+                        }
                         className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
                       >
                         Reset password
@@ -197,12 +245,17 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           );
         })}
         {clients.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-muted">No clients yet.</div>
+          <div className="px-5 py-10 text-center text-sm text-muted">
+            No clients yet.
+          </div>
         )}
       </div>
 
       {newClientOpen && (
-        <NewClientDialog onClose={() => setNewClientOpen(false)} onCreated={() => router.refresh()} />
+        <NewClientDialog
+          onClose={() => setNewClientOpen(false)}
+          onCreated={() => router.refresh()}
+        />
       )}
       {seatDialogFor && (
         <AddSeatDialog

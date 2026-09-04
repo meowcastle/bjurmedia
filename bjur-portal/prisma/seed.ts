@@ -9,6 +9,18 @@ const db = new PrismaClient();
 
 const DEV_PASSWORD = "bjurmedia2026";
 
+function hslToHex(h: number, s: number, l: number) {
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const v = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(v * 255)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `${f(0)}${f(8)}${f(4)}`;
+}
+
 function daysAgo(n: number) {
   return new Date(new Date().getTime() - n * 86_400_000);
 }
@@ -130,7 +142,10 @@ async function seedThumbs() {
       await mkdir(path.dirname(outPath), { recursive: true });
       let hash = 0;
       for (const ch of a.id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-      const colour = `0x${(hash & 0x3f3f3f).toString(16).padStart(6, "0")}`;
+      // Spread over hue rather than masking the RGB bytes, which capped every channel
+      // low and produced a row of near-black tiles.
+      const hue = hash % 360;
+      const colour = `0x${hslToHex(hue, 0.42, 0.42)}`;
       const ok = await run("ffmpeg", [
         "-y",
         "-f",
