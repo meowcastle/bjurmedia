@@ -12,19 +12,20 @@ const PROJECT = "/p/p1";
  * Keyboard handling lives in useMediaCarousel rather than in each viewer, so photo and
  * video cannot drift apart — these cover both to keep that honest.
  */
-async function openFirstPhoto(page: import("@playwright/test").Page, revealChrome = true) {
+async function openFirstPhoto(page: import("@playwright/test").Page, hideChrome = false) {
   await page.goto(PROJECT);
   await page.getByRole("button", { name: /^Stills\b/ }).click();
   await page.getByText("SSH_Still_012.jpg").click();
   await expect(page.getByTestId("active-photo")).toBeVisible();
-  // Chrome (and so the counter) stays hidden until the gesture surface is tapped.
-  if (revealChrome) await page.getByTestId("photo-gesture-surface").click();
+  // The chrome is up on open now, so a tap is what takes it away. The parameter was
+  // called revealChrome and did the reverse once that changed.
+  if (hideChrome) await page.getByTestId("photo-gesture-surface").click();
 }
 
 test("Escape closes the photo viewer", async ({ page }) => {
-  // Deliberately without revealing chrome: Escape must work even when no control is
-  // on screen, which is exactly the state a client lands in on opening a photo.
-  await openFirstPhoto(page, false);
+  // Deliberately with the chrome tapped away: Escape must work when no control is on
+  // screen, which is the state you are in after clearing the frame to look at a still.
+  await openFirstPhoto(page, true);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("active-photo")).toHaveCount(0);
 });

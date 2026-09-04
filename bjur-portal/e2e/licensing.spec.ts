@@ -37,7 +37,6 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
   // Reopening the same asset now offers a real download instead of the unlock CTA.
   await tile.click();
   await expect(video).toBeVisible();
-  await page.getByTestId("video-gesture-surface").click();
   await expect(page.getByRole("link", { name: /Master · .+ (MB|GB|TB)/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /unlock master/i })).not.toBeVisible();
 });
