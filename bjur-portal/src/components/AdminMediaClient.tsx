@@ -89,6 +89,7 @@ export function AdminMediaClient({
   // A thumb that 404s falls back to the gradient rather than an empty broken-image box.
   const [thumbFailed, setThumbFailed] = useState<Set<string>>(new Set());
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [bulkHiding, setBulkHiding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -252,6 +253,26 @@ export function AdminMediaClient({
 
   // The calendar edits the same rows the table does, so it goes through here to keep
   // both views and the server in step from one place.
+  async function bulkSetInternal(internal: boolean) {
+    const ids = [...selectedIds];
+    setBulkHiding(true);
+    setRows((rs) => rs.map((r) => (selectedIds.has(r.id) ? { ...r, internal } : r)));
+    const res = await fetch("/api/admin/assets/bulk-internal", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetIds: ids, internal }),
+    });
+    setBulkHiding(false);
+    if (!res.ok) {
+      // Put the optimistic change back rather than leaving the table claiming
+      // something the database never accepted.
+      router.refresh();
+      setBulkDeleteError("Could not change visibility for every selected file.");
+      return;
+    }
+    setSelectedIds(new Set());
+  }
+
   async function patchAsset(id: string, fields: Record<string, unknown>) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...fields } : r)));
     await fetch(`/api/admin/assets/${id}`, {
@@ -657,6 +678,21 @@ export function AdminMediaClient({
               </button>
             </div>
 
+            <button
+              onClick={() => bulkSetInternal(true)}
+              disabled={bulkHiding}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
+            >
+              Hide from client
+            </button>
+            <button
+              onClick={() => bulkSetInternal(false)}
+              disabled={bulkHiding}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
+            >
+              Show to client
+            </button>
+
             <div className="flex-1" />
 
             {moveError && <span className="text-[11px] text-accentb">{moveError}</span>}
@@ -766,6 +802,17 @@ export function AdminMediaClient({
                       ▶
                     </div>
                   )}
+                  {a.proxyStatus === "GENERATING" ? (
+                    <span className="absolute bottom-0 right-0 bg-black/75 text-white/85 text-[9px] px-1 py-0.5">
+                      encoding
+                    </span>
+                  ) : (
+                    a.durationSec != null && (
+                      <span className="absolute bottom-0 right-0 bg-black/75 text-white/85 text-[9px] px-1 py-0.5 tabular-nums">
+                        {Math.floor(a.durationSec / 60)}:{String(a.durationSec % 60).padStart(2, "0")}
+                      </span>
+                    )
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -795,6 +842,13 @@ export function AdminMediaClient({
                       </span>
                     )}
                   </div>
+                  {/* §10 sub-line: the specs that decide whether this is the right
+                      file, which otherwise meant opening it to find out. */}
+                  {(a.dims || a.masterCodec || a.proxyRes) && (
+                    <div className="text-[11px] text-dim mt-0.5 truncate">
+                      {[a.dims, a.masterCodec ?? a.proxyRes].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     <span className="text-[10px] text-dim uppercase tracking-wide">Week</span>
                     <input
