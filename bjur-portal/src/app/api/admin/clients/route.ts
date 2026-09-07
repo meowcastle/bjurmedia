@@ -27,12 +27,18 @@ export async function POST(req: NextRequest) {
   if (existingUsername) {
     return NextResponse.json({ error: "That username is already taken." }, { status: 409 });
   }
+  // No email collision check: an owner who already has a login is linked to the new
+  // client rather than refused. A deactivated account is the exception — reviving
+  // someone's access as a side effect of creating a client is not what anyone means.
   const existingEmail = await db.user.findUnique({ where: { email: ownerEmail.toLowerCase() } });
-  if (existingEmail) {
-    return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
+  if (existingEmail?.deactivatedAt) {
+    return NextResponse.json(
+      { error: "That login was removed. Reinstate it on their existing client first." },
+      { status: 409 }
+    );
   }
 
-  const { client, tempPassword } = await createClient({
+  const { client, tempPassword, linkedExisting } = await createClient({
     name: name.trim(),
     username: finalUsername,
     type,
@@ -41,16 +47,24 @@ export async function POST(req: NextRequest) {
   });
 
   await db.activity.create({
-    data: { actor: "You", action: `created client "${client.name}"` },
+    data: {
+      actor: "You",
+      action: linkedExisting
+        ? `created client "${client.name}" and gave ${ownerEmail.trim()} owner access`
+        : `created client "${client.name}"`,
+    },
   });
 
-  await sendOnboardingEmail(ownerEmail.trim(), {
-    clientName: client.name,
-    recipientName: ownerName.trim(),
-    portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
-    username: client.username,
-    tempPassword,
-  });
+  // Only a genuinely new login gets credentials mailed to it.
+  if (tempPassword) {
+    await sendOnboardingEmail(ownerEmail.trim(), {
+      clientName: client.name,
+      recipientName: ownerName.trim(),
+      portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
+      username: client.username,
+      tempPassword,
+    });
+  }
 
   return NextResponse.json({ client, tempPassword });
 }

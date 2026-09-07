@@ -123,3 +123,68 @@ test.describe("after being removed from one client", () => {
     await expect(page.getByTestId("client-switcher")).toHaveCount(0);
   });
 });
+
+test.describe("creating a client for someone you already work with", () => {
+  test.use({ storageState: "e2e/.auth/admin.json" });
+
+  // Deliberately not sasha: these create clients, and handing a shared fixture a third
+  // membership that nothing removes changes what every later spec sees.
+  const throwaway = () => `owner-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.test`;
+
+  async function disable(request: import("@playwright/test").APIRequestContext, id: string) {
+    await request.patch(`/api/admin/clients/${id}`, { data: { status: "DISABLED" } });
+  }
+
+  test("a brand-new owner gets a login; the same email again is linked", async ({ request }) => {
+    const email = throwaway();
+
+    const first = await request.post("/api/admin/clients", {
+      data: { name: `First ${Date.now()}`, type: "ONEOFF", ownerName: "Nora", ownerEmail: email },
+    });
+    expect(first.ok()).toBe(true);
+    const a = (await first.json()) as { client: { id: string }; tempPassword: string | null };
+    expect(a.tempPassword, "a new login needs credentials").toBeTruthy();
+
+    // Second client, same person. This used to be a 409 "That email is already in use",
+    // which made "create a client for someone you already work with" impossible.
+    const second = await request.post("/api/admin/clients", {
+      data: { name: `Second ${Date.now()}`, type: "RETAINER", ownerName: "Nora", ownerEmail: email },
+    });
+    expect(second.status(), await second.text()).toBe(200);
+    const b = (await second.json()) as { client: { id: string }; tempPassword: string | null };
+
+    // They already sign in, so nothing is minted or mailed.
+    expect(b.tempPassword).toBeNull();
+
+    // And they are a real owner seat on it, not just a 200.
+    const detail = await request.get(`/admin/clients/${b.client.id}`);
+    expect(await detail.text()).toContain(email);
+
+    await disable(request, a.client.id);
+    await disable(request, b.client.id);
+  });
+
+  test("a removed login is not revived by creating a client for it", async ({ request }) => {
+    const email = throwaway();
+    const made = await request.post("/api/admin/clients", {
+      data: { name: `Temp ${Date.now()}`, type: "ONEOFF", ownerName: "Temp", ownerEmail: email },
+    });
+    const { client } = (await made.json()) as { client: { id: string } };
+
+    // Remove their only seat, which deactivates the login because it was their last.
+    const detail = await request.get(`/admin/clients/${client.id}`);
+    const seatId = (await detail.text()).match(/seat-row-([a-z0-9]+)/)?.[1];
+    expect(seatId, "seat row id on the new client").toBeTruthy();
+    expect((await request.delete(`/api/admin/clients/${client.id}/users/${seatId}`)).ok()).toBe(true);
+
+    // Creating another client for that email must refuse rather than quietly handing a
+    // revoked account access to something new.
+    const again = await request.post("/api/admin/clients", {
+      data: { name: `Temp2 ${Date.now()}`, type: "ONEOFF", ownerName: "Temp", ownerEmail: email },
+    });
+    expect(again.status()).toBe(409);
+    expect((await again.json()).error).toMatch(/removed/i);
+
+    await disable(request, client.id);
+  });
+});

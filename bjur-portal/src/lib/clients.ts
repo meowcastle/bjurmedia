@@ -23,25 +23,46 @@ export async function createClient(opts: {
   const tempPassword = genTempPassword();
   const passwordHash = await hashPassword(tempPassword);
 
+  const email = opts.ownerEmail.toLowerCase();
+
+  // An owner who already has a login is linked, not rejected. Creating a client for
+  // someone you already work with is the normal case for an agency, and it used to be
+  // the one thing the New client dialog refused to do.
+  const existing = await db.user.findUnique({ where: { email } });
+
   const client = await db.client.create({
     data: {
       name: opts.name,
       username: opts.username,
       type: opts.type,
-      users: {
-        create: {
-          name: opts.ownerName,
-          email: opts.ownerEmail.toLowerCase(),
-          passwordHash,
-          role: "OWNER",
-          mustChangePassword: true,
-        },
-      },
+      ...(existing
+        ? { members: { create: { userId: existing.id, role: "OWNER" as const } } }
+        : {
+            users: {
+              create: {
+                name: opts.ownerName,
+                email,
+                passwordHash,
+                role: "OWNER",
+                mustChangePassword: true,
+              },
+            },
+          }),
     },
-    include: { users: true },
+    include: { users: true, members: true },
   });
 
-  return { client, tempPassword };
+  // A brand-new owner needs the membership that governs access; the nested create above
+  // cannot reference the client id it is in the middle of creating.
+  if (!existing) {
+    const owner = client.users[0];
+    await db.clientMember.create({
+      data: { userId: owner.id, clientId: client.id, role: "OWNER" },
+    });
+  }
+
+  // No password for someone who already signs in — and nothing to email them either.
+  return { client, tempPassword: existing ? null : tempPassword, linkedExisting: !!existing };
 }
 
 /**
