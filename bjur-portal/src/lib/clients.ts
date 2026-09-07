@@ -68,6 +68,9 @@ export async function addSeat(opts: {
       passwordHash,
       role: opts.role,
       mustChangePassword: true,
+      // The membership is what grants access now; clientId is kept only as the seat's
+      // originating client.
+      clientMemberships: { create: { clientId: opts.clientId, role: opts.role } },
       ...(opts.projectAccess?.length
         ? {
             projectMemberships: {
@@ -79,6 +82,38 @@ export async function addSeat(opts: {
   });
 
   return { user, tempPassword };
+}
+
+/**
+ * Gives an existing login access to another client.
+ *
+ * No password is issued and no onboarding mail is sent: this person already signs in,
+ * they are simply gaining a second account to look at. Idempotent, so re-adding someone
+ * updates their role rather than failing.
+ */
+export async function addExistingUserToClient(opts: {
+  userId: string;
+  clientId: string;
+  role: "OWNER" | "DOWNLOADER" | "VIEWER";
+  projectAccess?: { projectId: string; role: "OWNER" | "DOWNLOADER" | "VIEWER" }[];
+}) {
+  await db.clientMember.upsert({
+    where: { userId_clientId: { userId: opts.userId, clientId: opts.clientId } },
+    create: { userId: opts.userId, clientId: opts.clientId, role: opts.role },
+    update: { role: opts.role },
+  });
+
+  if (opts.projectAccess?.length) {
+    // Scoped to this client's projects only — a seat's restrictions on one account must
+    // not be wiped by being added to another.
+    const ids = opts.projectAccess.map((p) => p.projectId);
+    await db.projectMember.deleteMany({ where: { userId: opts.userId, projectId: { in: ids } } });
+    await db.projectMember.createMany({
+      data: opts.projectAccess.map((p) => ({ userId: opts.userId, projectId: p.projectId, role: p.role })),
+    });
+  }
+
+  return db.user.findUniqueOrThrow({ where: { id: opts.userId } });
 }
 
 /**
@@ -106,6 +141,7 @@ export async function resetSeatPassword(userId: string) {
  */
 export async function reactivateSeat(opts: {
   userId: string;
+  clientId: string;
   name: string;
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
   projectAccess?: { projectId: string; role: "OWNER" | "DOWNLOADER" | "VIEWER" }[];
@@ -131,6 +167,14 @@ export async function reactivateSeat(opts: {
             }
           : {}),
       },
+    }),
+    // Last on purpose. The destructure above is positional, and the projectMember
+    // delete has to run before user.update recreates them — so this is the only slot
+    // that is safe to add to.
+    db.clientMember.upsert({
+      where: { userId_clientId: { userId: opts.userId, clientId: opts.clientId } },
+      create: { userId: opts.userId, clientId: opts.clientId, role: opts.role },
+      update: { role: opts.role },
     }),
   ]);
 

@@ -581,6 +581,7 @@ export function AdminClientDetailClient({
         {seats.map((u) => (
           <div
             key={u.id}
+            data-testid={`seat-row-${u.id}`}
             className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
             style={{ gridTemplateColumns: "2.1fr .9fr 1fr 3.5rem 21rem" }}
           >

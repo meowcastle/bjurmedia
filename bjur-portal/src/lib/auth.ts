@@ -18,12 +18,26 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+export type ClientMembership = {
+  clientId: string;
+  clientName: string;
+  role: "OWNER" | "DOWNLOADER" | "VIEWER";
+};
+
 export type SessionUser = {
   id: string;
   name: string;
   email: string;
+  /**
+   * The client this session is *currently looking at*, not the only one it may see.
+   * A seat can belong to several; everything that scopes data by clientId keeps
+   * working unchanged because this resolves to one of them.
+   */
   clientId: string | null;
+  /** The role for the active client — roles are per membership, not per account. */
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
+  /** Every client this seat can reach, for the switcher. Empty for staff. */
+  memberships: ClientMembership[];
   isAdmin: boolean;
   sessionId: string;
   mustChangePassword: boolean;
@@ -31,7 +45,7 @@ export type SessionUser = {
 
 export async function createSession(
   userId: string,
-  meta: { device: string; ip?: string; location?: string }
+  meta: { device: string; ip?: string; location?: string; activeClientId?: string }
 ) {
   const token = randomBytes(32).toString("base64url");
   const tokenHash = hashToken(token);
@@ -43,6 +57,7 @@ export async function createSession(
       device: meta.device,
       ip: meta.ip,
       location: meta.location,
+      activeClientId: meta.activeClientId,
     },
   });
 
@@ -88,16 +103,46 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
     .catch(() => {});
 
+  const memberships = (
+    await db.clientMember.findMany({
+      where: { userId: session.user.id, client: { status: "ACTIVE" } },
+      select: { clientId: true, role: true, client: { select: { name: true } } },
+      orderBy: { client: { name: "asc" } },
+    })
+  ).map((m) => ({ clientId: m.clientId, clientName: m.client.name, role: m.role }));
+
+  // The stored choice, but only while it is still a membership — a seat removed from a
+  // client must not keep seeing it because their session remembers it. Falling back to
+  // the first membership means a revoked selection degrades to a working portal rather
+  // than a dead one.
+  const active =
+    memberships.find((m) => m.clientId === session.activeClientId) ?? memberships[0] ?? null;
+
   return {
     id: session.user.id,
     name: session.user.name,
     email: session.user.email,
-    clientId: session.user.clientId,
-    role: session.user.role,
+    clientId: active?.clientId ?? null,
+    role: active?.role ?? session.user.role,
+    memberships,
     isAdmin: session.user.isAdmin,
     sessionId: session.id,
     mustChangePassword: session.user.mustChangePassword,
   };
+}
+
+/**
+ * Switches which client a session is viewing. Returns false when the seat is not a
+ * member of the target — the check belongs here rather than in the route, so every
+ * caller gets it.
+ */
+export async function setActiveClient(sessionId: string, userId: string, clientId: string) {
+  const member = await db.clientMember.findUnique({
+    where: { userId_clientId: { userId, clientId } },
+  });
+  if (!member) return false;
+  await db.session.update({ where: { id: sessionId }, data: { activeClientId: clientId } });
+  return true;
 }
 
 export async function destroyCurrentSession() {

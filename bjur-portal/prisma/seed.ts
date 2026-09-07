@@ -574,6 +574,18 @@ async function main() {
     ],
   });
 
+  // Memberships are what grant portal access now. Derived from the clientId each
+  // seeded seat already has, exactly as the production backfill does.
+  const seatUsers = await db.user.findMany({
+    where: { clientId: { not: null } },
+    select: { id: true, clientId: true, role: true },
+  });
+  for (const u of seatUsers) {
+    await db.clientMember.create({
+      data: { userId: u.id, clientId: u.clientId!, role: u.role },
+    });
+  }
+
   await seedSocial();
   await seedPublishStates();
   await seedThumbs();

@@ -9,10 +9,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   const client = await db.client.findUnique({
     where: { id },
     include: {
-      users: {
-        where: { deactivatedAt: null },
+      // Seats come from memberships now, not User.clientId — otherwise someone given
+      // access to a second client would be invisible on that client's page.
+      members: {
+        where: { user: { deactivatedAt: null } },
         orderBy: { createdAt: "asc" },
-        include: { projectMemberships: { select: { projectId: true, role: true } } },
+        include: {
+          user: { include: { projectMemberships: { select: { projectId: true, role: true } } } },
+        },
       },
       projects: {
         orderBy: { createdAt: "desc" },
@@ -96,13 +100,15 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         lastSyncedAt: s.lastSyncedAt?.toISOString() ?? null,
         lastSyncError: s.lastSyncError,
       }))}
-      seats={client.users.map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
-        projectAccess: u.projectMemberships.map((m) => ({ projectId: m.projectId, role: m.role })),
+      seats={client.members.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+        // The role for *this* client, not the account's original one — the same person
+        // can be an owner here and a viewer elsewhere.
+        role: m.role,
+        lastLoginAt: m.user.lastLoginAt?.toISOString() ?? null,
+        projectAccess: m.user.projectMemberships.map((pm) => ({ projectId: pm.projectId, role: pm.role })),
       }))}
       projects={client.projects.map((p) => ({
         id: p.id,

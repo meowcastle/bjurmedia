@@ -27,6 +27,7 @@ model Client {
   licenses          License[]
   channel           ClientChannel?
   socialAccounts    SocialAccount[]
+  members           ClientMember[]
 }
 
 enum ClientType {
@@ -61,6 +62,7 @@ model User {
   submissions        Submission[]
   uploadBatches      UploadBatch[]
   approvedAssets     Asset[]         @relation("AssetApprovals")
+  clientMemberships  ClientMember[]
 
   @@index([clientId])
 }
@@ -72,6 +74,29 @@ enum Role {
 }
 
 // ── Projects (galleries) ───────────────────────────────────
+/**
+ * A seat's membership of one client.
+ * Replaces User.clientId as the authority on who can see whose work. One email can now
+ * hold several — an agency producer working across accounts, or staff who need the
+ * client's own view — and the role is per membership, so OWNER on one account and
+ * VIEWER on another is expressible.
+ * User.clientId is kept for now as the seat's original/primary client, but nothing reads
+ * it for access decisions any more: two places to say who can see what is how the wrong
+ * client's files end up on someone's screen.
+ */
+model ClientMember {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, clientId])
+  @@index([clientId])
+}
+
 model Project {
   id          String    @id @default(cuid())
   clientId    String
@@ -319,15 +344,19 @@ model Favorite {
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash  String   @unique // hash of the session cookie value
-  device     String // "Chrome · macOS"
-  ip         String?
-  location   String? // resolved from IP
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String   @unique // hash of the session cookie value
+  device         String // "Chrome · macOS"
+  ip             String?
+  location       String? // resolved from IP
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  // Which client this session is currently viewing, for a seat that belongs to more
+  // than one. Held on the session rather than the user so switching is per-device and
+  // never mutates the account.
+  activeClientId String?
 
   @@index([userId])
 }
