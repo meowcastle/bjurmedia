@@ -67,6 +67,7 @@ export default async function AdminMediaPage({
       selectedProjectTitle={selected?.title ?? null}
       selectedClientId={selected?.clientId ?? null}
       selectedClientName={selected?.client.name ?? null}
+      projectOnBoard={selected?.calendar ?? false}
       clientAutoCaption={selected?.client.autoCaption ?? false}
       siblingProjects={siblingProjects}
       clientGroups={clientGroups}
@@ -98,6 +99,8 @@ export default async function AdminMediaPage({
         contentTitle: a.contentTitle,
         caption: a.caption,
         captionYT: a.captionYT,
+        captionApprovedAt: a.captionApprovedAt?.toISOString() ?? null,
+        postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
         licenseExpired: a.licenses.some((l) => l.expiresAt != null && l.expiresAt < new Date()),
         socialPosts: a.socialPosts.map((p) => ({
           id: p.id,

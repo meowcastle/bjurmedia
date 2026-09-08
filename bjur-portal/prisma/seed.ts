@@ -477,6 +477,9 @@ const projectsSeed = [
  */
 async function seedReviews() {
   await db.project.update({ where: { id: "p2" }, data: { review: true } });
+  // p8 (57.NYC IG Posting) is the board project — the weekly-reel workflow the
+  // calendar and the Slack push were built for.
+  await db.project.update({ where: { id: "p8" }, data: { calendar: true } });
 
   const cuts = await db.asset.findMany({
     where: { projectId: "p2", kind: "VIDEO", internal: false },

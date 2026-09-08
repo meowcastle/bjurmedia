@@ -16,6 +16,8 @@ export type CalendarRow = {
   contentTitle: string | null;
   caption: string | null;
   captionYT: string | null;
+  captionApprovedAt: string | null;
+  postedToSlackAt: string | null;
 };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -43,9 +45,16 @@ function fmtDay(d: Date) {
  * built yet. These three say something true today.
  */
 function readiness(a: CalendarRow) {
+  if (a.postedToSlackAt) return { label: "Posted", color: "var(--success)" };
   const hasTitle = !!a.contentTitle?.trim();
   const hasCaption = !!a.caption?.trim();
-  if (hasTitle && hasCaption) return { label: "Ready", color: "var(--success)" };
+  // Written and read are different things. A caption can be complete and still be a
+  // draft nobody has looked at, and that is exactly what must not go out.
+  if (hasTitle && hasCaption) {
+    return a.captionApprovedAt
+      ? { label: "Approved", color: "var(--success)" }
+      : { label: "Needs review", color: "var(--accentb)" };
+  }
   if (hasTitle) return { label: "Needs caption", color: "var(--muted)" };
   return { label: "Needs title", color: "var(--dim)" };
 }
@@ -53,10 +62,19 @@ function readiness(a: CalendarRow) {
 export function AdminMediaCalendar({
   rows,
   onPatch,
+  projectId,
+  canPost = false,
+  onPosted,
 }: {
   rows: CalendarRow[];
   /** Persists a change and updates the parent's copy — the table and calendar share state. */
   onPatch: (id: string, fields: Partial<CalendarRow>) => Promise<void> | void;
+  projectId: string;
+  /** True only for projects scheduled on the board. Everything else keeps the
+   *  preview-and-copy behaviour this view had before. */
+  canPost?: boolean;
+  /** Ask the page to refetch, so states land from the server rather than being guessed. */
+  onPosted?: () => void;
 }) {
   const [weekStart, setWeekStart] = useState(() => mondayOfWeek(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
@@ -66,6 +84,9 @@ export function AdminMediaCalendar({
   );
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [postOk, setPostOk] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -153,6 +174,41 @@ export function AdminMediaCalendar({
     setDraft(null);
   }
 
+  async function approveCaption(a: CalendarRow) {
+    setSaving(true);
+    const res = await fetch(`/api/admin/assets/${a.id}/approve-caption`, { method: "POST" });
+    setSaving(false);
+    if (!res.ok) return;
+    await onPatch(a.id, { captionApprovedAt: new Date().toISOString() });
+  }
+
+  async function unapproveCaption(a: CalendarRow) {
+    setSaving(true);
+    const res = await fetch(`/api/admin/assets/${a.id}/approve-caption`, { method: "DELETE" });
+    setSaving(false);
+    if (!res.ok) return;
+    await onPatch(a.id, { captionApprovedAt: null });
+  }
+
+  async function postWeek() {
+    setPosting(true);
+    setPostError(null);
+    setPostOk(null);
+    const res = await fetch("/api/admin/slack/post-week", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, weekStart: dateKey(weekStart) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setPosting(false);
+    if (!res.ok) {
+      setPostError(data.error ?? "That didn't go through.");
+      return;
+    }
+    setPostOk(`Posted ${data.posted} to ${data.channel}`);
+    onPosted?.();
+  }
+
   async function copyPreview() {
     await navigator.clipboard.writeText(slackPreview);
     setCopied(true);
@@ -190,11 +246,19 @@ export function AdminMediaCalendar({
           </button>
 
           <div className="flex items-center gap-3.5 ml-auto text-[10.5px] text-dim">
-            {[
-              { label: "Ready", color: "var(--success)" },
-              { label: "Needs caption", color: "var(--muted)" },
-              { label: "Needs title", color: "var(--dim)" },
-            ].map((s) => (
+            {(canPost
+              ? [
+                  { label: "Approved", color: "var(--success)" },
+                  { label: "Needs review", color: "var(--accentb)" },
+                  { label: "Needs caption", color: "var(--muted)" },
+                  { label: "Needs title", color: "var(--dim)" },
+                ]
+              : [
+                  { label: "Ready", color: "var(--success)" },
+                  { label: "Needs caption", color: "var(--muted)" },
+                  { label: "Needs title", color: "var(--dim)" },
+                ]
+            ).map((s) => (
               <span key={s.label} className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5" style={{ background: s.color }} />
                 {s.label}
@@ -223,6 +287,7 @@ export function AdminMediaCalendar({
                 {a ? (
                   <button
                     onClick={() => openDrawer(a)}
+                    data-testid="calendar-card"
                     className={`w-full text-left border p-2 ${
                       openId === a.id ? "border-accent" : "border-line2"
                     } bg-s2 hover:border-text`}
@@ -358,6 +423,41 @@ export function AdminMediaCalendar({
               className="w-full bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 mb-4 outline-none focus:border-accent resize-y"
             />
 
+            {/* Sign-off is what lets the week go out. Separate from Save because the
+                question is not "is this written" but "has a person read it" — the two
+                come apart precisely when the copy was drafted by the model. */}
+            {canPost && (
+              <div className="border border-line2 p-3 mb-4">
+                {open.postedToSlackAt ? (
+                  <div className="text-[11px] text-success font-bold uppercase tracking-wide">
+                    Posted to Slack
+                  </div>
+                ) : open.captionApprovedAt ? (
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[11px] text-success font-bold uppercase tracking-wide">
+                      Caption approved
+                    </span>
+                    <button
+                      onClick={() => unapproveCaption(open)}
+                      disabled={saving}
+                      className="cursor-pointer text-[10.5px] uppercase font-bold text-muted hover:text-text"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => approveCaption(open)}
+                    disabled={saving || !(open.contentTitle?.trim() || open.caption?.trim())}
+                    data-testid="approve-caption"
+                    className="cursor-pointer w-full border border-line2 hover:border-text disabled:opacity-40 text-[11px] uppercase font-bold py-2"
+                  >
+                    Approve caption
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <button
                 onClick={save}
@@ -401,10 +501,30 @@ export function AdminMediaCalendar({
           <pre className="bg-bg border border-line2 p-3 text-[11px] font-mono leading-relaxed whitespace-pre-wrap max-h-72 overflow-auto text-muted">
             {slackPreview}
           </pre>
-          <div className="text-[10px] text-dim mt-2.5">
-            Exactly what auto-post sends for this week. Turn it on per client in
-            Integrations → Slack.
-          </div>
+          {canPost ? (
+            <>
+              <button
+                onClick={postWeek}
+                disabled={posting}
+                data-testid="post-week"
+                className="cursor-pointer w-full mt-3 bg-accent hover:bg-accentb disabled:opacity-50 text-bg text-[11px] uppercase font-bold py-2.5"
+              >
+                {posting ? "Posting…" : "Post week to Slack"}
+              </button>
+              {postError && (
+                <div className="text-[11px] text-accentb font-semibold mt-2">{postError}</div>
+              )}
+              {postOk && <div className="text-[11px] text-success font-semibold mt-2">{postOk}</div>}
+              <div className="text-[10px] text-dim mt-2.5">
+                Goes out when you press it — every caption has to be approved first.
+              </div>
+            </>
+          ) : (
+            <div className="text-[10px] text-dim mt-2.5">
+              Exactly what auto-post sends for this week. Turn it on per client in
+              Integrations → Slack.
+            </div>
+          )}
         </div>
       </div>
     </div>

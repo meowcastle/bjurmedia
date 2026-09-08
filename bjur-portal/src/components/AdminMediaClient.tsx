@@ -44,6 +44,8 @@ type Asset = {
   contentTitle: string | null;
   caption: string | null;
   captionYT: string | null;
+  captionApprovedAt: string | null;
+  postedToSlackAt: string | null;
   licenseExpired: boolean;
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
@@ -68,6 +70,7 @@ export function AdminMediaClient({
   selectedClientId,
   selectedClientName,
   clientAutoCaption,
+  projectOnBoard,
   siblingProjects,
   clientGroups,
   clientSeats,
@@ -80,6 +83,8 @@ export function AdminMediaClient({
   selectedClientName: string | null;
   /** Whether this client has caption drafting on. Client-wide, edited here for reach. */
   clientAutoCaption: boolean;
+  /** Whether this project is scheduled on the board — gates caption sign-off and posting. */
+  projectOnBoard: boolean;
   siblingProjects: ProjectOption[];
   clientSeats: Seat[];
   clientGroups: ClientGroup[];
@@ -677,6 +682,9 @@ export function AdminMediaClient({
         <AdminMediaCalendar
           rows={tableRows}
           onPatch={(id, fields) => patchAsset(id, fields)}
+          projectId={selectedProjectId}
+          canPost={projectOnBoard}
+          onPosted={() => router.refresh()}
         />
       )}
 
