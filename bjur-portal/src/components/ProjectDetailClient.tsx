@@ -15,7 +15,7 @@ import { VideoViewer } from "@/components/VideoViewer";
 import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
-import { IconPlay, IconHeart } from "@/components/ui/Icon";
+import { IconPlay, IconHeart, IconUpload } from "@/components/ui/Icon";
 
 type Asset = TileAsset & {
   weekOf: string | null;
@@ -153,6 +153,8 @@ export function ProjectDetailClient({
     clientName: string;
     deliveredAt: string | null;
     expiresAt: string | null;
+    /** Two-way: this client may send footage back, not just take delivery. */
+    clientUploads: boolean;
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
@@ -557,12 +559,16 @@ export function ProjectDetailClient({
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <Link
-            href={`/p/${project.id}/upload`}
-            className="inline-flex items-center gap-2 font-bold text-[13px] text-text border border-line2 hover:border-text px-5 py-3.5"
-          >
-            ↑ Upload footage
-          </Link>
+          {/* Only on two-way projects. The API refuses either way — this stops the
+              client being offered something that would then be rejected. */}
+          {project.clientUploads && (
+            <Link
+              href={`/p/${project.id}/upload`}
+              className="inline-flex items-center gap-2 font-bold text-[13px] text-text border border-line2 hover:border-text px-5 py-3.5"
+            >
+              <IconUpload /> Upload footage
+            </Link>
+          )}
           {canDownload && (
             <DownloadButton
               label={`↓ Download all · ${formatBytes(totalBytes)}`}

@@ -98,15 +98,20 @@ model ClientMember {
 }
 
 model Project {
-  id          String    @id @default(cuid())
-  clientId    String
-  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  title       String
-  path        String // relative to MEDIA_ROOT: CLIENT/PROJECT/DATE
-  inboxSlug   String    @unique // folder name under INBOX_ROOT/<client.username>/<inboxSlug> — export destination for finals
-  status      String    @default("LIVE")
-  deliveredAt DateTime?
-  expiresAt   DateTime? // null => permanent (retainer)
+  id        String @id @default(cuid())
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title     String
+  path      String // relative to MEDIA_ROOT: CLIENT/PROJECT/DATE
+  inboxSlug String @unique // folder name under INBOX_ROOT/<client.username>/<inboxSlug> — export destination for finals
+  status    String @default("LIVE")
+
+  // Two-way projects: the client may send footage back, not just take delivery.
+  // Off by default and turned on per project by staff — a delivery gallery that
+  // silently accepts uploads is a place for files to arrive that nobody is watching.
+  clientUploads Boolean   @default(false)
+  deliveredAt   DateTime?
+  expiresAt     DateTime? // null => permanent (retainer)
 
   // Delivery-email debounce. Assets arrive one file at a time (ingest.ts runs per
   // file), so a 40-clip drop would be 40 emails. Instead each arrival pushes

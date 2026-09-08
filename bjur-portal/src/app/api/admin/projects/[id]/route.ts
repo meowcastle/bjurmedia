@@ -22,6 +22,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.deliveredAt !== undefined) {
     data.deliveredAt = body.deliveredAt ? new Date(body.deliveredAt) : null;
   }
+  if (body.clientUploads !== undefined) {
+    if (typeof body.clientUploads !== "boolean") {
+      return NextResponse.json({ error: "clientUploads must be true or false." }, { status: 400 });
+    }
+    data.clientUploads = body.clientUploads;
+  }
+
   if (body.expiresAt !== undefined) {
     if (body.expiresAt && project.client.type === "RETAINER") {
       return NextResponse.json(

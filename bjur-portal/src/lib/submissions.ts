@@ -35,6 +35,15 @@ export async function assertProjectUploadAccess(
   const access = await getProjectAccess(session, project);
   if (!access.allowed) return { ok: false, status: 404 };
 
+  // Two-way has to be switched on for this project. Enforced here rather than by
+  // hiding the button: every client upload route funnels through this one function, so
+  // a hand-rolled POST to a delivery-only project is refused the same as a click would
+  // be. 403 rather than 404 — the project exists and they can see it, they just cannot
+  // send footage to it.
+  if (!project.clientUploads) {
+    return { ok: false, status: 403 };
+  }
+
   if (project.expiresAt && project.expiresAt.getTime() < Date.now()) {
     return { ok: false, status: 410 };
   }

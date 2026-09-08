@@ -29,6 +29,7 @@ type ProjectRow = {
   status: string;
   deliveredAt: string | null;
   expiresAt: string | null;
+  clientUploads: boolean;
   assetCount: number;
   submissionCount: number;
   inboxPath: string;
@@ -964,6 +965,7 @@ export function AdminClientDetailClient({
             id: editing.id,
             title: editing.title,
             status: editing.status,
+            clientUploads: editing.clientUploads,
             deliveredAt: editing.deliveredAt,
             expiresAt: editing.expiresAt,
             clientType: client.type,

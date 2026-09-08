@@ -9,6 +9,7 @@ type ProjectRow = {
   id: string;
   title: string;
   status: string;
+  clientUploads: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
   clientType: "RETAINER" | "ONEOFF";
@@ -32,6 +33,7 @@ export function EditProjectDialog({
 }) {
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
+  const [clientUploads, setClientUploads] = useState(project.clientUploads);
   const [deliveredAt, setDeliveredAt] = useState(
     toDateInput(project.deliveredAt),
   );
@@ -68,6 +70,7 @@ export function EditProjectDialog({
       body: JSON.stringify({
         title: title.trim(),
         status,
+        clientUploads,
         deliveredAt: deliveredAt || null,
         expiresAt: isRetainer ? null : expiresAt || null,
       }),
@@ -140,6 +143,24 @@ export function EditProjectDialog({
               </Field>
             )}
           </div>
+
+          {/* Two-way. Off by default: a delivery gallery that silently accepts uploads
+              is a place for files to arrive that nobody is watching for. */}
+          <label className="flex items-start gap-3 mt-5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={clientUploads}
+              onChange={(e) => setClientUploads(e.target.checked)}
+              className="mt-1 w-3.5 h-3.5 cursor-pointer flex-none"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">Let this client send footage back</span>
+              <span className="block text-xs text-muted mt-1">
+                Adds an Upload button to their gallery and accepts files into this
+                project&apos;s inbox. Off means delivery only.
+              </span>
+            </span>
+          </label>
 
           {error && (
             <div className="text-xs text-accentb mt-4 font-semibold">

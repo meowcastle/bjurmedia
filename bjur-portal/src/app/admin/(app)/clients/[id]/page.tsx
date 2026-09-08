@@ -116,6 +116,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         status: p.status,
         deliveredAt: p.deliveredAt?.toISOString() ?? null,
         expiresAt: p.expiresAt?.toISOString() ?? null,
+        clientUploads: p.clientUploads,
         assetCount: p.assets.filter((a) => !a.internal).length,
         submissionCount: p._count.submissions,
         inboxPath: inboxDirFor(client.username, p.inboxSlug),

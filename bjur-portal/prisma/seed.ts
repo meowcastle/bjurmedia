@@ -586,6 +586,11 @@ async function main() {
     });
   }
 
+  // Client uploads are opt-in per project now. p1 is the two-way one the submission
+  // specs exercise; everything else stays delivery-only, which is the default a real
+  // project starts from.
+  await db.project.update({ where: { id: "p1" }, data: { clientUploads: true } });
+
   await seedSocial();
   await seedPublishStates();
   await seedThumbs();
