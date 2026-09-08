@@ -125,6 +125,11 @@ export async function postWeeklyContentCalendar(clientId: string, weekStart: Dat
       internal: false,
       weekOf: { gte: weekStart, lt: weekEnd },
       project: { clientId },
+      // Skip anything the studio already pushed by hand. Until the v2 board replaces
+      // this cron the two run side by side, and they overlap: this posts a whole
+      // client's week, the manual path posts one project's. Without this filter a
+      // client gets the same posts twice on Sunday.
+      postedToSlackAt: null,
     },
     select: { weekOf: true, contentTitle: true, caption: true, captionYT: true },
     orderBy: { weekOf: "asc" },
