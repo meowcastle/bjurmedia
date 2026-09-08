@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import {
   extractAudio,
+  extractFrames,
   discardAudio,
   deepgramTranscriber,
   transcriptionConfigured,
@@ -39,6 +40,8 @@ export async function queueForCaptioning(assetId: string) {
 
 export type CaptionDeps = {
   transcribe: Transcriber;
+  /** Injectable so the harness can exercise the visual path without ffmpeg fixtures. */
+  frames: (videoPath: string) => Promise<string[]>;
   draft: CaptionDrafter;
   /** Whether transcription can run at all. */
   configured: () => boolean;
@@ -56,6 +59,7 @@ export type CaptionDeps = {
  */
 export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
   const transcribe = deps.transcribe ?? deepgramTranscriber;
+  const getFrames = deps.frames ?? extractFrames;
   const draft = deps.draft ?? claudeDrafter;
   const configured = deps.configured ?? transcriptionConfigured;
   const canDraft = deps.drafting ?? draftingConfigured;
@@ -102,16 +106,10 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
       audioPath = await extractAudio(source);
       const { text } = await transcribe(audioPath);
 
-      if (!text || text.length < 12) {
-        // A music video or a silent cutaway. Not a failure, and not something to
-        // invent copy for.
-        await db.asset.update({
-          where: { id: asset.id },
-          data: { transcriptStatus: "NO_SPEECH", transcript: text || null, transcribedAt: new Date() },
-        });
-        noSpeech++;
-        continue;
-      }
+      // A music video, a performance, a silent cutaway. There is nothing to transcribe,
+      // but there is plenty to see — so this is no longer a dead end, it just means the
+      // draft comes from the picture instead of the words.
+      const hasSpeech = Boolean(text) && text.length >= 12;
 
       // If a person has already written any of this post's copy, the transcript is
       // stored and nothing is drafted. Filling only the empty fields sounds helpful but
@@ -142,7 +140,12 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
         .map((a) => a.caption!)
         .filter((c) => c.trim().length > 40);
 
-      const drafted = !humanTouched && canDraft()
+      // Stills always, not only when there is no dialogue: a talking-head clip still has
+      // a setting and a subject, and a caption that knows the room reads better than one
+      // written from a wall of text.
+      const frames = !humanTouched && canDraft() ? await getFrames(source).catch(() => []) : [];
+
+      const drafted = !humanTouched && canDraft() && (hasSpeech || frames.length > 0)
         ? await draft({
             transcript: text,
             clientName: asset.project.client.name,
@@ -151,14 +154,17 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
             durationSec: asset.durationSec,
             styleGuide: asset.project.client.captionStyle,
             examples,
+            frames,
           })
         : null;
 
       await db.asset.update({
         where: { id: asset.id },
         data: {
-          transcript: text,
-          transcriptStatus: "DONE",
+          transcript: text || null,
+          // NO_SPEECH still records the truth about the audio even when a draft was
+          // written from the stills — the two facts are independent.
+          transcriptStatus: hasSpeech ? "DONE" : "NO_SPEECH",
           transcribedAt: new Date(),
           transcriptError: null,
           ...(drafted
@@ -171,7 +177,8 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
             : {}),
         },
       });
-      done++;
+      if (hasSpeech) done++;
+      else noSpeech++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await db.asset.update({

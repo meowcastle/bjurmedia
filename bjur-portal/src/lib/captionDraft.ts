@@ -24,6 +24,8 @@ export type CaptionDrafter = (input: {
   styleGuide?: string | null;
   /** Recent captions a person actually wrote for this client, newest first. */
   examples?: string[];
+  /** Base64 JPEG stills from across the clip, for visual pieces with little dialogue. */
+  frames?: string[];
 }) => Promise<CaptionDraft>;
 
 export function draftingConfigured() {
@@ -37,9 +39,16 @@ post copy for it.
 
 The only rules that never bend:
 
-- Write from what is actually said. Never invent a fact, name, credit, date, statistic
-  or claim that is not in the transcript or the context given. If someone's role or
-  affiliation is not stated, do not assign one.
+- Write from what is actually said and shown. Never invent a fact, name, credit, date,
+  statistic or claim that is not in the transcript or the context given. If someone's
+  role or affiliation is not stated, do not assign one.
+- You may be given stills from the clip. Describe what is happening in them, but never
+  identify a person from their appearance, and never name a place, brand, venue or song
+  you recognise on sight. Recognising a face is exactly the kind of confident guess that
+  puts the wrong name on a client's post. Names come only from the transcript or the
+  context above.
+- When there is no dialogue, write about what the clip shows and let it be short. A
+  performance clip does not need a story attached to it.
 - If the transcript is thin or ambiguous, write something short and general rather than
   padding it with invention. Short and true beats long and wrong.
 - Never address the client or the studio. This is the post itself, not a note about it.
@@ -77,35 +86,57 @@ export const claudeDrafter: CaptionDrafter = async (input) => {
         {
           role: "user",
           content: [
-            `Client: ${input.clientName}`,
-            `Project: ${input.projectTitle}`,
-            `File: ${input.assetName}`,
-            input.durationSec ? `Duration: ${input.durationSec}s` : "",
-            "",
-            input.styleGuide ? `House style for ${input.clientName}:\n${input.styleGuide}\n` : "",
-            // Their own recent posts do more than any description of tone can: the model
-            // can see the shape, the sign-off and the hashtag habit rather than being
-            // told about them.
-            input.examples?.length
-              ? `Recent posts this client wrote themselves — match this voice:\n\n${input.examples
-                  .map((e, i) => `Example ${i + 1}:\n${e}`)
-                  .join("\n\n")}\n`
-              : "",
-            "Transcript:",
-            input.transcript,
-          ]
-            .filter(Boolean)
-            .join("\n"),
+            // Stills first: the model reads them as context for the text that follows,
+            // and a trailing image tends to get treated as an afterthought.
+            ...(input.frames ?? []).map((data) => ({
+              type: "image" as const,
+              source: {
+                type: "base64" as const,
+                media_type: "image/jpeg" as const,
+                data,
+              },
+            })),
+            {
+              type: "text" as const,
+              text: [
+                `Client: ${input.clientName}`,
+                `Project: ${input.projectTitle}`,
+                `File: ${input.assetName}`,
+                input.durationSec ? `Duration: ${input.durationSec}s` : "",
+                "",
+                input.styleGuide
+                  ? `House style for ${input.clientName}:\n${input.styleGuide}\n`
+                  : "",
+                // Their own recent posts do more than any description of tone can: the model
+                // can see the shape, the sign-off and the hashtag habit rather than being
+                // told about them.
+                input.examples?.length
+                  ? `Recent posts this client wrote themselves — match this voice:\n\n${input.examples
+                      .map((e, i) => `Example ${i + 1}:\n${e}`)
+                      .join("\n\n")}\n`
+                  : "",
+                input.transcript.trim()
+                  ? `Transcript:\n${input.transcript}`
+                  : "No dialogue in this clip — write from the stills.",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            },
+          ],
         },
       ],
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Anthropic responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    throw new Error(
+      `Anthropic responded ${res.status}: ${(await res.text()).slice(0, 300)}`,
+    );
   }
 
-  const json = (await res.json()) as { content?: { type: string; text?: string }[] };
+  const json = (await res.json()) as {
+    content?: { type: string; text?: string }[];
+  };
   const text = (json.content ?? []).find((c) => c.type === "text")?.text ?? "";
 
   // Tolerate a fenced block or stray prose around the object rather than failing the

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { unlink } from "node:fs/promises";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { randomBytes } from "node:crypto";
@@ -104,3 +104,70 @@ export const deepgramTranscriber: Transcriber = async (audioPath) => {
     confidence: typeof best?.confidence === "number" ? best.confidence : null,
   };
 };
+
+
+/**
+ * Stills from across the video, for the drafter to actually look at.
+ *
+ * Uses ffmpeg's thumbnail filter, which picks the most representative frame out of each
+ * batch rather than whatever happens to land on a fixed interval — an even sample of a
+ * performance clip returns six near-identical wides.
+ *
+ * Not scene detection: select='gt(scene,N)' produces a variable frame rate the mjpeg
+ * encoder refuses to open on ffmpeg 8 ("Error while opening encoder"), so it fails for
+ * every clip rather than falling back. Verified against this box's build before relying
+ * on it. Plain fps sampling is the fallback for a clip too short to fill one batch.
+ *
+ * Downscaled hard. These are for describing what happens, not for grading — a 768px
+ * JPEG carries that just as well as a full frame and costs a fraction of the tokens.
+ */
+export async function extractFrames(videoPath: string, max = 6): Promise<string[]> {
+  const dir = path.join(os.tmpdir(), `bjur-frames-${randomBytes(6).toString("hex")}`);
+  await mkdir(dir, { recursive: true });
+
+  const run = (args: string[]) =>
+    new Promise<void>((resolve, reject) => {
+      const ff = spawn("ffmpeg", ["-nostdin", ...args]);
+      let stderr = "";
+      ff.stderr.on("data", (d) => (stderr += d.toString().slice(0, 2000)));
+      ff.on("error", reject);
+      ff.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(-300)}`))
+      );
+    });
+
+  const out = path.join(dir, "f-%02d.jpg");
+  await run([
+    "-i", videoPath,
+    "-vf", "thumbnail=30,scale=768:-2",
+    "-frames:v", String(max),
+    "-q:v", "6",
+    "-y", out,
+  ]).catch(() => {});
+
+  let files = (await readdir(dir).catch(() => [] as string[]))
+    .filter((f) => f.endsWith(".jpg"))
+    .sort();
+
+  // A clip shorter than one batch yields nothing from thumbnail. Sample evenly instead
+  // of returning empty-handed.
+  if (files.length === 0) {
+    await run([
+      "-i", videoPath,
+      "-vf", "fps=1/2,scale=768:-2",
+      "-frames:v", String(max),
+      "-q:v", "6",
+      "-y", out,
+    ]).catch(() => {});
+    files = (await readdir(dir).catch(() => [] as string[]))
+      .filter((f) => f.endsWith(".jpg"))
+      .sort();
+  }
+
+  const frames: string[] = [];
+  for (const f of files.slice(0, max)) {
+    frames.push((await readFile(path.join(dir, f))).toString("base64"));
+  }
+  await rm(dir, { recursive: true, force: true }).catch(() => {});
+  return frames;
+}

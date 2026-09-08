@@ -119,6 +119,7 @@ async function main() {
   // assumed — a style guide that never reaches the model is the failure that looks
   // exactly like the model ignoring it.
   let lastDraftInput: Record<string, unknown> = {};
+  const frames = async () => ["ZmFrZS1qcGVn", "ZmFrZS1qcGVnLTI="];
   const draft = async (input: Record<string, unknown>) => {
     lastDraftInput = input;
     return {
@@ -128,7 +129,7 @@ async function main() {
     };
   };
 
-  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
+  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft, frames });
   const r1 = await db.asset.findUniqueOrThrow({ where: { id: reel.id } });
   check("the transcript is stored", r1.transcriptStatus === "DONE" && !!r1.transcript, r1.transcriptStatus);
   check("a caption is drafted", r1.caption?.startsWith("Golden hour on the roof") === true, r1.caption ?? "null");
@@ -145,19 +146,45 @@ async function main() {
   // ---- no speech ----
   const music = await mkAsset();
   await queueForCaptioning(music.id);
-  await processCaptionQueue({ configured, drafting: () => true, transcribe: async () => ({ text: "", confidence: null }), draft });
+  await processCaptionQueue({ configured, drafting: () => true, transcribe: async () => ({ text: "", confidence: null }), draft, frames });
   const r2 = await db.asset.findUniqueOrThrow({ where: { id: music.id } });
   check(
-    "a music video gets no invented caption",
-    r2.transcriptStatus === "NO_SPEECH" && !r2.caption,
-    `${r2.transcriptStatus} / ${r2.caption}`
+    "a clip with no dialogue is still recorded as NO_SPEECH",
+    r2.transcriptStatus === "NO_SPEECH",
+    r2.transcriptStatus
+  );
+  check(
+    "but it now gets a caption written from the stills",
+    !!r2.caption,
+    r2.caption ?? "null"
+  );
+  check(
+    "and the drafter was actually shown frames",
+    Array.isArray(lastDraftInput.frames) && (lastDraftInput.frames as string[]).length === 2,
+    JSON.stringify((lastDraftInput.frames as string[] | undefined)?.length)
+  );
+
+  const blank = await mkAsset();
+  await queueForCaptioning(blank.id);
+  await processCaptionQueue({
+    configured,
+    drafting: () => true,
+    transcribe: async () => ({ text: "", confidence: null }),
+    draft,
+    frames: async () => [],
+  });
+  const rBlank = await db.asset.findUniqueOrThrow({ where: { id: blank.id } });
+  check(
+    "no dialogue and no usable stills means no caption at all",
+    rBlank.transcriptStatus === "NO_SPEECH" && !rBlank.caption,
+    `${rBlank.transcriptStatus} / ${rBlank.caption}`
   );
 
   // ---- never overwrite a person ----
   const HOUSE = "Hook line that lands. Jordan gets candid about the parts nobody films. Full interview on YouTube, link in bio.";
   const written = await mkAsset({ caption: HOUSE, captionSource: "HUMAN" });
   await queueForCaptioning(written.id);
-  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
+  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft, frames });
   const r3 = await db.asset.findUniqueOrThrow({ where: { id: written.id } });
   check("a caption a person wrote is left alone", r3.caption === HOUSE, r3.caption ?? "null");
   check("but the transcript is still stored", !!r3.transcript);
@@ -165,7 +192,7 @@ async function main() {
   // The next draft should be shown that human caption as an example of the house voice.
   const nextUp = await mkAsset();
   await queueForCaptioning(nextUp.id);
-  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
+  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft, frames });
   const examples = (lastDraftInput.examples ?? []) as string[];
   check(
     "captions a person wrote become examples for the next draft",
