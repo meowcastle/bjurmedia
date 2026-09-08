@@ -22,11 +22,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.deliveredAt !== undefined) {
     data.deliveredAt = body.deliveredAt ? new Date(body.deliveredAt) : null;
   }
-  if (body.clientUploads !== undefined) {
-    if (typeof body.clientUploads !== "boolean") {
-      return NextResponse.json({ error: "clientUploads must be true or false." }, { status: 400 });
+  // The three service switches. A project is defined by what it does, so these are
+  // per-project rather than a property of the client that owns it.
+  for (const flag of ["clientUploads", "calendar", "review"] as const) {
+    if (body[flag] === undefined) continue;
+    if (typeof body[flag] !== "boolean") {
+      return NextResponse.json({ error: `${flag} must be true or false.` }, { status: 400 });
     }
-    data.clientUploads = body.clientUploads;
+    data[flag] = body[flag];
   }
 
   if (body.expiresAt !== undefined) {

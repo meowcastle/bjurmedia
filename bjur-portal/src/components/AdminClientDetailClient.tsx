@@ -32,6 +32,8 @@ type ProjectRow = {
   deliveredAt: string | null;
   expiresAt: string | null;
   clientUploads: boolean;
+  calendar: boolean;
+  review: boolean;
   assetCount: number;
   submissionCount: number;
   inboxPath: string;
@@ -924,11 +926,22 @@ export function AdminClientDetailClient({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
               <span className="text-muted">{p.assetCount} assets</span>
-              {/* Which projects a client can send footage back to is worth seeing from
-                  the list, not only by opening each one. */}
+              {/* What each project actually does, visible from the list rather than
+                  only by opening each one. Uploads keeps the accent — it is the one
+                  that lets someone else write to the studio's storage. */}
               {p.clientUploads && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb/40 px-[7px] py-[3px]">
                   <IconUpload /> Uploads open
+                </span>
+              )}
+              {p.calendar && (
+                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
+                  Board
+                </span>
+              )}
+              {p.review && (
+                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
+                  Review
                 </span>
               )}
               <span
@@ -1069,6 +1082,8 @@ export function AdminClientDetailClient({
             title: editing.title,
             status: editing.status,
             clientUploads: editing.clientUploads,
+            calendar: editing.calendar,
+            review: editing.review,
             deliveredAt: editing.deliveredAt,
             expiresAt: editing.expiresAt,
             clientType: client.type,

@@ -42,11 +42,64 @@ function StatusSegment({
   );
 }
 
+/**
+ * One service switch.
+ *
+ * A click-anywhere card rather than a bare checkbox: each of these decides something
+ * with real consequences outside the portal — who can write to the studio's storage,
+ * what gets pushed to Slack, who gets emailed — which deserves more weight than a 14px
+ * box. The helper copy changes with the state, because what a client sees when it is
+ * off is not the negation of what they see when it is on.
+ */
+function ServiceToggle({
+  testId,
+  label,
+  checked,
+  onChange,
+  help,
+}: {
+  testId: string;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  help: string;
+}) {
+  return (
+    <label
+      data-testid={testId}
+      className={`flex gap-[14px] items-start border px-4 py-[14px] cursor-pointer select-none ${
+        checked ? "border-accentb/50 bg-accent/[.06]" : "border-line2"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden
+        className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
+          checked ? "border-accent bg-accent" : "border-dim"
+        }`}
+      >
+        {checked && <IconCheck className="text-[11px] text-bg" strokeWidth={4} />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-bold">{label}</span>
+        <span className="block text-xs text-muted mt-1 leading-relaxed">{help}</span>
+      </span>
+    </label>
+  );
+}
+
 type ProjectRow = {
   id: string;
   title: string;
   status: string;
   clientUploads: boolean;
+  calendar: boolean;
+  review: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
   clientType: "RETAINER" | "ONEOFF";
@@ -74,6 +127,8 @@ export function EditProjectDialog({
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
   const [clientUploads, setClientUploads] = useState(project.clientUploads);
+  const [calendar, setCalendar] = useState(project.calendar);
+  const [review, setReview] = useState(project.review);
   const [copiedLink, setCopiedLink] = useState(false);
 
   async function copyUploadLink() {
@@ -127,6 +182,8 @@ export function EditProjectDialog({
         title: title.trim(),
         status,
         clientUploads,
+        calendar,
+        review,
         deliveredAt: deliveredAt || null,
         expiresAt: isRetainer ? null : expiresAt || null,
       }),
@@ -137,9 +194,12 @@ export function EditProjectDialog({
       setLoading(false);
       return;
     }
-    notify?.(
-      `Saved · ${title.trim()}${clientUploads ? " · uploads open" : ""}`,
-    );
+    const on = [
+      clientUploads && "uploads open",
+      calendar && "on the board",
+      review && "client reviews",
+    ].filter(Boolean);
+    notify?.(`Saved · ${title.trim()}${on.length ? ` · ${on.join(" · ")}` : ""}`);
     onSaved();
   }
 
@@ -202,47 +262,43 @@ export function EditProjectDialog({
               </div>
             </div>
 
-            {/* A click-anywhere card rather than a bare checkbox: this decides whether a
-                client can put files on the studio's storage, which deserves more weight
-                than a 14px box. The helper copy changes with the state because the
-                consequences differ — a draft project is reachable only by link. */}
-            <label
-              data-testid="client-uploads-toggle"
-              className={`flex gap-[14px] items-start border px-4 py-[14px] cursor-pointer select-none ${
-                clientUploads
-                  ? "border-accentb/50 bg-accent/[.06]"
-                  : "border-line2"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={clientUploads}
-                onChange={(e) => setClientUploads(e.target.checked)}
-                className="sr-only"
-              />
-              <span
-                aria-hidden
-                className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
-                  clientUploads ? "border-accent bg-accent" : "border-dim"
-                }`}
-              >
-                {clientUploads && (
-                  <IconCheck className="text-[11px] text-bg" strokeWidth={4} />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold">
-                  Accept client uploads
-                </span>
-                <span className="block text-xs text-muted mt-1 leading-relaxed">
-                  {!clientUploads
-                    ? "Client sees this project as a delivery only. Any shared upload link stops working."
-                    : status === "LIVE"
-                      ? "Client sees “Send us footage” on this project. Files land in the project inbox and post to Slack."
-                      : "Project is hidden, so the client reaches the upload page only by link. Copy it below."}
-                </span>
-              </span>
-            </label>
+            <ServiceToggle
+              testId="client-uploads-toggle"
+              label="Accept client uploads"
+              checked={clientUploads}
+              onChange={setClientUploads}
+              help={
+                !clientUploads
+                  ? "Client sees this project as a delivery only. Any shared upload link stops working."
+                  : status === "LIVE"
+                    ? "Client sees \u201cSend us footage\u201d on this project. Files land in the project inbox and post to Slack."
+                    : "Project is hidden, so the client reaches the upload page only by link. Copy it below."
+              }
+            />
+
+            <ServiceToggle
+              testId="calendar-toggle"
+              label="Schedule on the week board"
+              checked={calendar}
+              onChange={setCalendar}
+              help={
+                calendar
+                  ? "Posts appear in the board tray to be dragged onto a day. You push the week to Slack when it is ready."
+                  : "Files land in the gallery only. Nothing is scheduled and nothing goes to Slack."
+              }
+            />
+
+            <ServiceToggle
+              testId="review-toggle"
+              label="Ask the client to review"
+              checked={review}
+              onChange={setReview}
+              help={
+                review
+                  ? "Every new cut emails the owner seats to approve it or send notes. Nothing auto-approves and there is no deadline."
+                  : "New files appear with no approval asked for."
+              }
+            />
           </div>
 
           {error && (
