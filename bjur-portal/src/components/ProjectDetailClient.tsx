@@ -558,17 +558,11 @@ export function ProjectDetailClient({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          {/* Only on two-way projects. The API refuses either way — this stops the
-              client being offered something that would then be rejected. */}
-          {project.clientUploads && (
-            <Link
-              href={`/p/${project.id}/upload`}
-              className="inline-flex items-center gap-2 font-bold text-[13px] text-text border border-line2 hover:border-text px-5 py-3.5"
-            >
-              <IconUpload /> Upload footage
-            </Link>
-          )}
+        {/* One primary action. Sending footage back is the rarer errand and reads as a
+            text link under it, not a second button competing with Download all. Only on
+            two-way projects, and with no disabled state when off — an affordance that
+            cannot be used is worse than none. */}
+        <div className="flex flex-col items-stretch sm:items-end gap-2.5">
           {canDownload && (
             <DownloadButton
               label={`↓ Download all · ${formatBytes(totalBytes)}`}
@@ -576,6 +570,14 @@ export function ProjectDetailClient({
               downloading={downloading}
               downloadedBytes={downloadedBytes}
             />
+          )}
+          {project.clientUploads && (
+            <Link
+              href={`/p/${project.id}/upload`}
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-muted hover:text-text py-2.5 -my-1"
+            >
+              <IconUpload /> Send us footage
+            </Link>
           )}
         </div>
       </div>

@@ -20,6 +20,8 @@ export function NewProjectDialog({
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  // Off by default. A new delivery project is not a drop box until someone says so.
+  const [clientUploads, setClientUploads] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ inboxPath: string } | null>(null);
@@ -42,6 +44,7 @@ export function NewProjectDialog({
         clientId,
         title: title.trim(),
         expiresAt: !isRetainer && expiresAt ? expiresAt : null,
+        clientUploads,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -123,6 +126,59 @@ export function NewProjectDialog({
                   </Field>
                 )}
               </div>
+
+              {/* Same control as Edit project, so the decision looks identical wherever it is
+
+                  made. Default off — a new delivery project is not a drop box until someone
+
+                  says so. */}
+
+              <label
+                data-testid="client-uploads-toggle"
+
+                className={`flex gap-[14px] items-start border px-4 py-[14px] mt-5 cursor-pointer select-none ${
+                  clientUploads
+                    ? "border-accentb/50 bg-accent/[.06]"
+                    : "border-line2"
+                }`}
+              >
+                <input
+                  type="checkbox"
+
+                  checked={clientUploads}
+
+                  onChange={(e) => setClientUploads(e.target.checked)}
+
+                  className="sr-only"
+                />
+
+                <span
+                  aria-hidden
+
+                  className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
+                    clientUploads ? "border-accent bg-accent" : "border-dim"
+                  }`}
+                >
+                  {clientUploads && (
+                    <IconCheck
+                      className="text-[11px] text-bg"
+                      strokeWidth={4}
+                    />
+                  )}
+                </span>
+
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">
+                    Accept client uploads
+                  </span>
+
+                  <span className="block text-xs text-muted mt-1 leading-relaxed">
+                    {clientUploads
+                      ? "The client can send footage back into this project's inbox."
+                      : "Delivery only. You can turn this on later from Edit project."}
+                  </span>
+                </span>
+              </label>
 
               {error && (
                 <div className="text-xs text-accentb mt-4 font-semibold">

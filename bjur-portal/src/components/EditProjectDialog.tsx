@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Portal } from "@/components/ui/Portal";
+import { IconCheck } from "@/components/ui/Icon";
 
 type ProjectRow = {
   id: string;
@@ -34,6 +35,21 @@ export function EditProjectDialog({
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
   const [clientUploads, setClientUploads] = useState(project.clientUploads);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  async function copyUploadLink() {
+    const url = `${window.location.origin}/p/${project.id}/upload`;
+    // Clipboard access can be refused outright, so the link is still selectable from
+    // the prompt fallback rather than the button silently doing nothing.
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("Copy this upload link:", url);
+      return;
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 1600);
+  }
   const [deliveredAt, setDeliveredAt] = useState(
     toDateInput(project.deliveredAt),
   );
@@ -144,20 +160,44 @@ export function EditProjectDialog({
             )}
           </div>
 
-          {/* Two-way. Off by default: a delivery gallery that silently accepts uploads
-              is a place for files to arrive that nobody is watching for. */}
-          <label className="flex items-start gap-3 mt-5 cursor-pointer">
+          {/* A click-anywhere card rather than a bare checkbox: this decides whether a
+              client can put files on the studio's storage, which deserves more weight
+              than a 14px box. The helper copy changes with the state because the
+              consequences differ — a draft project is reachable only by link. */}
+          <label
+            data-testid="client-uploads-toggle"
+            className={`flex gap-[14px] items-start border px-4 py-[14px] mt-5 cursor-pointer select-none ${
+              clientUploads
+                ? "border-accentb/50 bg-accent/[.06]"
+                : "border-line2"
+            }`}
+          >
             <input
               type="checkbox"
               checked={clientUploads}
               onChange={(e) => setClientUploads(e.target.checked)}
-              className="mt-1 w-3.5 h-3.5 cursor-pointer flex-none"
+              className="sr-only"
             />
+            <span
+              aria-hidden
+              className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
+                clientUploads ? "border-accent bg-accent" : "border-dim"
+              }`}
+            >
+              {clientUploads && (
+                <IconCheck className="text-[11px] text-bg" strokeWidth={4} />
+              )}
+            </span>
             <span className="min-w-0">
-              <span className="block text-sm font-bold">Let this client send footage back</span>
-              <span className="block text-xs text-muted mt-1">
-                Adds an Upload button to their gallery and accepts files into this
-                project&apos;s inbox. Off means delivery only.
+              <span className="block text-sm font-bold">
+                Accept client uploads
+              </span>
+              <span className="block text-xs text-muted mt-1 leading-relaxed">
+                {!clientUploads
+                  ? "Client sees this project as a delivery only. Any shared upload link stops working."
+                  : status === "LIVE"
+                    ? "Client sees “Send us footage” on this project. Files land in the project inbox and post to Slack."
+                    : "Project is hidden, so the client reaches the upload page only by link. Copy it below."}
               </span>
             </span>
           </label>
@@ -170,6 +210,15 @@ export function EditProjectDialog({
 
           <div className="flex items-center justify-between gap-2.5 mt-7">
             <div>
+              {clientUploads && (
+                <button
+                  type="button"
+                  onClick={copyUploadLink}
+                  className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                >
+                  {copiedLink ? "Copied ✓" : "Copy upload link"}
+                </button>
+              )}
               {project.assetCount === 0 &&
                 (confirmingDelete ? (
                   <div className="flex items-center gap-2.5">

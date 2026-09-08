@@ -13,6 +13,7 @@ import { UploadDialog } from "@/components/UploadDialog";
 import { ClientSubmissionsDialog } from "@/components/ClientSubmissionsDialog";
 import { lighten } from "@/lib/color";
 import { initials } from "@/lib/initials";
+import { IconUpload } from "@/components/ui/Icon";
 
 type ProjectAccessGrant = { projectId: string; role: string };
 type Seat = {
@@ -808,6 +809,7 @@ export function AdminClientDetailClient({
         {projects.map((p) => (
           <div
             key={p.id}
+            data-testid={`project-row-${p.id}`}
             className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
             style={{ gridTemplateColumns: "2.1fr .9fr 1fr 1.1fr auto" }}
           >
@@ -829,6 +831,13 @@ export function AdminClientDetailClient({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
               <span className="text-muted">{p.assetCount} assets</span>
+              {/* Which projects a client can send footage back to is worth seeing from
+                  the list, not only by opening each one. */}
+              {p.clientUploads && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb/40 px-[7px] py-[3px]">
+                  <IconUpload /> Uploads open
+                </span>
+              )}
               <span
                 className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}
               >

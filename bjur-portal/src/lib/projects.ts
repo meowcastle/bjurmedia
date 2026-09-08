@@ -37,6 +37,8 @@ export async function createProject(opts: {
   clientId: string;
   title: string;
   expiresAt?: Date | null;
+  /** Two-way from the start. Off unless staff asked for it. */
+  clientUploads?: boolean;
 }) {
   const client = await db.client.findUniqueOrThrow({ where: { id: opts.clientId } });
   const slug = slugify(opts.title);
@@ -50,6 +52,7 @@ export async function createProject(opts: {
 
   const project = await db.project.create({
     data: {
+      clientUploads: opts.clientUploads === true,
       clientId: opts.clientId,
       title: opts.title,
       path: path_,

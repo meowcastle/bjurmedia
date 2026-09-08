@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { clientId, title, expiresAt } = await req.json();
+  const { clientId, title, expiresAt, clientUploads } = await req.json();
   if (typeof clientId !== "string" || typeof title !== "string" || !title.trim()) {
     return NextResponse.json({ error: "Client and title are required." }, { status: 400 });
   }
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     clientId,
     title: title.trim(),
     expiresAt: expiresAt ? new Date(expiresAt) : null,
+    clientUploads: clientUploads === true,
   });
 
   await db.activity.create({

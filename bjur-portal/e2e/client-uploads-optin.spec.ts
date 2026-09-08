@@ -14,10 +14,10 @@ test.describe("as the client", () => {
 
   test("the button only appears on a two-way project", async ({ page }) => {
     await page.goto("/p/p1");
-    await expect(page.getByRole("link", { name: /Upload footage/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Send us footage/ })).toBeVisible();
 
     await page.goto("/p/p2");
-    await expect(page.getByRole("link", { name: /Upload footage/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Send us footage/ })).toHaveCount(0);
   });
 
   test("the upload page itself is not reachable on a delivery-only project", async ({ page }) => {
@@ -72,5 +72,83 @@ test.describe("as staff", () => {
     // studio putting files into its own project.
     const res = await request.get("/api/admin/projects/p2/upload-batches");
     expect(res.status()).not.toBe(403);
+  });
+});
+
+test.describe("the admin controls", () => {
+  test.use({ storageState: "e2e/.auth/admin.json" });
+
+  async function openEditDialog(page: import("@playwright/test").Page, title: string) {
+    await page.goto("/admin/clients");
+    await page.getByText("SSH", { exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/clients\/.+/);
+    // The row's own Edit button — clicking the title navigates to the media page.
+    const row = page.locator('[data-testid^="project-row-"]').filter({ hasText: title });
+    await expect(row).toHaveCount(1);
+    await row.getByRole("button", { name: "Edit" }).click();
+    await expect(page.getByTestId("client-uploads-toggle")).toBeVisible();
+  }
+
+  test("the project list marks which projects accept uploads", async ({ page }) => {
+    await page.goto("/admin/clients");
+    await page.getByText("SSH", { exact: true }).click();
+
+    // p1 is seeded two-way; the tag says so without opening anything.
+    await expect(page.getByText("Uploads open").first()).toBeVisible();
+  });
+
+  test("the toggle is a click-anywhere card and its copy follows the state", async ({ page }) => {
+    await openEditDialog(page, "Spring Campaign 2026");
+
+    const card = page.getByTestId("client-uploads-toggle");
+    await expect(card).toBeVisible();
+    await expect(card.getByText("Accept client uploads")).toBeVisible();
+
+    // On, and live: the client is told what they will see.
+    await expect(card.getByText(/Send us footage/)).toBeVisible();
+
+    // Clicking the card — not a 14px box — flips it, and the consequence copy changes.
+    await card.click();
+    await expect(card.getByText(/delivery only/i)).toBeVisible();
+
+    await card.click();
+    await expect(card.getByText(/Send us footage/)).toBeVisible();
+  });
+
+  test("the upload link is offered only while uploads are open", async ({ page }) => {
+    await openEditDialog(page, "Spring Campaign 2026");
+
+    await expect(page.getByRole("button", { name: "Copy upload link" })).toBeVisible();
+
+    await page.getByTestId("client-uploads-toggle").click();
+    // Nothing to share once the link would stop working.
+    await expect(page.getByRole("button", { name: "Copy upload link" })).toHaveCount(0);
+  });
+
+  test("a new project is delivery-only unless asked otherwise", async ({ browser, request }) => {
+    const made = await request.post("/api/admin/projects", {
+      data: { clientId: "c1", title: `Default Test ${Date.now()}` },
+    });
+    expect(made.ok()).toBe(true);
+    const { project } = (await made.json()) as { project: { id: string } };
+
+    // The default is only meaningful if the client actually cannot upload to it.
+    const ctx = await browser.newContext({ storageState: "e2e/.auth/sasha.json" });
+    const res = await ctx.request.post(`/api/projects/${project.id}/upload-batches`, { data: {} });
+    expect(res.status()).toBe(403);
+    await ctx.close();
+  });
+
+  test("asking for it at creation opens the project immediately", async ({ browser, request }) => {
+    const made = await request.post("/api/admin/projects", {
+      data: { clientId: "c1", title: `Two Way ${Date.now()}`, clientUploads: true },
+    });
+    expect(made.ok()).toBe(true);
+    const { project } = (await made.json()) as { project: { id: string } };
+
+    const ctx = await browser.newContext({ storageState: "e2e/.auth/sasha.json" });
+    const res = await ctx.request.post(`/api/projects/${project.id}/upload-batches`, { data: {} });
+    expect(res.ok(), await res.text()).toBe(true);
+    await ctx.close();
   });
 });
