@@ -70,3 +70,51 @@ test.describe("editing a draft", () => {
     await expect(row.getByText("DRAFT CAPTION")).toHaveCount(0);
   });
 });
+
+test.describe("the switch on the media page", () => {
+  test.use({ storageState: "e2e/.auth/admin.json" });
+
+  test("is where the reels are, and says which client it applies to", async ({ page }) => {
+    await page.goto("/admin/media?project=p1");
+
+    const toggle = page.getByTestId("media-auto-caption");
+    await expect(toggle).toBeVisible();
+
+    // Client-wide, not per-project — the label has to make that unmistakable, since it
+    // sits on a page that is otherwise entirely about one project.
+    await expect(toggle).toHaveAttribute("title", /SSH/);
+  });
+
+  test("flips the client setting and survives a reload", async ({ page }) => {
+    await page.goto("/admin/media?project=p1");
+    const toggle = page.getByTestId("media-auto-caption");
+
+    const before = await toggle.getAttribute("aria-pressed");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", before === "true" ? "false" : "true");
+
+    await page.reload();
+    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute(
+      "aria-pressed",
+      before === "true" ? "false" : "true"
+    );
+
+    // Put the client back as it was.
+    await page.getByTestId("media-auto-caption").click();
+    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute("aria-pressed", before!);
+  });
+
+  test("the same setting is reflected on the client's own page", async ({ page, request }) => {
+    // One setting in two places has to actually be one setting.
+    await request.patch("/api/admin/clients/c1", { data: { autoCaption: true } });
+
+    await page.goto("/admin/media?project=p1");
+    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute("aria-pressed", "true");
+
+    await page.goto("/admin/clients");
+    await page.getByText("SSH", { exact: true }).click();
+    await expect(page.getByRole("checkbox", { name: /Draft captions from the audio/ })).toBeChecked();
+
+    await request.patch("/api/admin/clients/c1", { data: { autoCaption: false } });
+  });
+});

@@ -67,6 +67,7 @@ export function AdminMediaClient({
   selectedProjectTitle,
   selectedClientId,
   selectedClientName,
+  clientAutoCaption,
   siblingProjects,
   clientGroups,
   clientSeats,
@@ -77,6 +78,8 @@ export function AdminMediaClient({
   selectedProjectTitle: string | null;
   selectedClientId: string | null;
   selectedClientName: string | null;
+  /** Whether this client has caption drafting on. Client-wide, edited here for reach. */
+  clientAutoCaption: boolean;
   siblingProjects: ProjectOption[];
   clientSeats: Seat[];
   clientGroups: ClientGroup[];
@@ -106,6 +109,23 @@ export function AdminMediaClient({
   // A thumb that 404s falls back to the gradient rather than an empty broken-image box.
   const [thumbFailed, setThumbFailed] = useState<Set<string>>(new Set());
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [autoCaption, setAutoCaption] = useState(clientAutoCaption);
+  const [captionSaving, setCaptionSaving] = useState(false);
+
+  async function toggleAutoCaption() {
+    if (!selectedClientId) return;
+    const next = !autoCaption;
+    setAutoCaption(next);
+    setCaptionSaving(true);
+    const res = await fetch(`/api/admin/clients/${selectedClientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoCaption: next }),
+    });
+    setCaptionSaving(false);
+    // Put it back rather than showing a state the database never took.
+    if (!res.ok) setAutoCaption(!next);
+  }
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [bulkHiding, setBulkHiding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -604,6 +624,30 @@ export function AdminMediaClient({
         >
           Folders{folders.length > 0 ? ` (${folders.length})` : ""}
         </button>
+        {/* The switch lives on the client's own page too, since it is a client-wide
+            policy — but this is where reels are actually handled, and a setting you
+            have to go looking for is one you forget exists. Labelled with the client so
+            it never reads as a per-project toggle. */}
+        {selectedClientId && (
+          <button
+            onClick={toggleAutoCaption}
+            disabled={captionSaving}
+            data-testid="media-auto-caption"
+            aria-pressed={autoCaption}
+            title={
+              autoCaption
+                ? `New reels for ${selectedClientName} get a drafted caption from their audio.`
+                : `New reels for ${selectedClientName} are left without drafted captions.`
+            }
+            className={`cursor-pointer text-[11px] font-semibold px-3 py-2 border disabled:opacity-50 ${
+              autoCaption
+                ? "text-accentb border-accentb/50 bg-accent/[.06]"
+                : "text-muted border-line2 hover:text-text hover:border-text"
+            }`}
+          >
+            Caption drafts: {autoCaption ? "on" : "off"}
+          </button>
+        )}
         {folders.length > 0 && (
           <>
             <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">

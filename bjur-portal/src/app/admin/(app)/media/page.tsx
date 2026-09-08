@@ -67,6 +67,7 @@ export default async function AdminMediaPage({
       selectedProjectTitle={selected?.title ?? null}
       selectedClientId={selected?.clientId ?? null}
       selectedClientName={selected?.client.name ?? null}
+      clientAutoCaption={selected?.client.autoCaption ?? false}
       siblingProjects={siblingProjects}
       clientGroups={clientGroups}
       clientSeats={clientSeats}
