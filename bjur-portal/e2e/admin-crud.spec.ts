@@ -55,8 +55,12 @@ test("create a new project and see its inbox path", async ({ page }) => {
   await expect(dialog.getByText(/_inbox\/ssh\/fall-lookbook-2026/)).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
 
-  await expect(page.getByText("Fall Lookbook 2026")).toBeVisible();
-  await expect(page.getByText("DRAFT")).toBeVisible(); // invisible to the client until first delivery
+  // Scoped to the new project's own row. getByText("DRAFT") is a case-insensitive
+  // substring match, so it caught every other draft project on the page — and anything
+  // else that happens to contain the word.
+  const row = page.locator('[data-testid^="project-row-"]').filter({ hasText: "Fall Lookbook 2026" });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByText("DRAFT", { exact: true })).toBeVisible(); // hidden from the client until first delivery
 });
 
 test("retainer clients can't be given a project expiry", async ({ page }) => {

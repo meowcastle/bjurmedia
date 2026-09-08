@@ -13,6 +13,7 @@ import { syncAllSocialAccounts } from "./src/lib/socialSync";
 import { publishDuePosts } from "./src/lib/publisher";
 import { sendApprovalRequest, sendStaffAlert } from "./src/lib/approvalMail";
 import { sendWeeklyDigests, sendExpiryReminders } from "./src/lib/clientMail";
+import { processCaptionQueue } from "./src/lib/captionPipeline";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 
@@ -477,6 +478,33 @@ function startClientMailScheduler() {
   setInterval(() => tick().catch((err) => console.error("[client-mail] tick failed:", err)), SCHEDULER_POLL_MS);
 }
 
+/**
+ * Transcribes new reels and drafts their social copy.
+ *
+ * Same poll as the other schedulers rather than firing on ingest: transcription is a
+ * paid network call per file, and a delivery of forty clips arriving at once should
+ * drain steadily rather than open forty connections and hit a rate limit.
+ */
+function startCaptionScheduler() {
+  const tick = async () => {
+    const { done, noSpeech, failed } = await processCaptionQueue();
+    if (done || noSpeech || failed) {
+      console.log(`[captions] ${done} drafted, ${noSpeech} with no speech, ${failed} failed`);
+    }
+  };
+
+  const on = Boolean(process.env.DEEPGRAM_API_KEY);
+  console.log(
+    `[captions] scheduler checking every ${SCHEDULER_POLL_MS}ms — ` +
+      (on
+        ? process.env.ANTHROPIC_API_KEY
+          ? "transcribing and drafting"
+          : "transcribing only, ANTHROPIC_API_KEY not set"
+        : "idle, DEEPGRAM_API_KEY not set")
+  );
+  setInterval(() => tick().catch((err) => console.error("[captions] tick failed:", err)), SCHEDULER_POLL_MS);
+}
+
 // getSessionUser() (src/lib/auth.ts) only ever deletes an expired session lazily,
 // when its own owner happens to come back — rows from users who never return
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
@@ -589,3 +617,4 @@ startApprovalSweepScheduler();
 startPublishScheduler();
 startApprovalReminderScheduler();
 startClientMailScheduler();
+startCaptionScheduler();

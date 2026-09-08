@@ -41,6 +41,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.caption !== undefined) data.caption = body.caption || null;
   if (body.captionYT !== undefined) data.captionYT = body.captionYT || null;
 
+  // A person touching any of the copy is what makes it theirs. The draft warning comes
+  // off here rather than on a separate "approve" click, because editing already is the
+  // review — asking for a second gesture to confirm it just trains people to click it.
+  if (
+    body.contentTitle !== undefined ||
+    body.caption !== undefined ||
+    body.captionYT !== undefined
+  ) {
+    data.captionSource = "HUMAN";
+  }
+
   await db.asset.update({ where: { id }, data });
 
   return NextResponse.json({ ok: true });

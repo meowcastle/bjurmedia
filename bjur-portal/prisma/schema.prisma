@@ -18,6 +18,9 @@ model Client {
   logoUrl           String? // brand logo, admin-set — null = initials fallback
   // approval policy. Required by default: publishing to a client's own channels
   // without their sign-off is the failure nobody forgives.
+  // Draft captions from the audio. Off by default: this sends the client's audio to a
+  // third party, which is a decision to make per client rather than a default.
+  autoCaption       Boolean         @default(false)
   approvalRequired  Boolean         @default(true)
   approvalAutoHours Int             @default(24)
   notifyWeekly      Boolean         @default(true)
@@ -266,6 +269,17 @@ model Asset {
   // weekOf, which stays what it was: the grouping key the calendar and the weekly Slack
   // post read. Overloading weekOf for both would have made "which week is this in" and
   // "when exactly does it go out" the same field, and they are not.
+  // Transcription and the caption draft that comes from it. Only ever set on assets
+  // ingested after the feature existed — nothing backfills the library.
+  transcript       String?
+  transcriptStatus TranscriptStatus @default(NONE)
+  transcriptError  String?
+  transcribedAt    DateTime?
+  /**
+   * HUMAN once a person edits the caption, which takes the draft warning off.
+   */
+  captionSource    CaptionSource    @default(HUMAN)
+
   publishAt          DateTime?
   publishIg          Boolean      @default(false)
   publishYt          Boolean      @default(false)
@@ -292,6 +306,7 @@ model Asset {
   @@index([folderId])
   // The publisher and the auto-approve sweep both scan by state and due time.
   @@index([publishState, publishAt])
+  @@index([transcriptStatus])
 }
 
 enum AssetKind {
@@ -432,6 +447,32 @@ enum PublishState {
   PUBLISHING
   PUBLISHED
   FAILED
+}
+
+/**
+ * NONE      never queued — everything that predates this feature, and anything not
+ * eligible (stills, masters, internal work)
+ * PENDING   waiting for the worker
+ * RUNNING   claimed
+ * DONE      transcript stored
+ * NO_SPEECH the audio carried no usable dialogue — a music bed, room tone, silence
+ * FAILED    see transcriptError
+ */
+enum TranscriptStatus {
+  NONE
+  PENDING
+  RUNNING
+  DONE
+  NO_SPEECH
+  FAILED
+}
+
+/**
+ * Who wrote the caption currently in the field. AI copy stays visibly unreviewed.
+ */
+enum CaptionSource {
+  HUMAN
+  AI
 }
 
 enum SocialPlatform {

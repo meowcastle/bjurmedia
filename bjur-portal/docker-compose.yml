@@ -26,6 +26,12 @@ services:
       # sitting in .env alone never reaches the container.
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
       - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Caption drafting. Only the worker transcribes, but both are listed on each
+      # service so a future move of the job does not become a silent no-op.
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CAPTION_MODEL=${CAPTION_MODEL:-}
     volumes:
       - ./data:/data
       - /volume2/BJURMEDIA:/media:ro # read-only: web only ever streams, never writes media itself
@@ -56,6 +62,12 @@ services:
       - DELIVERY_EMAILS=${DELIVERY_EMAILS:-}
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
       - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Caption drafting. Only the worker transcribes, but both are listed on each
+      # service so a future move of the job does not become a silent no-op.
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CAPTION_MODEL=${CAPTION_MODEL:-}
     volumes:
       - ./data:/data
       # read-write: the ingest watcher moves finished exports from _inbox into the

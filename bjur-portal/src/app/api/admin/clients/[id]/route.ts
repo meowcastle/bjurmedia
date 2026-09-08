@@ -36,6 +36,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // §13 approval policy. Kept as its own branch, like accentColor and logoUrl above,
   // because this route's fallthrough treats an unrecognised body as a status change.
+  if ("autoCaption" in body) {
+    const { autoCaption } = body as { autoCaption?: boolean };
+    if (typeof autoCaption !== "boolean") {
+      return NextResponse.json({ error: "autoCaption must be true or false." }, { status: 400 });
+    }
+    const client = await db.client.update({ where: { id }, data: { autoCaption } });
+    return NextResponse.json({ client });
+  }
+
   if ("approvalRequired" in body || "approvalAutoHours" in body) {
     const { approvalRequired, approvalAutoHours } = body as {
       approvalRequired?: boolean;

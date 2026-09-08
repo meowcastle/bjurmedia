@@ -5,6 +5,7 @@ import { existsSync } from "fs";
 import path from "path";
 import { db } from "@/lib/db";
 import { resolveMediaPath, DERIVED_ROOT } from "@/lib/media";
+import { queueForCaptioning } from "@/lib/captionPipeline";
 
 const execFileAsync = promisify(execFile);
 
@@ -189,6 +190,11 @@ export async function generateProxy(asset: AssetRow) {
       where: { id: asset.id },
       data: { proxyStatus: "READY", thumbRelPath, proxyRelPath, proxyRes },
     });
+
+    // Queue captioning once the proxy exists — the transcriber reads the proxy, not the
+    // master. queueForCaptioning decides eligibility, so nothing that predates the
+    // feature or falls outside it is ever picked up.
+    await queueForCaptioning(asset.id).catch(() => {});
 
     await db.activity.create({
       data: { actor: "Worker", action: `finished proxy for "${asset.name}"` },

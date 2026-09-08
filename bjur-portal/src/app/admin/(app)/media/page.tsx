@@ -80,6 +80,8 @@ export default async function AdminMediaPage({
         sizeBytes: a.sizeBytes.toString(),
         proxyStatus: a.proxyStatus,
         thumbReady: a.thumbRelPath != null,
+        transcriptStatus: a.transcriptStatus,
+        captionSource: a.captionSource,
         dims: a.dims,
         durationSec: a.durationSec,
         masterCodec: a.masterCodec,

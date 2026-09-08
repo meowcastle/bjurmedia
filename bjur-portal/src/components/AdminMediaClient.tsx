@@ -26,6 +26,9 @@ type Asset = {
   sizeBytes: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
   thumbReady: boolean;
+  transcriptStatus:
+    "NONE" | "PENDING" | "RUNNING" | "DONE" | "NO_SPEECH" | "FAILED";
+  captionSource: "HUMAN" | "AI";
   dims: string | null;
   durationSec: number | null;
   masterCodec: string | null;
@@ -923,6 +926,26 @@ export function AdminMediaClient({
                         <span className="text-[13px] font-mono text-text truncate">
                           {a.name}
                         </span>
+                        {/* An AI draft has to look unreviewed, or it gets skimmed and
+                        shipped. The badge comes off the moment anyone edits the copy. */}
+                        {a.captionSource === "AI" && (
+                          <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accentb/40 px-1.5 py-0.5">
+                            DRAFT CAPTION
+                          </span>
+                        )}
+                        {a.transcriptStatus === "NO_SPEECH" && (
+                          <span
+                            title="No usable dialogue in the audio — a music bed or room tone. Nothing was drafted."
+                            className="flex-none text-[9px] font-bold tracking-wide text-dim border border-line2 px-1.5 py-0.5"
+                          >
+                            NO SPEECH
+                          </span>
+                        )}
+                        {a.transcriptStatus === "FAILED" && (
+                          <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accentb/40 px-1.5 py-0.5">
+                            TRANSCRIBE FAILED
+                          </span>
+                        )}
                         {a.internal && (
                           <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
                             INTERNAL
@@ -1119,11 +1142,13 @@ export function AdminMediaClient({
                             rel="noreferrer"
                             className="text-[11px] font-semibold text-accentb hover:text-text py-2 -my-2 inline-flex items-center gap-1"
                           >
-                            <IconPlay fill="currentColor" /> {formatViews(p.viewCount)} views ↗
+                            <IconPlay fill="currentColor" />{" "}
+                            {formatViews(p.viewCount)} views ↗
                           </a>
                         ) : (
                           <span className="text-[11px] font-semibold text-accentb">
-                            <IconPlay fill="currentColor" /> {formatViews(p.viewCount)} views
+                            <IconPlay fill="currentColor" />{" "}
+                            {formatViews(p.viewCount)} views
                           </span>
                         )}
                         <button

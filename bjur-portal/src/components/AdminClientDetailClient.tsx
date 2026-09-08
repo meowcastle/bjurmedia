@@ -44,6 +44,7 @@ type ClientInfo = {
   status: "ACTIVE" | "DISABLED";
   ytPublishReady: boolean;
   ytHandle: string | null;
+  autoCaption: boolean;
   approvalRequired: boolean;
   approvalAutoHours: number;
   accentColor: string | null;
@@ -142,6 +143,19 @@ export function AdminClientDetailClient({
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [autoCaption, setAutoCaption] = useState(client.autoCaption);
+
+  async function saveAutoCaption(next: boolean) {
+    setAutoCaption(next);
+    const res = await fetch(`/api/admin/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoCaption: next }),
+    });
+    // Put it back rather than showing a state the database never took.
+    if (!res.ok) setAutoCaption(client.autoCaption);
+  }
+
   const ytPublishReady = client.ytPublishReady;
   const ytHandle = client.ytHandle;
   const [approvalRequired, setApprovalRequired] = useState(
@@ -677,6 +691,34 @@ export function AdminClientDetailClient({
             No seats yet.
           </div>
         )}
+      </div>
+
+      <div className="mb-9">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
+          Caption drafts
+        </h2>
+        <div className="border border-line bg-s1 p-5">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoCaption}
+              onChange={(e) => saveAutoCaption(e.target.checked)}
+              className="mt-1 w-3.5 h-3.5 cursor-pointer"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">
+                Draft captions from the audio on new reels
+              </span>
+              <span className="block text-xs text-muted mt-1 leading-relaxed">
+                Transcribes each new reel and writes a first pass at the
+                Instagram and YouTube copy, marked as a draft until you edit it.
+                Off by default: this sends this client&apos;s audio to a
+                transcription service, which is worth deciding per client rather
+                than by default.
+              </span>
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* §13. The policy the approval loop runs on. Without a control here these two
