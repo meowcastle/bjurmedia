@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { gradientFor } from "@/lib/gradients";
+import type { PublishState } from "@prisma/client";
 import { IconPlay } from "@/components/ui/Icon";
 
 export type ScheduledPost = {
@@ -14,7 +15,7 @@ export type ScheduledPost = {
   publishAt: string | null;
   publishIg: boolean;
   publishYt: boolean;
-  publishState: "NONE" | "DRAFT" | "AWAITING" | "APPROVED" | "PUBLISHING" | "PUBLISHED" | "FAILED";
+  publishState: PublishState;
   approvalDueAt: string | null;
   heldAt: string | null;
   viewCount: number | null;
@@ -22,7 +23,7 @@ export type ScheduledPost = {
 
 export type PostsView = "week" | "published" | "files";
 
-const STATE_LABEL: Record<ScheduledPost["publishState"], string> = {
+const STATE_LABEL: Record<PublishState, string> = {
   NONE: "Not scheduled",
   DRAFT: "On hold",
   AWAITING: "Needs your OK",
@@ -30,9 +31,11 @@ const STATE_LABEL: Record<ScheduledPost["publishState"], string> = {
   PUBLISHING: "Publishing",
   PUBLISHED: "Published",
   FAILED: "Failed",
+  READY: "Ready to post",
+  POSTED: "Posted to Slack",
 };
 
-const STATE_TONE: Record<ScheduledPost["publishState"], string> = {
+const STATE_TONE: Record<PublishState, string> = {
   NONE: "text-dim",
   DRAFT: "text-accentb",
   AWAITING: "text-accentb",
@@ -40,6 +43,8 @@ const STATE_TONE: Record<ScheduledPost["publishState"], string> = {
   PUBLISHING: "text-muted",
   PUBLISHED: "text-success",
   FAILED: "text-accentb",
+  READY: "text-muted",
+  POSTED: "text-success",
 };
 
 function dayKicker(iso: string) {

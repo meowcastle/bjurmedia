@@ -71,6 +71,7 @@ model User {
   submissions        Submission[]
   uploadBatches      UploadBatch[]
   approvedAssets     Asset[]         @relation("AssetApprovals")
+  reviews            Review[]
   clientMemberships  ClientMember[]
 
   @@index([clientId])
@@ -118,9 +119,15 @@ model Project {
   // Two-way projects: the client may send footage back, not just take delivery.
   // Off by default and turned on per project by staff — a delivery gallery that
   // silently accepts uploads is a place for files to arrive that nobody is watching.
-  clientUploads Boolean   @default(false)
-  deliveredAt   DateTime?
-  expiresAt     DateTime? // null => permanent (retainer)
+  clientUploads Boolean @default(false)
+
+  // v2 service switches. A project is defined by what it does, not by what kind of
+  // client owns it — the same client can have a scheduled social project and a one-off
+  // delivery running at once, which ClientType could never express.
+  calendar    Boolean   @default(false) // scheduled on the board, week pushed to Slack
+  review      Boolean   @default(false) // each new asset asks the client to approve or send notes
+  deliveredAt DateTime?
+  expiresAt   DateTime? // null => permanent (retainer)
 
   // Delivery-email debounce. Assets arrive one file at a time (ingest.ts runs per
   // file), so a 40-clip drop would be 40 emails. Instead each arrival pushes
@@ -296,6 +303,14 @@ model Asset {
   approvedAt         DateTime?
   heldAt             DateTime? // client pressed Hold — blocks auto-approve until staff clear it
   approvalDueAt      DateTime? // when auto-approve fires; set on entering AWAITING
+  /**
+   * Staff signed off the caption. A week cannot be pushed with unapproved captions.
+   */
+  captionApprovedAt  DateTime?
+  /**
+   * When this asset's week was pushed to Slack.
+   */
+  postedToSlackAt    DateTime?
   approvalRemindedAt DateTime? // T-12h nudge sent; cleared whenever the post re-enters AWAITING
   publishAttempts    Int          @default(0)
   publishError       String?
@@ -307,6 +322,7 @@ model Asset {
   favorites   Favorite[]
   licenses    License[]
   socialPosts SocialPost[]
+  reviews     Review[]
 
   @@index([projectId])
   @@index([folderId])
@@ -360,6 +376,38 @@ enum LicenseTier {
 }
 
 // ── Favorites, sessions, activity ──────────────────────────
+/**
+ * One round of client feedback on one cut.
+ * A row per asset version, so a re-upload starts a new round rather than overwriting the
+ * note left on the previous one — "what did they say about v1" has to survive v2
+ * landing.
+ */
+model Review {
+  id          String      @id @default(cuid())
+  assetId     String
+  asset       Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  version     Int         @default(1)
+  /**
+   * The studio's note to the client, shown beside the cut.
+   */
+  note        String?
+  state       ReviewState @default(PENDING)
+  feedback    String?
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  respondedAt DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([assetId])
+  @@index([state])
+}
+
+enum ReviewState {
+  PENDING
+  APPROVED
+  FEEDBACK
+}
+
 model Favorite {
   userId  String
   assetId String
@@ -453,6 +501,15 @@ enum PublishState {
   PUBLISHING
   PUBLISHED
   FAILED
+  /**
+   * Caption approved by staff; the week can be pushed to Slack.
+   */
+  READY
+  /**
+   * Included in a week pushed to Slack. Terminal for calendar work — Slack is
+   * push-only here, so nothing comes back to move it on.
+   */
+  POSTED
 }
 
 /**
