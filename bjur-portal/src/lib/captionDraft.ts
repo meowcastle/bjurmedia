@@ -55,6 +55,12 @@ export const claudeDrafter: CaptionDrafter = async (input) => {
       "content-type": "application/json",
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
+      // An org-level key has to name the workspace to bill against; a workspace-scoped
+      // key already carries it and this header would be redundant. Supporting both
+      // means whichever key someone creates in the console just works.
+      ...(process.env.ANTHROPIC_WORKSPACE_ID
+        ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID }
+        : {}),
     },
     body: JSON.stringify({
       model: process.env.CAPTION_MODEL ?? "claude-sonnet-5",
