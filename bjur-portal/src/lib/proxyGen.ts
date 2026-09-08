@@ -6,6 +6,7 @@ import path from "path";
 import { db } from "@/lib/db";
 import { resolveMediaPath, DERIVED_ROOT } from "@/lib/media";
 import { queueForCaptioning } from "@/lib/captionPipeline";
+import { openReview } from "@/lib/reviews";
 
 const execFileAsync = promisify(execFile);
 
@@ -195,6 +196,11 @@ export async function generateProxy(asset: AssetRow) {
     // master. queueForCaptioning decides eligibility, so nothing that predates the
     // feature or falls outside it is ever picked up.
     await queueForCaptioning(asset.id).catch(() => {});
+
+    // Open the client's review round for the same reason, and at the same moment: the
+    // request email says "watch this", so it must not go out before there is something
+    // to watch. openReview decides eligibility, so a non-review project is unaffected.
+    await openReview(asset.id).catch(() => {});
 
     await db.activity.create({
       data: { actor: "Worker", action: `finished proxy for "${asset.name}"` },

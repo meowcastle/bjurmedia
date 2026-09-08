@@ -7,6 +7,14 @@ import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/s
 import { renderWeeklyDigestEmailHtml, type WeeklyDigestEmailProps } from "@/emails/weekly";
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderLicenseEmailHtml, type LicenseEmailProps } from "@/emails/license";
+import {
+  renderReviewRequestEmailHtml,
+  type ReviewRequestEmailProps,
+} from "@/emails/reviewRequest";
+import {
+  renderFeedbackReceivedEmailHtml,
+  type FeedbackReceivedEmailProps,
+} from "@/emails/feedbackReceived";
 
 function mailFrom() {
   return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? "Bjur Media <hello@bjur.media>";
@@ -111,6 +119,21 @@ export async function sendApprovalEmail(to: string, props: ApprovalEmailProps) {
     ? `Reminder: "${props.title}" publishes soon`
     : `Approve "${props.title}" before it publishes`;
   return sendMail({ to, subject, html });
+}
+
+export async function sendReviewRequestEmail(to: string, props: ReviewRequestEmailProps) {
+  return sendMail({
+    to,
+    subject: `${props.title} · ${props.versionLabel.toLowerCase()} is ready`,
+    html: renderReviewRequestEmailHtml(props),
+  });
+}
+
+export async function sendFeedbackReceivedEmail(to: string, props: FeedbackReceivedEmailProps) {
+  const what = props.approved
+    ? `${props.responderName} approved ${props.title}`
+    : `${props.responderName} left notes on ${props.title} · ${props.versionLabel.toLowerCase()}`;
+  return sendMail({ to, subject: `[Bjur] ${what}`, html: renderFeedbackReceivedEmailHtml(props) });
 }
 
 export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProps) {
