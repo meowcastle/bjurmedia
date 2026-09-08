@@ -23,14 +23,15 @@ test.describe("as staff", () => {
   test("the switches survive a round trip through the dialog", async ({ page }) => {
     await page.goto("/admin/clients/c1");
 
-    const row = page.getByTestId("project-row-p2");
+    const row = page.getByTestId("project-row-p3");
     await row.getByRole("button", { name: /Edit/ }).first().click();
 
-    // Off to begin with — a project starts as a plain delivery.
+    // p3 rather than p2: p2 is the seeded review project, so it does not start from
+    // the plain-delivery state this test is about.
     const calendar = page.getByTestId("calendar-toggle");
     const review = page.getByTestId("review-toggle");
-    await expect(calendar).toBeVisible();
-    await expect(review).toBeVisible();
+    await expect(calendar.getByRole("checkbox")).not.toBeChecked();
+    await expect(review.getByRole("checkbox")).not.toBeChecked();
 
     await calendar.click();
     await review.click();

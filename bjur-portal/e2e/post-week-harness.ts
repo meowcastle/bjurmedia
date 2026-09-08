@@ -1,4 +1,34 @@
 /**
+ * Drives the manual post-week path against a throwaway database with only the Slack
+ * HTTP call injected. A live webhook would post into a real workspace, which is
+ * precisely the accident the preview step exists to prevent.
+ *
+ * Run by e2e/post-week.spec.ts. Prints one JSON line of results.
+ */
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const dir = realpathSync(mkdtempSync(path.join(tmpdir(), "bjur-post-week-")));
+process.env.DATABASE_URL = `file:${path.join(dir, "test.db")}`;
+// Nothing here should reach a real webhook or mail server.
+delete process.env.SLACK_WEBHOOK_URL;
+process.env.DELIVERY_EMAILS = "off";
+
+execFileSync("npx", ["prisma", "migrate", "deploy"], {
+  env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
+  stdio: "pipe",
+});
+
+import type { SlackSender } from "../src/lib/postWeek";
+
+const results: { name: string; pass: boolean; detail?: string }[] = [];
+function check(name: string, pass: boolean, detail?: string) {
+  results.push({ name, pass, detail });
+}
+
+/**
  * Exercises the manual post-week path against a throwaway database.
  *
  * Only the Slack HTTP call is injected; the gating, the ordering and the stamping are
@@ -7,14 +37,7 @@
  *
  *   DATABASE_URL="file:/tmp/pw.db" npx tsx scripts/post-week-harness.ts
  */
-import { db } from "@/lib/db";
-import { previewProjectWeek, postProjectWeek, type SlackSender } from "@/lib/postWeek";
 
-let failures = 0;
-function check(label: string, cond: boolean, detail = "") {
-  console.log(`${cond ? "  ok  " : "  FAIL"}  ${label}${detail && !cond ? ` — ${detail}` : ""}`);
-  if (!cond) failures += 1;
-}
 
 const MONDAY = new Date("2026-09-07T00:00:00.000Z");
 const sent: { channel: string; blocks: unknown[] }[] = [];
@@ -25,6 +48,9 @@ const ok: SlackSender = async ({ channel, blocks }) => {
 const rejects: SlackSender = async () => ({ ok: false, status: 404, body: "no_service" });
 
 async function main() {
+  const { db } = await import("../src/lib/db");
+  const { previewProjectWeek, postProjectWeek } = await import("../src/lib/postWeek");
+
   await db.slackConfig.upsert({
     where: { id: 1 },
     create: { id: 1, connected: true, webhookUrl: "https://hooks.invalid/x", defaultChannel: "#studio" },
@@ -136,8 +162,7 @@ async function main() {
   );
 
   void a2; void a3; void a4; void a6;
-  console.log(failures === 0 ? "\nall passed" : `\n${failures} FAILED`);
-  process.exit(failures === 0 ? 0 : 1);
+  console.log(JSON.stringify(results));
 }
 
 main();

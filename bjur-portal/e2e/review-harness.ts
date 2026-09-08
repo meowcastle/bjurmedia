@@ -1,4 +1,32 @@
 /**
+ * Drives the client review loop against a throwaway database with only the two mail
+ * senders injected, so the version numbering, the idempotency and the conditional
+ * claims are the real code rather than stubs.
+ *
+ * Run by e2e/review.spec.ts. Prints one JSON line of results.
+ */
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const dir = realpathSync(mkdtempSync(path.join(tmpdir(), "bjur-review-")));
+process.env.DATABASE_URL = `file:${path.join(dir, "test.db")}`;
+// Nothing here should reach a real webhook or mail server.
+delete process.env.SLACK_WEBHOOK_URL;
+process.env.DELIVERY_EMAILS = "off";
+
+execFileSync("npx", ["prisma", "migrate", "deploy"], {
+  env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
+  stdio: "pipe",
+});
+
+const results: { name: string; pass: boolean; detail?: string }[] = [];
+function check(name: string, pass: boolean, detail?: string) {
+  results.push({ name, pass, detail });
+}
+
+/**
  * Exercises the review loop against a throwaway database.
  *
  * Runs the real openReview / respondToReview / reopenReview against real Prisma, with
@@ -7,19 +35,15 @@
  *
  *   DATABASE_URL="file:/tmp/rev.db" npx tsx scripts/review-harness.ts
  */
-import { db } from "@/lib/db";
-import { openReview, respondToReview, reopenReview } from "@/lib/reviews";
-import { notifyReviewRequest, notifyFeedback } from "@/lib/reviewMail";
 
-let failures = 0;
-function check(label: string, cond: boolean, detail = "") {
-  console.log(`${cond ? "  ok  " : "  FAIL"}  ${label}${detail && !cond ? ` — ${detail}` : ""}`);
-  if (!cond) failures += 1;
-}
 
 type Sent = { to: string; subject: string };
 
 async function main() {
+  const { db } = await import("../src/lib/db");
+  const { openReview, respondToReview, reopenReview } = await import("../src/lib/reviews");
+  const { notifyReviewRequest, notifyFeedback } = await import("../src/lib/reviewMail");
+
   // Two projects on one client: review on, review off. Same client, so anything that
   // leaks across the switch shows up immediately.
   const client = await db.client.create({
@@ -186,8 +210,7 @@ async function main() {
   });
   check("no feedback mail for an unanswered round", none.length === 0);
 
-  console.log(failures === 0 ? "\nall passed" : `\n${failures} FAILED`);
-  process.exit(failures === 0 ? 0 : 1);
+  console.log(JSON.stringify(results));
 }
 
 main();

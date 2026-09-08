@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
+import { ClientReviewPanel, type ReviewRound } from "@/components/ClientReviewPanel";
 import {
   ClientPostsPanel,
   type ScheduledPost,
@@ -142,6 +143,7 @@ export function ProjectDetailClient({
   assets,
   initialFavorites,
   initialLicensedAssetIds,
+  reviews,
   role,
   totalViews,
   totalSocialPosts,
@@ -160,6 +162,7 @@ export function ProjectDetailClient({
   assets: Asset[];
   initialFavorites: string[];
   initialLicensedAssetIds: string[];
+  reviews: ReviewRound[];
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
   totalViews: number;
   totalSocialPosts: number;
@@ -581,6 +584,16 @@ export function ProjectDetailClient({
           )}
         </div>
       </div>
+
+      {/* A cut waiting on an answer outranks everything else on the page — it is the
+          one thing here that is blocked on the person reading it. */}
+      <ClientReviewPanel
+        rounds={reviews}
+        onOpenAsset={(id) => {
+          const asset = assets.find((a) => a.id === id);
+          if (asset) openAsset(asset);
+        }}
+      />
 
       {/* §13. Only for projects that actually have posts — a delivery of stills has
           nothing to approve and should not grow a tab strip saying so. */}

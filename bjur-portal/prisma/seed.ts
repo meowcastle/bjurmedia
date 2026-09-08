@@ -467,12 +467,58 @@ const projectsSeed = [
   { id: "p8", clientId: "c2", title: "IG Posting", path: "57NYC/IG-Posting", inboxSlug: "ig-posting", deliveredAt: date("Jul 13"), expiresAt: null },
 ];
 
+
+/**
+ * p2 is the review project: every new cut asks the client to approve it or send notes.
+ *
+ * One round pending and one already answered, because the answered state is the one
+ * that is easy to get wrong — a client who has replied should still see what they said,
+ * not an empty row.
+ */
+async function seedReviews() {
+  await db.project.update({ where: { id: "p2" }, data: { review: true } });
+
+  const cuts = await db.asset.findMany({
+    where: { projectId: "p2", kind: "VIDEO", internal: false },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+    take: 2,
+  });
+  if (cuts.length === 0) return;
+
+  const sasha = await db.user.findFirst({ where: { email: "sasha@ssh.studio" }, select: { id: true } });
+
+  await db.review.create({
+    data: {
+      assetId: cuts[0].id,
+      version: 2,
+      note: "Tightened the intro and swapped the last shot. Let me know either way.",
+      state: "PENDING",
+    },
+  });
+
+  if (cuts[1] && sasha) {
+    await db.review.create({
+      data: {
+        assetId: cuts[1].id,
+        version: 1,
+        note: "First pass on the product cut.",
+        state: "FEEDBACK",
+        feedback: "Great — can we hold the logo a beat longer at the end?",
+        userId: sasha.id,
+        respondedAt: new Date(),
+      },
+    });
+  }
+}
+
 async function main() {
   console.log("Seeding…");
 
   await db.favorite.deleteMany();
   await db.license.deleteMany();
   await db.session.deleteMany();
+  await db.review.deleteMany();
   await db.asset.deleteMany();
   await db.project.deleteMany();
   await db.clientChannel.deleteMany();
@@ -591,6 +637,7 @@ async function main() {
   // project starts from.
   await db.project.update({ where: { id: "p1" }, data: { clientUploads: true } });
 
+  await seedReviews();
   await seedSocial();
   await seedPublishStates();
   await seedThumbs();

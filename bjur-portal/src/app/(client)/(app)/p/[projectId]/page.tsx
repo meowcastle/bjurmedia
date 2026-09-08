@@ -35,12 +35,28 @@ export default async function ProjectDetailPage({
   const totalViews = allSocialPosts.reduce((sum, p) => sum + p.viewCount, 0);
   const totalPosts = allSocialPosts.length;
 
-  const [favorites, licenses] = await Promise.all([
-    db.favorite.findMany({
-      where: { userId: session.id, assetId: { in: project.assets.map((a) => a.id) } },
-    }),
-    db.license.findMany({
-      where: { clientId: session.clientId, assetId: { in: project.assets.map((a) => a.id) } },
+  const assetIds = project.assets.map((a) => a.id);
+  const [favorites, licenses, reviews] = await Promise.all([
+    db.favorite.findMany({ where: { userId: session.id, assetId: { in: assetIds } } }),
+    db.license.findMany({ where: { clientId: session.clientId, assetId: { in: assetIds } } }),
+    // Newest cut first: a client with several rounds open cares about the one that just
+    // landed. Answered rounds stay on the page so the reply they sent is still there.
+    db.review.findMany({
+      where: { assetId: { in: assetIds } },
+      orderBy: [{ createdAt: "desc" }],
+      include: {
+        user: { select: { name: true, email: true } },
+        asset: {
+          select: {
+            id: true,
+            name: true,
+            contentTitle: true,
+            kind: true,
+            durationSec: true,
+            thumbRelPath: true,
+          },
+        },
+      },
     }),
   ]);
 
@@ -86,6 +102,21 @@ export default async function ProjectDetailPage({
         viewCount: a.socialPosts.length
           ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
           : null,
+      }))}
+      reviews={reviews.map((r) => ({
+        id: r.id,
+        assetId: r.assetId,
+        version: r.version,
+        note: r.note,
+        state: r.state,
+        feedback: r.feedback,
+        respondedAt: r.respondedAt?.toISOString() ?? null,
+        respondedBy: r.userId === session.id ? "You" : (r.user?.name ?? r.user?.email ?? null),
+        assetName: r.asset.name,
+        contentTitle: r.asset.contentTitle,
+        kind: r.asset.kind,
+        thumbReady: r.asset.thumbRelPath != null,
+        durationSec: r.asset.durationSec,
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
       initialLicensedAssetIds={licenses.map((l) => l.assetId)}
