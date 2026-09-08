@@ -25,11 +25,18 @@ type TopSocialPostRow = { id: string; assetName: string; clientName: string; pro
 
 type AttentionRow = {
   id: string;
-  kind: "expiry" | "unscheduled";
+  kind: "expiry" | "unscheduled" | "feedback" | "approved";
   subject: string;
   body: string;
   href: string;
   action: string;
+};
+
+const ATTENTION_DOT: Record<AttentionRow["kind"], string> = {
+  feedback: "var(--accentb)",
+  approved: "var(--success)",
+  expiry: "var(--accentb)",
+  unscheduled: "var(--muted)",
 };
 
 export function AdminDashboardClient({
@@ -120,15 +127,21 @@ export function AdminDashboardClient({
             {attention.map((a) => (
               <div
                 key={a.id}
+                data-testid={`attention-${a.kind}`}
                 className="flex items-center gap-3 px-5 py-3.5 border-b border-line last:border-b-0"
               >
-                <span
-                  className="w-2 h-2 flex-none"
-                  style={{ background: a.kind === "expiry" ? "var(--accentb)" : "var(--muted)" }}
-                />
+                <span className="w-2 h-2 flex-none" style={{ background: ATTENTION_DOT[a.kind] }} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-bold truncate">{a.subject}</span>
-                  <span className="block text-[11px] text-muted truncate">{a.body}</span>
+                  {/* A client's note is the whole reason the row is here, so it wraps.
+                      Everything else is a one-line summary and still truncates. */}
+                  <span
+                    className={`block text-[11px] text-muted ${
+                      a.kind === "feedback" ? "leading-relaxed" : "truncate"
+                    }`}
+                  >
+                    {a.body}
+                  </span>
                 </span>
                 <Link
                   href={a.href}

@@ -77,6 +77,27 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
+  // Client answers on review cuts. These reach the studio by email too, but email is
+  // where things get read once and lost — a note asking for a change should still be
+  // visible tomorrow morning. Newest first, since a second round supersedes the first.
+  const answeredReviews = await db.review.findMany({
+    where: { state: { in: ["FEEDBACK", "APPROVED"] } },
+    orderBy: { respondedAt: "desc" },
+    take: 8,
+    include: {
+      user: { select: { name: true, email: true } },
+      asset: {
+        select: {
+          id: true,
+          name: true,
+          contentTitle: true,
+          projectId: true,
+          project: { select: { title: true, client: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
   const unscheduledProjects = unscheduledRetainer.length
     ? await db.project.findMany({
         where: { id: { in: unscheduledRetainer.map((r) => r.projectId) } },
@@ -88,6 +109,29 @@ export default async function AdminDashboardPage() {
   );
 
   const attention = [
+    ...answeredReviews.map((r) => {
+      const who = r.user?.name || r.user?.email || "The client";
+      const what = r.asset.contentTitle?.trim() || r.asset.name;
+      return r.state === "FEEDBACK"
+        ? {
+            id: `feedback-${r.id}`,
+            kind: "feedback" as const,
+            subject: `${who} left notes on ${what}`,
+            body: r.feedback?.trim()
+              ? `“${r.feedback.trim()}”`
+              : `${r.asset.project.client.name} · ${r.asset.project.title}`,
+            href: `/admin/media?project=${r.asset.projectId}`,
+            action: "Open reel",
+          }
+        : {
+            id: `approved-${r.id}`,
+            kind: "approved" as const,
+            subject: `${what} approved`,
+            body: `${who} · ${r.asset.project.client.name} — cut ${r.version} cleared`,
+            href: `/admin/media?project=${r.asset.projectId}`,
+            action: "Open",
+          };
+    }),
     ...soonExpiring.map((p) => ({
       id: `expiry-${p.id}`,
       kind: "expiry" as const,
