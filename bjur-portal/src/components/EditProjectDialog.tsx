@@ -2,9 +2,45 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Field";
 import { Portal } from "@/components/ui/Portal";
 import { IconCheck } from "@/components/ui/Icon";
+
+const KICKER =
+  "text-[11px] uppercase tracking-[.05em] font-bold text-muted mb-2";
+const INPUT =
+  "w-full bg-bg border border-line2 px-[14px] py-[11px] text-sm text-text outline-none focus:border-accent";
+
+function Kicker({ children }: { children: React.ReactNode }) {
+  return <div className={KICKER}>{children}</div>;
+}
+
+/** Two-way segmented control replacing the status <select>. Same DRAFT | LIVE values. */
+function StatusSegment({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: "DRAFT" | "LIVE") => void;
+}) {
+  const seg = (v: "DRAFT" | "LIVE", label: string, extra = "") => (
+    <button
+      type="button"
+      onClick={() => onChange(v)}
+      aria-pressed={value === v}
+      className={`flex-1 py-[11px] text-[13px] font-bold cursor-pointer ${extra} ${
+        value === v ? "bg-text text-bg" : "text-muted hover:text-text"
+      }`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="flex border border-line2">
+      {seg("DRAFT", "Draft · hidden")}
+      {seg("LIVE", "Live · visible", "border-l border-line2")}
+    </div>
+  );
+}
 
 type ProjectRow = {
   id: string;
@@ -26,11 +62,14 @@ export function EditProjectDialog({
   onClose,
   onSaved,
   onDeleted,
+  notify,
 }: {
   project: ProjectRow;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
+  /** Raised by the page, not this dialog — saving closes it. */
+  notify?: (message: string) => void;
 }) {
   const [title, setTitle] = useState(project.title);
   const [status, setStatus] = useState(project.status);
@@ -48,6 +87,7 @@ export function EditProjectDialog({
       return;
     }
     setCopiedLink(true);
+    notify?.(`Copied ${url.replace(/^https?:\/\//, "")}`);
     setTimeout(() => setCopiedLink(false), 1600);
   }
   const [deliveredAt, setDeliveredAt] = useState(
@@ -97,110 +137,113 @@ export function EditProjectDialog({
       setLoading(false);
       return;
     }
+    notify?.(
+      `Saved · ${title.trim()}${clientUploads ? " · uploads open" : ""}`,
+    );
     onSaved();
   }
 
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
+        className="fixed inset-0 z-50 bg-black/80 grid place-items-center p-6 bjfade"
         onClick={onClose}
       >
         <div
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
         >
-          <div className="text-[22px] font-black tracking-tight mb-6">
+          <div className="text-[22px] font-black tracking-[-.02em] mb-[22px]">
             Edit project
           </div>
 
           <div className="flex flex-col gap-4">
-            <Field label="Project title" htmlFor="etitle">
-              <Input
-                id="etitle"
+            <div>
+              <Kicker>Project title</Kicker>
+              <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                className={INPUT}
               />
-            </Field>
+            </div>
 
-            <Field label="Status" htmlFor="estatus">
-              <select
-                id="estatus"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
-              >
-                <option value="DRAFT">Draft — hidden from client</option>
-                <option value="LIVE">Live — visible to client</option>
-              </select>
-            </Field>
+            <div>
+              <Kicker>Status</Kicker>
+              <StatusSegment value={status} onChange={setStatus} />
+            </div>
 
-            <Field label="Delivered" htmlFor="edelivered">
-              <Input
-                id="edelivered"
-                type="date"
-                value={deliveredAt}
-                onChange={(e) => setDeliveredAt(e.target.value)}
-              />
-            </Field>
-
-            {isRetainer ? (
-              <div className="text-xs text-dim">
-                Permanent library — retainer clients never expire.
-              </div>
-            ) : (
-              <Field label="Expires" htmlFor="eexpires">
-                <Input
-                  id="eexpires"
+            {/* Side by side: they are one decision about the window a delivery is open
+                for, and stacking them made that read as two unrelated fields. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Kicker>Delivered</Kicker>
+                <input
                   type="date"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
+                  value={deliveredAt}
+                  onChange={(e) => setDeliveredAt(e.target.value)}
+                  className={`${INPUT} text-[13px] font-mono`}
                 />
-              </Field>
-            )}
-          </div>
+              </div>
 
-          {/* A click-anywhere card rather than a bare checkbox: this decides whether a
-              client can put files on the studio's storage, which deserves more weight
-              than a 14px box. The helper copy changes with the state because the
-              consequences differ — a draft project is reachable only by link. */}
-          <label
-            data-testid="client-uploads-toggle"
-            className={`flex gap-[14px] items-start border px-4 py-[14px] mt-5 cursor-pointer select-none ${
-              clientUploads
-                ? "border-accentb/50 bg-accent/[.06]"
-                : "border-line2"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={clientUploads}
-              onChange={(e) => setClientUploads(e.target.checked)}
-              className="sr-only"
-            />
-            <span
-              aria-hidden
-              className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
-                clientUploads ? "border-accent bg-accent" : "border-dim"
+              <div>
+                <Kicker>Expires</Kicker>
+                {isRetainer ? (
+                  <div className="py-[11px] text-xs text-muted">
+                    Never · retainer
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className={`${INPUT} text-[13px] font-mono`}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* A click-anywhere card rather than a bare checkbox: this decides whether a
+                client can put files on the studio's storage, which deserves more weight
+                than a 14px box. The helper copy changes with the state because the
+                consequences differ — a draft project is reachable only by link. */}
+            <label
+              data-testid="client-uploads-toggle"
+              className={`flex gap-[14px] items-start border px-4 py-[14px] cursor-pointer select-none ${
+                clientUploads
+                  ? "border-accentb/50 bg-accent/[.06]"
+                  : "border-line2"
               }`}
             >
-              {clientUploads && (
-                <IconCheck className="text-[11px] text-bg" strokeWidth={4} />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-bold">
-                Accept client uploads
+              <input
+                type="checkbox"
+                checked={clientUploads}
+                onChange={(e) => setClientUploads(e.target.checked)}
+                className="sr-only"
+              />
+              <span
+                aria-hidden
+                className={`w-[18px] h-[18px] flex-none grid place-items-center border-2 mt-0.5 ${
+                  clientUploads ? "border-accent bg-accent" : "border-dim"
+                }`}
+              >
+                {clientUploads && (
+                  <IconCheck className="text-[11px] text-bg" strokeWidth={4} />
+                )}
               </span>
-              <span className="block text-xs text-muted mt-1 leading-relaxed">
-                {!clientUploads
-                  ? "Client sees this project as a delivery only. Any shared upload link stops working."
-                  : status === "LIVE"
-                    ? "Client sees “Send us footage” on this project. Files land in the project inbox and post to Slack."
-                    : "Project is hidden, so the client reaches the upload page only by link. Copy it below."}
+              <span className="min-w-0">
+                <span className="block text-sm font-bold">
+                  Accept client uploads
+                </span>
+                <span className="block text-xs text-muted mt-1 leading-relaxed">
+                  {!clientUploads
+                    ? "Client sees this project as a delivery only. Any shared upload link stops working."
+                    : status === "LIVE"
+                      ? "Client sees “Send us footage” on this project. Files land in the project inbox and post to Slack."
+                      : "Project is hidden, so the client reaches the upload page only by link. Copy it below."}
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
+          </div>
 
           {error && (
             <div className="text-xs text-accentb mt-4 font-semibold">

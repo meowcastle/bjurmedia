@@ -14,6 +14,7 @@ import { ClientSubmissionsDialog } from "@/components/ClientSubmissionsDialog";
 import { lighten } from "@/lib/color";
 import { initials } from "@/lib/initials";
 import { IconUpload } from "@/components/ui/Icon";
+import { Toast } from "@/components/ui/Toast";
 
 type ProjectAccessGrant = { projectId: string; role: string };
 type Seat = {
@@ -128,6 +129,9 @@ export function AdminClientDetailClient({
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [resetDialogFor, setResetDialogFor] = useState<Seat | null>(null);
   const [accessDialogFor, setAccessDialogFor] = useState<Seat | null>(null);
+  // Owned by the page: a save closes the dialog, so a toast inside it would unmount
+  // with the action it is reporting.
+  const [toast, setToast] = useState<string | null>(null);
   const [confirmingRemoveSeat, setConfirmingRemoveSeat] = useState<
     string | null
   >(null);
@@ -970,6 +974,7 @@ export function AdminClientDetailClient({
       )}
       {editing && (
         <EditProjectDialog
+          notify={setToast}
           project={{
             id: editing.id,
             title: editing.title,
@@ -991,6 +996,8 @@ export function AdminClientDetailClient({
           }}
         />
       )}
+      <Toast message={toast} onDone={() => setToast(null)} />
+
       {uploadingTo && (
         <UploadDialog
           projectId={uploadingTo.id}

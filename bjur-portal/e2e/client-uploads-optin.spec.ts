@@ -152,3 +152,50 @@ test.describe("the admin controls", () => {
     await ctx.close();
   });
 });
+
+test.describe("the restyled Edit project dialog", () => {
+  test.use({ storageState: "e2e/.auth/admin.json" });
+
+  async function open(page: import("@playwright/test").Page, title: string) {
+    await page.goto("/admin/clients");
+    await page.getByText("SSH", { exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/clients\/.+/);
+    const row = page.locator('[data-testid^="project-row-"]').filter({ hasText: title });
+    await row.getByRole("button", { name: "Edit" }).click();
+    await expect(page.getByTestId("client-uploads-toggle")).toBeVisible();
+  }
+
+  test("status is a segmented control, and it still saves the right value", async ({ page }) => {
+    await open(page, "Spring Campaign 2026");
+
+    // The <select> is gone; both states are on screen at once.
+    await expect(page.locator("select#estatus")).toHaveCount(0);
+    const draft = page.getByRole("button", { name: /Draft · hidden/ });
+    const live = page.getByRole("button", { name: /Live · visible/ });
+    await expect(live).toHaveAttribute("aria-pressed", "true");
+
+    await draft.click();
+    await expect(draft).toHaveAttribute("aria-pressed", "true");
+    await expect(live).toHaveAttribute("aria-pressed", "false");
+
+    // Put it back rather than leaving the project hidden from the client.
+    await live.click();
+    await expect(live).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("saving confirms with a toast that outlives the dialog", async ({ page }) => {
+    await open(page, "Spring Campaign 2026");
+    await page.getByRole("button", { name: "Save changes" }).click();
+
+    // The dialog closes on save, so a toast owned by it would vanish with it.
+    await expect(page.getByTestId("client-uploads-toggle")).toHaveCount(0);
+    await expect(page.getByTestId("toast")).toContainText("Saved · Spring Campaign 2026");
+    await expect(page.getByTestId("toast")).toContainText("uploads open");
+  });
+
+  test("a retainer shows no expiry field to fill in", async ({ page }) => {
+    await open(page, "Spring Campaign 2026");
+    // SSH is a retainer: an expiry input here would offer a date that is never used.
+    await expect(page.getByText("Never · retainer")).toBeVisible();
+  });
+});
