@@ -21,6 +21,12 @@ model Client {
   // Draft captions from the audio. Off by default: this sends the client's audio to a
   // third party, which is a decision to make per client rather than a default.
   autoCaption       Boolean         @default(false)
+  /**
+   * This client's house style, in their own words — structure, tone, sign-off, hashtag
+   * habits. Fed to the drafter as instructions. Without it the model writes generic
+   * social copy that reads like nobody in particular.
+   */
+  captionStyle      String?
   approvalRequired  Boolean         @default(true)
   approvalAutoHours Int             @default(24)
   notifyWeekly      Boolean         @default(true)

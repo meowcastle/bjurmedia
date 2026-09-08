@@ -20,6 +20,10 @@ export type CaptionDrafter = (input: {
   projectTitle: string;
   assetName: string;
   durationSec: number | null;
+  /** The client's house style in their own words. */
+  styleGuide?: string | null;
+  /** Recent captions a person actually wrote for this client, newest first. */
+  examples?: string[];
 }) => Promise<CaptionDraft>;
 
 export function draftingConfigured() {
@@ -29,19 +33,22 @@ export function draftingConfigured() {
 const SYSTEM = `You write social copy for a film production studio's client deliveries.
 
 You are given a transcript of the spoken audio from one short video, and you draft the
-post copy for it. Rules:
+post copy for it.
 
-- Write from what is actually said. Never invent a fact, name, location, product claim
-  or statistic that is not in the transcript.
+The only rules that never bend:
+
+- Write from what is actually said. Never invent a fact, name, credit, date, statistic
+  or claim that is not in the transcript or the context given. If someone's role or
+  affiliation is not stated, do not assign one.
 - If the transcript is thin or ambiguous, write something short and general rather than
   padding it with invention. Short and true beats long and wrong.
-- No emoji. No hashtag walls — at most two, and only if the subject is obvious.
-- Instagram: 1-3 sentences, conversational, no "link in bio" unless the transcript says
-  there is one.
-- YouTube title: under 70 characters, specific, no clickbait punctuation.
-- YouTube description: 2-4 sentences, slightly more informative than the Instagram copy.
-- Never address the client or the studio in the copy. This is the post itself, not a
-  note about the post.
+- Never address the client or the studio. This is the post itself, not a note about it.
+- YouTube titles stay under 70 characters.
+
+Everything else — length, tone, emoji, hashtags, sign-off, whether to name the guest —
+follows the client's house style below and the examples of their own past posts. Match
+how they actually write. Where the style guide and these instructions disagree about
+anything other than the rules above, the style guide wins.
 
 Reply with only a JSON object: {"instagram": "...", "youtubeTitle": "...", "youtube": "..."}`;
 
@@ -75,6 +82,15 @@ export const claudeDrafter: CaptionDrafter = async (input) => {
             `File: ${input.assetName}`,
             input.durationSec ? `Duration: ${input.durationSec}s` : "",
             "",
+            input.styleGuide ? `House style for ${input.clientName}:\n${input.styleGuide}\n` : "",
+            // Their own recent posts do more than any description of tone can: the model
+            // can see the shape, the sign-off and the hashtag habit rather than being
+            // told about them.
+            input.examples?.length
+              ? `Recent posts this client wrote themselves — match this voice:\n\n${input.examples
+                  .map((e, i) => `Example ${i + 1}:\n${e}`)
+                  .join("\n\n")}\n`
+              : "",
             "Transcript:",
             input.transcript,
           ]

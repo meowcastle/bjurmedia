@@ -64,6 +64,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         ytPublishReady: socialAccounts.some((a) => a.platform === "YOUTUBE" && a.refreshToken != null),
         ytHandle: socialAccounts.find((a) => a.platform === "YOUTUBE")?.handle ?? null,
         autoCaption: client.autoCaption,
+        captionStyle: client.captionStyle,
         approvalRequired: client.approvalRequired,
         approvalAutoHours: client.approvalAutoHours,
         accentColor: client.accentColor,

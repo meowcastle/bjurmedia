@@ -45,6 +45,7 @@ type ClientInfo = {
   ytPublishReady: boolean;
   ytHandle: string | null;
   autoCaption: boolean;
+  captionStyle: string | null;
   approvalRequired: boolean;
   approvalAutoHours: number;
   accentColor: string | null;
@@ -144,6 +145,20 @@ export function AdminClientDetailClient({
   const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [autoCaption, setAutoCaption] = useState(client.autoCaption);
+  const [styleDraft, setStyleDraft] = useState(client.captionStyle ?? "");
+  const [styleSaved, setStyleSaved] = useState(false);
+
+  async function saveCaptionStyle() {
+    if (styleDraft === (client.captionStyle ?? "")) return;
+    const res = await fetch(`/api/admin/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ captionStyle: styleDraft }),
+    });
+    if (!res.ok) return;
+    setStyleSaved(true);
+    setTimeout(() => setStyleSaved(false), 1600);
+  }
 
   async function saveAutoCaption(next: boolean) {
     setAutoCaption(next);
@@ -718,6 +733,38 @@ export function AdminClientDetailClient({
               </span>
             </span>
           </label>
+
+          {autoCaption && (
+            <div className="mt-5 pt-5 border-t border-line">
+              <div className="flex items-baseline justify-between gap-3 mb-2">
+                <label
+                  htmlFor="captionstyle"
+                  className="text-[11px] uppercase tracking-[.05em] font-bold text-muted"
+                >
+                  House style
+                </label>
+                {styleSaved && (
+                  <span className="text-[11px] text-success">Saved</span>
+                )}
+              </div>
+              <textarea
+                id="captionstyle"
+                value={styleDraft}
+                onChange={(e) => setStyleDraft(e.target.value)}
+                onBlur={saveCaptionStyle}
+                rows={10}
+                placeholder={
+                  "How this client writes. Structure, tone, sign-off, hashtags — and paste two or three real posts as examples.\n\nExamples do more than description: the model copies the shape rather than guessing at it."
+                }
+                className="w-full bg-bg border border-line2 text-[12px] text-text px-3 py-2.5 outline-none focus:border-accent resize-y leading-relaxed font-mono"
+              />
+              <div className="text-[11px] text-dim mt-2">
+                Drafts also follow the last five captions someone wrote by hand
+                for this client, so the voice keeps tracking yours without
+                editing this box.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

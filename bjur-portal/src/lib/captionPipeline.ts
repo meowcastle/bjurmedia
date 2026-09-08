@@ -76,7 +76,7 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
       captionYT: true,
       contentTitle: true,
       captionSource: true,
-      project: { select: { title: true, client: { select: { name: true } } } },
+      project: { select: { title: true, clientId: true, client: { select: { name: true, captionStyle: true } } } },
     },
   });
 
@@ -113,22 +113,46 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
         continue;
       }
 
-      const drafted = canDraft()
+      // If a person has already written any of this post's copy, the transcript is
+      // stored and nothing is drafted. Filling only the empty fields sounds helpful but
+      // means half a post is theirs and half is unreviewed machine copy, and the asset
+      // has to be flagged as a draft either way — which buries their work behind a
+      // warning and keeps their caption out of the examples the next draft learns from.
+      const humanTouched =
+        asset.captionSource === "HUMAN" &&
+        (!!asset.caption || !!asset.captionYT || !!asset.contentTitle);
+
+      // The client's own recent posts, newest first. A written style guide describes the
+      // voice; these show it — the shape, the sign-off, the hashtag habit. Only copy a
+      // person actually wrote, so the model never learns from its own drafts and drifts
+      // further from the house voice with each pass.
+      const examples = (
+        await db.asset.findMany({
+          where: {
+            project: { clientId: asset.project.clientId },
+            captionSource: "HUMAN",
+            caption: { not: null },
+            id: { not: asset.id },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+          select: { caption: true },
+        })
+      )
+        .map((a) => a.caption!)
+        .filter((c) => c.trim().length > 40);
+
+      const drafted = !humanTouched && canDraft()
         ? await draft({
             transcript: text,
             clientName: asset.project.client.name,
             projectTitle: asset.project.title,
             assetName: asset.name,
             durationSec: asset.durationSec,
+            styleGuide: asset.project.client.captionStyle,
+            examples,
           })
         : null;
-
-      // Never overwrite copy a person wrote. The transcript is always stored; the
-      // draft only fills fields that are still empty.
-      const humanWrote = asset.captionSource === "HUMAN";
-      const captionTaken = humanWrote && !!asset.caption;
-      const ytTaken = humanWrote && !!asset.captionYT;
-      const titleTaken = humanWrote && !!asset.contentTitle;
 
       await db.asset.update({
         where: { id: asset.id },
@@ -139,11 +163,10 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
           transcriptError: null,
           ...(drafted
             ? {
-                ...(captionTaken ? {} : { caption: drafted.instagram }),
-                ...(ytTaken ? {} : { captionYT: drafted.youtube }),
-                ...(titleTaken ? {} : { contentTitle: drafted.youtubeTitle }),
-                // Only claim AI authorship if something was actually written.
-                ...(captionTaken && ytTaken && titleTaken ? {} : { captionSource: "AI" as const }),
+                caption: drafted.instagram,
+                captionYT: drafted.youtube,
+                contentTitle: drafted.youtubeTitle,
+                captionSource: "AI" as const,
               }
             : {}),
         },

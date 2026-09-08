@@ -36,6 +36,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // §13 approval policy. Kept as its own branch, like accentColor and logoUrl above,
   // because this route's fallthrough treats an unrecognised body as a status change.
+  if ("captionStyle" in body) {
+    const { captionStyle } = body as { captionStyle: string | null };
+    if (captionStyle !== null && typeof captionStyle !== "string") {
+      return NextResponse.json({ error: "captionStyle must be text." }, { status: 400 });
+    }
+    // Long enough for real examples — a style guide with no examples in it is just
+    // adjectives, and the model writes generic copy from adjectives.
+    if (typeof captionStyle === "string" && captionStyle.length > 8000) {
+      return NextResponse.json({ error: "Style guide is too long (8000 characters max)." }, { status: 400 });
+    }
+    const client = await db.client.update({
+      where: { id },
+      data: { captionStyle: captionStyle?.trim() || null },
+    });
+    return NextResponse.json({ client });
+  }
+
   if ("autoCaption" in body) {
     const { autoCaption } = body as { autoCaption?: boolean };
     if (typeof autoCaption !== "boolean") {

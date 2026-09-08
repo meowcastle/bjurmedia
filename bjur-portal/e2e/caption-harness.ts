@@ -45,7 +45,13 @@ async function main() {
   const { queueForCaptioning, processCaptionQueue } = await import("../src/lib/captionPipeline");
 
   const client = await db.client.create({
-    data: { name: "CapCo", username: "capco", type: "RETAINER", autoCaption: true },
+    data: {
+      name: "CapCo",
+      username: "capco",
+      type: "RETAINER",
+      autoCaption: true,
+      captionStyle: "Hook line first. Name the guest. Sign off with link in bio.",
+    },
   });
   const off = await db.client.create({
     data: { name: "OptedOut", username: "optedout", type: "RETAINER", autoCaption: false },
@@ -109,18 +115,32 @@ async function main() {
   // ---- the happy path ----
   const configured = () => true;
   const transcribe = async () => ({ text: "We shot this on the roof at golden hour.", confidence: 0.94 });
-  const draft = async () => ({
-    instagram: "Golden hour on the roof.",
-    youtubeTitle: "Rooftop, golden hour",
-    youtube: "A short piece shot on the roof at golden hour.",
-  });
+  // Capture what the drafter is handed, so the style plumbing is checked rather than
+  // assumed — a style guide that never reaches the model is the failure that looks
+  // exactly like the model ignoring it.
+  let lastDraftInput: Record<string, unknown> = {};
+  const draft = async (input: Record<string, unknown>) => {
+    lastDraftInput = input;
+    return {
+      instagram: "Golden hour on the roof, and the whole crew stayed late to catch it properly.",
+      youtubeTitle: "Rooftop, golden hour",
+      youtube: "A short piece shot on the roof at golden hour.",
+    };
+  };
 
   await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
   const r1 = await db.asset.findUniqueOrThrow({ where: { id: reel.id } });
   check("the transcript is stored", r1.transcriptStatus === "DONE" && !!r1.transcript, r1.transcriptStatus);
-  check("a caption is drafted", r1.caption === "Golden hour on the roof.", r1.caption ?? "null");
+  check("a caption is drafted", r1.caption?.startsWith("Golden hour on the roof") === true, r1.caption ?? "null");
   check("the YouTube copy is drafted separately", r1.captionYT?.startsWith("A short piece") === true);
   check("and it is marked as a draft", r1.captionSource === "AI", r1.captionSource);
+
+  check(
+    "the client's house style reaches the drafter",
+    typeof lastDraftInput.styleGuide === "string" &&
+      String(lastDraftInput.styleGuide).includes("Hook line"),
+    JSON.stringify(lastDraftInput.styleGuide)
+  );
 
   // ---- no speech ----
   const music = await mkAsset();
@@ -134,12 +154,29 @@ async function main() {
   );
 
   // ---- never overwrite a person ----
-  const written = await mkAsset({ caption: "My own words.", captionSource: "HUMAN" });
+  const HOUSE = "Hook line that lands. Jordan gets candid about the parts nobody films. Full interview on YouTube, link in bio.";
+  const written = await mkAsset({ caption: HOUSE, captionSource: "HUMAN" });
   await queueForCaptioning(written.id);
   await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
   const r3 = await db.asset.findUniqueOrThrow({ where: { id: written.id } });
-  check("a caption a person wrote is left alone", r3.caption === "My own words.", r3.caption ?? "null");
+  check("a caption a person wrote is left alone", r3.caption === HOUSE, r3.caption ?? "null");
   check("but the transcript is still stored", !!r3.transcript);
+
+  // The next draft should be shown that human caption as an example of the house voice.
+  const nextUp = await mkAsset();
+  await queueForCaptioning(nextUp.id);
+  await processCaptionQueue({ configured, drafting: () => true, transcribe, draft });
+  const examples = (lastDraftInput.examples ?? []) as string[];
+  check(
+    "captions a person wrote become examples for the next draft",
+    examples.some((e) => e.includes("Hook line that lands")),
+    `${examples.length} example(s): ${examples.map((e) => e.slice(0, 30)).join(" | ")}`
+  );
+  check(
+    "the model's own drafts are never fed back as examples",
+    !examples.some((e) => e.includes("Golden hour on the roof")),
+    examples.join(" | ").slice(0, 120)
+  );
 
   // ---- failure is recorded, not silent ----
   const broken = await mkAsset();
