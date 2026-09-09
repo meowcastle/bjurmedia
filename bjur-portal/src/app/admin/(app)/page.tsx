@@ -67,12 +67,13 @@ export default async function AdminDashboardPage() {
       take: 5,
       include: { client: { select: { name: true } } },
     }),
-    // Retainer clients are the ones on a posting schedule, so an asset of theirs with
-    // no delivery week is a file nobody has decided a date for — and it is invisible
-    // to both the calendar and the weekly Slack post until someone does.
+    // Projects on the board are the ones with a posting schedule, so an asset there
+    // with no delivery week is a file nobody has decided a date for — invisible to both
+    // the board and the Slack post until someone does. This keyed off the client being
+    // a "retainer" before, which was a guess; the board switch says it outright.
     db.asset.groupBy({
       by: ["projectId"],
-      where: { internal: false, weekOf: null, project: { client: { type: "RETAINER", status: "ACTIVE" } } },
+      where: { internal: false, weekOf: null, project: { calendar: true, client: { status: "ACTIVE" } } },
       _count: { _all: true },
     }),
   ]);
@@ -198,7 +199,7 @@ export default async function AdminDashboardPage() {
         delivered: formatDate(p.deliveredAt),
         statusColor: statusColor[p.status] ?? "var(--dim)",
       }))}
-      clients={clients.map((c) => ({ id: c.id, name: c.name, type: c.type }))}
+      clients={clients.map((c) => ({ id: c.id, name: c.name }))}
       socialErrors={socialAccountErrors.map((a) => ({
         id: a.id,
         clientName: a.client.name,

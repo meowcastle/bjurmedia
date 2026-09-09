@@ -48,13 +48,12 @@ async function main() {
     data: {
       name: "CapCo",
       username: "capco",
-      type: "RETAINER",
       autoCaption: true,
       captionStyle: "Hook line first. Name the guest. Sign off with link in bio.",
     },
   });
   const off = await db.client.create({
-    data: { name: "OptedOut", username: "optedout", type: "RETAINER", autoCaption: false },
+    data: { name: "OptedOut", username: "optedout", autoCaption: false },
   });
   const project = await db.project.create({
     data: { clientId: client.id, title: "Weekly", path: "cap", inboxSlug: "cap" },

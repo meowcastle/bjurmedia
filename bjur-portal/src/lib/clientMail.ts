@@ -18,18 +18,18 @@ export type ClientMailDeps = {
 };
 
 /**
- * Email #3 — the Monday digest, for retainer clients only.
+ * Email #3 — the Monday digest.
  *
- * A one-off delivery client has nothing recurring to summarise; they got a delivery
- * email when the work landed, and a weekly "here is the same thing again" is how a
- * sender ends up filtered. Sends nothing when the week is empty, for the same reason.
+ * Governed by the client's own notifyWeekly flag rather than by a client "type": a
+ * client with nothing recurring has nothing to summarise, and sends nothing when the
+ * week is empty, which is how a sender avoids being filtered.
  */
 export async function sendWeeklyDigests(weekStart: Date, deps: Partial<ClientMailDeps> = {}) {
   const send = deps.sendWeekly ?? sendWeeklyDigestEmail;
   const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
 
   const clients = await db.client.findMany({
-    where: { status: "ACTIVE", type: "RETAINER", notifyWeekly: true },
+    where: { status: "ACTIVE", notifyWeekly: true },
     select: { id: true, name: true },
   });
 
@@ -37,7 +37,13 @@ export async function sendWeeklyDigests(weekStart: Date, deps: Partial<ClientMai
   for (const client of clients) {
     const assets = await db.asset.findMany({
       where: {
-        project: { clientId: client.id },
+        // Scheduled work only. The digest is "here is your week", which is a sentence
+        // that only makes sense for a project on the board. This used to be expressed
+        // as "retainer clients only"; scoping it to the board says the same thing about
+        // the work rather than guessing from a category on the client, and it stops a
+        // one-off delivery triggering a Monday digest in the same week its own delivery
+        // email went out.
+        project: { clientId: client.id, calendar: true },
         internal: false,
         OR: [
           { weekOf: { gte: weekStart, lt: weekEnd } },

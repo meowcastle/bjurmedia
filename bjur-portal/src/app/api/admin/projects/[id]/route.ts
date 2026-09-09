@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   // The three service switches. A project is defined by what it does, so these are
   // per-project rather than a property of the client that owns it.
-  for (const flag of ["clientUploads", "calendar", "review"] as const) {
+  for (const flag of ["clientUploads", "calendar", "review", "sellMasters"] as const) {
     if (body[flag] === undefined) continue;
     if (typeof body[flag] !== "boolean") {
       return NextResponse.json({ error: `${flag} must be true or false.` }, { status: 400 });
@@ -33,12 +33,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   if (body.expiresAt !== undefined) {
-    if (body.expiresAt && project.client.type === "RETAINER") {
-      return NextResponse.json(
-        { error: "Retainer clients' galleries are permanent and can't expire." },
-        { status: 400 }
-      );
-    }
     data.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
     // Re-arm both reminders. Extending a gallery otherwise leaves a client who was
     // warned once against the old date and never warned again against the new one.

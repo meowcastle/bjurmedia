@@ -10,15 +10,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name, username, type, ownerName, ownerEmail } = await req.json();
+  const { name, username, ownerName, ownerEmail } = await req.json();
   if (!name?.trim() || !ownerName?.trim() || !ownerEmail?.trim()) {
     return NextResponse.json(
       { error: "Client name, owner name, and owner email are required." },
       { status: 400 }
     );
-  }
-  if (type !== "RETAINER" && type !== "ONEOFF") {
-    return NextResponse.json({ error: "Invalid client type." }, { status: 400 });
   }
 
   const finalUsername = (username?.trim() || slugifyUsername(name)).toLowerCase();
@@ -41,7 +38,6 @@ export async function POST(req: NextRequest) {
   const { client, tempPassword, linkedExisting } = await createClient({
     name: name.trim(),
     username: finalUsername,
-    type,
     ownerName: ownerName.trim(),
     ownerEmail: ownerEmail.trim(),
   });

@@ -193,9 +193,11 @@ test.describe("the restyled Edit project dialog", () => {
     await expect(page.getByTestId("toast")).toContainText("uploads open");
   });
 
-  test("a retainer shows no expiry field to fill in", async ({ page }) => {
+  test("every project offers an expiry date", async ({ page }) => {
     await open(page, "Spring Campaign 2026");
-    // SSH is a retainer: an expiry input here would offer a date that is never used.
-    await expect(page.getByText("Never · retainer")).toBeVisible();
+    // This used to read "Never · retainer" for clients marked as retainers. Expiry is
+    // a property of the delivery now, not of the client, so the field is always there.
+    await expect(page.getByText("Never · retainer")).toHaveCount(0);
+    await expect(page.getByTestId("sell-masters-toggle")).toBeVisible();
   });
 });

@@ -100,9 +100,9 @@ type ProjectRow = {
   clientUploads: boolean;
   calendar: boolean;
   review: boolean;
+  sellMasters: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
-  clientType: "RETAINER" | "ONEOFF";
   assetCount: number;
 };
 
@@ -129,6 +129,7 @@ export function EditProjectDialog({
   const [clientUploads, setClientUploads] = useState(project.clientUploads);
   const [calendar, setCalendar] = useState(project.calendar);
   const [review, setReview] = useState(project.review);
+  const [sellMasters, setSellMasters] = useState(project.sellMasters);
   const [copiedLink, setCopiedLink] = useState(false);
 
   async function copyUploadLink() {
@@ -154,7 +155,6 @@ export function EditProjectDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isRetainer = project.clientType === "RETAINER";
 
   async function deleteProject() {
     setDeleting(true);
@@ -184,8 +184,9 @@ export function EditProjectDialog({
         clientUploads,
         calendar,
         review,
+        sellMasters,
         deliveredAt: deliveredAt || null,
-        expiresAt: isRetainer ? null : expiresAt || null,
+        expiresAt: false ? null : expiresAt || null,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -198,6 +199,7 @@ export function EditProjectDialog({
       clientUploads && "uploads open",
       calendar && "on the board",
       review && "client reviews",
+      sellMasters && "masters for sale",
     ].filter(Boolean);
     notify?.(`Saved · ${title.trim()}${on.length ? ` · ${on.join(" · ")}` : ""}`);
     onSaved();
@@ -247,7 +249,7 @@ export function EditProjectDialog({
 
               <div>
                 <Kicker>Expires</Kicker>
-                {isRetainer ? (
+                {false ? (
                   <div className="py-[11px] text-xs text-muted">
                     Never · retainer
                   </div>
@@ -285,6 +287,18 @@ export function EditProjectDialog({
                 calendar
                   ? "Posts appear in the board tray to be dragged onto a day. You push the week to Slack when it is ready."
                   : "Files land in the gallery only. Nothing is scheduled and nothing goes to Slack."
+              }
+            />
+
+            <ServiceToggle
+              testId="sell-masters-toggle"
+              label="Sell masters to this client"
+              checked={sellMasters}
+              onChange={setSellMasters}
+              help={
+                sellMasters
+                  ? "Master files landing here are offered to the client to licence, with a watermarked preview until they buy."
+                  : "Master files stay internal — the client never sees them. Existing files keep whatever they are set to."
               }
             />
 

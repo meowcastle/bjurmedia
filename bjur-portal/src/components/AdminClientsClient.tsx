@@ -21,7 +21,6 @@ type ClientRow = {
   id: string;
   name: string;
   username: string;
-  type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
   accentColor: string | null;
   logoUrl: string | null;
@@ -157,7 +156,6 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                   </Link>
                   <span className="flex-none">
                     <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
-                      {c.type === "RETAINER" ? "Retainer" : "One-off"}
                     </span>
                   </span>
                 </div>

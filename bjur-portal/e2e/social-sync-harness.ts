@@ -21,7 +21,7 @@ async function main() {
   const { syncSocialAccount } = await import("../src/lib/socialSync");
 
   const client = await db.client.create({
-    data: { name: "SyncHarness", username: "syncharness", type: "RETAINER" },
+    data: { name: "SyncHarness", username: "syncharness" },
   });
   const project = await db.project.create({
     data: { clientId: client.id, title: "Sync Project", path: "sync", inboxSlug: "sync" },

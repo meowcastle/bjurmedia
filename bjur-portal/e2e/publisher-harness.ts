@@ -38,7 +38,7 @@ async function main() {
   const { publishDuePosts, MAX_PUBLISH_ATTEMPTS } = await import("../src/lib/publisher");
 
   const client = await db.client.create({
-    data: { name: "Harness", username: "harness", type: "RETAINER" },
+    data: { name: "Harness", username: "harness" },
   });
   const project = await db.project.create({
     data: { clientId: client.id, title: "Harness Project", path: "harness", inboxSlug: "harness" },

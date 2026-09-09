@@ -16,7 +16,6 @@ export function slugifyUsername(name: string) {
 export async function createClient(opts: {
   name: string;
   username: string;
-  type: "RETAINER" | "ONEOFF";
   ownerName: string;
   ownerEmail: string;
 }) {
@@ -34,7 +33,6 @@ export async function createClient(opts: {
     data: {
       name: opts.name,
       username: opts.username,
-      type: opts.type,
       ...(existing
         ? { members: { create: { userId: existing.id, role: "OWNER" as const } } }
         : {

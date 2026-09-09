@@ -34,6 +34,7 @@ type ProjectRow = {
   clientUploads: boolean;
   calendar: boolean;
   review: boolean;
+  sellMasters: boolean;
   assetCount: number;
   submissionCount: number;
   inboxPath: string;
@@ -42,7 +43,6 @@ type ClientInfo = {
   id: string;
   name: string;
   username: string;
-  type: "RETAINER" | "ONEOFF";
   status: "ACTIVE" | "DISABLED";
   ytPublishReady: boolean;
   ytHandle: string | null;
@@ -390,7 +390,6 @@ export function AdminClientDetailClient({
             </h1>
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
-                {client.type === "RETAINER" ? "Retainer" : "One-off"}
               </span>
               <span
                 className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}
@@ -944,6 +943,11 @@ export function AdminClientDetailClient({
                   Review
                 </span>
               )}
+              {p.sellMasters && (
+                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
+                  Masters
+                </span>
+              )}
               <span
                 className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}
               >
@@ -1069,7 +1073,7 @@ export function AdminClientDetailClient({
       )}
       {newProjectOpen && (
         <NewProjectDialog
-          clients={[{ id: client.id, name: client.name, type: client.type }]}
+          clients={[{ id: client.id, name: client.name }]}
           onClose={() => setNewProjectOpen(false)}
           onCreated={() => router.refresh()}
         />
@@ -1084,9 +1088,9 @@ export function AdminClientDetailClient({
             clientUploads: editing.clientUploads,
             calendar: editing.calendar,
             review: editing.review,
+            sellMasters: editing.sellMasters,
             deliveredAt: editing.deliveredAt,
             expiresAt: editing.expiresAt,
-            clientType: client.type,
             assetCount: editing.assetCount,
           }}
           onClose={() => setEditing(null)}

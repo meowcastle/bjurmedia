@@ -6,7 +6,7 @@ import { Field, Input } from "@/components/ui/Field";
 import { Portal } from "@/components/ui/Portal";
 import { IconCheck } from "@/components/ui/Icon";
 
-type ClientOption = { id: string; name: string; type: "RETAINER" | "ONEOFF" };
+type ClientOption = { id: string; name: string };
 
 export function NewProjectDialog({
   clients,
@@ -27,8 +27,6 @@ export function NewProjectDialog({
   const [result, setResult] = useState<{ inboxPath: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const selectedClient = clients.find((c) => c.id === clientId);
-  const isRetainer = selectedClient?.type === "RETAINER";
 
   async function submit() {
     if (!title.trim() || !clientId) {
@@ -43,7 +41,7 @@ export function NewProjectDialog({
       body: JSON.stringify({
         clientId,
         title: title.trim(),
-        expiresAt: !isRetainer && expiresAt ? expiresAt : null,
+        expiresAt: !false && expiresAt ? expiresAt : null,
         clientUploads,
       }),
     });
@@ -95,8 +93,7 @@ export function NewProjectDialog({
                   >
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} —{" "}
-                        {c.type === "RETAINER" ? "Retainer" : "One-off"}
+                        {c.name}
                       </option>
                     ))}
                   </select>
@@ -111,7 +108,7 @@ export function NewProjectDialog({
                   />
                 </Field>
 
-                {isRetainer ? (
+                {false ? (
                   <div className="text-xs text-dim">
                     Permanent library — retainer clients never expire.
                   </div>

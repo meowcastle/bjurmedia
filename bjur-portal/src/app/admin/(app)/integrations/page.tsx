@@ -57,7 +57,6 @@ export default async function AdminIntegrationsPage() {
         rows={clients.map((c) => ({
           id: c.id,
           name: c.name,
-          type: c.type.charAt(0) + c.type.slice(1).toLowerCase(),
           channel: channelByClient.get(c.id)?.channel ?? "",
           accentColor: c.accentColor,
           logoUrl: c.logoUrl,

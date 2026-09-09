@@ -57,7 +57,6 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         id: client.id,
         name: client.name,
         username: client.username,
-        type: client.type,
         status: client.status,
         // A refresh token is what separates "we can read this channel's view counts"
         // from "we can put a video on it".
@@ -121,6 +120,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         clientUploads: p.clientUploads,
         calendar: p.calendar,
         review: p.review,
+        sellMasters: p.sellMasters,
         assetCount: p.assets.filter((a) => !a.internal).length,
         submissionCount: p._count.submissions,
         inboxPath: inboxDirFor(client.username, p.inboxSlug),

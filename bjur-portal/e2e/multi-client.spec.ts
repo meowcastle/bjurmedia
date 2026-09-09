@@ -139,7 +139,7 @@ test.describe("creating a client for someone you already work with", () => {
     const email = throwaway();
 
     const first = await request.post("/api/admin/clients", {
-      data: { name: `First ${Date.now()}`, type: "ONEOFF", ownerName: "Nora", ownerEmail: email },
+      data: { name: `First ${Date.now()}`, ownerName: "Nora", ownerEmail: email },
     });
     expect(first.ok()).toBe(true);
     const a = (await first.json()) as { client: { id: string }; tempPassword: string | null };
@@ -148,7 +148,7 @@ test.describe("creating a client for someone you already work with", () => {
     // Second client, same person. This used to be a 409 "That email is already in use",
     // which made "create a client for someone you already work with" impossible.
     const second = await request.post("/api/admin/clients", {
-      data: { name: `Second ${Date.now()}`, type: "RETAINER", ownerName: "Nora", ownerEmail: email },
+      data: { name: `Second ${Date.now()}`, ownerName: "Nora", ownerEmail: email },
     });
     expect(second.status(), await second.text()).toBe(200);
     const b = (await second.json()) as { client: { id: string }; tempPassword: string | null };
@@ -167,7 +167,7 @@ test.describe("creating a client for someone you already work with", () => {
   test("a removed login is not revived by creating a client for it", async ({ request }) => {
     const email = throwaway();
     const made = await request.post("/api/admin/clients", {
-      data: { name: `Temp ${Date.now()}`, type: "ONEOFF", ownerName: "Temp", ownerEmail: email },
+      data: { name: `Temp ${Date.now()}`, ownerName: "Temp", ownerEmail: email },
     });
     const { client } = (await made.json()) as { client: { id: string } };
 
@@ -180,7 +180,7 @@ test.describe("creating a client for someone you already work with", () => {
     // Creating another client for that email must refuse rather than quietly handing a
     // revoked account access to something new.
     const again = await request.post("/api/admin/clients", {
-      data: { name: `Temp2 ${Date.now()}`, type: "ONEOFF", ownerName: "Temp", ownerEmail: email },
+      data: { name: `Temp2 ${Date.now()}`, ownerName: "Temp", ownerEmail: email },
     });
     expect(again.status()).toBe(409);
     expect((await again.json()).error).toMatch(/removed/i);

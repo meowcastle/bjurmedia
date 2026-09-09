@@ -234,8 +234,11 @@ export async function ingestFile(absPath: string) {
   await moveFile(absPath, destAbsPath);
 
   const isMaster = classification.format === "Master";
-  const licensable = isMaster && project.client.type === "ONEOFF";
-  const internal = isMaster && project.client.type === "RETAINER";
+  // Whether masters are offered for licence is a property of the project now, not of
+  // the client's category. A client can have a delivery whose master they can buy and a
+  // retainer project whose masters stay in-house.
+  const licensable = isMaster && project.sellMasters;
+  const internal = isMaster && !project.sellMasters;
 
   // Same project + same destination path (i.e. same filename dropped again, an
   // updated re-export) should replace the existing asset in place, not duplicate it —

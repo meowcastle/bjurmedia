@@ -15,7 +15,6 @@ export function NewClientDialog({
 }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [type, setType] = useState<"RETAINER" | "ONEOFF">("RETAINER");
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,7 +38,6 @@ export function NewClientDialog({
       body: JSON.stringify({
         name: name.trim(),
         username: username.trim(),
-        type,
         ownerName,
         ownerEmail,
       }),
@@ -102,23 +100,6 @@ export function NewClientDialog({
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="auto from name"
                   />
-                </Field>
-                <Field label="Type" htmlFor="ctype">
-                  <select
-                    id="ctype"
-                    value={type}
-                    onChange={(e) =>
-                      setType(e.target.value as "RETAINER" | "ONEOFF")
-                    }
-                    className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
-                  >
-                    <option value="RETAINER">
-                      Retainer — permanent library
-                    </option>
-                    <option value="ONEOFF">
-                      One-off — optional per-project expiry
-                    </option>
-                  </select>
                 </Field>
                 <Field label="Owner name" htmlFor="oname">
                   <Input

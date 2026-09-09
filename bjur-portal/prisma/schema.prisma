@@ -12,7 +12,6 @@ model Client {
   id                String          @id @default(cuid())
   name              String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
   username          String          @unique // login handle for the org
-  type              ClientType      @default(RETAINER)
   status            ClientStatus    @default(ACTIVE)
   accentColor       String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
   logoUrl           String? // brand logo, admin-set — null = initials fallback
@@ -37,11 +36,6 @@ model Client {
   channel           ClientChannel?
   socialAccounts    SocialAccount[]
   members           ClientMember[]
-}
-
-enum ClientType {
-  RETAINER
-  ONEOFF
 }
 
 enum ClientStatus {
@@ -126,6 +120,13 @@ model Project {
   // delivery running at once, which ClientType could never express.
   calendar    Boolean   @default(false) // scheduled on the board, week pushed to Slack
   review      Boolean   @default(false) // each new asset asks the client to approve or send notes
+  /**
+   * Master files landing here are offered to the client to licence, rather than kept
+   * internal. This used to be inferred from the client being "one-off", which meant a
+   * client was permanently one shape; the same client can now have a delivery they can
+   * buy the master from and a retainer project where masters stay in-house.
+   */
+  sellMasters Boolean   @default(false)
   deliveredAt DateTime?
   expiresAt   DateTime? // null => permanent (retainer)
 

@@ -23,7 +23,7 @@ async function main() {
   const { verifyPublishToken } = await import("../src/lib/publishToken");
 
   const client = await db.client.create({
-    data: { name: "MailCo", username: "mailco", type: "RETAINER", approvalAutoHours: 24 },
+    data: { name: "MailCo", username: "mailco", approvalAutoHours: 24 },
   });
   const project = await db.project.create({
     data: { clientId: client.id, title: "Mail Project", path: "mail", inboxSlug: "mail" },

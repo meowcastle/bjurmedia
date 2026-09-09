@@ -1,4 +1,4 @@
-import { PrismaClient, AssetKind, ClientType, Role } from "@prisma/client";
+import { PrismaClient, AssetKind, Role } from "@prisma/client";
 import { execFile } from "node:child_process";
 import { mkdir, access } from "node:fs/promises";
 import path from "node:path";
@@ -421,7 +421,6 @@ const clientsSeed = [
     id: "c1",
     name: "SSH",
     username: "ssh",
-    type: ClientType.RETAINER,
     users: [
       { name: "Sasha Hale", email: "sasha@ssh.studio", role: Role.OWNER },
       { name: "Marco Vidal", email: "marco@ssh.studio", role: Role.DOWNLOADER },
@@ -431,7 +430,6 @@ const clientsSeed = [
     id: "c2",
     name: "57.NYC",
     username: "57nyc",
-    type: ClientType.RETAINER,
     users: [
       { name: "57 Studio", email: "studio@57.nyc", role: Role.OWNER },
       { name: "Dana Okafor", email: "dana@57.nyc", role: Role.DOWNLOADER },
@@ -441,7 +439,6 @@ const clientsSeed = [
     id: "c3",
     name: "SUYINSAMA",
     username: "suyinsama",
-    type: ClientType.RETAINER,
     users: [
       { name: "Suyin Sama", email: "suyin@suyinsama.com", role: Role.OWNER },
       { name: "Studio Team", email: "team@suyinsama.com", role: Role.VIEWER },
@@ -451,7 +448,6 @@ const clientsSeed = [
     id: "c4",
     name: "Halcyon Films",
     username: "halcyon",
-    type: ClientType.ONEOFF,
     users: [{ name: "Ivy Chen", email: "ivy@halcyon.film", role: Role.OWNER }],
   },
 ];
@@ -480,6 +476,8 @@ async function seedReviews() {
   // p8 (57.NYC IG Posting) is the board project — the weekly-reel workflow the
   // calendar and the Slack push were built for.
   await db.project.update({ where: { id: "p8" }, data: { calendar: true } });
+  // Halcyon's delivery is the one that sells its master — the licensing spec buys it.
+  await db.project.update({ where: { id: "p7" }, data: { sellMasters: true } });
 
   // Two reels with no day yet. New uploads arrive unscheduled, so the board's tray is
   // only empty on a week that has already been laid out — seeding it full is the
@@ -568,7 +566,6 @@ async function main() {
         id: c.id,
         name: c.name,
         username: c.username,
-        type: c.type,
         users: {
           create: c.users.map((u) => ({
             name: u.name,

@@ -21,11 +21,13 @@ async function main() {
   const { db } = await import("../src/lib/db");
   const { sendWeeklyDigests, sendExpiryReminders, sendLicenseReceipt } = await import("../src/lib/clientMail");
 
+  // Named for what they now are: one client with a scheduled project on the board, one
+  // with a plain delivery. The weekly digest is about scheduled work.
   const retainer = await db.client.create({
-    data: { name: "Retainer Co", username: "retainer", type: "RETAINER" },
+    data: { name: "Scheduled Co", username: "retainer" },
   });
   const oneoff = await db.client.create({
-    data: { name: "Oneoff Co", username: "oneoff", type: "ONEOFF" },
+    data: { name: "Delivery Co", username: "oneoff" },
   });
 
   const mkUser = (clientId: string, email: string, over = {}) =>
@@ -45,7 +47,7 @@ async function main() {
       data: { clientId, title, path: title.toLowerCase().replace(/\W+/g, "-"), inboxSlug: title.toLowerCase().replace(/\W+/g, "-"), ...over },
     });
 
-  const rProject = await mkProject(retainer.id, "Retainer Project");
+  const rProject = await mkProject(retainer.id, "Retainer Project", { calendar: true });
   const oProject = await mkProject(oneoff.id, "Oneoff Project");
 
   const weekStart = new Date(Date.UTC(2026, 8, 7)); // a Monday
@@ -77,12 +79,12 @@ async function main() {
 
   await sendWeeklyDigests(weekStart, { sendWeekly });
   check(
-    "digests go to retainer seats only",
+    "digests go to seats on board projects only",
     weekly.length > 0 && weekly.every((w) => w.to.endsWith("@retainer.test")),
     weekly.map((w) => w.to).join(", ") || "none"
   );
   check("the account owner is among them", weekly.some((w) => w.to === rOwner.email));
-  check("a one-off client gets no weekly digest", !weekly.some((w) => w.to.includes("oneoff")));
+  check("a client with no board project gets no weekly digest", !weekly.some((w) => w.to.includes("oneoff")));
   check("someone who opted out is not mailed", !weekly.some((w) => w.to.includes("optedout")));
 
   const items = (weekly[0]?.props.items ?? []) as { thumbUrl: string | null }[];

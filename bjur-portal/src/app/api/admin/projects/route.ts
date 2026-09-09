@@ -18,12 +18,6 @@ export async function POST(req: NextRequest) {
   if (!client) {
     return NextResponse.json({ error: "Client not found." }, { status: 404 });
   }
-  if (client.type === "RETAINER" && expiresAt) {
-    return NextResponse.json(
-      { error: "Retainer clients' galleries are permanent and can't expire." },
-      { status: 400 }
-    );
-  }
 
   const { project, inboxPath } = await createProject({
     clientId,

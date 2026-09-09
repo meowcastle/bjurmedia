@@ -16,7 +16,6 @@ export default async function AdminClientsPage() {
         id: c.id,
         name: c.name,
         username: c.username,
-        type: c.type,
         status: c.status,
         accentColor: c.accentColor,
         logoUrl: c.logoUrl,

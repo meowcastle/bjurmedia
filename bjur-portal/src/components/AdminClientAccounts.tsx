@@ -9,7 +9,6 @@ const DEFAULT_ACCENT = "#ec3013";
 export type ClientAccountRow = {
   id: string;
   name: string;
-  type: string;
   channel: string;
   accentColor: string | null;
   logoUrl: string | null;
@@ -163,8 +162,7 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
                   {c.name}
                 </div>
                 <div className="text-[11px] text-dim truncate">
-                  {c.type}
-                  {c.channel ? ` · ${c.channel}` : ""}
+                  {c.channel || "No Slack channel set"}
                 </div>
               </div>
               <div className="flex flex-col gap-1 min-w-0 basis-full sm:basis-auto sm:w-[280px]">
