@@ -29,7 +29,7 @@ export function renderExpiryEmailHtml({
 
   const body = `
     <div class="pad" style="padding:0 40px 4px">
-      <p style="font-size:15px;line-height:1.65;color:#a9a8a7;margin:0 0 20px">
+      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0 0 20px">
         Hi ${recipientName} — downloads for ${projectTitle} stop working on
         ${expiresAtLabel}. Grab anything you still need before then; we keep the masters,
         so if you miss it just ask and we'll reopen it.

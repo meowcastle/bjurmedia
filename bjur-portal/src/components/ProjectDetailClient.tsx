@@ -71,7 +71,7 @@ function DownloadButton({
     <button
       onClick={onClick}
       disabled={downloading}
-      className="relative overflow-hidden cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-3.5 disabled:cursor-default"
+      className="relative overflow-hidden cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-text hover:bg-accent px-5 py-3.5 disabled:cursor-default"
     >
       {downloading && (
         <motion.div
@@ -622,7 +622,7 @@ export function ProjectDetailClient({
                   {filter === f.id && (
                     <motion.div
                       layoutId="filterPill"
-                      className="absolute inset-0 bg-accent z-0"
+                      className="absolute inset-0 bg-text z-0"
                       transition={{
                         type: "spring",
                         stiffness: 500,
@@ -664,7 +664,7 @@ export function ProjectDetailClient({
                 {groupMode === g && (
                   <motion.div
                     layoutId="groupModePill"
-                    className="absolute inset-0 bg-accent z-0"
+                    className="absolute inset-0 bg-text z-0"
                     transition={{ type: "spring", stiffness: 500, damping: 40 }}
                   />
                 )}

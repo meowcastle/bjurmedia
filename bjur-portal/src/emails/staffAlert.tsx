@@ -47,27 +47,27 @@ export function renderStaffAlertEmailHtml({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body style="margin:0;background:#050506;font-family:Archivo,system-ui,sans-serif;-webkit-font-smoothing:antialiased">
-<div style="background:#050506;padding:44px 20px">
-  <div style="max-width:600px;margin:0 auto 14px;font-size:11px;letter-spacing:.04em;color:#4a4a4d">${esc(headline)}</div>
+<body style="margin:0;background:#eeebe5;font-family:'SF Mono',Menlo,Consolas,monospace;-webkit-font-smoothing:antialiased">
+<div style="background:#eeebe5;padding:44px 20px">
+  <div style="max-width:600px;margin:0 auto 14px;font-size:11px;letter-spacing:.04em;color:#8a877f">${esc(headline)}</div>
 
-  <div style="max-width:600px;margin:0 auto;background:#141416;border:1px solid #2a2a2e">
+  <div style="max-width:600px;margin:0 auto;background:#f6f4f0;border:1px solid #dcd8d1">
     <div style="height:3px;background:${tone.rule}"></div>
 
     <div style="padding:30px 36px 20px">
       <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:${tone.rule};font-weight:700;margin-bottom:12px">${esc(tone.kicker)}</div>
-      <h1 style="font-size:22px;line-height:1.25;letter-spacing:-.02em;font-weight:800;color:#f4f3f2;margin:0">${esc(headline)}</h1>
+      <h1 style="font-size:22px;line-height:1.25;letter-spacing:-.02em;font-weight:800;color:#17161a;margin:0">${esc(headline)}</h1>
     </div>
 
     <div style="padding:0 36px">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-top:1px solid #2a2a2e">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-top:1px solid #dcd8d1">
         ${facts
           .map(
             (f) => `<tr>
-              <td style="padding:11px 0;border-bottom:1px solid #2a2a2e;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7d7c7a;width:38%;vertical-align:top">${esc(
+              <td style="padding:11px 0;border-bottom:1px solid #dcd8d1;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6e6b66;width:38%;vertical-align:top">${esc(
                 f.label
               )}</td>
-              <td style="padding:11px 0;border-bottom:1px solid #2a2a2e;font-size:14px;color:#ededec">${esc(f.value)}</td>
+              <td style="padding:11px 0;border-bottom:1px solid #dcd8d1;font-size:14px;color:#17161a">${esc(f.value)}</td>
             </tr>`
           )
           .join("")}
@@ -77,7 +77,7 @@ export function renderStaffAlertEmailHtml({
     ${
       detail
         ? `<div style="padding:20px 36px 0">
-             <div style="background:#0a0a0b;border:1px solid #2a2a2e;padding:13px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;color:#a9a8a7;word-break:break-word">${esc(
+             <div style="background:#f6f4f0;border:1px solid #dcd8d1;padding:13px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;color:#4a4844;word-break:break-word">${esc(
                detail.slice(0, 600)
              )}</div>
            </div>`
@@ -85,7 +85,7 @@ export function renderStaffAlertEmailHtml({
     }
 
     <div style="padding:24px 36px 34px">
-      <a href="${actionUrl}" style="display:inline-block;background:#ec3013;color:#0a0a0b;font-size:14px;font-weight:800;text-decoration:none;padding:13px 22px">${esc(
+      <a href="${actionUrl}" style="display:inline-block;background:#ec3013;color:#f6f4f0;font-size:14px;font-weight:800;text-decoration:none;padding:13px 22px">${esc(
         actionLabel
       )}</a>
     </div>

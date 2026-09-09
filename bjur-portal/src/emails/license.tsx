@@ -30,7 +30,7 @@ export function renderLicenseEmailHtml({
 }: LicenseEmailProps): string {
   const body = `
     <div class="pad" style="padding:0 40px 4px">
-      <p style="font-size:15px;line-height:1.65;color:#a9a8a7;margin:0 0 20px">
+      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0 0 20px">
         Hi ${recipientName} — ${
           granted
             ? `we've licensed this master to ${clientName}. The download is unlocked in your portal.`

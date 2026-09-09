@@ -28,22 +28,22 @@ export function renderWeeklyDigestEmailHtml({
   const rows = items
     .map(
       (item) => `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-bottom:1px solid #2a2a2e">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-bottom:1px solid #dcd8d1">
         <tr>
           <td style="width:76px;padding:14px 14px 14px 0;vertical-align:top">
             ${
               item.thumbUrl
-                ? `<img src="${item.thumbUrl}" width="76" alt="" style="display:block;width:76px;height:auto;border:1px solid #2a2a2e">`
-                : `<div style="width:76px;height:44px;background:#1c1c1f;border:1px solid #2a2a2e;font-size:0;line-height:0">&nbsp;</div>`
+                ? `<img src="${item.thumbUrl}" width="76" alt="" style="display:block;width:76px;height:auto;border:1px solid #dcd8d1">`
+                : `<div style="width:76px;height:44px;background:#eeebe5;border:1px solid #dcd8d1;font-size:0;line-height:0">&nbsp;</div>`
             }
           </td>
           <td style="padding:14px 0;vertical-align:top">
-            <div style="font-size:15px;font-weight:700;color:#f4f3f2;line-height:1.3">${esc(item.title)}</div>
-            <div style="font-size:12px;color:#8a8a8c;margin-top:4px">${esc(item.projectTitle)} · ${esc(item.detail)}</div>
+            <div style="font-size:15px;font-weight:700;color:#17161a;line-height:1.3">${esc(item.title)}</div>
+            <div style="font-size:12px;color:#6e6b66;margin-top:4px">${esc(item.projectTitle)} · ${esc(item.detail)}</div>
           </td>
           ${
             item.state
-              ? `<td style="padding:14px 0;vertical-align:top;text-align:right;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a9a8a7;white-space:nowrap">${esc(
+              ? `<td style="padding:14px 0;vertical-align:top;text-align:right;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4a4844;white-space:nowrap">${esc(
                   item.state
                 )}</td>`
               : "<td></td>"
@@ -55,7 +55,7 @@ export function renderWeeklyDigestEmailHtml({
 
   const body = `
     <div class="pad" style="padding:0 40px 4px">
-      <p style="font-size:15px;line-height:1.65;color:#a9a8a7;margin:0 0 18px">
+      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0 0 18px">
         Hi ${esc(recipientName)} — here's what's lined up for ${esc(weekLabel)}.
       </p>
       ${rows}
