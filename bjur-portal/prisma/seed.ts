@@ -481,6 +481,25 @@ async function seedReviews() {
   // calendar and the Slack push were built for.
   await db.project.update({ where: { id: "p8" }, data: { calendar: true } });
 
+  // Two reels with no day yet. New uploads arrive unscheduled, so the board's tray is
+  // only empty on a week that has already been laid out — seeding it full is the
+  // normal state, not a special case.
+  for (const n of [1, 2]) {
+    await db.asset.create({
+      data: {
+        projectId: "p8",
+        kind: "VIDEO",
+        format: "Reel",
+        orientation: "vertical",
+        name: `IG_Unscheduled_0${n}.mp4`,
+        relPath: `57NYC/IG-Posting/IG_Unscheduled_0${n}.mp4`,
+        sizeBytes: BigInt(1_400_000_000),
+        durationSec: 18,
+        proxyStatus: "READY",
+      },
+    });
+  }
+
   const cuts = await db.asset.findMany({
     where: { projectId: "p2", kind: "VIDEO", internal: false },
     orderBy: { createdAt: "asc" },

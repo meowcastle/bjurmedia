@@ -79,6 +79,7 @@ export function AdminMediaCalendar({
   const [weekStart, setWeekStart] = useState(() => mondayOfWeek(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
   const [pickerDay, setPickerDay] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ contentTitle: string; caption: string; captionYT: string } | null>(
     null
   );
@@ -161,6 +162,21 @@ export function AdminMediaCalendar({
     setSaving(false);
     setOpenId(null);
     setDraft(null);
+  }
+
+  function onDayDragOver(e: React.DragEvent, key: string) {
+    // Both calls are load-bearing: without preventDefault the browser refuses the drop
+    // outright, and the drop handler never runs.
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverDay !== key) setDragOverDay(key);
+  }
+
+  async function onDayDrop(e: React.DragEvent, day: Date) {
+    e.preventDefault();
+    setDragOverDay(null);
+    const assetId = e.dataTransfer.getData("text/plain");
+    if (assetId) await schedule(assetId, day);
   }
 
   async function schedule(assetId: string, day: Date) {
@@ -267,6 +283,36 @@ export function AdminMediaCalendar({
           </div>
         </div>
 
+        {unscheduled.length > 0 && (
+          <div className="mb-3 border border-line2" data-testid="unscheduled-tray">
+            <div className="px-3 py-2 border-b border-line text-[10.5px] uppercase tracking-wide font-bold text-muted flex items-center gap-2">
+              Unscheduled
+              <span className="text-accentb tabular-nums">{unscheduled.length}</span>
+              {/* Said plainly: drag is a mouse affordance, and the picker in each day
+                  is the way through on a phone. */}
+              <span className="ml-auto text-[10px] font-normal normal-case tracking-normal text-dim">
+                Drag onto a day, or use + schedule
+              </span>
+            </div>
+            <div className="flex gap-2 p-2.5 overflow-x-auto">
+              {unscheduled.map((u) => (
+                <div
+                  key={u.id}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData("text/plain", u.id)}
+                  data-testid="tray-card"
+                  data-asset-id={u.id}
+                  title={u.name}
+                  className="flex-none w-[170px] border border-line2 bg-s2 px-2.5 py-2 cursor-grab active:cursor-grabbing hover:border-text"
+                >
+                  <div className="text-[11px] font-semibold truncate">{u.name}</div>
+                  <div className="text-[10px] text-dim">{u.format}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-7 gap-px bg-line border border-line">
           {days.map((d, i) => {
             const key = dateKey(d);
@@ -276,7 +322,12 @@ export function AdminMediaCalendar({
               <div
                 key={key}
                 data-day={key}
-                className={`min-w-0 md:min-h-[260px] p-2.5 ${isToday ? "bg-s1" : "bg-bg"}`}
+                onDragOver={(e) => onDayDragOver(e, key)}
+                onDragLeave={() => setDragOverDay((c) => (c === key ? null : c))}
+                onDrop={(e) => onDayDrop(e, d)}
+                className={`min-w-0 md:min-h-[260px] p-2.5 ${
+                  dragOverDay === key ? "bg-s3 outline outline-1 outline-text" : isToday ? "bg-s1" : "bg-bg"
+                }`}
               >
                 <div
                   className={`text-[10.5px] uppercase font-bold mb-2 ${isToday ? "text-accent" : "text-dim"}`}
@@ -287,6 +338,8 @@ export function AdminMediaCalendar({
                 {a ? (
                   <button
                     onClick={() => openDrawer(a)}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", a.id)}
                     data-testid="calendar-card"
                     className={`w-full text-left border p-2 ${
                       openId === a.id ? "border-accent" : "border-line2"
