@@ -7,12 +7,27 @@ import { IconCheck } from "@/components/ui/Icon";
 
 type FileStatus = "UPLOADING" | "COMPLETE" | "FAILED";
 
+/** No byte in this long and it is not uploading, whatever the row says. */
+const STALL_AFTER_MS = 10 * 60 * 1000;
+
+function isStalled(f: { status: FileStatus; updatedAt: string }) {
+  return f.status === "UPLOADING" && Date.now() - new Date(f.updatedAt).getTime() > STALL_AFTER_MS;
+}
+
+function sinceLabel(iso: string) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 90) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return hrs < 48 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
+}
+
 type BatchFile = {
   id: string;
   relativePath: string;
   sizeBytes: string;
   receivedBytes: string;
   status: FileStatus;
+  updatedAt: string;
   completedAt: string | null;
 };
 
@@ -160,21 +175,24 @@ export function ClientSubmissionsDialog({
                             </div>
                             <div className="text-[10.5px] text-dim mt-0.5">
                               {f.status === "UPLOADING"
-                                ? `${formatBytes(received)} of ${formatBytes(total)}`
+                                ? `${formatBytes(received)} of ${formatBytes(total)}${
+                                    isStalled(f) ? ` · stopped ${sinceLabel(f.updatedAt)}` : ""
+                                  }`
                                 : formatBytes(total)}
                             </div>
                           </div>
                           <div className="flex items-center gap-2.5 flex-none">
                             <span
+                              data-testid={isStalled(f) ? "submission-stalled" : undefined}
                               className={`text-[10.5px] font-bold uppercase tracking-wide ${
                                 f.status === "COMPLETE"
                                   ? "text-success"
-                                  : f.status === "FAILED"
+                                  : f.status === "FAILED" || isStalled(f)
                                     ? "text-accent"
                                     : "text-muted"
                               }`}
                             >
-                              {STATUS_LABEL[f.status]}
+                              {isStalled(f) ? "Stalled" : STATUS_LABEL[f.status]}
                             </span>
                             {f.status === "COMPLETE" && (
                               <a

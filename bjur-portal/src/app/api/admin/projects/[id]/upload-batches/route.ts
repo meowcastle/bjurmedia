@@ -43,6 +43,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           sizeBytes: s.sizeBytes.toString(),
           receivedBytes: s.receivedBytes.toString(),
           status: s.status,
+          // Last time a byte actually landed. An upload that has not moved in a long
+          // while is abandoned, not in progress, and the dialog says so rather than
+          // showing a progress line that will never finish.
+          updatedAt: s.updatedAt.toISOString(),
           completedAt: s.completedAt?.toISOString() ?? null,
         })),
       })),

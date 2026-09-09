@@ -240,6 +240,11 @@ async function uploadFile(
   /** Checked between chunks. Pausing mid-chunk would throw away work already on the
    *  wire; the server resumes from receivedBytes either way. */
   shouldPause: () => boolean,
+  /** Hands the new submission's id back to the queue immediately. Without this the id
+   *  lived only in this function, so a pause returned the item to the queue still
+   *  looking brand new — and resuming created a second submission, which truncates the
+   *  partial file at the same path and starts the whole upload again from zero. */
+  onSubmission: (submissionId: string) => void,
 ): Promise<{ ok: boolean; note?: string; paused?: boolean }> {
   let submissionId = item.submissionId;
   if (!submissionId) {
@@ -250,6 +255,7 @@ async function uploadFile(
         item.relativePath,
         item.sizeBytes,
       );
+      onSubmission(submissionId);
     } catch (err) {
       return { ok: false, note: (err as Error).message };
     }
@@ -462,6 +468,11 @@ export function SubmissionUploadClient({
           noteThroughput();
         },
         () => pausedRef.current,
+        (submissionId) => {
+          setQueue((q) =>
+            q.map((qi) => (qi.file === item.file ? { ...qi, submissionId } : qi)),
+          );
+        },
       );
 
       setQueue((q) =>
