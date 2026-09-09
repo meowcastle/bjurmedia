@@ -74,7 +74,7 @@ export default async function ProjectListPage() {
           <div className="text-[11px] tracking-[0.24em] uppercase text-accent font-bold mb-3">
             {projects[0]?.client.name ? `${projects[0].client.name} · ` : ""}Your Deliveries
           </div>
-          <h1 className="text-[32px] sm:text-[44px] tracking-[-0.025em] font-black">Projects</h1>
+          <h1 className="bj-serif text-[32px] sm:text-[44px] font-normal">Projects</h1>
         </div>
         <div className="text-[13px] text-muted">
           {projects.length} active project{projects.length !== 1 ? "s" : ""}

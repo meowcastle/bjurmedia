@@ -48,7 +48,7 @@ export function AdminTeamClient({
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[820px] mx-auto bjfade">
       <div className="flex items-end justify-between gap-4 flex-wrap border-b-2 border-line2 pb-6 mb-9">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Team</h1>
+          <h1 className="bj-serif text-2xl font-normal">Team</h1>
           <div className="text-[13px] text-muted mt-1.5">
             Staff logins with full access to this control panel.
           </div>

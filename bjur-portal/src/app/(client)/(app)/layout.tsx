@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { lighten } from "@/lib/color";
 import { ClientHeader } from "@/components/ClientHeader";
+import { themeScript } from "@/lib/theme";
 
 export default async function ClientAppLayout({
   children,
@@ -36,6 +37,9 @@ export default async function ClientAppLayout({
 
   return (
     <div style={accentVars}>
+      {/* Stamps the theme before first paint. Without it the page renders dark, then
+          corrects on hydration — a black flash on every client navigation. */}
+      <script dangerouslySetInnerHTML={{ __html: themeScript("client") }} />
       <ClientHeader
         clientName={client.name}
         userName={session.name}

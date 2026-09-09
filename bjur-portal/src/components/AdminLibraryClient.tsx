@@ -244,7 +244,7 @@ export function AdminLibraryClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
           Back-catalog import
         </div>
-        <h1 className="text-[34px] tracking-tight font-black">Library</h1>
+        <h1 className="bj-serif text-[34px] font-normal">Library</h1>
       </div>
       <p className="text-sm text-muted max-w-[640px] mb-6">
         Browse what&apos;s already on the NAS and pull in only what you want — files are registered in

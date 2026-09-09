@@ -532,7 +532,7 @@ export function ProjectDetailClient({
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
             {project.clientName}
           </div>
-          <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3.5">
+          <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3.5">
             {project.title}
           </h1>
           <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">

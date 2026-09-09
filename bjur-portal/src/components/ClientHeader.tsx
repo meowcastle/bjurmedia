@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { initials } from "@/lib/initials";
@@ -65,6 +66,7 @@ export function ClientHeader({
           memberships={memberships}
           activeClientId={activeClientId}
         />
+        <ThemeToggle portal="client" />
         <Link
           href="/settings"
           className="flex items-center gap-3 hover:opacity-80"

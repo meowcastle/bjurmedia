@@ -51,7 +51,7 @@ export function ChangePasswordForm() {
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
           One more step
         </div>
-        <h1 className="text-[28px] tracking-tight font-black mb-3">Set your password</h1>
+        <h1 className="bj-serif text-[28px] font-normal mb-3">Set your password</h1>
         <p className="text-sm text-muted mb-7 leading-relaxed">
           You signed in with a temporary password. Choose your own before continuing —
           this also signs out any other device using the old one.

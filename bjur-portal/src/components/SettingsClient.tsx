@@ -133,7 +133,7 @@ export function SettingsClient({
           {initials}
         </div>
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl tracking-[-0.02em] font-extrabold truncate">{name}</h1>
+          <h1 className="bj-serif text-xl sm:text-2xl font-normal truncate">{name}</h1>
           <div className="text-xs text-muted mt-1 truncate">
             {companyName} · <span className="text-success font-semibold">{roleLabel}</span> · {email}
           </div>

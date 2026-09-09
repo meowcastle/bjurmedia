@@ -385,7 +385,7 @@ export function AdminClientDetailClient({
             <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
               @{client.username}
             </div>
-            <h1 className="text-4xl tracking-tight font-black mb-3">
+            <h1 className="bj-serif text-4xl font-normal mb-3">
               {client.name}
             </h1>
             <div className="flex items-center gap-3">

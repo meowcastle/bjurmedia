@@ -14,7 +14,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const asset = await db.asset.findUnique({ where: { id } });
   if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
+  // An empty body is a no-op, not a crash — it was throwing a raw parse error into
+  // the logs on every request that sent nothing.
+  const body = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
 
   if (typeof body.internal === "boolean") data.internal = body.internal;

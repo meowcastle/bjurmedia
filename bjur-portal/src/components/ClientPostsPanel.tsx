@@ -141,7 +141,7 @@ export function ClientPostsPanel({
           </div>
           <button
             onClick={() => onViewChange("week")}
-            className="cursor-pointer text-[12px] font-semibold bg-accent text-bg px-4 py-2 flex-none"
+            className="cursor-pointer text-[12px] font-semibold bg-text hover:bg-accent text-bg px-4 py-2 flex-none"
           >
             Review
           </button>
@@ -236,7 +236,7 @@ export function ClientPostsPanel({
                         <button
                           onClick={() => act(p, "caption", captionDraft)}
                           disabled={busyId === p.id}
-                          className="cursor-pointer text-[11px] font-semibold bg-accent text-bg px-3 py-1.5 disabled:opacity-40"
+                          className="cursor-pointer text-[11px] font-semibold bg-text hover:bg-accent text-bg px-3 py-1.5 disabled:opacity-40"
                         >
                           {busyId === p.id ? "Saving…" : "Save caption"}
                         </button>

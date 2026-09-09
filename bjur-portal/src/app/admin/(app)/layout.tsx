@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { AdminHeader } from "@/components/AdminHeader";
+import { themeScript } from "@/lib/theme";
 
 export default async function AdminAppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSessionUser();
@@ -9,6 +10,7 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
 
   return (
     <div>
+      <script dangerouslySetInnerHTML={{ __html: themeScript("admin") }} />
       <AdminHeader userName={session.name} />
       {children}
     </div>

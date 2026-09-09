@@ -77,7 +77,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
             Accounts
           </div>
-          <h1 className="text-[34px] tracking-tight font-black">Clients</h1>
+          <h1 className="bj-serif text-[34px] font-normal">Clients</h1>
         </div>
         <Button onClick={() => setNewClientOpen(true)}>+ New client</Button>
       </div>

@@ -1,18 +1,50 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #0a0a0b;
-  --s1: #141416;
+/*
+ * Two palettes, one set of names.
+ *
+ * The v2 direction adds a light portal, but every component here already styles through
+ * these tokens — so the themes swap the values and the components are untouched. Renaming
+ * them to the handoff's own names (--ink, --mut, --rule) would have meant editing every
+ * file to gain nothing a viewer can see.
+ *
+ * Dark is the default because the portal was dark first and staff live in it; the client
+ * portal opts into light in its own layout. --body is new: the reading colour for a block
+ * of someone else's words, a step softer than --text and a step firmer than --muted.
+ */
+:root,
+[data-theme="dark"] {
+  --bg: #0c0c0d;
+  --s1: #151517;
   --s2: #1c1c1f;
   --s3: #26262b;
   --line: rgba(255, 255, 255, 0.1);
   --line2: rgba(255, 255, 255, 0.2);
-  --text: #f4f3f2;
-  --muted: rgba(244, 243, 242, 0.56);
-  --dim: rgba(244, 243, 242, 0.34);
+  --text: #f2efe9;
+  --body: #c9c5bd;
+  --muted: #a8a49c;
+  --dim: #8a877f;
   --accent: #ec3013;
   --accentb: #ff5a3c;
   --success: #2ec36b;
+}
+
+[data-theme="light"] {
+  --bg: #f6f4f0;
+  --s1: #eeebe5;
+  --s2: #e6e2db;
+  --s3: #dcd8d1;
+  --line: #dcd8d1;
+  --line2: #cfcbc3;
+  --text: #17161a;
+  --body: #4a4844;
+  --muted: #6e6b66;
+  --dim: #8a877f;
+  --accent: #ec3013;
+  /* The dark palette's #ff5a3c is a warning on black and near-invisible on paper.
+     Darkened until it carries the same weight against a light ground. */
+  --accentb: #c3341a;
+  --success: #2b6b47;
 }
 
 @theme inline {
@@ -23,13 +55,15 @@
   --color-line: var(--line);
   --color-line2: var(--line2);
   --color-text: var(--text);
+  --color-body: var(--body);
   --color-muted: var(--muted);
   --color-dim: var(--dim);
   --color-accent: var(--accent);
   --color-accentb: var(--accentb);
   --color-success: var(--success);
-  --font-sans: var(--font-archivo);
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: var(--font-fragment-mono);
+  --font-serif: var(--font-source-serif);
+  --font-mono: var(--font-fragment-mono);
   --radius-none: 0px;
 }
 
@@ -53,7 +87,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: var(--bg);
+  color: #f6f4f0;
 }
 
 /* The global `* { border-radius: 0 !important }` reset above doesn't reach these
@@ -63,7 +97,7 @@ body {
   -webkit-appearance: none;
   appearance: none;
   height: 3px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--line2);
   cursor: pointer;
 }
 
@@ -177,4 +211,14 @@ body {
   .report-print-scope .text-dim {
     color: rgba(17, 17, 17, 0.42);
   }
+}
+
+/*
+ * Display face. Headlines only — Fragment Mono carries everything else, per the v2
+ * type spec. Applied by class rather than to h1/h2 globally, because plenty of things
+ * here are headings structurally without wanting to look like a masthead.
+ */
+.bj-serif {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  letter-spacing: 0;
 }

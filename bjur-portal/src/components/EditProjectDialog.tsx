@@ -211,7 +211,7 @@ export function EditProjectDialog({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
+          className="w-full max-w-[460px] max-h-[90vh] overflow-y-auto bg-s2 border border-line2 p-7 bjrise"
         >
           <div className="text-[22px] font-black tracking-[-.02em] mb-[22px]">
             Edit project

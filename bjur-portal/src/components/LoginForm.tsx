@@ -85,7 +85,7 @@ export function LoginForm({
           <div className="text-[11px] tracking-[0.28em] uppercase text-accent font-bold mb-6">
             {kicker}
           </div>
-          <h1 className="text-[clamp(42px,5.6vw,76px)] leading-[0.94] tracking-[-0.03em] font-black mb-5">
+          <h1 className="bj-serif text-[clamp(42px,5.6vw,76px)] leading-[0.94] font-normal mb-5">
             {headA}
             <br />
             {headB}

@@ -548,7 +548,7 @@ export function SubmissionUploadClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
           Send us footage
         </div>
-        <h1 className="text-[28px] sm:text-4xl tracking-tight font-black mb-3">
+        <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3">
           Upload to &ldquo;{project.title}&rdquo;
         </h1>
         <div className="text-[13px] text-muted">
@@ -688,7 +688,7 @@ export function SubmissionUploadClient({
           ) : (
             <Link
               href={`/p/${project.id}`}
-              className="inline-block bg-accent hover:bg-accentb text-bg text-[11px] uppercase font-bold px-4 py-2.5"
+              className="inline-block bg-text hover:bg-accent text-bg text-[11px] uppercase font-bold px-4 py-2.5"
             >
               Back to project
             </Link>

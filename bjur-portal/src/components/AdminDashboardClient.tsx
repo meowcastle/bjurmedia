@@ -76,7 +76,7 @@ export function AdminDashboardClient({
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
             {dateLabel}
           </div>
-          <h1 className="text-4xl tracking-tight font-black">Dashboard</h1>
+          <h1 className="bj-serif text-4xl font-normal">Dashboard</h1>
         </div>
         <div className="flex gap-2.5">
           <Button variant="secondary" onClick={() => setDialog("client")}>

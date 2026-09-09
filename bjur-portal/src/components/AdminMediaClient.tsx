@@ -505,7 +505,7 @@ export function AdminMediaClient({
           <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
             Pipeline
           </div>
-          <h1 className="text-[34px] tracking-tight font-black mb-2.5">
+          <h1 className="bj-serif text-[34px] font-normal mb-2.5">
             Media
           </h1>
           <p className="text-sm text-muted">
@@ -573,7 +573,7 @@ export function AdminMediaClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
           Media
         </div>
-        <h1 className="text-[34px] tracking-tight font-black">
+        <h1 className="bj-serif text-[34px] font-normal">
           {selectedProjectTitle}
         </h1>
       </div>
@@ -604,7 +604,7 @@ export function AdminMediaClient({
               key={v}
               onClick={() => setView(v)}
               className={`cursor-pointer text-[11px] font-semibold uppercase px-3 py-2 ${
-                view === v ? "bg-accent text-bg" : "text-muted hover:text-text"
+                view === v ? "bg-text text-bg" : "text-muted hover:text-text"
               }`}
             >
               {v}

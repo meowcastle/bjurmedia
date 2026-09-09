@@ -81,7 +81,7 @@ export function AdminSocialIntegrationsClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
           Weekly insights
         </div>
-        <h1 className="text-[26px] tracking-tight font-black">
+        <h1 className="bj-serif text-[26px] font-normal">
           Instagram &amp; YouTube views
         </h1>
       </div>

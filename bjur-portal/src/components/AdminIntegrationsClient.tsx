@@ -105,7 +105,7 @@ export function AdminIntegrationsClient({
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
           Integrations
         </div>
-        <h1 className="text-[34px] tracking-tight font-black">Slack</h1>
+        <h1 className="bj-serif text-[34px] font-normal">Slack</h1>
       </div>
 
       <div className="border border-line bg-s1 p-5 mb-5 flex items-center gap-4">

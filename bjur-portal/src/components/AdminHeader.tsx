@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminSearchBox } from "@/components/AdminSearchBox";
@@ -83,6 +84,7 @@ export function AdminHeader({ userName }: { userName: string }) {
         {/* §8: the name and a permanent "Sign out" ate width the tabs needed, and the
             name was hidden below lg anyway — so on a laptop the header offered a
             sign-out button belonging to nobody in particular. */}
+        <ThemeToggle portal="admin" />
         <div ref={menuRef} className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -104,7 +106,7 @@ export function AdminHeader({ userName }: { userName: string }) {
               <button
                 role="menuitem"
                 onClick={signOut}
-                className="w-full text-left px-4 py-3 text-[13px] text-muted hover:text-text hover:bg-white/[0.04] cursor-pointer"
+                className="w-full text-left px-4 py-3 text-[13px] text-muted hover:text-text hover:bg-s3 cursor-pointer"
               >
                 Sign out
               </button>

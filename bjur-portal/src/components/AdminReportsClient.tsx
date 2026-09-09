@@ -59,7 +59,7 @@ export function AdminReportsClient({
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade print:px-0 print:py-0 print:max-w-none">
       <div className="print:hidden mb-6">
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Reports</div>
-        <h1 className="text-[34px] tracking-tight font-black mb-6">Client Attribution</h1>
+        <h1 className="bj-serif text-[34px] font-normal mb-6">Client Attribution</h1>
 
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Client</span>

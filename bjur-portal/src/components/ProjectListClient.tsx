@@ -69,7 +69,7 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
               key={id}
               onClick={() => setSort(id)}
               className={`cursor-pointer text-[11px] uppercase font-semibold px-3.5 py-2.5 ${
-                sort === id ? "bg-accent text-bg" : "text-muted hover:text-text"
+                sort === id ? "bg-text text-bg" : "text-muted hover:text-text"
               }`}
             >
               {label}

@@ -99,7 +99,7 @@ export function ManageFoldersDialog({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
+          className="w-full max-h-[90vh] overflow-y-auto max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
         >
           <div className="text-xl font-black tracking-tight mb-1.5">
             Folders

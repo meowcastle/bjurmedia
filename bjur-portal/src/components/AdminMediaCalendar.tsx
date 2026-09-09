@@ -462,7 +462,7 @@ export function AdminMediaCalendar({
               <button
                 onClick={save}
                 disabled={saving || draft.caption.length > IG_CAPTION_LIMIT}
-                className="flex-1 bg-accent hover:bg-accentb disabled:opacity-50 text-bg text-[11px] uppercase font-bold py-2.5"
+                className="flex-1 bg-text hover:bg-accent disabled:opacity-50 text-bg text-[11px] uppercase font-bold py-2.5"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
@@ -507,7 +507,7 @@ export function AdminMediaCalendar({
                 onClick={postWeek}
                 disabled={posting}
                 data-testid="post-week"
-                className="cursor-pointer w-full mt-3 bg-accent hover:bg-accentb disabled:opacity-50 text-bg text-[11px] uppercase font-bold py-2.5"
+                className="cursor-pointer w-full mt-3 bg-text hover:bg-accent disabled:opacity-50 text-bg text-[11px] uppercase font-bold py-2.5"
               >
                 {posting ? "Posting…" : "Post week to Slack"}
               </button>
