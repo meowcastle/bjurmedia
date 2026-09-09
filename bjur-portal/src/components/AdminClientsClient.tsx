@@ -109,7 +109,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                 className="flex flex-col gap-3 px-4 py-5 md:grid md:gap-4 md:px-5 md:py-5 md:items-center"
                 style={{
                   gridTemplateColumns: "1.9fr .9fr .6fr .9fr 1fr",
-                  background: active ? "transparent" : "rgba(255,255,255,.015)",
+                  background: active ? "transparent" : "var(--s1)",
                 }}
               >
                 {/* Identity + type share a row on mobile (display:contents at md: restores
