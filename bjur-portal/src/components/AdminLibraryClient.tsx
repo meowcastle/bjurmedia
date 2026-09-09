@@ -48,7 +48,7 @@ function TreeNode({
   return (
     <>
       <div
-        className="flex items-center gap-2.5 px-4 py-2 border-b border-line hover:bg-white/[0.02]"
+        className="flex items-center gap-2.5 px-4 py-2 border-b border-line hover:bg-s3"
         style={{ paddingLeft: 16 + depth * 22 }}
       >
         {entry.isFolder ? (

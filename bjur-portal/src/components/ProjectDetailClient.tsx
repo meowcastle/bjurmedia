@@ -341,10 +341,15 @@ export function ProjectDetailClient({
   ];
 
   const metaAssets = FORMAT_DEFS.map(
-    (d) => [formatCounts[d[0]] ?? 0, d[1]] as const,
+    // Singular carried alongside the count: the labels are plural, so one item read as
+    // "1 films". Taken from the tuple rather than an index, because the filter below
+    // shifts positions and an index would then name the wrong format.
+    (d) => [formatCounts[d[0]] ?? 0, d[1], d[0]] as const,
   )
     .filter(([c]) => c)
-    .map(([c, label]) => `${c} ${label.split(" · ")[0].toLowerCase()}`)
+    .map(([c, label, singular]) =>
+      c === 1 ? `${c} ${singular.toLowerCase()}` : `${c} ${label.split(" · ")[0].toLowerCase()}`,
+    )
     .join(" · ");
 
   const currentYear = new Date().getFullYear();

@@ -126,7 +126,7 @@ export function ClientHeader({
                       key={m.clientId}
                       onClick={() => switchClient(m.clientId)}
                       disabled={switching}
-                      className={`w-full text-left px-4 py-3 text-sm hover:bg-white/[0.04] cursor-pointer disabled:opacity-50 ${
+                      className={`w-full text-left px-4 py-3 text-sm hover:bg-s3 cursor-pointer disabled:opacity-50 ${
                         m.clientId === activeClientId
                           ? "text-text font-semibold"
                           : "text-muted"
@@ -138,16 +138,19 @@ export function ClientHeader({
                   ))}
                 </div>
               )}
+              <div className="border-b border-line px-2 py-1">
+                <ThemeToggle portal="client" />
+              </div>
               <Link
                 href="/settings"
                 onClick={() => setMenuOpen(false)}
-                className="block px-4 py-3 text-sm text-text hover:bg-white/[0.04] border-b border-line"
+                className="block px-4 py-3 text-sm text-text hover:bg-s3 border-b border-line"
               >
                 Settings
               </Link>
               <button
                 onClick={signOut}
-                className="w-full text-left px-4 py-3 text-sm text-text hover:bg-white/[0.04] cursor-pointer"
+                className="w-full text-left px-4 py-3 text-sm text-text hover:bg-s3 cursor-pointer"
               >
                 Sign out
               </button>

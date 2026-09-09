@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
@@ -80,6 +81,9 @@ export function LoginForm({
           <div className="w-4 h-4 bg-accent" />
           <span className="font-black tracking-wide text-base">BJUR</span>
           <span className="font-semibold tracking-[0.34em] text-sm text-muted">MEDIA</span>
+        </div>
+        <div className="absolute top-8 right-[6vw]">
+          <ThemeToggle portal={portal} />
         </div>
         <div className="max-w-[520px] bjrise">
           <div className="text-[11px] tracking-[0.28em] uppercase text-accent font-bold mb-6">

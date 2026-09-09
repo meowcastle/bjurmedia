@@ -78,7 +78,7 @@ export function RowMenuItem({
     <button
       role="menuitem"
       onClick={onClick}
-      className={`w-full text-left px-3.5 py-2.5 text-[12px] cursor-pointer hover:bg-white/[0.04] ${
+      className={`w-full text-left px-3.5 py-2.5 text-[12px] cursor-pointer hover:bg-s3 ${
         tone === "danger" ? "text-dim hover:text-accentb" : "text-muted hover:text-text"
       }`}
     >

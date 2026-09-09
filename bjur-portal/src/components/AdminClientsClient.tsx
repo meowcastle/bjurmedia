@@ -192,7 +192,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                 </div>
               </div>
               {isExpanded && (
-                <div className="px-5 pb-5 pt-1.5 bg-white/[0.02]">
+                <div className="px-5 pb-5 pt-1.5 bg-s1">
                   <div className="text-[10px] tracking-wide uppercase text-dim font-bold py-2.5">
                     Client logins
                   </div>

@@ -104,7 +104,7 @@ export function AdminSearchBox() {
                     setOpen(false);
                     setQuery("");
                   }}
-                  className="cursor-pointer px-3.5 py-2.5 border-t border-line hover:bg-white/[0.04]"
+                  className="cursor-pointer px-3.5 py-2.5 border-t border-line hover:bg-s3"
                 >
                   <div className="text-[13px] font-semibold truncate">{it.title}</div>
                   <div className="text-[11px] text-muted mt-0.5">{it.sub}</div>

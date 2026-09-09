@@ -86,7 +86,7 @@ export function ClientSwitcher({
               role="menuitem"
               onClick={() => pick(m.clientId)}
               disabled={switching !== null}
-              className={`w-full text-left px-3.5 py-2.5 text-[13px] cursor-pointer hover:bg-white/[0.04] disabled:opacity-50 ${
+              className={`w-full text-left px-3.5 py-2.5 text-[13px] cursor-pointer hover:bg-s3 disabled:opacity-50 ${
                 m.clientId === activeClientId ? "text-text font-semibold" : "text-muted hover:text-text"
               }`}
             >
