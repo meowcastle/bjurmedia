@@ -441,6 +441,9 @@ export function ProjectDetailClient({
         licensed: licensedIds.has(v.id),
         // Every download control states its size, per the handoff's global rule.
         size: formatBytes(Number(v.sizeBytes)),
+        format: v.format,
+        dims: v.dims,
+        durationSec: v.durationSec,
       })),
     [videoOrder, licensedIds],
   );

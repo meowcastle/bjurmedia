@@ -25,13 +25,25 @@ test("opening a clip shows the controls straight away", async ({ page }) => {
   await openFirstReel(page);
 
   await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Master/i })).toBeVisible();
+  // The master chip replaced the inline download: it opens the sheet that carries the
+  // file's facts and the download itself.
+  await expect(page.getByTestId("master-chip")).toBeVisible();
 });
 
 test("the download control fits the screen and states a size", async ({ page }) => {
   await openFirstReel(page);
 
-  const download = page.getByRole("link", { name: /Master/i });
+  const chip = page.getByTestId("master-chip");
+  await expect(chip).toBeVisible();
+
+  // The chip has to fit before anything else matters — this is the one route to
+  // saving a single clip on a phone.
+  const chipBox = (await chip.boundingBox())!;
+  expect(chipBox.x).toBeGreaterThanOrEqual(0);
+  expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(390);
+
+  await chip.click();
+  const download = page.getByTestId("sheet-download");
   await expect(download).toBeVisible();
 
   // "↓ Download master" was wider than the row could give it, so it ran off the right
@@ -72,7 +84,8 @@ test("the controls do not disappear on their own", async ({ page }) => {
 
 test("the download link points at this clip's master", async ({ page }) => {
   await openFirstReel(page);
-  await expect(page.getByRole("link", { name: /Master/i })).toHaveAttribute(
+  await page.getByTestId("master-chip").click();
+  await expect(page.getByTestId("sheet-download")).toHaveAttribute(
     "href",
     /^\/api\/assets\/[^/]+\/download$/
   );

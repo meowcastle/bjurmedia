@@ -6,8 +6,6 @@ import {
   IconPause,
   IconVolumeOn,
   IconVolumeOff,
-  IconLock,
-  IconDownload,
 } from "@/components/ui/Icon";
 
 function fmtTime(sec: number) {
@@ -36,16 +34,13 @@ export function VideoChrome({
   duration,
   hasPrev,
   hasNext,
-  canDownload,
   locked,
-  assetId,
-  size,
   isFavorite,
   onTogglePlay,
   onToggleMute,
   onSeek,
   onClose,
-  onRequestLicense,
+  onOpenMaster,
 }: {
   visible: boolean;
   name: string;
@@ -55,18 +50,15 @@ export function VideoChrome({
   duration: number;
   hasPrev: boolean;
   hasNext: boolean;
-  canDownload: boolean;
   locked: boolean;
-  assetId: string;
   /** Shown top-left so the current state is readable without tapping to find out. */
   isFavorite?: boolean;
-  /** Formatted master size, e.g. "1.9 GB". */
-  size: string | null;
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onSeek: (t: number) => void;
   onClose: () => void;
-  onRequestLicense: () => void;
+  /** Opens the master sheet, which carries the download and licensing actions. */
+  onOpenMaster: () => void;
 }) {
   // Hidden chrome must be fully click-through, not just invisible — otherwise an
   // opacity-0 button still sits there intercepting the tap that's meant to reveal it.
@@ -161,29 +153,16 @@ export function VideoChrome({
             </button>
             <span className="text-sm text-white/80 truncate min-w-0">{name}</span>
           </div>
-          {locked ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestLicense();
-              }}
-              className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb cursor-pointer whitespace-nowrap"
-            >
-              <span className="inline-flex items-center gap-1.5"><IconLock /> Unlock master</span>
-            </button>
-          ) : (
-            canDownload && (
-              <a
-                href={`/api/assets/${assetId}/download`}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 text-xs font-bold uppercase tracking-wide bg-accent text-bg px-3.5 py-2.5 hover:bg-accentb whitespace-nowrap"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <IconDownload /> Master{size ? ` · ${size}` : ""}
-                </span>
-              </a>
-            )
-          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMaster();
+            }}
+            data-testid="master-chip"
+            className="shrink-0 text-xs font-bold uppercase tracking-wide border border-white/25 hover:border-white text-white/85 hover:text-white px-3.5 py-2.5 cursor-pointer whitespace-nowrap"
+          >
+            {locked ? "\u2191 Unlock master" : "\u2191 Master"}
+          </button>
         </div>
       </div>
     </div>

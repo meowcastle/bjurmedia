@@ -27,10 +27,17 @@ test("double tap favourites and shows the burst", async ({ page }) => {
   const before = await state.getAttribute("data-favorite");
 
   const surface = page.getByTestId("video-gesture-surface");
+  // Wait for this test's own write before finishing. Left in flight it lands after the
+  // next test has already loaded its page, and the two then disagree about the starting
+  // state — which is a test-ordering artefact, not a product bug, but it fails either way.
+  const saved = page.waitForResponse(
+    (r) => r.url().includes("/favorite") && r.request().method() === "POST",
+  );
   await surface.click();
   await surface.click({ delay: 0 });
 
   await expect(page.getByTestId("heart-burst")).toBeVisible();
+  await saved;
   await expect(state).not.toHaveAttribute("data-favorite", before!);
 });
 

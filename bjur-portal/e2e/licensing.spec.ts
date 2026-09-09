@@ -18,7 +18,13 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
   await tile.click();
   const video = page.getByTestId("active-video");
   await expect(video).toBeVisible();
-  const unlockBtn = page.getByRole("button", { name: /unlock master/i });
+  // Unlock lives in the master sheet now, alongside the facts about what is being
+  // licensed — the chip states which of the two it is before you open it.
+  const chip = page.getByTestId("master-chip");
+  await expect(chip).toHaveText(/unlock master/i);
+  await chip.click();
+
+  const unlockBtn = page.getByTestId("sheet-unlock");
   await expect(unlockBtn).toBeVisible();
   await unlockBtn.click();
 
@@ -37,6 +43,12 @@ test("BRAW licensing: unlock a master via the purchase flow", async ({ page }) =
   // Reopening the same asset now offers a real download instead of the unlock CTA.
   await tile.click();
   await expect(video).toBeVisible();
-  await expect(page.getByRole("link", { name: /Master · .+ (MB|GB|TB)/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /unlock master/i })).not.toBeVisible();
+  const chipAfter = page.getByTestId("master-chip");
+  await expect(chipAfter).not.toHaveText(/unlock/i);
+  await chipAfter.click();
+
+  // The sheet states the size, per the rule that every download control says what it
+  // will cost you to take.
+  await expect(page.getByTestId("sheet-download")).toContainText(/\d+(\.\d+)? (MB|GB|TB)/);
+  await expect(page.getByTestId("sheet-unlock")).toHaveCount(0);
 });

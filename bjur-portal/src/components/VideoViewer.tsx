@@ -13,6 +13,7 @@
  * change (line below) is the standard "reset state when switching to a new
  * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
+import { MasterSheet } from "@/components/MasterSheet";
 import { useTapGestures, useHeartBurst } from "@/lib/useTapGestures";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
@@ -28,6 +29,10 @@ export type VideoNavAsset = {
   licensed: boolean;
   /** Formatted master size for the download control. */
   size: string;
+  /** Facts the master sheet shows before someone commits to a download. */
+  format: string;
+  dims: string | null;
+  durationSec: number | null;
 };
 
 /**
@@ -57,6 +62,7 @@ export function VideoViewer({
   onToggleFavorite?: (assetId: string) => void;
 }) {
   const { burst, fire } = useHeartBurst();
+  const [masterOpen, setMasterOpen] = useState(false);
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -114,6 +120,19 @@ export function VideoViewer({
 
   // Single tap toggles chrome, double tap favourites. Both go through one handler so a
   // double tap cannot also flash the chrome on its way past.
+  // The keyboard equivalent of the swipe. Registered here rather than in the carousel
+  // because the sheet is this viewer's concern, not the track's.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMasterOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleTap = useTapGestures({
     onSingle: () => carousel.setChromeVisible((v) => !v),
     onDouble: () => {
@@ -178,6 +197,12 @@ export function VideoViewer({
             className="absolute inset-0 touch-none"
             onPointerDown={(e) => carousel.dragControls.start(e)}
             onTap={handleTap}
+            // Swipe up opens the master sheet. Threshold is generous vertically and
+            // strict horizontally, so a slightly-diagonal swipe between clips is not
+            // read as a request for the sheet.
+            onPanEnd={(_, info) => {
+              if (info.offset.y < -70 && Math.abs(info.offset.x) < 60) setMasterOpen(true);
+            }}
           />
 
           {/* Confirms the double-tap landed. Keyed on the burst token so a second
@@ -198,6 +223,30 @@ export function VideoViewer({
 
         <SwipeHint visible={carousel.swipeHintVisible} />
 
+        <MasterSheet
+          open={masterOpen}
+          assetId={currentItem.id}
+          canDownload={canDownload}
+          facts={{
+            name: currentItem.name,
+            format: currentItem.format,
+            dims: currentItem.dims,
+            durationLabel: currentItem.durationSec
+              ? `${Math.floor(currentItem.durationSec / 60)}:${String(
+                  Math.round(currentItem.durationSec % 60),
+                ).padStart(2, "0")}`
+              : null,
+            size: currentItem.size,
+            locked: activeLocked,
+            licensable: currentItem.licensable,
+          }}
+          onClose={() => setMasterOpen(false)}
+          onRequestLicense={() => {
+            setMasterOpen(false);
+            onRequestLicense(currentItem.id);
+          }}
+        />
+
         <VideoChrome
           visible={carousel.chromeVisible}
           name={currentItem.name}
@@ -207,16 +256,13 @@ export function VideoViewer({
           duration={duration}
           hasPrev={carousel.hasPrev}
           hasNext={carousel.hasNext}
-          canDownload={canDownload}
-          size={currentItem.size}
           isFavorite={isFavorite}
           locked={activeLocked}
-          assetId={currentItem.id}
           onTogglePlay={togglePlay}
           onToggleMute={toggleMute}
           onSeek={seek}
           onClose={onClose}
-          onRequestLicense={() => onRequestLicense(currentItem.id)}
+          onOpenMaster={() => setMasterOpen(true)}
         />
       </div>
     </Portal>
