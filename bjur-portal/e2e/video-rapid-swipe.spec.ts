@@ -69,12 +69,15 @@ function activeVideoId(page: Page) {
   });
 }
 
+// Position comes off the chrome's own data attributes. It used to be inferred from
+// whether an arrow button existed, which stopped working the moment the viewer went
+// swipe-only — the arrows were never what these tests were about.
 function hasNextButton(page: Page) {
-  return page.evaluate(() => !!document.querySelector('button[aria-label="Next video"]'));
+  return page.evaluate(() => document.querySelector('[data-has-next]')?.getAttribute("data-has-next") === "1");
 }
 
 function hasPrevButton(page: Page) {
-  return page.evaluate(() => !!document.querySelector('button[aria-label="Previous video"]'));
+  return page.evaluate(() => document.querySelector('[data-has-prev]')?.getAttribute("data-has-prev") === "1");
 }
 
 /** The track's actual rendered translateX, read off its computed transform

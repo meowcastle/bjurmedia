@@ -85,8 +85,6 @@ export function ImageViewer({
           hasPrev={carousel.hasPrev}
           hasNext={carousel.hasNext}
           onClose={onClose}
-          onPrev={carousel.goPrev}
-          onNext={carousel.goNext}
         />
       </div>
     </Portal>

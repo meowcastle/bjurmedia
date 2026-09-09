@@ -2,8 +2,6 @@
 
 import {
   IconClose,
-  IconPrev,
-  IconNext,
   IconPlay,
   IconPause,
   IconVolumeOn,
@@ -42,12 +40,11 @@ export function VideoChrome({
   locked,
   assetId,
   size,
+  isFavorite,
   onTogglePlay,
   onToggleMute,
   onSeek,
   onClose,
-  onPrev,
-  onNext,
   onRequestLicense,
 }: {
   visible: boolean;
@@ -61,14 +58,14 @@ export function VideoChrome({
   canDownload: boolean;
   locked: boolean;
   assetId: string;
+  /** Shown top-left so the current state is readable without tapping to find out. */
+  isFavorite?: boolean;
   /** Formatted master size, e.g. "1.9 GB". */
   size: string | null;
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onSeek: (t: number) => void;
   onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
   onRequestLicense: () => void;
 }) {
   // Hidden chrome must be fully click-through, not just invisible — otherwise an
@@ -81,15 +78,27 @@ export function VideoChrome({
       // nobody can reach — and a test asserting one is on screen when it is at opacity
       // zero — were both reading a control that is not really there.
       aria-hidden={!visible}
+      // Where we are in the run, as data. The arrows used to be the only way to tell,
+      // which meant removing them would have taken the swipe tests' bearings with them.
+      data-has-prev={hasPrev ? "1" : "0"}
+      data-has-next={hasNext ? "1" : "0"}
       className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
       {/* top bar */}
       <div
-        className="absolute top-0 left-0 right-0 flex justify-end px-4 pb-3 pointer-events-none"
+        className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 pb-3 pointer-events-none"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
+        <span
+          data-testid="viewer-favorite-state"
+          data-favorite={isFavorite ? "1" : "0"}
+          aria-label={isFavorite ? "Favourited" : "Not favourited"}
+          className={`text-lg ${isFavorite ? "text-accentb" : "text-white/30"}`}
+        >
+          {isFavorite ? "\u2665" : "\u2661"}
+        </span>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -101,32 +110,6 @@ export function VideoChrome({
           <IconClose />
         </button>
       </div>
-
-      {/* prev / next arrows */}
-      {hasPrev && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-          aria-label="Previous video"
-          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
-        >
-          <IconPrev />
-        </button>
-      )}
-      {hasNext && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-          aria-label="Next video"
-          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
-        >
-          <IconNext />
-        </button>
-      )}
 
       {/* bottom bar */}
       <div

@@ -13,6 +13,7 @@
  * change (line below) is the standard "reset state when switching to a new
  * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
+import { useTapGestures, useHeartBurst } from "@/lib/useTapGestures";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
 import { VideoSlide } from "@/components/VideoSlide";
@@ -43,13 +44,19 @@ export function VideoViewer({
   canDownload,
   onClose,
   onRequestLicense,
+  favorites,
+  onToggleFavorite,
 }: {
   items: VideoNavAsset[];
   initialId: string;
   canDownload: boolean;
   onClose: () => void;
   onRequestLicense: (assetId: string) => void;
+  /** Ids currently favourited, so the heart reflects the page's state. */
+  favorites?: Set<string>;
+  onToggleFavorite?: (assetId: string) => void;
 }) {
+  const { burst, fire } = useHeartBurst();
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -102,6 +109,20 @@ export function VideoViewer({
     const v = activeVideoRef.current;
     if (v) v.muted = !v.muted;
   }
+
+  const isFavorite = favorites?.has(carousel.currentItem?.id ?? "") ?? false;
+
+  // Single tap toggles chrome, double tap favourites. Both go through one handler so a
+  // double tap cannot also flash the chrome on its way past.
+  const handleTap = useTapGestures({
+    onSingle: () => carousel.setChromeVisible((v) => !v),
+    onDouble: () => {
+      const id = carousel.currentItem?.id;
+      if (!id || !onToggleFavorite) return;
+      onToggleFavorite(id);
+      fire();
+    },
+  });
 
   const currentItem = carousel.currentItem;
   if (!currentItem) return null;
@@ -156,8 +177,23 @@ export function VideoViewer({
             data-testid="video-gesture-surface"
             className="absolute inset-0 touch-none"
             onPointerDown={(e) => carousel.dragControls.start(e)}
-            onTap={() => carousel.setChromeVisible((v) => !v)}
+            onTap={handleTap}
           />
+
+          {/* Confirms the double-tap landed. Keyed on the burst token so a second
+              favourite replays it rather than sitting on a flag that is already set. */}
+          {burst > 0 && (
+            <div
+              key={burst}
+              aria-hidden
+              data-testid="heart-burst"
+              className="absolute inset-0 grid place-items-center pointer-events-none z-20 bjburst"
+            >
+              <span className="text-[86px] leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,.6)]">
+                {isFavorite ? "\u2665" : "\u2661"}
+              </span>
+            </div>
+          )}
         </div>
 
         <SwipeHint visible={carousel.swipeHintVisible} />
@@ -173,14 +209,13 @@ export function VideoViewer({
           hasNext={carousel.hasNext}
           canDownload={canDownload}
           size={currentItem.size}
+          isFavorite={isFavorite}
           locked={activeLocked}
           assetId={currentItem.id}
           onTogglePlay={togglePlay}
           onToggleMute={toggleMute}
           onSeek={seek}
           onClose={onClose}
-          onPrev={carousel.goPrev}
-          onNext={carousel.goNext}
           onRequestLicense={() => onRequestLicense(currentItem.id)}
         />
       </div>

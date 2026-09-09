@@ -1,6 +1,6 @@
 "use client";
 
-import { IconClose, IconPrev, IconNext } from "@/components/ui/Icon";
+import { IconClose } from "@/components/ui/Icon";
 
 const CHIP = "w-9 h-9 grid place-items-center bg-black/40 hover:bg-black/60 text-white/80 hover:text-white cursor-pointer";
 
@@ -20,8 +20,6 @@ export function PhotoChrome({
   hasPrev,
   hasNext,
   onClose,
-  onPrev,
-  onNext,
 }: {
   visible: boolean;
   name: string;
@@ -30,12 +28,12 @@ export function PhotoChrome({
   hasPrev: boolean;
   hasNext: boolean;
   onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
 }) {
   const interactive = visible ? "pointer-events-auto" : "pointer-events-none";
   return (
     <div
+      data-has-prev={hasPrev ? "1" : "0"}
+      data-has-next={hasNext ? "1" : "0"}
       className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
@@ -58,31 +56,6 @@ export function PhotoChrome({
           <IconClose />
         </button>
       </div>
-
-      {hasPrev && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-          aria-label="Previous photo"
-          className={`absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
-        >
-          <IconPrev />
-        </button>
-      )}
-      {hasNext && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-          aria-label="Next photo"
-          className={`absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:grid place-items-center bg-black/40 hover:bg-black/60 text-white/70 hover:text-white text-2xl cursor-pointer ${interactive}`}
-        >
-          <IconNext />
-        </button>
-      )}
 
       <div
         className="absolute bottom-0 left-0 right-0 px-4 pt-10 flex justify-center pointer-events-none bg-gradient-to-t from-black/85 to-transparent"

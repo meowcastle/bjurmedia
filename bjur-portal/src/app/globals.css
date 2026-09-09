@@ -222,3 +222,24 @@ body {
   font-family: var(--font-serif), Georgia, "Times New Roman", serif;
   letter-spacing: 0;
 }
+
+/* Double-tap favourite confirmation: a quick swell then away. Deliberately short —
+   it is a receipt, not a transition, and it sits over video the viewer is watching. */
+@keyframes bjburst {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.12); }
+  60% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.02); }
+}
+
+.bjburst > * {
+  animation: bjburst 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  color: #ff5a3c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bjburst > * {
+    animation: bjburst 700ms linear forwards;
+    transform: none;
+  }
+}

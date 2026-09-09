@@ -741,6 +741,8 @@ export function ProjectDetailClient({
             if (asset) setLicensingAsset(asset);
             setOpenVideoId(null);
           }}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
         />
       )}
 
