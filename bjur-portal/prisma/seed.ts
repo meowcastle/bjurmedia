@@ -471,6 +471,60 @@ const projectsSeed = [
  * that is easy to get wrong — a client who has replied should still see what they said,
  * not an empty row.
  */
+
+/**
+ * A bin of client footage on p1, shaped like what actually arrives: camera segments
+ * from one shot, sharing a long folder path and differing only at the tail of the
+ * filename. That shape is what broke the dialog's truncation, so it is worth having
+ * in the seed rather than only in production.
+ */
+async function seedSubmissions() {
+  const uploader = await db.user.findFirst({
+    where: { email: "sasha@ssh.studio" },
+    select: { id: true },
+  });
+  if (!uploader) return;
+
+  const batch = await db.uploadBatch.create({
+    data: { projectId: "p1", userId: uploader.id, label: "2026-09-09 - Sasha Hale" },
+  });
+
+  const folder = "Hurt Project Files/Mirror Shot";
+  for (const n of [1, 2, 3]) {
+    const relativePath = `${folder}/A116_C00${n}_0714XY.mov`;
+    await db.submission.create({
+      data: {
+        projectId: "p1",
+        userId: uploader.id,
+        batchId: batch.id,
+        relativePath,
+        filename: relativePath.split("/").pop()!,
+        relPath: `ssh/p1/${batch.label}/${relativePath}`,
+        sizeBytes: BigInt(1_940_000_000 + n),
+        receivedBytes: BigInt(1_940_000_000 + n),
+        status: "COMPLETE",
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  // One that stopped partway, so the Stalled state has something to render.
+  await db.submission.create({
+    data: {
+      projectId: "p1",
+      userId: uploader.id,
+      batchId: batch.id,
+      relativePath: `${folder}/A116_C004_0714XY.mov`,
+      filename: "A116_C004_0714XY.mov",
+      relPath: `ssh/p1/${batch.label}/${folder}/A116_C004_0714XY.mov`,
+      sizeBytes: BigInt(1_940_000_000),
+      receivedBytes: BigInt(820_000_000),
+      status: "UPLOADING",
+      updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    },
+  });
+}
+
 async function seedReviews() {
   await db.project.update({ where: { id: "p2" }, data: { review: true } });
   // p8 (57.NYC IG Posting) is the board project — the weekly-reel workflow the
@@ -538,6 +592,8 @@ async function main() {
   await db.favorite.deleteMany();
   await db.license.deleteMany();
   await db.session.deleteMany();
+  await db.submission.deleteMany();
+  await db.uploadBatch.deleteMany();
   await db.review.deleteMany();
   await db.asset.deleteMany();
   await db.project.deleteMany();
@@ -656,6 +712,7 @@ async function main() {
   // project starts from.
   await db.project.update({ where: { id: "p1" }, data: { clientUploads: true } });
 
+  await seedSubmissions();
   await seedReviews();
   await seedSocial();
   await seedPublishStates();

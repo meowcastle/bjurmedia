@@ -170,9 +170,21 @@ export function ClientSubmissionsDialog({
                           className="flex items-center justify-between gap-3 px-4 py-2 border-b border-line last:border-b-0"
                         >
                           <div className="min-w-0">
-                            <div className="text-[13px] truncate">
-                              {f.relativePath}
+                            {/* Filename first. The path was truncating from the end,
+                                which hid the only part that differs between camera
+                                segments — every row read as the same file. */}
+                            <div className="text-[13px] truncate" title={f.relativePath}>
+                              {f.relativePath.split("/").pop()}
                             </div>
+                            {f.relativePath.includes("/") && (
+                              <div
+                                className="text-[10.5px] text-dim truncate"
+                                dir="rtl"
+                                title={f.relativePath}
+                              >
+                                {f.relativePath.slice(0, f.relativePath.lastIndexOf("/"))}
+                              </div>
+                            )}
                             <div className="text-[10.5px] text-dim mt-0.5">
                               {f.status === "UPLOADING"
                                 ? `${formatBytes(received)} of ${formatBytes(total)}${
