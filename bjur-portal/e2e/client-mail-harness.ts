@@ -19,7 +19,8 @@ const check = makeChecker(results);
 
 async function main() {
   const { db } = await import("../src/lib/db");
-  const { sendWeeklyDigests, sendExpiryReminders, sendLicenseReceipt } = await import("../src/lib/clientMail");
+  const { sendWeeklyDigests, sendExpiryReminders, sendLicenseReceipt, sendPaymentReleaseReceipt } =
+    await import("../src/lib/clientMail");
 
   // Named for what they now are: one client with a scheduled project on the board, one
   // with a plain delivery. The weekly digest is about scheduled work.
@@ -186,6 +187,70 @@ async function main() {
   const before = receipts.length;
   await sendLicenseReceipt("does-not-exist", { sendLicense });
   check("an unknown license id is ignored, not thrown", receipts.length === before);
+
+  // --- the payment-release receipt -------------------------------------------------
+  // Recipients come from ClientMember, which is the authority on who belongs to a client
+  // — and which disagrees with the legacy User.clientId + User.role pair in production.
+  // These seats are built membership-first so the test would fail if the lookup ever
+  // reverted to the old columns.
+  const payer = await db.client.create({ data: { name: "Payer Co", username: "payer" } });
+  const held = await mkProject(payer.id, "Held Project", { paymentHold: true });
+  await mkAsset(held.id, "clip-one.mp4");
+  await mkAsset(held.id, "clip-two.mp4");
+  await mkAsset(held.id, "internal-cut.mp4", { internal: true });
+
+  const mkMember = async (email: string, role: "OWNER" | "VIEWER", over = {}) => {
+    const u = await db.user.create({
+      data: { email, name: "Pay Er", role: "VIEWER", passwordHash: "x", ...over },
+    });
+    await db.clientMember.create({ data: { userId: u.id, clientId: payer.id, role } });
+    return u;
+  };
+  const payOwner = await mkMember("owner@payer.test", "OWNER");
+  await mkMember("viewer@payer.test", "VIEWER");
+  await mkMember("gone@payer.test", "OWNER", { deactivatedAt: new Date() });
+
+  const released: { to: string; props: Record<string, unknown> }[] = [];
+  const sendReleased = async (to: string, props: Record<string, unknown>) => {
+    released.push({ to, props });
+    return { sent: true } as never;
+  };
+
+  await sendPaymentReleaseReceipt(held.id, { sendReleased });
+  check("the release receipt reaches the client's owner", released.some((r) => r.to === payOwner.email));
+  check("a viewer seat is not thanked for a purchase", !released.some((r) => r.to === "viewer@payer.test"));
+  check("a revoked seat is not mailed", !released.some((r) => r.to === "gone@payer.test"));
+  check("nobody is thanked twice", new Set(released.map((r) => r.to)).size === released.length);
+  check(
+    "it counts only client-visible files",
+    released[0]?.props.fileCount === 2,
+    `fileCount=${released[0]?.props.fileCount}`
+  );
+  check(
+    "it links to the project's own gallery",
+    released[0]?.props.projectUrl === `https://portal.example.test/p/${held.id}`,
+    String(released[0]?.props.projectUrl)
+  );
+
+  const beforeRelease = released.length;
+  await sendPaymentReleaseReceipt("does-not-exist", { sendReleased });
+  check("an unknown project id is ignored, not thrown", released.length === beforeRelease);
+
+  // With no injected transport the real kill switch applies, and DELIVERY_EMAILS is not
+  // "live" here — so a release must log its intent rather than mail a real address.
+  const activityBefore = await db.activity.count();
+  const dry = await sendPaymentReleaseReceipt(held.id);
+  const logged = await db.activity.findFirst({
+    where: { actor: "Mailer" },
+    orderBy: { id: "desc" },
+  });
+  check("a release with the switch off sends nothing", dry.sent === 0, `sent=${dry.sent}`);
+  check("and says so rather than failing silently", (await db.activity.count()) === activityBefore + 1);
+  check(
+    "naming who would have been thanked",
+    logged?.action.includes("(dry run) would thank") === true && logged.action.includes(payOwner.email),
+    logged?.action
+  );
 
   await db.$disconnect();
   console.log(JSON.stringify(results));

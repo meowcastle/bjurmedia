@@ -7,6 +7,7 @@ import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/s
 import { renderWeeklyDigestEmailHtml, type WeeklyDigestEmailProps } from "@/emails/weekly";
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderLicenseEmailHtml, type LicenseEmailProps } from "@/emails/license";
+import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
 import {
   renderReviewRequestEmailHtml,
   type ReviewRequestEmailProps,
@@ -167,5 +168,13 @@ export async function sendLicenseEmail(to: string, props: LicenseEmailProps) {
       ? `${props.assetName} has been licensed to ${props.clientName}`
       : `Your license for ${props.assetName}`,
     html: renderLicenseEmailHtml(props),
+  });
+}
+
+export async function sendReleasedEmail(to: string, props: ReleasedEmailProps) {
+  return sendMail({
+    to,
+    subject: `Your ${props.projectTitle} files are ready`,
+    html: renderReleasedEmailHtml(props),
   });
 }

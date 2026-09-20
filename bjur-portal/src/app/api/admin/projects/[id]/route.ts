@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inboxDirFor } from "@/lib/projects";
 import { queueProjectForMarking } from "@/lib/paymentHold";
+import { sendPaymentReleaseReceipt } from "@/lib/clientMail";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,13 +63,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
   }
+  // Tell the client their files are clean. Only on the actual on -> off flip, so saving
+  // the dialog again on an already-released project does not thank someone twice for the
+  // same purchase.
+  let released = 0;
   if (turningHoldOff) {
+    const receipt = await sendPaymentReleaseReceipt(id);
+    released = receipt.sent;
     await db.activity.create({
-      data: { actor: "You", action: `released "${updated.title}" — clean files are now downloadable` },
+      data: {
+        actor: "You",
+        action: `released "${updated.title}" — clean files are now downloadable${
+          released > 0 ? `, emailed ${released} owner${released === 1 ? "" : "s"}` : ""
+        }`,
+      },
     });
   }
 
-  return NextResponse.json({ project: updated, queued });
+  return NextResponse.json({ project: updated, queued, released });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

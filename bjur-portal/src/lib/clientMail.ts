@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
-import { sendWeeklyDigestEmail, sendExpiryEmail, sendLicenseEmail } from "@/lib/mailer";
+import { sendWeeklyDigestEmail, sendExpiryEmail, sendLicenseEmail, sendReleasedEmail } from "@/lib/mailer";
 import { signThumbUrl, canSignPublishTokens } from "@/lib/publishToken";
 import { formatBytes } from "@/lib/format";
+import { isLive } from "@/lib/deliveryNotify";
 
 function portalUrl() {
   return process.env.PORTAL_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
@@ -15,6 +16,7 @@ export type ClientMailDeps = {
   sendWeekly: typeof sendWeeklyDigestEmail;
   sendExpiry: typeof sendExpiryEmail;
   sendLicense: typeof sendLicenseEmail;
+  sendReleased: typeof sendReleasedEmail;
 };
 
 /**
@@ -216,6 +218,87 @@ export async function sendLicenseReceipt(licenseId: string, deps: Partial<Client
     return { sent: recipients.length };
   } catch (err) {
     console.error("[license-mail] failed to send receipt:", err);
+    return { sent: 0 };
+  }
+}
+
+/**
+ * The payment-release email: sent once, when staff turn a project's payment hold off.
+ *
+ * Transactional rather than a notification — it confirms a purchase and tells the client
+ * the mark is gone — so it goes out on the flip rather than waiting for a scheduler, and
+ * it is not gated on a notify preference, the same way a licence receipt is not.
+ *
+ * Recipients come from ClientMember, not User.clientId + User.role. The membership table
+ * is the authority on who belongs to a client — a seat can hold several, at a different
+ * role in each — and on this database the two already disagree: seven owners by
+ * membership against five by the legacy column. Reading the old field here would silently
+ * skip people who paid.
+ *
+ * Never throws. A failed send must not roll back the release itself: the client's files
+ * are already clean, and refusing to record that because an SMTP call timed out would be
+ * the worse failure.
+ */
+export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial<ClientMailDeps> = {}) {
+  const send = deps.sendReleased ?? sendReleasedEmail;
+  try {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        title: true,
+        clientId: true,
+        expiresAt: true,
+        client: { select: { name: true } },
+        _count: { select: { assets: { where: { internal: false } } } },
+      },
+    });
+    if (!project) return { sent: 0 };
+
+    const owners = await db.clientMember.findMany({
+      where: {
+        clientId: project.clientId,
+        role: "OWNER",
+        user: { isAdmin: false, deactivatedAt: null },
+      },
+      select: { user: { select: { email: true, name: true } } },
+    });
+
+    // One seat can own several clients, and nothing stops two memberships resolving to
+    // the same address — dedupe so nobody gets thanked twice for one purchase.
+    const recipients = owners
+      .map((m) => m.user)
+      .filter((r, i, all) => all.findIndex((x) => x.email === r.email) === i);
+
+    // Same kill switch as delivery mail. This one thanks a named person for money they
+    // may not have paid, so being able to exercise a release end to end without mailing
+    // anyone matters more here than anywhere else — turning a hold off is exactly the
+    // sort of thing you try once on a real client's project to see what it does.
+    if (!isLive() && !deps.sendReleased) {
+      await db.activity.create({
+        data: {
+          actor: "Mailer",
+          action:
+            `(dry run) would thank ${recipients.length} owner(s) for ${project.title} ` +
+            `(${project.client.name}): ${recipients.map((r) => r.email).join(", ")}`,
+        },
+      });
+      return { sent: 0, dryRun: true };
+    }
+
+    for (const r of recipients) {
+      await send(r.email, {
+        recipientName: r.name?.split(/\s+/)[0] ?? "there",
+        clientName: project.client.name,
+        projectTitle: project.title,
+        projectUrl: `${portalUrl()}/p/${project.id}`,
+        fileCount: project._count.assets,
+        expiresAt: project.expiresAt ? day(project.expiresAt) : null,
+      });
+    }
+    return { sent: recipients.length };
+  } catch (err) {
+    console.error("[release-mail] failed to send release receipt:", err);
     return { sent: 0 };
   }
 }

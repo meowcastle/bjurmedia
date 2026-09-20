@@ -15,7 +15,7 @@ export const DELIVERY_QUIET_MS = 15 * 60 * 1000;
  * result to the Activity feed instead of sending, so a real delivery cycle can be
  * watched end to end before a single client email goes out.
  */
-function isLive() {
+export function isLive() {
   return process.env.DELIVERY_EMAILS === "live";
 }
 
