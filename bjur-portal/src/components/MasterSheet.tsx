@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { IconDownload, IconLock, IconClose } from "@/components/ui/Icon";
 
 /**
@@ -23,6 +23,8 @@ export type MasterFacts = {
   /** Watermarked proxy standing in for a master nobody has licensed yet. */
   locked: boolean;
   licensable: boolean;
+  /** The project is on a payment hold: this downloads marked, at full quality. */
+  watermarked: boolean;
 };
 
 function Fact({ label, value }: { label: string; value: string }) {
@@ -49,6 +51,54 @@ export function MasterSheet({
   onClose: () => void;
   onRequestLicense: () => void;
 }) {
+  // The refusal is remembered against the clip it was about, so swiping to the next one
+  // does not carry someone else's error along with it. Cheaper and more honest than
+  // clearing it from an effect.
+  const [error, setError] = useState<{ assetId: string; message: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const visibleError = error?.assetId === assetId ? error.message : null;
+
+  /**
+   * Ask for one byte before committing the browser to a navigation.
+   *
+   * A held project can refuse a download (409) while its watermarked copy is still
+   * encoding, and a plain <a> would answer that by showing the client raw JSON in a new
+   * tab. The preflight is a ranged request, which the download route deliberately does
+   * not log as a download, so checking costs nothing in the activity feed — and the real
+   * download still goes through the browser rather than a blob, so a multi-gigabyte
+   * master never has to sit in memory.
+   */
+  async function startDownload(e: React.MouseEvent<HTMLAnchorElement>) {
+    // Let a modified click (new tab, save-as) go straight through untouched.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+
+    const url = `/api/assets/${assetId}/download`;
+    setError(null);
+    setChecking(true);
+    const ctrl = new AbortController();
+    try {
+      const res = await fetch(url, { headers: { Range: "bytes=0-0" }, signal: ctrl.signal });
+      if (res.ok) {
+        ctrl.abort(); // never read the body — this was only ever a question
+        window.location.href = url;
+        return;
+      }
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setError({
+        assetId,
+        message: body?.error ?? "This file could not be downloaded just now. Try again shortly.",
+      });
+    } catch {
+      setError({
+        assetId,
+        message: "Could not reach the server. Check your connection and try again.",
+      });
+    } finally {
+      setChecking(false);
+    }
+  }
+
   // Escape closes the sheet before it closes the viewer — otherwise the sheet swallows
   // nothing and the whole viewer vanishes underneath an open drawer.
   useEffect(() => {
@@ -110,7 +160,13 @@ export function MasterSheet({
           {facts.size && <Fact label="Size" value={facts.size} />}
           <Fact
             label="Watching"
-            value={facts.locked ? "Watermarked proxy" : "Proxy · master available"}
+            value={
+              facts.watermarked
+                ? "Watermarked · full quality"
+                : facts.locked
+                  ? "Watermarked proxy"
+                  : "Proxy · master available"
+            }
           />
         </div>
 
@@ -126,15 +182,37 @@ export function MasterSheet({
               </span>
             </button>
           ) : canDownload ? (
-            <a
-              href={`/api/assets/${assetId}/download`}
-              data-testid="sheet-download"
-              className="block w-full text-center bg-white text-black text-[12px] uppercase tracking-[.1em] py-3.5 hover:bg-accent hover:text-white"
-            >
-              <span className="inline-flex items-center gap-2">
-                <IconDownload /> Download master{facts.size ? ` · ${facts.size}` : ""}
-              </span>
-            </a>
+            <>
+              {/* Still a real link, not a button: right-click \u2192 Save link as keeps working,
+                  and if the preflight below never runs the href is the plain old download
+                  it always was. The click handler only intercepts to ask first. */}
+              <a
+                href={`/api/assets/${assetId}/download`}
+                onClick={startDownload}
+                aria-disabled={checking}
+                data-testid="sheet-download"
+                className={`block w-full text-center bg-white text-black text-[12px] uppercase tracking-[.1em] py-3.5 hover:bg-accent hover:text-white ${
+                  checking ? "opacity-70 pointer-events-none" : ""
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <IconDownload />
+                  {checking
+                    ? "Starting\u2026"
+                    : `Download ${facts.watermarked ? "watermarked copy" : "master"}${
+                        facts.size ? ` \u00b7 ${facts.size}` : ""
+                      }`}
+                </span>
+              </a>
+              {visibleError && (
+                <div
+                  data-testid="sheet-download-error"
+                  className="mt-3 text-[12px] leading-relaxed text-white/75 bg-white/10 px-3.5 py-3"
+                >
+                  {visibleError}
+                </div>
+              )}
+            </>
           ) : (
             // Viewers can watch but not take files. Saying so beats a button that
             // refuses, or worse, no button and no explanation.

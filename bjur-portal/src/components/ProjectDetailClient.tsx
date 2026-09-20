@@ -762,6 +762,7 @@ export function ProjectDetailClient({
           items={videoNavItems}
           initialId={openVideoId}
           canDownload={canDownload}
+          watermarked={project.paymentHold}
           onClose={() => setOpenVideoId(null)}
           onRequestLicense={(assetId) => {
             const asset = videoOrder.find((v) => v.id === assetId);

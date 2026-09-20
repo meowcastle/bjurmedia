@@ -47,6 +47,7 @@ export function VideoViewer({
   items,
   initialId,
   canDownload,
+  watermarked = false,
   onClose,
   onRequestLicense,
   favorites,
@@ -55,6 +56,8 @@ export function VideoViewer({
   items: VideoNavAsset[];
   initialId: string;
   canDownload: boolean;
+  /** The project is on a payment hold — downloads come back marked, at full quality. */
+  watermarked?: boolean;
   onClose: () => void;
   onRequestLicense: (assetId: string) => void;
   /** Ids currently favourited, so the heart reflects the page's state. */
@@ -239,6 +242,7 @@ export function VideoViewer({
             size: currentItem.size,
             locked: activeLocked,
             licensable: currentItem.licensable,
+            watermarked,
           }}
           onClose={() => setMasterOpen(false)}
           onRequestLicense={() => {
