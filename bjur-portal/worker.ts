@@ -190,7 +190,24 @@ async function proxyLoopTick() {
 
 function startProxyLoop() {
   console.log(`[proxy] polling every ${POLL_MS}ms, concurrency ${CONCURRENCY}`);
-  const tick = () => proxyLoopTick().catch((err) => console.error("[proxy] tick failed:", err));
+
+  // setInterval does not wait for an async callback to finish, so without this guard the
+  // poll interval — not CONCURRENCY — decides how much encoding runs at once: every 4s
+  // the next tick picks up the next PENDING asset and starts another ffmpeg alongside the
+  // one still running. Harmless-looking with light proxy encodes, and genuinely damaging
+  // with full-resolution watermark encodes: a 25-clip delivery started 25 of them at once
+  // and buried the NAS while a client was still uploading to it. CONCURRENCY is the knob
+  // for how many run together; the interval only decides how often we look.
+  let ticking = false;
+  const tick = () => {
+    if (ticking) return;
+    ticking = true;
+    proxyLoopTick()
+      .catch((err) => console.error("[proxy] tick failed:", err))
+      .finally(() => {
+        ticking = false;
+      });
+  };
   recoverStrandedProxies()
     .catch((err) => console.error("[proxy] failed to recover stranded assets:", err))
     .finally(() => {

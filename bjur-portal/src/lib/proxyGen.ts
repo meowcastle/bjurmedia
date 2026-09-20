@@ -345,6 +345,17 @@ export async function generateMarkedRenditions(asset: AssetRow) {
     const srcPath = await resolveMediaPath(asset.relPath);
     await mkdir(path.join(DERIVED_ROOT, asset.id), { recursive: true });
 
+    // Each rendition is recorded the moment it exists, cheapest first, for the same
+    // reason generateProxy persists its thumbnail early: the delivery copy is a
+    // full-resolution encode that takes minutes, and holding the poster and the proxy
+    // back behind it leaves the client staring at a gallery of dead players long after
+    // the files they need are sitting on disk. Writing them as they land means the
+    // gallery is watchable within seconds and only the *download* waits for the slow one
+    // — which is exactly the thing that is allowed to wait.
+    //
+    // Safe against the routes: the proxy and thumb routes read their own path, so they
+    // light up as soon as it is set, while markedReady() still gates the download on
+    // markStatus === READY, which is only set at the very end.
     const markedThumbRelPath = `${asset.id}/thumb.marked.jpg`;
     await generateThumb(
       srcPath,
@@ -353,13 +364,14 @@ export async function generateMarkedRenditions(asset: AssetRow) {
       asset.durationSec,
       "hold"
     );
+    await db.asset.update({ where: { id: asset.id }, data: { markedThumbRelPath } });
 
-    let markedProxyRelPath: string | null = null;
-    let markedFileRelPath: string | null = null;
+    let markedFileRelPath: string;
 
     if (asset.kind === "VIDEO") {
-      markedProxyRelPath = `${asset.id}/proxy.marked.mp4`;
+      const markedProxyRelPath = `${asset.id}/proxy.marked.mp4`;
       await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, markedProxyRelPath), asset.format, "hold");
+      await db.asset.update({ where: { id: asset.id }, data: { markedProxyRelPath } });
 
       markedFileRelPath = `${asset.id}/delivery.marked.mp4`;
       await generateMarkedDelivery(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
@@ -371,7 +383,7 @@ export async function generateMarkedRenditions(asset: AssetRow) {
 
     await db.asset.update({
       where: { id: asset.id },
-      data: { markStatus: "READY", markedThumbRelPath, markedProxyRelPath, markedFileRelPath },
+      data: { markStatus: "READY", markedFileRelPath },
     });
 
     await db.activity.create({

@@ -133,6 +133,31 @@ async function main() {
   const failed = await db.asset.findUniqueOrThrow({ where: { id: asset.id } });
   check("a failed mark is still not servable", markedReady(failed) === false, `markStatus=${failed.markStatus}`);
 
+  // --- a half-finished mark streams but does not download ----------------------------
+  // The renditions are persisted as they land, cheapest first, so the gallery is
+  // watchable long before the full-resolution delivery copy exists. That must not be
+  // mistaken for the file being releasable: the poster and proxy are set here while
+  // markStatus is still GENERATING, and the download has to stay shut.
+  await db.asset.update({
+    where: { id: asset.id },
+    data: {
+      markStatus: "GENERATING",
+      markedThumbRelPath: `${asset.id}/thumb.marked.jpg`,
+      markedProxyRelPath: `${asset.id}/proxy.marked.mp4`,
+      markedFileRelPath: null,
+    },
+  });
+  const midway = await db.asset.findUniqueOrThrow({ where: { id: asset.id } });
+  check(
+    "a part-marked asset can already be watched",
+    midway.markedProxyRelPath !== null && midway.markedThumbRelPath !== null
+  );
+  check(
+    "but still cannot be downloaded",
+    markedReady(midway) === false,
+    `markStatus=${midway.markStatus}, markedFileRelPath=${midway.markedFileRelPath}`
+  );
+
   // --- once marked, it serves the marked copy ----------------------------------------
   await db.asset.update({
     where: { id: asset.id },
