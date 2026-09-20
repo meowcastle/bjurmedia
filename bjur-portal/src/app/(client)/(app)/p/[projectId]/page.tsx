@@ -70,6 +70,7 @@ export default async function ProjectDetailPage({
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,
         clientUploads: project.clientUploads,
+        paymentHold: project.paymentHold,
         folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
       totalViews={totalViews}

@@ -35,6 +35,7 @@ type ProjectRow = {
   calendar: boolean;
   review: boolean;
   sellMasters: boolean;
+  paymentHold: boolean;
   assetCount: number;
   submissionCount: number;
   inboxPath: string;
@@ -948,6 +949,11 @@ export function AdminClientDetailClient({
                   Masters
                 </span>
               )}
+              {p.paymentHold && (
+                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]">
+                  Unpaid
+                </span>
+              )}
               <span
                 className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}
               >
@@ -1089,6 +1095,7 @@ export function AdminClientDetailClient({
             calendar: editing.calendar,
             review: editing.review,
             sellMasters: editing.sellMasters,
+            paymentHold: editing.paymentHold,
             deliveredAt: editing.deliveredAt,
             expiresAt: editing.expiresAt,
             assetCount: editing.assetCount,

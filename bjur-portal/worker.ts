@@ -7,7 +7,7 @@ import chokidar from "chokidar";
 import { db } from "./src/lib/db";
 import { INBOX_ROOT, DERIVED_ROOT, resolveMediaPath } from "./src/lib/media";
 import { ingestFile } from "./src/lib/ingest";
-import { generateProxy } from "./src/lib/proxyGen";
+import { generateProxy, generateMarkedRenditions } from "./src/lib/proxyGen";
 import { postWeeklyDigest, postWeeklyContentCalendar } from "./src/lib/slack";
 import { syncAllSocialAccounts } from "./src/lib/socialSync";
 import { publishDuePosts } from "./src/lib/publisher";
@@ -35,6 +35,15 @@ async function recoverStrandedProxies() {
     data: { proxyStatus: "PENDING" },
   });
   if (count) console.log(`[proxy] reset ${count} stranded GENERATING asset(s) back to PENDING`);
+
+  // Same reasoning for watermarking: a deploy mid-encode would otherwise strand an asset
+  // as GENERATING forever, and on a held project that asset is one the client can never
+  // download — the routes refuse rather than fall back to the master.
+  const marks = await db.asset.updateMany({
+    where: { markStatus: "GENERATING" },
+    data: { markStatus: "PENDING" },
+  });
+  if (marks.count) console.log(`[mark] reset ${marks.count} stranded GENERATING asset(s) back to PENDING`);
 }
 
 // Neither NAS-server nor client-side SMB tooling actually produces clean file trees:
@@ -162,6 +171,20 @@ async function proxyLoopTick() {
   for (const asset of pending) {
     console.log(`[proxy] generating for ${asset.id} (${asset.name})`);
     await generateProxy(asset);
+  }
+
+  // Watermarking rides the same loop rather than a second one: it is the same ffmpeg on
+  // the same NAS CPU, and running the two concurrently would just make both slower.
+  // Proxies go first — the gallery needs to light up before the download copy matters.
+  const unmarked = await db.asset.findMany({
+    where: { markStatus: "PENDING" },
+    take: CONCURRENCY,
+    orderBy: { createdAt: "asc" },
+  });
+
+  for (const asset of unmarked) {
+    console.log(`[mark] watermarking ${asset.id} (${asset.name})`);
+    await generateMarkedRenditions(asset);
   }
 }
 

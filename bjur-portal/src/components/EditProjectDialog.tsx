@@ -101,6 +101,7 @@ type ProjectRow = {
   calendar: boolean;
   review: boolean;
   sellMasters: boolean;
+  paymentHold: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
   assetCount: number;
@@ -130,6 +131,7 @@ export function EditProjectDialog({
   const [calendar, setCalendar] = useState(project.calendar);
   const [review, setReview] = useState(project.review);
   const [sellMasters, setSellMasters] = useState(project.sellMasters);
+  const [paymentHold, setPaymentHold] = useState(project.paymentHold);
   const [copiedLink, setCopiedLink] = useState(false);
 
   async function copyUploadLink() {
@@ -185,6 +187,7 @@ export function EditProjectDialog({
         calendar,
         review,
         sellMasters,
+        paymentHold,
         deliveredAt: deliveredAt || null,
         expiresAt: false ? null : expiresAt || null,
       }),
@@ -200,6 +203,7 @@ export function EditProjectDialog({
       calendar && "on the board",
       review && "client reviews",
       sellMasters && "masters for sale",
+      paymentHold && "payment hold",
     ].filter(Boolean);
     notify?.(`Saved · ${title.trim()}${on.length ? ` · ${on.join(" · ")}` : ""}`);
     onSaved();
@@ -299,6 +303,18 @@ export function EditProjectDialog({
                 sellMasters
                   ? "Master files landing here are offered to the client to licence, with a watermarked preview until they buy."
                   : "Master files stay internal — the client never sees them. Existing files keep whatever they are set to."
+              }
+            />
+
+            <ServiceToggle
+              testId="payment-hold-toggle"
+              label="Hold for payment"
+              checked={paymentHold}
+              onChange={setPaymentHold}
+              help={
+                paymentHold
+                  ? "Everything here is watermarked — the client can log in and download all of it, but every file carries a BJUR MEDIA mark. Turn this off when payment lands and the clean files are available immediately."
+                  : "The client downloads the finished files as they are. Turn this on before you send the login if you are delivering ahead of payment."
               }
             />
 

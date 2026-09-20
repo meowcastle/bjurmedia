@@ -157,6 +157,8 @@ export function ProjectDetailClient({
     expiresAt: string | null;
     /** Two-way: this client may send footage back, not just take delivery. */
     clientUploads: boolean;
+    /** Everything here is watermarked until the invoice is settled. */
+    paymentHold: boolean;
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
@@ -557,6 +559,12 @@ export function ProjectDetailClient({
                 </span>
               </>
             )}
+            {project.paymentHold && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-dim" />
+                <span className="text-accentb font-semibold">Watermarked preview</span>
+              </>
+            )}
             {totalSocialPosts > 0 && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
@@ -592,6 +600,22 @@ export function ProjectDetailClient({
           )}
         </div>
       </div>
+
+      {/* Say plainly why the work is marked. Without this the client's first move is an
+          email asking whether the files are broken — and the mark reads as a defect
+          rather than as the one thing standing between them and the finals. */}
+      {project.paymentHold && (
+        <div className="border border-accentb/40 bg-accentb/5 px-4 py-3.5 mb-6">
+          <div className="text-[13px] font-bold text-accentb mb-1">
+            These files carry a BJUR MEDIA watermark
+          </div>
+          <div className="text-[13px] text-muted leading-relaxed">
+            Everything here is yours to view and download now, at full quality — the
+            watermark comes off the moment the invoice is settled. Nothing needs
+            re-downloading on your side beyond grabbing the clean files once it lifts.
+          </div>
+        </div>
+      )}
 
       {/* A cut waiting on an answer outranks everything else on the page — it is the
           one thing here that is blocked on the person reading it. */}

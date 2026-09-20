@@ -5,10 +5,16 @@ import { resolveDerivedPath, streamFile } from "@/lib/media";
 import { db } from "@/lib/db";
 import { verifyThumbSignature } from "@/lib/publishToken";
 
-function stream(thumbRelPath: string | null) {
+/**
+ * Clean posters are immutable and cached for a year. A marked one must not be: the whole
+ * point of the hold is that lifting it is instant, and a poster pinned in the client's
+ * browser cache for a year would outlive the payment by a long way.
+ */
+function stream(thumbRelPath: string | null, marked = false) {
   if (!thumbRelPath) return new Response(null, { status: 404 });
+  const cacheControl = marked ? "private, no-store" : "private, max-age=31536000, immutable";
   return resolveDerivedPath(thumbRelPath)
-    .then((filePath) => streamFile(filePath, null, { cacheControl: "private, max-age=31536000, immutable" }))
+    .then((filePath) => streamFile(filePath, null, { cacheControl }))
     .catch(() => new Response(null, { status: 404 }));
 }
 
@@ -26,5 +32,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const auth = await authorizeAssetAccess("thumb", id, await getSessionUser());
   if (!auth.ok) return new Response(null, { status: auth.status });
-  return stream(auth.asset.thumbRelPath);
+  // A clean 960px poster is a usable still, so the hold covers it too.
+  return auth.watermark
+    ? stream(auth.asset.markedThumbRelPath, true)
+    : stream(auth.asset.thumbRelPath);
 }

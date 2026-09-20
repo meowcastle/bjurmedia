@@ -1,3 +1,4 @@
+import path from "path";
 import { NextRequest } from "next/server";
 import { Readable } from "stream";
 import { ZipArchive } from "archiver";
@@ -6,6 +7,14 @@ import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 import { getProjectAccess } from "@/lib/projectAccess";
+import { holdApplies, markedReady } from "@/lib/paymentHold";
+
+/** Same extension-swap as the single-file download: the marked copy is mp4/jpg. */
+function markedZipName(assetName: string, markedPath: string) {
+  const ext = path.extname(markedPath);
+  const base = assetName.slice(0, assetName.length - path.extname(assetName).length);
+  return `${base}${ext}`;
+}
 
 async function buildZipResponse(
   projectId: string,
@@ -38,16 +47,41 @@ async function buildZipResponse(
       });
   const licensedAssetIds = new Set(licenses.map((l) => l.assetId));
 
+  // A held project zips its watermarked copies. Anything not marked yet is left out
+  // rather than substituted with the master — a zip is the easiest place to leak the
+  // whole gallery at once, so it fails closed, file by file.
+  const watermark = holdApplies(project, session);
+  const skipped: string[] = [];
+
   const entries: { path: string; name: string }[] = [];
   for (const asset of project.assets) {
     const useProxy = asset.licensable && !session.isAdmin && !licensedAssetIds.has(asset.id);
-    const relPath = useProxy ? asset.proxyRelPath : asset.relPath;
+
+    let relPath: string | null;
+    let derived: boolean;
+    if (watermark) {
+      if (!markedReady(asset)) {
+        skipped.push(asset.name);
+        continue;
+      }
+      relPath = asset.markedFileRelPath;
+      derived = true;
+    } else {
+      relPath = useProxy ? asset.proxyRelPath : asset.relPath;
+      derived = useProxy;
+    }
+
     if (!relPath) continue;
-    const resolved = await (useProxy ? resolveDerivedPath(relPath) : resolveMediaPath(relPath)).catch(
+    const resolved = await (derived ? resolveDerivedPath(relPath) : resolveMediaPath(relPath)).catch(
       () => null
     );
     if (!resolved) continue;
-    entries.push({ path: resolved, name: `${asset.format}/${asset.name}` });
+    const name = watermark ? markedZipName(asset.name, resolved) : asset.name;
+    entries.push({ path: resolved, name: `${asset.format}/${name}` });
+  }
+
+  if (watermark && skipped.length > 0) {
+    console.warn(`[download-all] ${skipped.length} asset(s) not yet watermarked, omitted from zip`);
   }
 
   const archive = new ZipArchive({ zlib: { level: 6 } });

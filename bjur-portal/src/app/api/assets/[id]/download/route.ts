@@ -1,9 +1,18 @@
+import path from "path";
 import { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { authorizeAssetAccess } from "@/lib/authz";
-import { resolveMediaPath, streamFile } from "@/lib/media";
+import { resolveDerivedPath, resolveMediaPath, streamFile } from "@/lib/media";
+import { markedReady } from "@/lib/paymentHold";
 import { db } from "@/lib/db";
 import { postSlackEvent } from "@/lib/slack";
+
+/** "A116_C002.mov" + a .mp4 marked copy -> "A116_C002.mp4". */
+function markedDownloadName(assetName: string, markedPath: string) {
+  const ext = path.extname(markedPath);
+  const base = assetName.slice(0, assetName.length - path.extname(assetName).length);
+  return `${base}${ext}`;
+}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,13 +25,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(null, { status: auth.status });
   }
 
-  const filePath = await resolveMediaPath(auth.asset.relPath).catch(() => null);
+  // Payment hold: hand over the watermarked full-quality copy in place of the master.
+  // If it is not encoded yet, refuse — serving the master "just this once" because the
+  // mark is still rendering would release exactly the file the hold exists to withhold.
+  if (auth.watermark && !markedReady(auth.asset)) {
+    return Response.json(
+      {
+        error:
+          "This file is still being prepared for download. It will be ready shortly — try again in a few minutes.",
+      },
+      { status: 409 }
+    );
+  }
+
+  const filePath = auth.watermark
+    ? await resolveDerivedPath(auth.asset.markedFileRelPath!).catch(() => null)
+    : await resolveMediaPath(auth.asset.relPath).catch(() => null);
   if (!filePath) return new Response(null, { status: 404 });
 
   let response: Response;
   try {
     response = streamFile(filePath, req.headers.get("range"), {
-      download: auth.asset.name,
+      // The marked copy is always H.264/mp4 (or jpg), which a ProRes .mov master is not —
+      // keep the client's filename but give it the extension of what is actually inside,
+      // or they get a .mov that no player will open.
+      download: auth.watermark ? markedDownloadName(auth.asset.name, filePath) : auth.asset.name,
     });
   } catch {
     return new Response(null, { status: 404 });
@@ -37,7 +64,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     if (project) {
       await db.activity.create({
-        data: { actor: project.client.name, action: `downloaded "${auth.asset.name}" from ${project.title}` },
+        data: {
+          actor: project.client.name,
+          action: `downloaded ${auth.watermark ? "a watermarked " : ""}"${auth.asset.name}" from ${project.title}`,
+        },
       });
       await postSlackEvent({
         clientId: project.clientId,

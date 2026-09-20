@@ -121,6 +121,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         calendar: p.calendar,
         review: p.review,
         sellMasters: p.sellMasters,
+        paymentHold: p.paymentHold,
         assetCount: p.assets.filter((a) => !a.internal).length,
         submissionCount: p._count.submissions,
         inboxPath: inboxDirFor(client.username, p.inboxSlug),

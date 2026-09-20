@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth";
 import { getProjectAccess } from "@/lib/projectAccess";
+import { holdApplies } from "@/lib/paymentHold";
 
 type AccessKind = "thumb" | "proxy" | "download";
 
@@ -14,7 +15,12 @@ function loadAsset(assetId: string) {
 }
 
 export type AuthzResult =
-  | { ok: true; asset: AssetWithProject }
+  /**
+   * `watermark` says this viewer must be served the marked rendition of whatever they
+   * asked for, because the project is on a payment hold. It is decided here, next to
+   * every other access rule, so no route can serve a clean file by forgetting to ask.
+   */
+  | { ok: true; asset: AssetWithProject; watermark: boolean }
   | { ok: false; status: number; reason?: string };
 
 /**
@@ -52,5 +58,7 @@ export async function authorizeAssetAccess(
     }
   }
 
-  return { ok: true, asset };
+  // A payment hold never refuses the request — the client is meant to be able to take
+  // delivery of everything immediately. It changes which file they get.
+  return { ok: true, asset, watermark: holdApplies(asset.project, session) };
 }

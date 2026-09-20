@@ -13,6 +13,42 @@ const execFileAsync = promisify(execFile);
 const WATERMARK_FONT =
   process.env.WATERMARK_FONT ?? "/System/Library/Fonts/Supplemental/Arial Bold.ttf";
 
+/** The mark burned into a payment-held delivery. Kept short — drawtext has no line wrap. */
+const HOLD_MARK_TEXT = process.env.HOLD_MARK_TEXT ?? "BJUR MEDIA";
+
+/**
+ * "preview" is the long-standing licensing mark: a faint scrolling line over a proxy
+ * nobody has bought yet. It is deliberately almost invisible — it deters reuse of a
+ * preview without spoiling the client's read of the work.
+ *
+ * "hold" is the payment mark, and it has the opposite job: the client is being handed a
+ * full-quality file they can actually use, so the mark has to be plainly there. Centred,
+ * ~22% opacity, sized off the frame height so it lands the same on a 1080p reel and a 4K
+ * master, with a soft shadow so it stays legible over a blown-out sky.
+ */
+export type MarkStyle = "none" | "preview" | "hold";
+
+/**
+ * A "hold" rendition that failed to draw its mark must never reach disk. Everything
+ * downstream trusts the marked path to be marked — a silent fallback to a clean encode
+ * would hand an unpaid client the finished file and look, from the outside, like the
+ * feature working.
+ */
+const UNMARKABLE =
+  "Cannot draw the watermark (font missing or drawtext failed) — refusing to write an unmarked copy down a marked path.";
+
+function markFilter(style: MarkStyle, hasFont: boolean) {
+  if (style === "none" || !hasFont) return null;
+  if (style === "preview") {
+    return `drawtext=fontfile=${WATERMARK_FONT}:text='BJUR MEDIA . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`;
+  }
+  return (
+    `drawtext=fontfile=${WATERMARK_FONT}:text='${HOLD_MARK_TEXT}':fontcolor=white@0.22:` +
+    `fontsize=h/18:x=(w-text_w)/2:y=(h-text_h)/2:` +
+    `shadowcolor=black@0.22:shadowx=2:shadowy=2:box=0`
+  );
+}
+
 type AssetRow = Awaited<ReturnType<typeof db.asset.findFirstOrThrow>>;
 
 // Real transcodes of this studio's short-form content legitimately take a few
@@ -52,8 +88,18 @@ async function probeDuration(filePath: string): Promise<number | null> {
   }
 }
 
-async function generateThumb(srcPath: string, outPath: string, isVideo: boolean, durationSec: number | null) {
+async function generateThumb(
+  srcPath: string,
+  outPath: string,
+  isVideo: boolean,
+  durationSec: number | null,
+  style: MarkStyle = "none"
+) {
   await mkdir(path.dirname(outPath), { recursive: true });
+  const scaleOnly = "scale=960:-1:flags=lanczos";
+  const thumbMark = markFilter(style, existsSync(WATERMARK_FONT));
+  if (style === "hold" && !thumbMark) throw new Error(UNMARKABLE);
+  const vf = thumbMark ? `${scaleOnly},${thumbMark}` : scaleOnly;
   if (isVideo) {
     const offset = durationSec ? Math.min(1, durationSec * 0.1) : 0.1;
     await runFfmpeg([
@@ -64,25 +110,24 @@ async function generateThumb(srcPath: string, outPath: string, isVideo: boolean,
       "-frames:v",
       "1",
       "-vf",
-      "scale=960:-1:flags=lanczos",
+      vf,
       "-q:v",
       "3",
       outPath,
     ]);
   } else {
-    await runFfmpeg(["-i", srcPath, "-vf", "scale=960:-1:flags=lanczos", "-q:v", "3", outPath]);
+    await runFfmpeg(["-i", srcPath, "-vf", vf, "-q:v", "3", outPath]);
   }
 }
 
-async function generateVideoProxy(srcPath: string, outPath: string, format: string, watermark: boolean) {
+async function generateVideoProxy(srcPath: string, outPath: string, format: string, style: MarkStyle) {
   const { w, h } = proxyDims(format);
   const scale = `scale=${w}:${h}:flags=lanczos`;
   const hasFont = existsSync(WATERMARK_FONT);
 
-  const vf =
-    watermark && hasFont
-      ? `${scale},drawtext=fontfile=${WATERMARK_FONT}:text='BJUR MEDIA . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`
-      : scale;
+  const mark = markFilter(style, hasFont);
+  if (style === "hold" && !mark) throw new Error(UNMARKABLE);
+  const vf = mark ? `${scale},${mark}` : scale;
 
   const args = [
     "-i",
@@ -127,8 +172,10 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
   try {
     await runFfmpeg(args);
   } catch (err) {
-    if (watermark && hasFont) {
-      // Retry without the text overlay so a font/filter issue doesn't fail the whole encode.
+    if (mark && style === "preview") {
+      // Retry without the text overlay so a font/filter issue doesn't fail the whole
+      // encode. Only ever for "preview": dropping the mark from a payment-hold rendition
+      // would quietly release the work.
       await runFfmpeg([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
     } else {
       throw err;
@@ -165,7 +212,7 @@ export async function generateProxy(asset: AssetRow) {
       const watermark = asset.licensable;
       proxyRelPath = `${asset.id}/proxy.mp4`;
       const outPath = path.join(DERIVED_ROOT, proxyRelPath);
-      await generateVideoProxy(srcPath, outPath, asset.format, watermark);
+      await generateVideoProxy(srcPath, outPath, asset.format, watermark ? "preview" : "none");
 
       // A source file can have a corrupted packet partway through (valid header/
       // duration metadata, broken bitstream data after some point) that ffmpeg just
@@ -192,6 +239,19 @@ export async function generateProxy(asset: AssetRow) {
       data: { proxyStatus: "READY", thumbRelPath, proxyRelPath, proxyRes },
     });
 
+    // A file that lands in a project already on a payment hold needs its marked
+    // renditions before the client may take delivery of anything. Queue them for the
+    // same worker loop rather than encoding them inline — the gallery should light up
+    // with a poster and a proxy straight away, and the expensive full-resolution mark
+    // can follow behind it.
+    const owner = await db.project.findUnique({
+      where: { id: asset.projectId },
+      select: { paymentHold: true },
+    });
+    if (owner?.paymentHold) {
+      await db.asset.update({ where: { id: asset.id }, data: { markStatus: "PENDING" } });
+    }
+
     // Queue captioning once the proxy exists — the transcriber reads the proxy, not the
     // master. queueForCaptioning decides eligibility, so nothing that predates the
     // feature or falls outside it is ever picked up.
@@ -211,6 +271,118 @@ export async function generateProxy(asset: AssetRow) {
       data: {
         actor: "Worker",
         action: `Proxy generation failed for "${asset.name}": ${(err as Error).message.slice(0, 200)}`,
+      },
+    });
+  }
+}
+
+
+/**
+ * A full-quality watermarked copy of the master: the master's own resolution and frame
+ * rate with the mark burned in, not a preview. This is what Download hands over while
+ * the project is on a payment hold, so it has to be a file the client can genuinely
+ * work with — CRF 18 rather than the proxy's 26, and no downscale.
+ */
+async function generateMarkedDelivery(srcPath: string, outPath: string) {
+  const mark = markFilter("hold", existsSync(WATERMARK_FONT));
+  if (!mark) throw new Error(UNMARKABLE);
+
+  const base = [
+    "-i",
+    srcPath,
+    "-vf",
+    mark,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "medium",
+    "-profile:v",
+    "high",
+    "-crf",
+    "18",
+    "-pix_fmt",
+    "yuv420p",
+    "-color_primaries",
+    "bt709",
+    "-color_trc",
+    "bt709",
+    "-colorspace",
+    "bt709",
+    "-movflags",
+    "+faststart",
+  ];
+
+  // Pass the master's audio through untouched where the mp4 container will take it —
+  // re-encoding audio to hand back a watermarked *picture* is a loss for no reason.
+  // PCM out of a ProRes .mov is the common case mp4 refuses, hence the fallback.
+  try {
+    await runFfmpeg([...base, "-c:a", "copy", outPath]);
+  } catch {
+    await runFfmpeg([...base, "-c:a", "aac", "-b:a", "256k", outPath]);
+  }
+}
+
+/** The stills equivalent: full resolution, mark burned in, near-lossless JPEG. */
+async function generateMarkedStill(srcPath: string, outPath: string) {
+  const mark = markFilter("hold", existsSync(WATERMARK_FONT));
+  if (!mark) throw new Error(UNMARKABLE);
+  await runFfmpeg(["-i", srcPath, "-vf", mark, "-q:v", "2", outPath]);
+}
+
+/**
+ * Builds every watermarked rendition one asset needs while its project sits on a payment
+ * hold — poster, streaming proxy and the download copy. All three, because all three are
+ * routes a client can reach: a clean 960px poster is a perfectly usable still.
+ *
+ * Failure here is safe by construction. markStatus goes FAILED, and every serving route
+ * refuses rather than falling back to the clean original, so a BRAW master ffmpeg cannot
+ * decode ends up undownloadable rather than accidentally released.
+ */
+export async function generateMarkedRenditions(asset: AssetRow) {
+  await db.asset.update({ where: { id: asset.id }, data: { markStatus: "GENERATING" } });
+
+  try {
+    const srcPath = await resolveMediaPath(asset.relPath);
+    await mkdir(path.join(DERIVED_ROOT, asset.id), { recursive: true });
+
+    const markedThumbRelPath = `${asset.id}/thumb.marked.jpg`;
+    await generateThumb(
+      srcPath,
+      path.join(DERIVED_ROOT, markedThumbRelPath),
+      asset.kind === "VIDEO",
+      asset.durationSec,
+      "hold"
+    );
+
+    let markedProxyRelPath: string | null = null;
+    let markedFileRelPath: string | null = null;
+
+    if (asset.kind === "VIDEO") {
+      markedProxyRelPath = `${asset.id}/proxy.marked.mp4`;
+      await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, markedProxyRelPath), asset.format, "hold");
+
+      markedFileRelPath = `${asset.id}/delivery.marked.mp4`;
+      await generateMarkedDelivery(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
+    } else {
+      const ext = path.extname(asset.name).toLowerCase() === ".png" ? ".png" : ".jpg";
+      markedFileRelPath = `${asset.id}/delivery.marked${ext}`;
+      await generateMarkedStill(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
+    }
+
+    await db.asset.update({
+      where: { id: asset.id },
+      data: { markStatus: "READY", markedThumbRelPath, markedProxyRelPath, markedFileRelPath },
+    });
+
+    await db.activity.create({
+      data: { actor: "Worker", action: `watermarked "${asset.name}" for the payment hold` },
+    });
+  } catch (err) {
+    await db.asset.update({ where: { id: asset.id }, data: { markStatus: "FAILED" } });
+    await db.activity.create({
+      data: {
+        actor: "Worker",
+        action: `Watermarking failed for "${asset.name}": ${(err as Error).message.slice(0, 200)}`,
       },
     });
   }

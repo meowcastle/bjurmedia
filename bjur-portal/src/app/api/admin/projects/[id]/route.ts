@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inboxDirFor } from "@/lib/projects";
+import { queueProjectForMarking } from "@/lib/paymentHold";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   // The three service switches. A project is defined by what it does, so these are
   // per-project rather than a property of the client that owns it.
-  for (const flag of ["clientUploads", "calendar", "review", "sellMasters"] as const) {
+  for (const flag of ["clientUploads", "calendar", "review", "sellMasters", "paymentHold"] as const) {
     if (body[flag] === undefined) continue;
     if (typeof body[flag] !== "boolean") {
       return NextResponse.json({ error: `${flag} must be true or false.` }, { status: 400 });
@@ -39,13 +40,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data.expiryReminderSentFor = null;
   }
 
+  // Releasing the hold is the moment the client's files go clean, so it is worth a
+  // timestamp of its own — "when did they actually get the work" is a question that gets
+  // asked months later, and "updated project" in the activity feed does not answer it.
+  const turningHoldOff = data.paymentHold === false && project.paymentHold;
+  if (turningHoldOff) data.paymentReleasedAt = new Date();
+
   const updated = await db.project.update({ where: { id }, data });
+
+  const turnedHoldOn = data.paymentHold === true && !project.paymentHold;
+  const queued = turnedHoldOn ? await queueProjectForMarking(id) : 0;
 
   await db.activity.create({
     data: { actor: "You", action: `updated project "${updated.title}"` },
   });
+  if (turnedHoldOn) {
+    await db.activity.create({
+      data: {
+        actor: "You",
+        action: `put "${updated.title}" on a payment hold — watermarking ${queued} file(s)`,
+      },
+    });
+  }
+  if (turningHoldOff) {
+    await db.activity.create({
+      data: { actor: "You", action: `released "${updated.title}" — clean files are now downloadable` },
+    });
+  }
 
-  return NextResponse.json({ project: updated });
+  return NextResponse.json({ project: updated, queued });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

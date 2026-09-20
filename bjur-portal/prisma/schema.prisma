@@ -118,17 +118,28 @@ model Project {
   // v2 service switches. A project is defined by what it does, not by what kind of
   // client owns it — the same client can have a scheduled social project and a one-off
   // delivery running at once, which ClientType could never express.
-  calendar    Boolean   @default(false) // scheduled on the board, week pushed to Slack
-  review      Boolean   @default(false) // each new asset asks the client to approve or send notes
+  calendar          Boolean   @default(false) // scheduled on the board, week pushed to Slack
+  review            Boolean   @default(false) // each new asset asks the client to approve or send notes
   /**
    * Master files landing here are offered to the client to licence, rather than kept
    * internal. This used to be inferred from the client being "one-off", which meant a
    * client was permanently one shape; the same client can now have a delivery they can
    * buy the master from and a retainer project where masters stay in-house.
    */
-  sellMasters Boolean   @default(false)
-  deliveredAt DateTime?
-  expiresAt   DateTime? // null => permanent (retainer)
+  sellMasters       Boolean   @default(false)
+  /**
+   * Payment hold. While this is on, everything the client can reach from this project
+   * is watermarked: the gallery streams a marked proxy and Download hands over a marked
+   * full-quality copy instead of the master. Turning it off once payment clears releases
+   * the clean files instantly — both renditions are already on disk, so nothing
+   * re-encodes at the one moment the client is standing there waiting.
+   * Distinct from sellMasters, which refuses the download outright until a License row
+   * exists. Here the client takes delivery of everything immediately; it is just marked.
+   */
+  paymentHold       Boolean   @default(false)
+  paymentReleasedAt DateTime? // when the hold was last lifted — the record of when they got clean files
+  deliveredAt       DateTime?
+  expiresAt         DateTime? // null => permanent (retainer)
 
   // Delivery-email debounce. Assets arrive one file at a time (ingest.ts runs per
   // file), so a 40-clip drop would be 40 emails. Instead each arrival pushes
@@ -255,6 +266,15 @@ model Asset {
   thumbRelPath String? // generated poster/thumbnail
   proxyRes     String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
 
+  // Watermarked renditions, generated only while the owning project sits on a payment
+  // hold (Project.paymentHold). Kept *alongside* the clean ones rather than replacing
+  // them, so lifting the hold is a flag flip rather than a re-encode of the whole
+  // gallery. markStatus drives the worker exactly the way proxyStatus does.
+  markStatus         MarkStatus @default(NONE)
+  markedThumbRelPath String?
+  markedProxyRelPath String?
+  markedFileRelPath  String? // full-quality marked stand-in served in place of the master
+
   // re-upload tracking: an asset re-ingested at the same relPath replaces the
   // original in place (see ingest.ts) rather than duplicating — these track how
   // often and how recently that's happened, since a re-upload shortly after the
@@ -338,6 +358,16 @@ enum AssetKind {
 }
 
 enum ProxyStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
+// NONE = this asset has no marked renditions and needs none (its project is not on a
+// payment hold). Anything else mirrors ProxyStatus.
+enum MarkStatus {
+  NONE
   PENDING
   GENERATING
   READY
