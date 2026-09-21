@@ -153,13 +153,22 @@ function startIngestWatcher() {
   console.log(`[ingest] watching ${INBOX_ROOT}`);
 }
 
-async function proxyLoopTick() {
-  await db.workerHeartbeat.upsert({
-    where: { id: 1 },
-    create: { id: 1 },
-    update: { lastSeen: new Date() },
-  });
+/**
+ * The heartbeat is its own timer, not something the encode loops update on their way
+ * past. It answers "is this process alive", and a worker three minutes into a
+ * full-resolution watermark is very much alive — but while the tick that used to write
+ * this was busy, nothing wrote it, and the dashboard started calling the worker down.
+ */
+function startHeartbeat() {
+  const beat = () =>
+    db.workerHeartbeat
+      .upsert({ where: { id: 1 }, create: { id: 1 }, update: { lastSeen: new Date() } })
+      .catch((err) => console.error("[worker] heartbeat failed:", err));
+  beat();
+  setInterval(beat, 15_000);
+}
 
+async function proxyLoopTick() {
   const pending = await db.asset.findMany({
     where: { proxyStatus: "PENDING" },
     take: CONCURRENCY,
@@ -170,10 +179,21 @@ async function proxyLoopTick() {
     console.log(`[proxy] generating for ${asset.id} (${asset.name})`);
     await generateProxy(asset);
   }
+}
 
-  // Watermarking rides the same loop rather than a second one: it is the same ffmpeg on
-  // the same NAS CPU, and running the two concurrently would just make both slower.
-  // Proxies go first — the gallery needs to light up before the download copy matters.
+/**
+ * Watermarking gets its own loop, and its own guard.
+ *
+ * It shared the proxy tick, on the reasoning that both are ffmpeg on one CPU and running
+ * them together would only make both slower. That was wrong in the way that matters: a
+ * watermark is a full-resolution CRF 18 encode and a proxy is a 1080p CRF 26 one, so a
+ * single mark held the tick for minutes while fifty-odd proxies sat PENDING behind it —
+ * and a proxy is what the client's gallery needs to show anything at all.
+ *
+ * Two guarded loops means at most one of each at a time rather than one of either, which
+ * is a bounded and much more useful place to spend the box.
+ */
+async function markLoopTick() {
   const unmarked = await db.asset.findMany({
     where: { markStatus: "PENDING" },
     take: CONCURRENCY,
@@ -186,31 +206,34 @@ async function proxyLoopTick() {
   }
 }
 
-function startProxyLoop() {
-  console.log(`[proxy] polling every ${POLL_MS}ms, concurrency ${CONCURRENCY}`);
-
-  // setInterval does not wait for an async callback to finish, so without this guard the
-  // poll interval — not CONCURRENCY — decides how much encoding runs at once: every 4s
-  // the next tick picks up the next PENDING asset and starts another ffmpeg alongside the
-  // one still running. Harmless-looking with light proxy encodes, and genuinely damaging
-  // with full-resolution watermark encodes: a 25-clip delivery started 25 of them at once
-  // and buried the NAS while a client was still uploading to it. CONCURRENCY is the knob
-  // for how many run together; the interval only decides how often we look.
-  let ticking = false;
-  const tick = () => {
-    if (ticking) return;
-    ticking = true;
-    proxyLoopTick()
-      .catch((err) => console.error("[proxy] tick failed:", err))
+/**
+ * setInterval does not wait for an async callback, so without this guard the poll
+ * interval — not CONCURRENCY — decides how much encoding runs at once: every tick starts
+ * another ffmpeg beside the one still going. Harmless-looking with light proxy encodes
+ * and genuinely damaging with full-resolution ones.
+ */
+function guardedInterval(name: string, tick: () => Promise<void>, ms: number) {
+  let running = false;
+  const run = () => {
+    if (running) return;
+    running = true;
+    tick()
+      .catch((err) => console.error(`[${name}] tick failed:`, err))
       .finally(() => {
-        ticking = false;
+        running = false;
       });
   };
+  run();
+  setInterval(run, ms);
+}
+
+function startProxyLoop() {
+  console.log(`[proxy] polling every ${POLL_MS}ms, concurrency ${CONCURRENCY}`);
   recoverStrandedProxies()
     .catch((err) => console.error("[proxy] failed to recover stranded assets:", err))
     .finally(() => {
-      tick();
-      setInterval(tick, POLL_MS);
+      guardedInterval("proxy", proxyLoopTick, POLL_MS);
+      guardedInterval("mark", markLoopTick, POLL_MS);
     });
 }
 
@@ -431,6 +454,7 @@ function startInternalServer() {
   server.listen(INGEST_PORT, () => console.log(`[internal-server] listening on :${INGEST_PORT}`));
 }
 
+startHeartbeat();
 startIngestWatcher();
 startInternalServer();
 startProxyLoop();
