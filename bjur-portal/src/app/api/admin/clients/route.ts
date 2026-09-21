@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       clientName: client.name,
       recipientName: ownerName.trim(),
       portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
-      username: client.username,
+      signInEmail: ownerEmail.trim(),
       tempPassword,
     });
   }

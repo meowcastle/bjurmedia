@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       clientName: client.name,
       recipientName: name.trim(),
       portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
-      username: client.username,
+      signInEmail: email.trim(),
       tempPassword,
     });
   }

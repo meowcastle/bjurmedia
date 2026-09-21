@@ -32,7 +32,7 @@ export async function POST(
     clientName: client.name,
     recipientName: user.name,
     portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
-    username: client.username,
+    signInEmail: user.email,
     tempPassword,
   });
 

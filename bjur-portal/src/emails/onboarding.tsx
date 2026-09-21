@@ -6,7 +6,12 @@ export type OnboardingEmailProps = {
   clientName: string;
   recipientName: string;
   portalUrl: string;
-  username: string;
+  /**
+   * The address they actually sign in with. This used to be the client's org handle
+   * under a "Username" label — but login authenticates on email, so a new client was
+   * handed a credential block naming something the form would never accept.
+   */
+  signInEmail: string;
   tempPassword: string;
   /** Omit for a plain seat/account welcome with no delivery attached yet. */
   delivery?: {
@@ -43,7 +48,7 @@ export function renderOnboardingEmailHtml({
   clientName,
   recipientName,
   portalUrl,
-  username,
+  signInEmail,
   tempPassword,
   delivery,
 }: OnboardingEmailProps): string {
@@ -117,7 +122,7 @@ export function renderOnboardingEmailHtml({
       <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6e6b66;font-weight:700;margin-bottom:12px">Your sign-in</div>
       <div style="border:1px solid #dcd8d1;background:#f6f4f0">
         ${credRow("Portal", portalUrl.replace(/^https?:\/\//, ""), false)}
-        ${credRow("Username", username, false)}
+        ${credRow("Email", signInEmail, false)}
         ${credRow("Temporary password", tempPassword, true)}
       </div>
       <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:12px 0 0">You'll be asked to set your own password on first sign-in. This temporary password expires in 7 days.</p>
