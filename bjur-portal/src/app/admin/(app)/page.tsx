@@ -31,7 +31,11 @@ export default async function AdminDashboardPage() {
         take: 5,
         include: { client: true, assets: { select: { id: true } } },
       }),
-      db.client.findMany({ where: { status: "ACTIVE" }, orderBy: { name: "asc" } }),
+      db.client.findMany({
+        where: { status: "ACTIVE" },
+        orderBy: { name: "asc" },
+        include: { channel: { select: { clientId: true } } },
+      }),
     ]);
 
   const queueCount = await db.asset.count({ where: { proxyStatus: { in: ["PENDING", "GENERATING"] } } });
@@ -199,7 +203,7 @@ export default async function AdminDashboardPage() {
         delivered: formatDate(p.deliveredAt),
         statusColor: statusColor[p.status] ?? "var(--dim)",
       }))}
-      clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+      clients={clients.map((c) => ({ id: c.id, name: c.name, hasSlackChannel: c.channel !== null }))}
       socialErrors={socialAccountErrors.map((a) => ({
         id: a.id,
         clientName: a.client.name,

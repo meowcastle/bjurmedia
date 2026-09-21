@@ -19,7 +19,7 @@ type DeliveryRow = {
   delivered: string;
   statusColor: string;
 };
-type ClientOption = { id: string; name: string };
+type ClientOption = { id: string; name: string; hasSlackChannel: boolean };
 type SocialErrorRow = { id: string; clientName: string; platform: string; error: string };
 type TopSocialPostRow = { id: string; assetName: string; clientName: string; projectId: string; views: string };
 

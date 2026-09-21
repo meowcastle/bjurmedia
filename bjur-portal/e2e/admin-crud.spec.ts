@@ -42,7 +42,7 @@ test("create a new project and see its inbox path", async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/clients\/.+/);
 
   await page.getByRole("button", { name: "+ New project" }).click();
-  await page.getByLabel("Project title").fill("Fall Lookbook 2026");
+  await page.getByLabel("Title").fill("Fall Lookbook 2026");
   await page.getByRole("button", { name: "Create project" }).click();
 
   // Scoped to the dialog overlay: router.refresh() (triggered by onCreated()) can make
@@ -59,7 +59,6 @@ test("create a new project and see its inbox path", async ({ page }) => {
   // else that happens to contain the word.
   const row = page.locator('[data-testid^="project-row-"]').filter({ hasText: "Fall Lookbook 2026" });
   await expect(row).toHaveCount(1);
-  await expect(row.getByText("DRAFT", { exact: true })).toBeVisible(); // hidden from the client until first delivery
 });
 
 test("any project can be given an expiry", async ({ page }) => {

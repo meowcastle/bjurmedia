@@ -1,0 +1,525 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Toast } from "@/components/ui/Toast";
+import { formatBytes } from "@/lib/format";
+
+type RequestState = "open" | "closed" | "expired";
+
+type RequestRow = {
+  id: string;
+  name: string;
+  state: RequestState;
+  sendPath: string;
+  folder: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+type ProjectRow = {
+  id: string;
+  title: string;
+  type: "DELIVERY" | "CALENDAR";
+  review: boolean;
+  paymentHold: boolean;
+  deliveredAt: string | null;
+  expiresAt: string | null;
+  inboxPath: string;
+  slug: string;
+  fileCount: number;
+  submissionCount: number;
+  receivedBytes: string;
+  isEmpty: boolean;
+  hasSlackChannel: boolean;
+};
+
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function toDateInput(iso: string | null) {
+  return iso ? iso.slice(0, 10) : "";
+}
+
+function daysLeft(iso: string) {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+}
+
+const Kicker = ({ children }: { children: React.ReactNode }) => (
+  <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-1.5">{children}</span>
+);
+
+/**
+ * The admin's view of one project.
+ *
+ * Replaced the Edit dialog on the client page. A dialog made every field feel like a
+ * setting you were about to change; most of the time you are here to read what this
+ * project is and see whether the footage arrived. So the facts are on the page and the
+ * two editable dates edit in place — blur or Enter saves, Escape puts it back.
+ *
+ * What the project *is* — its type, and whether it runs a review loop — is not here at
+ * all, because it cannot be changed. It is stated once, next to the title, with the
+ * reason.
+ */
+export function AdminProjectDetailClient({
+  project,
+  client,
+  requests: initialRequests,
+  ttlDays,
+}: {
+  project: ProjectRow;
+  client: { id: string; name: string };
+  requests: RequestRow[];
+  ttlDays: number;
+}) {
+  const router = useRouter();
+  const [toast, setToast] = useState<string | null>(null);
+  // Deliberately not held in state. useState(initialRequests) only reads its argument on
+  // the first render, so after router.refresh() re-ran the server component the list
+  // would still be the one this page loaded with — a request you just asked for would
+  // never appear. The server is the source; refresh is what updates it.
+  const requests = initialRequests;
+  const [held, setHeld] = useState(project.paymentHold);
+  const [busy, setBusy] = useState(false);
+
+  /**
+   * Escape reverts, and must not also save.
+   *
+   * setTitle() has not flushed by the time blur() fires synchronously underneath it, so
+   * the blur handler would read the abandoned value out of a stale closure and commit
+   * exactly the edit the user just cancelled. A ref is checked instead of state for the
+   * same reason: it is readable immediately.
+   */
+  const revertingRef = useRef(false);
+
+  const [title, setTitle] = useState(project.title);
+  const [delivered, setDelivered] = useState(toDateInput(project.deliveredAt));
+  const [expires, setExpires] = useState(toDateInput(project.expiresAt));
+
+  const [asking, setAsking] = useState(false);
+  const [askName, setAskName] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function patch(data: Record<string, unknown>, note: string) {
+    const res = await fetch(`/api/admin/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setToast(body.error ?? "Could not save that.");
+      return false;
+    }
+    setToast(note);
+    router.refresh();
+    return true;
+  }
+
+  async function togglePay() {
+    setBusy(true);
+    const next = !held;
+    const res = await fetch(`/api/admin/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentHold: next }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setToast("Could not save that.");
+      return;
+    }
+    const body = (await res.json().catch(() => ({}))) as { released?: number };
+    setHeld(next);
+    setToast(
+      next
+        ? "Held · downloads watermarked"
+        : body.released
+          ? `Released · clean downloads · ${body.released} owner${body.released === 1 ? "" : "s"} emailed`
+          : "Released · clean downloads"
+    );
+    router.refresh();
+  }
+
+  async function askForFootage() {
+    const name = askName.trim();
+    if (!name) return;
+    setBusy(true);
+    const res = await fetch(`/api/admin/projects/${project.id}/requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setToast("Could not make that link.");
+      return;
+    }
+    setAsking(false);
+    setAskName("");
+    setToast(`${name} · link live for ${ttlDays} days`);
+    router.refresh();
+  }
+
+  async function setRequestOpen(r: RequestRow, open: boolean) {
+    setBusy(true);
+    const res = await fetch(`/api/admin/requests/${r.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ open }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setToast("Could not save that.");
+      return;
+    }
+    setToast(open ? `${r.name} · link reopened for ${ttlDays} days` : `${r.name} · link closed`);
+    router.refresh();
+  }
+
+  async function copyLink(r: RequestRow) {
+    await navigator.clipboard
+      .writeText(`${window.location.origin}${r.sendPath}`)
+      .catch(() => setToast("Could not copy that."));
+    setCopied(r.id);
+    setTimeout(() => setCopied(null), 1600);
+  }
+
+  async function deleteProject() {
+    setBusy(true);
+    const res = await fetch(`/api/admin/projects/${project.id}`, { method: "DELETE" });
+    setBusy(false);
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setToast(body.error ?? "Could not delete that.");
+      return;
+    }
+    router.push(`/admin/clients/${client.id}`);
+  }
+
+  // What this project does, in its own words. Derived rather than stored: these are the
+  // consequences of the type and the review flag, and a client of this page should not
+  // have to know how to read a pair of enum values.
+  const does =
+    project.type === "CALENDAR"
+      ? [
+          "Reels land in the inbox and appear on the week board, unscheduled.",
+          "You drag them onto a day, approve the caption, and post the week to Slack.",
+          "The client approves in Slack with a reaction. Nothing posts on its own.",
+        ]
+      : [
+          "Finished files land in the inbox and appear in the client's gallery.",
+          project.review
+            ? "Every new cut asks the client to approve it or send notes."
+            : "The client can stream and download everything as it arrives.",
+        ];
+
+  const received = Number(project.receivedBytes);
+
+  return (
+    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade">
+      <Link
+        href={`/admin/clients/${client.id}`}
+        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
+      >
+        ← {client.name}
+      </Link>
+
+      <div className="border-b-2 border-line2 pb-6 mb-9">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            if (revertingRef.current) {
+              revertingRef.current = false;
+              return;
+            }
+            const next = title.trim();
+            if (!next || next === project.title) {
+              setTitle(project.title);
+              return;
+            }
+            patch({ title: next }, "Title saved");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") {
+              revertingRef.current = true;
+              setTitle(project.title);
+              e.currentTarget.blur();
+            }
+          }}
+          aria-label="Project title"
+          data-testid="project-title"
+          className="bj-serif text-[28px] sm:text-4xl font-normal bg-transparent w-full outline-none border-b border-transparent focus:border-line2 mb-3"
+        />
+        <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-extrabold uppercase tracking-[.06em]">
+          <span className="text-muted border border-line2 px-[7px] py-[3px]" data-testid="project-type">
+            {project.type === "CALENDAR" ? "Social calendar" : "Delivery"}
+          </span>
+          {project.review && (
+            <span className="text-muted border border-line2 px-[7px] py-[3px]">Review</span>
+          )}
+          {held && (
+            <span className="text-accentb border border-accentb px-[7px] py-[3px]">Held for payment</span>
+          )}
+          <span className="text-dim2 normal-case tracking-normal font-semibold text-[11px]">
+            set at creation
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-line2 border border-line2 mb-1">
+        <div className="bg-s1 px-[18px] py-4">
+          <Kicker>Delivered</Kicker>
+          <input
+            type="date"
+            value={delivered}
+            onChange={(e) => setDelivered(e.target.value)}
+            onBlur={() => {
+              if (revertingRef.current) {
+                revertingRef.current = false;
+                return;
+              }
+              if (delivered === toDateInput(project.deliveredAt)) return;
+              patch({ deliveredAt: delivered || null }, "Delivered date saved");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                revertingRef.current = true;
+                setDelivered(toDateInput(project.deliveredAt));
+                e.currentTarget.blur();
+              }
+            }}
+            aria-label="Delivered"
+            data-testid="project-delivered"
+            className="w-full bg-transparent text-[13px] font-mono outline-none"
+          />
+        </div>
+        <div className="bg-s1 px-[18px] py-4">
+          <Kicker>Expires</Kicker>
+          <input
+            type="date"
+            value={expires}
+            onChange={(e) => setExpires(e.target.value)}
+            onBlur={() => {
+              if (revertingRef.current) {
+                revertingRef.current = false;
+                return;
+              }
+              if (expires === toDateInput(project.expiresAt)) return;
+              patch({ expiresAt: expires || null }, expires ? "Expiry saved" : "Expiry cleared");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                revertingRef.current = true;
+                setExpires(toDateInput(project.expiresAt));
+                e.currentTarget.blur();
+              }
+            }}
+            aria-label="Expires"
+            data-testid="project-expires"
+            className="w-full bg-transparent text-[13px] font-mono outline-none"
+            placeholder="Never"
+          />
+        </div>
+        <div className="bg-s1 px-[18px] py-4">
+          <Kicker>Files</Kicker>
+          <span className="text-[13px]">
+            {project.fileCount}
+            <span className="text-dim2">
+              {" · "}
+              {project.submissionCount} received
+              {received > 0 ? ` · ${formatBytes(received)}` : ""}
+            </span>
+          </span>
+        </div>
+        <div className="bg-s1 px-[18px] py-4 min-w-0">
+          <Kicker>Inbox</Kicker>
+          <span className="text-[12px] text-body font-mono break-all">{project.inboxPath}</span>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-px bg-line2 border border-line2">
+        <div className="bg-s1 px-6 py-[22px]">
+          <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3">
+            What this project does
+          </div>
+          {does.map((d) => (
+            <div key={d} className="text-xs text-body py-[9px] border-t border-line leading-relaxed">
+              {d}
+            </div>
+          ))}
+          {project.type === "CALENDAR" && !project.hasSlackChannel && (
+            <div className="text-[11px] text-accentb py-[9px] border-t border-line leading-relaxed">
+              No Slack channel for {client.name} yet.{" "}
+              <Link href="/admin/integrations" className="text-text tracking-[.06em] font-semibold">
+                ADD ONE →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-s1 px-6 py-[22px]">
+          <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3 flex justify-between">
+            <span>Payment</span>
+            <span className={held ? "text-accentb tracking-[.06em]" : "text-ok tracking-[.06em]"}>
+              {held ? "Held" : "Clear"}
+            </span>
+          </div>
+          <p className="text-xs text-dim leading-relaxed mb-4">
+            {held
+              ? "Every download the client makes carries a BJUR MEDIA mark until you release it."
+              : "Downloads are clean. Hold if an invoice is outstanding; nothing is hidden, only marked."}
+          </p>
+          <button
+            onClick={togglePay}
+            disabled={busy}
+            data-testid="payment-toggle"
+            className="cursor-pointer border border-line2 hover:border-text px-3.5 py-2.5 text-[10.5px] font-semibold uppercase tracking-[.08em] disabled:opacity-50"
+          >
+            {held ? "Release · paid" : "Hold for payment"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <div className="text-[11px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2 flex justify-between items-baseline">
+          <span>
+            Sent to Bjur <span className="text-dim2">· {requests.length}</span>
+          </span>
+          <button
+            onClick={() => {
+              setAsking(true);
+              setAskName("");
+            }}
+            data-testid="request-footage"
+            className="cursor-pointer text-text hover:text-accent"
+          >
+            + Request footage
+          </button>
+        </div>
+
+        {asking && (
+          <div className="flex items-center gap-2 py-3.5 border-b border-line">
+            <input
+              autoFocus
+              value={askName}
+              onChange={(e) => setAskName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") askForFootage();
+                if (e.key === "Escape") setAsking(false);
+              }}
+              placeholder="What are they sending?"
+              aria-label="What are they sending?"
+              data-testid="request-name"
+              className="flex-1 bg-bg border border-line2 focus:border-accent text-[13px] px-3 py-2 outline-none"
+            />
+            <button
+              onClick={askForFootage}
+              disabled={busy || !askName.trim()}
+              className="cursor-pointer bg-text text-bg hover:bg-accent px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[.08em] disabled:opacity-50"
+            >
+              Make link
+            </button>
+            <button
+              onClick={() => setAsking(false)}
+              className="cursor-pointer text-[11px] text-muted hover:text-text px-2"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {requests.length === 0 && !asking && (
+          <p className="text-[11px] text-dim2 mt-3.5 leading-relaxed">
+            Nothing requested. A footage request makes a send link and a folder inside this
+            project; the client needs no login.
+          </p>
+        )}
+
+        {requests.map((r) => (
+          <div
+            key={r.id}
+            data-testid={`sent-request-${r.id}`}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-1.5 py-4 border-b border-line"
+          >
+            <span className="bj-serif text-xl">{r.name}</span>
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[.08em] whitespace-nowrap ${
+                r.state === "open" ? "text-ok" : "text-dim2"
+              }`}
+            >
+              {r.state === "open"
+                ? `Link live · ${daysLeft(r.expiresAt)} days`
+                : r.state === "expired"
+                  ? "Expired"
+                  : "Closed"}
+            </span>
+            <span className="text-[11px] text-dim min-w-0 truncate">
+              Opened {fmtDate(r.createdAt)} · <span className="text-dim2">{r.folder}</span>
+            </span>
+            <span className="flex gap-2.5 items-center justify-end text-[10px] font-semibold uppercase tracking-[.08em]">
+              {r.state === "open" ? (
+                <>
+                  <button
+                    onClick={() => copyLink(r)}
+                    className="cursor-pointer border border-line2 hover:border-text text-muted hover:text-text px-2.5 py-1.5"
+                  >
+                    {copied === r.id ? "Copied" : "Copy"}
+                  </button>
+                  <button
+                    onClick={() => setRequestOpen(r, false)}
+                    disabled={busy}
+                    className="cursor-pointer text-dim hover:text-accentb disabled:opacity-50"
+                  >
+                    Close
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setRequestOpen(r, true)}
+                  disabled={busy}
+                  className="cursor-pointer text-dim hover:text-text disabled:opacity-50"
+                >
+                  Reopen
+                </button>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-12 pt-5 border-t border-line">
+        {project.isEmpty ? (
+          <button
+            onClick={deleteProject}
+            disabled={busy}
+            data-testid="delete-project"
+            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb disabled:opacity-50"
+          >
+            Delete this project
+          </button>
+        ) : (
+          <span className="text-[11px] text-dim2">
+            Holds {project.fileCount} file{project.fileCount === 1 ? "" : "s"}
+            {project.submissionCount > 0 ? ` and ${project.submissionCount} received` : ""} · empty
+            it to delete.
+          </span>
+        )}
+      </div>
+
+      <Toast message={toast} onDone={() => setToast(null)} />
+    </div>
+  );
+}

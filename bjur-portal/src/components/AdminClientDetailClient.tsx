@@ -45,6 +45,7 @@ type ClientInfo = {
   autoCaption: boolean;
   captionStyle: string | null;
   accentColor: string | null;
+  hasSlackChannel: boolean;
   logoUrl: string | null;
 };
 
@@ -788,8 +789,10 @@ export function AdminClientDetailClient({
           >
             <div className="md:contents">
               <div>
+                {/* The project page, not the media table: what a project is, what it
+                    owes and what has been sent to it all live there now. */}
                 <Link
-                  href={`/admin/media?project=${p.id}`}
+                  href={`/admin/projects/${p.id}`}
                   className="font-semibold text-sm hover:text-accent"
                 >
                   {p.title}
@@ -880,7 +883,7 @@ export function AdminClientDetailClient({
       )}
       {newProjectOpen && (
         <NewProjectDialog
-          clients={[{ id: client.id, name: client.name }]}
+          clients={[{ id: client.id, name: client.name, hasSlackChannel: client.hasSlackChannel }]}
           onClose={() => setNewProjectOpen(false)}
           onCreated={() => router.refresh()}
         />

@@ -20,18 +20,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data: Record<string, unknown> = {};
 
   if (typeof body.title === "string" && body.title.trim()) data.title = body.title.trim();
-  if (body.status === "DRAFT" || body.status === "LIVE") data.status = body.status;
   if (body.deliveredAt !== undefined) {
     data.deliveredAt = body.deliveredAt ? new Date(body.deliveredAt) : null;
   }
   // The three service switches. A project is defined by what it does, so these are
   // per-project rather than a property of the client that owns it.
-  for (const flag of ["clientUploads", "calendar", "review", "sellMasters", "paymentHold"] as const) {
-    if (body[flag] === undefined) continue;
-    if (typeof body[flag] !== "boolean") {
-      return NextResponse.json({ error: `${flag} must be true or false.` }, { status: 400 });
+  // What a project *is* is fixed at creation. A project that changes shape after files
+  // have landed leaves assets behind that were ingested under the old rules, and no
+  // screen can say which — so these are refused rather than quietly ignored.
+  for (const fixed of ["type", "review"] as const) {
+    if (body[fixed] !== undefined) {
+      return NextResponse.json({ error: "Set at creation" }, { status: 400 });
     }
-    data[flag] = body[flag];
+  }
+
+  // Payment hold is the one switch that still flips, because it describes where the job
+  // has got to rather than what the job is.
+  if (body.paymentHold !== undefined) {
+    if (typeof body.paymentHold !== "boolean") {
+      return NextResponse.json({ error: "paymentHold must be true or false." }, { status: 400 });
+    }
+    data.paymentHold = body.paymentHold;
   }
 
   if (body.expiresAt !== undefined) {
@@ -92,15 +101,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const project = await db.project.findUnique({
     where: { id },
-    include: { client: true, _count: { select: { assets: true } } },
+    include: { client: true, _count: { select: { assets: true, submissions: true } } },
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Only ever allow deleting empty galleries from here — a project with delivered
-  // assets needs those handled deliberately, not wiped by a stray click in a list.
-  if (project._count.assets > 0) {
+  // Only ever delete a project that holds nothing. Delivered assets need handling
+  // deliberately rather than being wiped by a stray click, and footage a client sent is
+  // worse still — it is the only copy, and nobody here put it there.
+  if (project._count.assets > 0 || project._count.submissions > 0) {
     return NextResponse.json(
-      { error: "This project has assets — remove them before deleting the project." },
+      { error: "This project holds files — empty it before deleting the project." },
       { status: 400 }
     );
   }

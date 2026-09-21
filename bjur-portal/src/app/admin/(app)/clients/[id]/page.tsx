@@ -33,7 +33,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   // current viewCount is stored, so a change figure would have to be invented.
   const since = new Date(new Date().getTime() - 30 * 86_400_000);
 
-  const [socialAccounts, topPosts] = await Promise.all([
+  const [socialAccounts, topPosts, channel] = await Promise.all([
     db.socialAccount.findMany({ where: { clientId: client.id } }),
     db.socialPost.findMany({
       where: { socialAccount: { clientId: client.id }, postedAt: { gte: since } },
@@ -44,6 +44,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         asset: { select: { name: true } },
       },
     }),
+    db.clientChannel.findUnique({ where: { clientId: client.id }, select: { clientId: true } }),
   ]);
 
   return (
@@ -60,6 +61,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         autoCaption: client.autoCaption,
         captionStyle: client.captionStyle,
         accentColor: client.accentColor,
+        hasSlackChannel: channel !== null,
         logoUrl: client.logoUrl,
       }}
       topPosts={topPosts.map((p) => ({

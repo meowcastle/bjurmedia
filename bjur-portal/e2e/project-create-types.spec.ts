@@ -1,0 +1,94 @@
+import { test, expect, type APIRequestContext } from "@playwright/test";
+
+/**
+ * A project's shape is decided once, at creation.
+ *
+ * That is the whole point of the v3 model — the old five-boolean project could be
+ * reshaped after files had landed, leaving assets behind that were ingested under rules
+ * nobody could see any more. So the rules worth pinning are the ones that refuse:
+ * combinations that cannot exist, and fields that cannot be changed afterwards.
+ */
+test.use({ storageState: "e2e/.auth/admin.json" });
+
+const CLIENT_WITH_SLACK = "c1"; // SSH — seeded with #ssh-deliveries
+const CLIENT_WITHOUT_SLACK = "c4"; // Halcyon Films — no channel
+
+async function create(request: APIRequestContext, body: Record<string, unknown>) {
+  const res = await request.post("/api/admin/projects", {
+    data: { title: `Spec ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...body },
+  });
+  return { status: res.status(), body: await res.json().catch(() => ({})) };
+}
+
+async function cleanUp(request: APIRequestContext, id: string | undefined) {
+  if (id) await request.delete(`/api/admin/projects/${id}`);
+}
+
+test("a delivery can run a review loop", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITH_SLACK,
+    type: "DELIVERY",
+    review: true,
+  });
+  expect(status, JSON.stringify(body)).toBe(200);
+  expect(body.project.type).toBe("DELIVERY");
+  expect(body.project.review).toBe(true);
+  await cleanUp(request, body.project?.id);
+});
+
+test("a calendar cannot, because Slack is where those are approved", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITH_SLACK,
+    type: "CALENDAR",
+    review: true,
+  });
+  expect(status).toBe(400);
+  expect(body.error).toMatch(/approved in Slack/i);
+});
+
+test("a calendar needs somewhere to post", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITHOUT_SLACK,
+    type: "CALENDAR",
+  });
+  expect(status).toBe(400);
+  expect(body.error).toMatch(/Slack channel/i);
+  expect(body.error).toMatch(/Integrations/i);
+});
+
+test("a calendar is allowed once the client has a channel", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITH_SLACK,
+    type: "CALENDAR",
+  });
+  expect(status, JSON.stringify(body)).toBe(200);
+  expect(body.project.type).toBe("CALENDAR");
+  await cleanUp(request, body.project?.id);
+});
+
+test("type and review are refused after creation, not silently ignored", async ({ request }) => {
+  const { body } = await create(request, { clientId: CLIENT_WITH_SLACK, type: "DELIVERY" });
+  const id = body.project.id as string;
+
+  for (const field of [{ type: "CALENDAR" }, { review: true }]) {
+    const res = await request.patch(`/api/admin/projects/${id}`, { data: field });
+    expect(res.status(), JSON.stringify(field)).toBe(400);
+    expect((await res.json()).error).toMatch(/set at creation/i);
+  }
+
+  // The refusals changed nothing.
+  const after = await request.get(`/api/admin/projects/${id}/upload-batches`);
+  expect(after.ok()).toBeTruthy();
+  await cleanUp(request, id);
+});
+
+test("starting with a footage request hands back a send link", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITH_SLACK,
+    type: "DELIVERY",
+    startRequest: "Berlin raws",
+  });
+  expect(status, JSON.stringify(body)).toBe(200);
+  expect(body.sendPath).toMatch(/^\/send\/[^/]+\/berlin-raws-[A-Za-z0-9_-]{10,}$/);
+  await cleanUp(request, body.project?.id);
+});
