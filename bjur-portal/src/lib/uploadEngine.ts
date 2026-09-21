@@ -168,7 +168,7 @@ export async function createSubmission(
   });
   if (!res.ok) throw new Error(`Couldn't start upload (${res.status})`);
   const data = await res.json();
-  return data.id as string;
+  return { id: data.id as string, alreadyComplete: data.alreadyComplete === true };
 }
 
 /** PUTs one chunk via XHR (for real upload-progress events) and resolves with the
@@ -252,12 +252,16 @@ export async function uploadFile(
   let submissionId = item.submissionId;
   if (!submissionId) {
     try {
-      submissionId = await createSubmission(
+      const started = await createSubmission(
         apiBase,
         batchId,
         item.relativePath,
         item.sizeBytes,
       );
+      // The server already holds this exact file. Nothing to send, and nothing on disk
+      // was touched to find that out.
+      if (started.alreadyComplete) return { ok: true, note: "Already sent" };
+      submissionId = started.id;
       onSubmission(submissionId);
     } catch (err) {
       return { ok: false, note: (err as Error).message };

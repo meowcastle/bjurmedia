@@ -61,6 +61,28 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
   const relativePath = segments.join("/");
   const filename = segments[segments.length - 1];
 
+  /**
+   * A file this project already has, at the same path and the same size, is not sent
+   * again — it is reported as already there.
+   *
+   * Without this, re-dropping a folder to resume one unfinished file re-queued every
+   * finished one beside it. The client adopts the in-progress batch, so those land at
+   * the *same* on-disk paths, and the empty-file write below truncates the good copy to
+   * zero before re-sending it. On a delivery of forty 2GB rushes over a home uplink that
+   * is a week of someone's life and their only copy, destroyed by dragging in a folder
+   * the page itself tells them to re-drop.
+   *
+   * Matched on path + size, which is the same key the client resumes on. A genuinely
+   * different file at the same name has a different size and still uploads.
+   */
+  const alreadyHave = await db.submission.findFirst({
+    where: { projectId, relativePath, sizeBytes, status: "COMPLETE" },
+    select: { id: true },
+  });
+  if (alreadyHave) {
+    return NextResponse.json({ id: alreadyHave.id, alreadyComplete: true });
+  }
+
   const submission = await db.submission.create({
     data: {
       projectId,
