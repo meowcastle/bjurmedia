@@ -7,11 +7,26 @@ import { sanitizeFilename } from "@/lib/uploads";
 export type SubmissionAccess =
   | {
       ok: true;
-      userId: string;
+      /**
+       * Null for anyone who arrived through a send link. They have no account, so the
+       * scope key is the request instead — see scopeMatches below. Every check that used
+       * to read "is this batch yours" now asks "is this batch in your scope", which is
+       * the same question for a seat and a different one for a stranger with a link.
+       */
+      userId: string | null;
       userName: string;
+      requestId: string | null;
+      senderName: string | null;
       project: { id: string; title: string; clientId: string; client: { username: string; name: string } };
     }
   | { ok: false; status: number };
+
+type OkAccess = Extract<SubmissionAccess, { ok: true }>;
+
+/** Whether a batch belongs to whoever is asking — by seat, or by send link. */
+export function scopeMatches(access: OkAccess, batch: { userId: string | null; requestId: string | null }) {
+  return access.userId ? batch.userId === access.userId : batch.requestId === access.requestId;
+}
 
 /**
  * Gate for the client-facing submission routes: session -> same-client/per-project
@@ -53,7 +68,7 @@ export async function assertProjectUploadAccess(
     return { ok: false, status: 410 };
   }
 
-  return { ok: true, userId: session.id, userName: session.name, project };
+  return { ok: true, userId: session.id, userName: session.name, requestId: null, senderName: null, project };
 }
 
 const MAX_PATH_SEGMENTS = 12;
@@ -112,4 +127,38 @@ export async function generateBatchLabel(projectId: string, uploaderName: string
   let n = 2;
   while (existing.some((b) => b.label === `${base} (${n})`)) n++;
   return `${base} (${n})`;
+}
+
+
+/**
+ * The public way in: a send link, resolved by token, with no session at all.
+ *
+ * Returns the same shape as the seat path so every handler downstream is written once.
+ * A closed or expired request is refused here — the page renders its own "this link is
+ * closed" shell, but the API must not keep accepting bytes against it.
+ */
+export async function assertRequestUploadAccess(
+  token: string,
+  senderName: string | null = null
+): Promise<SubmissionAccess> {
+  const request = await db.submissionRequest.findUnique({
+    where: { token },
+    include: { project: { include: { client: true } } },
+  });
+  if (!request) return { ok: false, status: 404 };
+  if (request.closedAt || request.expiresAt.getTime() <= Date.now()) {
+    return { ok: false, status: 410 };
+  }
+  if (request.project.expiresAt && request.project.expiresAt.getTime() < Date.now()) {
+    return { ok: false, status: 410 };
+  }
+
+  return {
+    ok: true,
+    userId: null,
+    userName: senderName?.trim() || request.name,
+    requestId: request.id,
+    senderName: senderName?.trim() || null,
+    project: request.project,
+  };
 }

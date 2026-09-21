@@ -19,9 +19,13 @@ export function ttlFromNow(now = new Date()) {
  * The token in the URL. Long and random because it is the only thing standing between
  * the public internet and write access to a client's project folder — there is no login
  * behind it, by design.
+ *
+ * Hex, not base64url: the link is `<name-slug>-<token>` and the route splits on the last
+ * hyphen, and base64url's alphabet includes "-". A token that happened to contain one
+ * split in the wrong place and resolved to nothing.
  */
 export function newRequestToken() {
-  return randomBytes(24).toString("base64url");
+  return randomBytes(24).toString("hex");
 }
 
 /** Folder- and URL-safe form of a name, for both the on-disk folder and the link. */

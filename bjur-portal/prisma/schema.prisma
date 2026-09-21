@@ -248,8 +248,11 @@ model Submission {
   id            String           @id @default(cuid())
   projectId     String
   project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User             @relation(fields: [userId], references: [id])
+  // Null for anything sent through a send link, for the same reason UploadBatch.userId
+  // is: the sender has no account and never gets one. The batch carries the request it
+  // arrived through, and that is what scopes it instead.
+  userId        String?
+  user          User?            @relation(fields: [userId], references: [id])
   batchId       String
   batch         UploadBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
   relativePath  String // client-side folder-relative path, e.g. "A-Cam/GH010001.MP4" — preserved as-is under the batch's on-disk folder
