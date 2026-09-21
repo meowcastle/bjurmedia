@@ -542,7 +542,9 @@ async function seedReviews() {
         projectId: "p8",
         kind: "VIDEO",
         format: "Reel",
-        orientation: "vertical",
+        // "portrait", not "vertical": ingest.ts only ever writes landscape|portrait, and
+        // a third spelling here is invisible to anything that filters on the field.
+        orientation: "portrait",
         name: `IG_Unscheduled_0${n}.mp4`,
         relPath: `57NYC/IG-Posting/IG_Unscheduled_0${n}.mp4`,
         sizeBytes: BigInt(1_400_000_000),

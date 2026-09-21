@@ -183,7 +183,9 @@ export function ProjectDetailClient({
   // delivery wants it sorted by what the files *are*, not which week they landed.
   const [groupMode, setGroupMode] = useState<"format" | "week">("format");
   const [folderFilter, setFolderFilter] = useState<string>("ALL");
-  const scoped = useMemo(
+  const [orientation, setOrientation] = useState<"ALL" | "landscape" | "portrait">("ALL");
+
+  const folderScoped = useMemo(
     () =>
       folderFilter === "ALL"
         ? assets
@@ -198,6 +200,48 @@ export function ProjectDetailClient({
     new Set(initialLicensedAssetIds),
   );
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
+
+  /**
+   * Wide vs vertical only earns a control where it actually divides something.
+   *
+   * For video it never does: ingest derives the format *from* the shape — portrait
+   * becomes a Reel, landscape a Film — so on those tabs this would be a second copy of
+   * the tab beside it, always selecting everything or nothing. Stills are the real case,
+   * where a shoot's verticals and its wides land in one undifferentiated pile.
+   *
+   * So the control appears only when what is currently in view holds both, judged before
+   * this filter is applied — otherwise choosing one would remove the other and the
+   * control would take itself away mid-click.
+   */
+  const orientationCandidates = useMemo(() => {
+    if (filter === "FAV") return folderScoped.filter((a) => favorites.has(a.id));
+    if (filter === "ALL") return folderScoped;
+    return folderScoped.filter((a) => a.format === filter);
+  }, [folderScoped, filter, favorites]);
+
+  const orientationCounts = useMemo(
+    () => ({
+      landscape: orientationCandidates.filter((a) => a.orientation === "landscape").length,
+      portrait: orientationCandidates.filter((a) => a.orientation === "portrait").length,
+    }),
+    [orientationCandidates],
+  );
+
+  const showOrientation = orientationCounts.landscape > 0 && orientationCounts.portrait > 0;
+
+  // Derived rather than reset in an effect: switching to Reels while "Vertical" is picked
+  // simply stops applying it, instead of silently filtering behind a control that is no
+  // longer on screen.
+  const activeOrientation = showOrientation ? orientation : "ALL";
+
+  const scoped = useMemo(
+    () =>
+      activeOrientation === "ALL"
+        ? folderScoped
+        : folderScoped.filter((a) => a.orientation === activeOrientation),
+    [folderScoped, activeOrientation],
+  );
+
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
 
@@ -669,6 +713,38 @@ export function ProjectDetailClient({
                 </button>
               ))}
             </div>
+            {showOrientation && (
+              <div className="inline-flex border border-line2" data-testid="orientation-filter">
+                {(
+                  [
+                    // "Both", not "All": the format chips beside this already have an
+                    // "All N", and two adjacent controls both reading "All 13" / "All 6"
+                    // is a puzzle rather than a choice.
+                    ["ALL", `Both ${orientationCandidates.length}`],
+                    ["landscape", `Wide ${orientationCounts.landscape}`],
+                    ["portrait", `Vertical ${orientationCounts.portrait}`],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setOrientation(id)}
+                    data-testid={`orientation-${id}`}
+                    className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                      activeOrientation === id ? "text-bg" : "text-muted"
+                    }`}
+                  >
+                    {activeOrientation === id && (
+                      <motion.div
+                        layoutId="orientationPill"
+                        className="absolute inset-0 bg-text z-0"
+                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {project.folders.length > 0 && (
               <select
                 value={folderFilter}

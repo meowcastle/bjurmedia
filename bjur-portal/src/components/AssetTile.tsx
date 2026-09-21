@@ -98,6 +98,7 @@ export function AssetTile({
 
   return (
     <motion.div
+      data-testid={`asset-tile-${asset.id}`}
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
