@@ -3,7 +3,7 @@ import { resolveDerivedPath } from "@/lib/media";
 import { refreshAccessToken, youtubeOAuthConfigured } from "@/lib/youtubeAuth";
 import { uploadVideo } from "@/lib/youtubeUpload";
 import { postSlackEvent } from "@/lib/slack";
-import { sendStaffAlert } from "@/lib/approvalMail";
+import { sendStaffAlert } from "@/lib/staffAlert";
 
 /** Three tries, then it stops and asks a human rather than hammering someone's channel. */
 export const MAX_PUBLISH_ATTEMPTS = 3;
@@ -17,21 +17,23 @@ export class NotPublishableError extends Error {}
  * not a format YouTube ingests at all. The proxy is already 1080p H.264, which is what
  * a publish wants.
  *
- * The exception is a watermarked proxy. proxyGen watermarks the proxy for any licensable
- * asset, and putting a BJUR MEDIA · PREVIEW overlay on a client's own channel is worse
- * than not publishing.
+ * This used to refuse a watermarked proxy, because proxies were marked for any licensable
+ * asset and a BJUR MEDIA · PREVIEW overlay on a client's own channel is worse than not
+ * publishing. Licensing is gone and proxies are always clean now, so the guard is instead
+ * the payment hold: posting a client's work to their own channel is the service they have
+ * not paid for yet, and doing it anyway while their downloads are still marked would
+ * undercut the hold entirely.
  */
 async function resolvePublishSource(asset: {
   proxyRelPath: string | null;
-  proxyRes: string | null;
-  licensable: boolean;
+  project: { paymentHold: boolean };
 }) {
   if (!asset.proxyRelPath) {
     throw new NotPublishableError("No proxy has been generated for this file yet.");
   }
-  if (asset.licensable || asset.proxyRes?.includes("watermarked")) {
+  if (asset.project.paymentHold) {
     throw new NotPublishableError(
-      "This file's proxy is watermarked because it is marked licensable. Turn licensing off, regenerate the proxy, then publish."
+      "This project is on a payment hold. Release it before publishing to the client's channel."
     );
   }
   return resolveDerivedPath(asset.proxyRelPath);
@@ -117,11 +119,12 @@ export async function publishDuePosts(now = new Date(), deps: Partial<PublishDep
       captionYT: true,
       proxyRelPath: true,
       proxyRes: true,
-      licensable: true,
       publishIg: true,
       igMediaId: true,
       publishAttempts: true,
-      project: { select: { id: true, clientId: true, title: true, client: { select: { name: true } } } },
+      project: {
+        select: { id: true, clientId: true, title: true, paymentHold: true, client: { select: { name: true } } },
+      },
     },
     orderBy: { publishAt: "asc" },
   });

@@ -5,34 +5,8 @@ import { useRouter } from "next/navigation";
 
 type Config = {
   youtubeApiKey: string;
-  weeklyDay: string;
-  weeklyTime: string;
-  autoWeekly: boolean;
 };
 
-const DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
-  return (
-    <div
-      onClick={onChange}
-      className={`w-10 h-[22px] border border-line2 relative cursor-pointer flex-none ${on ? "bg-accent" : "bg-s3"}`}
-    >
-      <div
-        className="w-4 h-4 bg-bg absolute top-[2px] transition-transform"
-        style={{ transform: on ? "translateX(20px)" : "translateX(2px)" }}
-      />
-    </div>
-  );
-}
 
 export function AdminSocialIntegrationsClient({
   initialConfig,
@@ -40,7 +14,7 @@ export function AdminSocialIntegrationsClient({
   initialConfig: Config;
 }) {
   const router = useRouter();
-  const [config, setConfig] = useState(initialConfig);
+  const [, setConfig] = useState(initialConfig);
   const [keyDraft, setKeyDraft] = useState(initialConfig.youtubeApiKey);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -117,33 +91,10 @@ export function AdminSocialIntegrationsClient({
           <div className="flex-1">
             <div className="text-sm font-semibold">Weekly sync</div>
             <div className="text-xs text-muted mt-0.5">
-              Refreshes view counts and matches new posts for every linked
-              account
+              Refreshes view counts and matches new posts for every linked account, every
+              Tuesday morning. Sync now below if you cannot wait for it.
             </div>
-            {config.autoWeekly && (
-              <div className="flex items-center gap-2 mt-3">
-                <select
-                  defaultValue={config.weeklyDay}
-                  onChange={(e) => patch({ weeklyDay: e.target.value })}
-                  className="bg-bg border border-line2 text-text text-[13px] px-2.5 py-1.5 outline-none"
-                >
-                  {DAYS.map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-                <span className="text-xs text-dim">at</span>
-                <input
-                  defaultValue={config.weeklyTime}
-                  onBlur={(e) => patch({ weeklyTime: e.target.value })}
-                  className="w-20 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-1.5 outline-none"
-                />
-              </div>
-            )}
           </div>
-          <Toggle
-            on={config.autoWeekly}
-            onChange={() => patch({ autoWeekly: !config.autoWeekly })}
-          />
         </div>
 
         {/* Waiting until the scheduled day to find out whether a channel you just

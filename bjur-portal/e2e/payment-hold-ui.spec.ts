@@ -32,8 +32,10 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
     await page.getByTestId("master-chip").click();
 
     const download = page.getByTestId("sheet-download");
-    // It offers the marked copy, not "the master" — which is not what this would hand over.
-    await expect(download).toContainText(/watermarked copy/i);
+    // The hold is stated in one quiet line beside the button rather than in its label.
+    await expect(page.getByTestId("download-sheet")).toContainText(
+      /Downloads carry a preview mark until the invoice is settled/i,
+    );
     // Still a real link, so save-as and middle-click behave.
     await expect(download).toHaveAttribute("href", /^\/api\/assets\/[^/]+\/download$/);
 
@@ -48,11 +50,12 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
   }
 });
 
-test("with no hold the sheet offers the master and the notice is gone", async ({ page }) => {
+test("with no hold there is no mark line and no notice", async ({ page }) => {
   await page.goto("/p/p1");
   await expect(page.getByText("These files carry a BJUR MEDIA watermark")).not.toBeVisible();
 
   await page.getByText("SSH_Reel_Hero.mp4").click();
   await page.getByTestId("master-chip").click();
-  await expect(page.getByTestId("sheet-download")).toContainText(/Download master/i);
+  await expect(page.getByTestId("sheet-download")).toBeVisible();
+  await expect(page.getByTestId("download-sheet")).not.toContainText(/preview mark/i);
 });

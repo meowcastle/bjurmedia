@@ -60,14 +60,14 @@ async function main() {
   const client = await db.client.create({
     data: { name: "Week Co", username: `week-${Date.now()}` },
   });
-  const mk = (title: string, calendar: boolean) =>
+  const mk = (title: string, isCalendar: boolean) =>
     db.project.create({
       data: {
         clientId: client.id,
         title,
         path: `/vol/${title}`,
         inboxSlug: `${title}-${Date.now()}`,
-        calendar,
+        type: isCalendar ? "CALENDAR" : "DELIVERY",
       },
     });
   const board = await mk("Weekly Reels", true);

@@ -25,7 +25,6 @@ export default async function ProjectUploadPage({
   if (!access.allowed) notFound();
   // Uploads are opt-in per project. The API refuses regardless, but a page that renders
   // a working-looking dropzone and then rejects every file is worse than no page.
-  if (!project.clientUploads) notFound();
 
   const expired = project.expiresAt != null && project.expiresAt < new Date();
 

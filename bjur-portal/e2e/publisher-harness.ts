@@ -127,17 +127,22 @@ async function main() {
     `${uploadCalls} vs ${beforePartial}`
   );
 
-  // ---- 4. watermarked proxy is refused outright ----
-  const a4 = await makeAsset({ licensable: true, proxyRes: "watermarked 1080p" });
-  const beforeWm = uploadCalls;
+  // ---- 4. a project on a payment hold is refused outright ----
+  // This replaced the watermarked-proxy check. Proxies are always clean now, so the
+  // reason to refuse is no longer what the file looks like but what the job owes:
+  // posting a client's work to their own channel is the service they have not paid for.
+  const a4 = await makeAsset();
+  await db.project.update({ where: { id: project.id }, data: { paymentHold: true } });
+  const beforeHold = uploadCalls;
   await publishDuePosts(new Date(), { configured, refresh, upload: okUpload });
   const r4 = await db.asset.findUniqueOrThrow({ where: { id: a4.id } });
   check(
-    "refuses a watermarked proxy without uploading it",
-    r4.publishState === "FAILED" && uploadCalls === beforeWm && /watermarked/i.test(r4.publishError ?? ""),
+    "refuses a held project without uploading it",
+    r4.publishState === "FAILED" && uploadCalls === beforeHold && /payment hold/i.test(r4.publishError ?? ""),
     `${r4.publishState} / ${r4.publishError}`
   );
   check("gives up immediately on a permanent problem", r4.publishAttempts === 1, String(r4.publishAttempts));
+  await db.project.update({ where: { id: project.id }, data: { paymentHold: false } });
 
   // ---- 5. transient failure retries, then stops ----
   const a5 = await makeAsset();

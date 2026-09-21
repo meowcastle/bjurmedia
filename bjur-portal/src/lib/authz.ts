@@ -49,13 +49,6 @@ export async function authorizeAssetAccess(
 
   if (kind === "download" && !session.isAdmin) {
     if (!access.allowed || access.role === "VIEWER") return { ok: false, status: 403, reason: "role" };
-
-    if (asset.licensable) {
-      const license = await db.license.findFirst({
-        where: { assetId: asset.id, clientId: session.clientId ?? undefined },
-      });
-      if (!license) return { ok: false, status: 403, reason: "license_required" };
-    }
   }
 
   // A payment hold never refuses the request — the client is meant to be able to take

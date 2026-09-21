@@ -34,7 +34,6 @@ export function VideoChrome({
   duration,
   hasPrev,
   hasNext,
-  locked,
   isFavorite,
   onTogglePlay,
   onToggleMute,
@@ -50,7 +49,6 @@ export function VideoChrome({
   duration: number;
   hasPrev: boolean;
   hasNext: boolean;
-  locked: boolean;
   /** Shown top-left so the current state is readable without tapping to find out. */
   isFavorite?: boolean;
   onTogglePlay: () => void;
@@ -161,7 +159,7 @@ export function VideoChrome({
             data-testid="master-chip"
             className="shrink-0 text-xs font-bold uppercase tracking-wide border border-white/25 hover:border-white text-white/85 hover:text-white px-3.5 py-2.5 cursor-pointer whitespace-nowrap"
           >
-            {locked ? "\u2191 Unlock master" : "\u2191 Master"}
+            {"\u2191 File"}
           </button>
         </div>
       </div>

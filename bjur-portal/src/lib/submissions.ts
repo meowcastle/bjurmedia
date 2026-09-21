@@ -35,12 +35,17 @@ export async function assertProjectUploadAccess(
   const access = await getProjectAccess(session, project);
   if (!access.allowed) return { ok: false, status: 404 };
 
-  // Two-way has to be switched on for this project. Enforced here rather than by
-  // hiding the button: every client upload route funnels through this one function, so
-  // a hand-rolled POST to a delivery-only project is refused the same as a click would
-  // be. 403 rather than 404 — the project exists and they can see it, they just cannot
-  // send footage to it.
-  if (!project.clientUploads) {
+  // A project accepts footage only while it has an open request. Replaced the old
+  // clientUploads boolean: intake is now a thing you ask for by name and close when it
+  // has served its purpose, rather than a switch left on and forgotten. Enforced here
+  // rather than by hiding the button, because every upload route funnels through this
+  // one function — a hand-rolled POST is refused the same way a click would be. 403
+  // rather than 404: the project exists and they can see it, they just cannot send to it.
+  const openRequest = await db.submissionRequest.findFirst({
+    where: { projectId: project.id, closedAt: null, expiresAt: { gt: new Date() } },
+    select: { id: true },
+  });
+  if (!openRequest) {
     return { ok: false, status: 403 };
   }
 

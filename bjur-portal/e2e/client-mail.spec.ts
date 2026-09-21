@@ -7,7 +7,7 @@ import path from "node:path";
  * clients on a schedule, so a rule that fires twice or reaches the wrong list is how a
  * sending domain ends up filtered.
  */
-test("weekly digest, expiry reminder and license receipt rules", async () => {
+test("expiry reminder and payment-release receipt rules", async () => {
   test.slow();
   const { stdout } = await new Promise<{ stdout: string }>((resolve, reject) => {
     execFile(
@@ -20,7 +20,7 @@ test("weekly digest, expiry reminder and license receipt rules", async () => {
   const line = stdout.trim().split("\n").filter((l) => l.startsWith("[")).pop();
   expect(line, "harness produced no result line").toBeTruthy();
   const results = JSON.parse(line!) as { name: string; pass: boolean; detail?: string }[];
-  expect(results.length).toBeGreaterThan(15);
+  expect(results.length).toBeGreaterThan(10);
   expect(results.filter((r) => !r.pass).map((f) => `${f.name} — ${f.detail ?? ""}`)).toEqual([]);
 });
 

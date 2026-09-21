@@ -7,13 +7,8 @@ type Config = {
   connected: boolean;
   webhookUrl: string;
   defaultChannel: string;
-  weeklyDay: string;
-  weeklyTime: string;
-  autoWeekly: boolean;
-  autoContentCalendar: boolean;
   autoUpload: boolean;
   autoDownload: boolean;
-  autoLicense: boolean;
   autoSubmission: boolean;
 };
 
@@ -21,15 +16,10 @@ type ClientRow = {
   id: string;
   name: string;
   channel: string;
-  autoPostSlack: boolean;
-  autoPostDay: number;
-  autoPostHour: number;
 };
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 // Indexed by Date.getDay(), which the worker compares against — Sunday is 0 there,
 // not the Monday-first order the weekly digest's day picker uses above.
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
@@ -191,48 +181,6 @@ export function AdminIntegrationsClient({
             </div>
 
             <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
-              <div className="flex-1">
-                <div className="text-sm font-semibold">Weekly calendar post</div>
-                <div className="text-xs text-muted mt-0.5">
-                  Posts the upcoming week&apos;s delivery schedule
-                </div>
-                {config.autoWeekly && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <select
-                      defaultValue={config.weeklyDay}
-                      onChange={(e) => patch({ weeklyDay: e.target.value })}
-                      className="bg-bg border border-line2 text-text text-[13px] px-2.5 py-1.5 outline-none"
-                    >
-                      {DAYS.map((d) => (
-                        <option key={d}>{d}</option>
-                      ))}
-                    </select>
-                    <span className="text-xs text-dim">at</span>
-                    <input
-                      defaultValue={config.weeklyTime}
-                      onBlur={(e) => patch({ weeklyTime: e.target.value })}
-                      className="w-20 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-1.5 outline-none"
-                    />
-                  </div>
-                )}
-              </div>
-              <Toggle on={config.autoWeekly} onChange={() => patch({ autoWeekly: !config.autoWeekly })} />
-            </div>
-
-            <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
-              <div>
-                <div className="text-sm font-semibold">Content calendar</div>
-                <div className="text-xs text-muted mt-0.5">
-                  Posts each client&apos;s scheduled posts for the week ahead. Turn on per client below.
-                </div>
-              </div>
-              <Toggle
-                on={config.autoContentCalendar}
-                onChange={() => patch({ autoContentCalendar: !config.autoContentCalendar })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
               <div>
                 <div className="text-sm font-semibold">New delivery / upload</div>
                 <div className="text-xs text-muted mt-0.5">Ping the channel when new media is registered</div>
@@ -246,14 +194,6 @@ export function AdminIntegrationsClient({
                 <div className="text-xs text-muted mt-0.5">Notify when a client downloads a master or ZIP</div>
               </div>
               <Toggle on={config.autoDownload} onChange={() => patch({ autoDownload: !config.autoDownload })} />
-            </div>
-
-            <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
-              <div>
-                <div className="text-sm font-semibold">BRAW license purchased</div>
-                <div className="text-xs text-muted mt-0.5">Alert when a master is licensed</div>
-              </div>
-              <Toggle on={config.autoLicense} onChange={() => patch({ autoLicense: !config.autoLicense })} />
             </div>
 
             <div className="flex items-center justify-between gap-4 py-4">
@@ -281,48 +221,11 @@ export function AdminIntegrationsClient({
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-4 mt-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted">Auto-post content calendar</span>
-                    {c.autoPostSlack && (
-                      <>
-                        <select
-                          value={WEEKDAYS[c.autoPostDay]}
-                          onChange={(e) =>
-                            saveChannel(c.id, { autoPostDay: WEEKDAYS.indexOf(e.target.value) })
-                          }
-                          className="bg-bg border border-line2 text-text text-[12px] px-2 py-1 outline-none"
-                        >
-                          {WEEKDAYS.map((d) => (
-                            <option key={d}>{d}</option>
-                          ))}
-                        </select>
-                        <span className="text-xs text-dim">at</span>
-                        <select
-                          value={String(c.autoPostHour)}
-                          onChange={(e) =>
-                            saveChannel(c.id, { autoPostHour: Number(e.target.value) })
-                          }
-                          className="bg-bg border border-line2 text-text text-[12px] font-mono px-2 py-1 outline-none"
-                        >
-                          {Array.from({ length: 24 }, (_, h) => (
-                            <option key={h} value={h}>{`${String(h).padStart(2, "0")}:00`}</option>
-                          ))}
-                        </select>
-                      </>
-                    )}
-                  </div>
-                  <Toggle
-                    on={c.autoPostSlack}
-                    onChange={() => saveChannel(c.id, { autoPostSlack: !c.autoPostSlack })}
-                  />
-                </div>
               </div>
             ))}
             <div className="text-xs text-dim mt-3.5">
               Route each client&apos;s updates to their own channel. Blank = default channel.
-              Auto-post sends that client&apos;s scheduled posts for the coming week; a week with
-              nothing scheduled posts nothing.
+              Weeks are posted by hand from the board when they are ready.
             </div>
           </div>
         </>

@@ -36,48 +36,8 @@ async function read(request: import("@playwright/test").APIRequestContext): Prom
   return (await res.json()) as Row;
 }
 
-test("clearing the channel keeps the client's posting schedule", async ({ request }) => {
-  await request.patch(url, {
-    data: { channel: "#57nyc-content", autoPostSlack: true, autoPostDay: 3, autoPostHour: 9 },
-  });
 
-  // Blank the channel only. Before the fix this deleted the row, schedule included.
-  await request.patch(url, { data: { channel: "" } });
 
-  const row = await read(request);
-  expect(row.exists).toBe(true);
-  expect(row.channel).toBe("");
-  expect(row.autoPostSlack).toBe(true);
-  expect(row.autoPostDay).toBe(3);
-  expect(row.autoPostHour).toBe(9);
-});
-
-test("a field left out of the request is not reset", async ({ request }) => {
-  await request.patch(url, {
-    data: { channel: "#57nyc-content", autoPostSlack: true, autoPostDay: 3, autoPostHour: 9 },
-  });
-
-  // Change only the hour; everything else must survive untouched.
-  await request.patch(url, { data: { autoPostHour: 17 } });
-
-  const row = await read(request);
-  expect(row.autoPostHour).toBe(17);
-  expect(row.autoPostDay).toBe(3);
-  expect(row.channel).toBe("#57nyc-content");
-  expect(row.autoPostSlack).toBe(true);
-});
-
-test("out-of-range day and hour are clamped, not stored raw", async ({ request }) => {
-  // getDay() returns 0-6 and hours are 0-23. An out-of-range value would produce a
-  // schedule that can never match, i.e. a post that silently never goes out.
-  await request.patch(url, {
-    data: { channel: "#57nyc-content", autoPostSlack: true, autoPostDay: 99, autoPostHour: -4 },
-  });
-
-  const row = await read(request);
-  expect(row.autoPostDay).toBe(6);
-  expect(row.autoPostHour).toBe(0);
-});
 
 test("the row is removed only when nothing is left to remember", async ({ request }) => {
   await request.patch(url, { data: { channel: "#57nyc-content", autoPostSlack: true } });

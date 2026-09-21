@@ -4,9 +4,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
 import { formatBytes } from "@/lib/format";
-import { licenseTiers } from "@/lib/licensing";
 import { formatViews } from "@/lib/format";
-import { IconCheck, IconHeart, IconPlay, IconLock } from "@/components/ui/Icon";
+import { IconCheck, IconHeart, IconPlay } from "@/components/ui/Icon";
 
 export type TileAsset = {
   id: string;
@@ -18,8 +17,6 @@ export type TileAsset = {
   durationSec: number | null;
   /** Decimal string — BigInt cannot cross the server/client boundary. */
   sizeBytes: string;
-  licensable: boolean;
-  basePrice: number | null;
   createdAt: string;
   updatedAt: string;
   thumbReady: boolean;
@@ -61,7 +58,6 @@ export function AssetTile({
   asset,
   selected,
   favorite,
-  unlocked,
   isNew,
   index,
   onToggleSelect,
@@ -71,30 +67,20 @@ export function AssetTile({
   asset: TileAsset;
   selected: boolean;
   favorite: boolean;
-  unlocked: boolean;
   isNew?: boolean;
   index?: number;
   onToggleSelect: () => void;
   onToggleFavorite: () => void;
   onOpen: () => void;
 }) {
-  const locked = asset.licensable && !unlocked;
   const stamp = fmtStamp(asset.createdAt, asset.updatedAt);
   const badge =
     asset.kind === "VIDEO"
       ? fmtDuration(asset.durationSec)
       : (asset.dims ?? "");
-  const priceLabel =
-    locked && asset.basePrice
-      ? `from $${licenseTiers(asset.basePrice)[0].amount}`
-      : "";
   const [thumbFailed, setThumbFailed] = useState(false);
 
-  const borderColor = selected
-    ? "border-accent"
-    : locked
-      ? "border-accent/40"
-      : "border-line";
+  const borderColor = selected ? "border-accent" : "border-line";
 
   return (
     <motion.div
@@ -130,20 +116,6 @@ export function AssetTile({
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-transparent via-60% to-black/60" />
 
-        {asset.licensable && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none z-[2] flex items-center justify-center">
-            <div className="w-[260%] -rotate-[24deg] flex flex-col gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="text-xs font-extrabold tracking-[0.32em] text-white/[0.13] whitespace-nowrap text-center"
-                >
-                  BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* A click-only div here meant selection was unreachable by keyboard and
             unnamed to assistive tech — and untargetable by any selector that is not
@@ -199,16 +171,6 @@ export function AssetTile({
           </div>
         )}
 
-        {locked ? (
-          <div className="absolute left-0 right-0 bottom-0 z-[5] px-3 py-2.5 bg-gradient-to-t from-black/85 to-transparent flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold text-white truncate inline-flex items-center gap-1">
-              <IconLock /> {asset.name}
-            </span>
-            <span className="text-[11px] font-extrabold text-accentb whitespace-nowrap">
-              {priceLabel}
-            </span>
-          </div>
-        ) : (
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2 z-[3]">
             <span className="text-[11px] text-white/90 font-semibold truncate">
               {asset.name}
@@ -217,7 +179,6 @@ export function AssetTile({
               {badge}
             </span>
           </div>
-        )}
       </motion.div>
       <div className="pt-1.5 flex items-baseline justify-between gap-2 text-[10.5px]">
         <span className={stamp.isUpdate ? "text-accentb" : "text-dim"}>

@@ -13,10 +13,9 @@ import {
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
-import { LicensingDialog } from "@/components/LicensingDialog";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
-import { IconPlay, IconHeart, IconUpload } from "@/components/ui/Icon";
+import { IconPlay, IconHeart } from "@/components/ui/Icon";
 
 type Asset = TileAsset & {
   weekOf: string | null;
@@ -27,8 +26,6 @@ type Asset = TileAsset & {
   publishIg: boolean;
   publishYt: boolean;
   publishState: ScheduledPost["publishState"];
-  approvalDueAt: string | null;
-  heldAt: string | null;
 };
 
 const FORMAT_DEFS: [string, string][] = [
@@ -142,7 +139,6 @@ export function ProjectDetailClient({
   project,
   assets,
   initialFavorites,
-  initialLicensedAssetIds,
   reviews,
   role,
   totalViews,
@@ -155,15 +151,12 @@ export function ProjectDetailClient({
     clientName: string;
     deliveredAt: string | null;
     expiresAt: string | null;
-    /** Two-way: this client may send footage back, not just take delivery. */
-    clientUploads: boolean;
     /** Everything here is watermarked until the invoice is settled. */
     paymentHold: boolean;
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
   initialFavorites: string[];
-  initialLicensedAssetIds: string[];
   reviews: ReviewRound[];
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
   totalViews: number;
@@ -195,9 +188,6 @@ export function ProjectDetailClient({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(
     new Set(initialFavorites),
-  );
-  const [licensedIds, setLicensedIds] = useState<Set<string>>(
-    new Set(initialLicensedAssetIds),
   );
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
@@ -243,7 +233,6 @@ export function ProjectDetailClient({
   );
 
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
-  const [licensingAsset, setLicensingAsset] = useState<Asset | null>(null);
 
   // "New" badges compare each asset's createdAt against the timestamp of the client's
   // previous visit to *this* project, stored locally (no per-user "last viewed"
@@ -483,15 +472,13 @@ export function ProjectDetailClient({
       videoOrder.map((v) => ({
         id: v.id,
         name: v.name,
-        licensable: v.licensable,
-        licensed: licensedIds.has(v.id),
         // Every download control states its size, per the handoff's global rule.
         size: formatBytes(Number(v.sizeBytes)),
         format: v.format,
         dims: v.dims,
         durationSec: v.durationSec,
       })),
-    [videoOrder, licensedIds],
+    [videoOrder],
   );
   const photoOrder = useMemo(
     () => groups.flatMap((g) => g.items.filter((i) => i.kind === "PHOTO")),
@@ -561,7 +548,6 @@ export function ProjectDetailClient({
               }
               selected={selected.has(a.id)}
               favorite={favorites.has(a.id)}
-              unlocked={licensedIds.has(a.id)}
               onToggleSelect={() => toggleSelect(a.id)}
               onToggleFavorite={() => toggleFavorite(a.id)}
               onOpen={() => openAsset(a)}
@@ -633,14 +619,6 @@ export function ProjectDetailClient({
               downloading={downloading}
               downloadedBytes={downloadedBytes}
             />
-          )}
-          {project.clientUploads && (
-            <Link
-              href={`/p/${project.id}/upload`}
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-muted hover:text-text py-2.5 -my-1"
-            >
-              <IconUpload /> Send us footage
-            </Link>
           )}
         </div>
       </div>
@@ -840,26 +818,8 @@ export function ProjectDetailClient({
           canDownload={canDownload}
           watermarked={project.paymentHold}
           onClose={() => setOpenVideoId(null)}
-          onRequestLicense={(assetId) => {
-            const asset = videoOrder.find((v) => v.id === assetId);
-            if (asset) setLicensingAsset(asset);
-            setOpenVideoId(null);
-          }}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
-        />
-      )}
-
-      {licensingAsset && licensingAsset.basePrice != null && (
-        <LicensingDialog
-          assetId={licensingAsset.id}
-          name={licensingAsset.name}
-          basePrice={licensingAsset.basePrice}
-          onClose={() => setLicensingAsset(null)}
-          onLicensed={() => {
-            setLicensedIds((s) => new Set(s).add(licensingAsset.id));
-            setLicensingAsset(null);
-          }}
         />
       )}
 

@@ -233,12 +233,10 @@ export async function ingestFile(absPath: string) {
 
   await moveFile(absPath, destAbsPath);
 
-  const isMaster = classification.format === "Master";
-  // Whether masters are offered for licence is a property of the project now, not of
-  // the client's category. A client can have a delivery whose master they can buy and a
-  // retainer project whose masters stay in-house.
-  const licensable = isMaster && project.sellMasters;
-  const internal = isMaster && !project.sellMasters;
+  // Masters are working files. With licensing gone there is nothing a client can do
+  // with one, so they stay in-house rather than appearing in a gallery as something to
+  // scroll past and wonder about.
+  const internal = classification.format === "Master";
 
   // Same project + same destination path (i.e. same filename dropped again, an
   // updated re-export) should replace the existing asset in place, not duplicate it —
@@ -282,7 +280,6 @@ export async function ingestFile(absPath: string) {
           masterCodec: classification.masterCodec,
           proxyStatus: "PENDING",
           internal,
-          licensable,
         },
       });
 

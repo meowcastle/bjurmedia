@@ -35,7 +35,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         // inboxPath field already shows on this admin page; translate to the host NAS
         // path the way you already do for that one.
         dirPath: path.join("_submissions", project.client.username, projectId, b.label),
-        uploaderName: b.user.name,
+        // Null for anyone who arrived through a send link rather than a seat.
+        uploaderName: b.user?.name ?? b.senderName ?? "Someone",
         createdAt: b.createdAt.toISOString(),
         files: b.submissions.map((s) => ({
           id: s.id,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { sendApprovalRequest } from "@/lib/approvalMail";
 
 type Action = "schedule" | "request-approval" | "approve" | "unschedule" | "release-hold";
 
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       publishAt: true,
       publishIg: true,
       publishYt: true,
-      project: { select: { clientId: true, client: { select: { approvalRequired: true, approvalAutoHours: true } } } },
+      project: { select: { clientId: true } },
     },
   });
   if (!asset) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const updated = await db.asset.update({
       where: { id },
-      data: { publishAt: null, publishState: "NONE", approvalDueAt: null, heldAt: null },
+      data: { publishAt: null, publishState: "NONE" },
       select: { publishState: true },
     });
     return NextResponse.json({ ok: true, ...updated });
@@ -85,40 +84,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "This post has already gone out." }, { status: 409 });
     }
 
-    // A client who does not require approval skips the loop entirely rather than
-    // sitting in AWAITING waiting for someone who was never going to be asked.
-    if (!asset.project.client.approvalRequired) {
-      const updated = await db.asset.update({
-        where: { id },
-        data: { publishState: "APPROVED", approvedAt: new Date(), approvalDueAt: null, heldAt: null },
-        select: { publishState: true },
-      });
-      return NextResponse.json({ ok: true, skippedApproval: true, ...updated });
-    }
-
-    // Auto-approve at the client's window, but never after the post was due to go out —
-    // a 24h window on a post publishing in two hours would approve it after the fact.
-    const hours = asset.project.client.approvalAutoHours;
-    const window = new Date(new Date().getTime() + hours * 3_600_000);
-    const dueAt = asset.publishAt < window ? asset.publishAt : window;
-
+    // AWAITING now means only "this is in the week that went to Slack". The client
+    // approves there, with a reaction — there is no email to send, no deadline to meet
+    // and nothing that approves itself if nobody answers.
     const updated = await db.asset.update({
       where: { id },
       data: {
         publishState: "AWAITING",
-        approvalDueAt: dueAt,
-        heldAt: null,
         approvedAt: null,
         approvedById: null,
-        approvalRemindedAt: null,
       },
-      select: { publishState: true, approvalDueAt: true },
+      select: { publishState: true },
     });
 
-    // After the state change, and it cannot throw: a post left in AWAITING with no email
-    // is recoverable, one the admin believes is still a draft is not.
-    const { sent } = await sendApprovalRequest(id);
-    return NextResponse.json({ ok: true, ...updated, emailsSent: sent });
+    return NextResponse.json({ ok: true, ...updated });
   }
 
   if (body.action === "approve" || body.action === "release-hold") {
@@ -131,8 +110,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         publishState: "APPROVED",
         approvedById: session.id,
         approvedAt: new Date(),
-        heldAt: null,
-        approvalDueAt: null,
       },
       select: { publishState: true },
     });

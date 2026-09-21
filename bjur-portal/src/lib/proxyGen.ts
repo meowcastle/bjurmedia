@@ -209,10 +209,11 @@ export async function generateProxy(asset: AssetRow) {
     let proxyRes: string | null = null;
 
     if (asset.kind === "VIDEO") {
-      const watermark = asset.licensable;
+      // Always clean. The only mark that survives is the payment hold's, and that one
+      // lives on its own renditions so lifting the hold needs no re-encode.
       proxyRelPath = `${asset.id}/proxy.mp4`;
       const outPath = path.join(DERIVED_ROOT, proxyRelPath);
-      await generateVideoProxy(srcPath, outPath, asset.format, watermark ? "preview" : "none");
+      await generateVideoProxy(srcPath, outPath, asset.format, "none");
 
       // A source file can have a corrupted packet partway through (valid header/
       // duration metadata, broken bitstream data after some point) that ffmpeg just
@@ -231,7 +232,7 @@ export async function generateProxy(asset: AssetRow) {
       }
 
       const { w, h } = proxyDims(asset.format);
-      proxyRes = watermark ? `watermarked ${h}p` : asset.format === "Reel" ? `${w}×${h} H.264` : `${h}p H.264`;
+      proxyRes = asset.format === "Reel" ? `${w}×${h} H.264` : `${h}p H.264`;
     }
 
     await db.asset.update({

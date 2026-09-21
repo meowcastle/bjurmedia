@@ -48,7 +48,6 @@ export async function applyPostAction(
         publishState: "APPROVED",
         approvedById: actor.kind === "user" ? actor.userId : null,
         approvedAt: new Date(),
-        heldAt: null,
       },
     });
     await db.activity.create({
@@ -66,11 +65,12 @@ export async function applyPostAction(
     return { ok: true, state: "APPROVED" };
   }
 
-  // Hold stops the clock rather than cancelling: the post stays scheduled and staff
-  // decide what happens next. The auto-approve sweep skips DRAFT and checks heldAt.
+  // Hold returns the post to DRAFT rather than cancelling it: it stays on the board and
+  // staff decide what happens next. Nothing expires it — there is no auto-approve now,
+  // so a held post waits for a person, indefinitely and on purpose.
   await db.asset.update({
     where: { id: assetId },
-    data: { publishState: "DRAFT", heldAt: new Date(), approvalDueAt: null },
+    data: { publishState: "DRAFT" },
   });
   await db.activity.create({
     data: { actor: clientName, action: `held "${asset.name}" — needs a change before publishing${via}` },

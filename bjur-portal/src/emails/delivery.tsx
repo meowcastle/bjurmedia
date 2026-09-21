@@ -14,7 +14,7 @@ export type DeliveryEmailProps = {
   projectTitle: string;
   /** Deep link to this project's gallery, e.g. https://portal…/p/<id> */
   projectUrl: string;
-  counts: { reels: number; films: number; stills: number; braw: number };
+  counts: { reels: number; films: number; stills: number };
   /** True when this batch replaced existing files rather than adding new ones. */
   isUpdate: boolean;
   expiresAt: string | null;
@@ -63,15 +63,13 @@ export function renderDeliveryEmailHtml({
     </div>`
       : "";
 
-  // Only what actually landed. A delivery of three reels announcing "0 films, 0 stills,
-  // 0 BRAW" is three lines of noise in someone's inbox, and it made the one real number
-  // harder to find.
+  // Only what actually landed. A delivery of three reels announcing "0 films, 0 stills"
+  // is lines of noise in someone's inbox, and it made the one real number harder to find.
   const shownCounts = (
     [
       [counts.reels, "Reels", false],
       [counts.films, "Films", false],
-      [counts.stills, "Stills", false],
-      [counts.braw, "BRAW", true],
+      [counts.stills, "Stills", true],
     ] as [number, string, boolean][]
   ).filter(([n]) => n > 0);
 

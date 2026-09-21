@@ -9,7 +9,6 @@ import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { RowMenu, RowMenuItem } from "@/components/RowMenu";
 import { AdminProxyViewer } from "@/components/AdminProxyViewer";
-import { GrantLicenseDialog } from "@/components/GrantLicenseDialog";
 import { IconPlay, IconRetry, IconClose } from "@/components/ui/Icon";
 import {
   ManageFoldersDialog,
@@ -37,8 +36,6 @@ type Asset = {
   reingestCount: number;
   lastReplacedAt: string | null;
   internal: boolean;
-  licensable: boolean;
-  basePrice: number | null;
   weekOf: string | null;
   folderId: string | null;
   contentTitle: string | null;
@@ -46,14 +43,11 @@ type Asset = {
   captionYT: string | null;
   captionApprovedAt: string | null;
   postedToSlackAt: string | null;
-  licenseExpired: boolean;
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
 
 type ProjectOption = { id: string; title: string };
 type ClientGroup = { id: string; name: string; projects: ProjectOption[] };
-type Seat = { id: string; name: string; email: string };
-
 const STATUS_MAP: Record<
   Asset["proxyStatus"],
   { label: string; color: string }
@@ -73,7 +67,6 @@ export function AdminMediaClient({
   projectOnBoard,
   siblingProjects,
   clientGroups,
-  clientSeats,
   folders,
   assets,
 }: {
@@ -86,14 +79,12 @@ export function AdminMediaClient({
   /** Whether this project is scheduled on the board — gates caption sign-off and posting. */
   projectOnBoard: boolean;
   siblingProjects: ProjectOption[];
-  clientSeats: Seat[];
   clientGroups: ClientGroup[];
   folders: FolderRow[];
   assets: Asset[];
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(assets);
-  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
   const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({});
   const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>(
@@ -105,9 +96,6 @@ export function AdminMediaClient({
   const [ytExpanded, setYtExpanded] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [view, setView] = useState<"files" | "calendar">("files");
-  const [grantingLicenseFor, setGrantingLicenseFor] = useState<Asset | null>(
-    null,
-  );
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
@@ -162,7 +150,6 @@ export function AdminMediaClient({
   if (selectedProjectId !== prevProjectId) {
     setPrevProjectId(selectedProjectId);
     setRows(assets);
-    setPriceDrafts({});
     setWeekOfDrafts({});
     setTitleDrafts({});
     setCaptionDrafts({});
@@ -268,32 +255,6 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ internal: !a.internal }),
-    });
-  }
-
-  async function toggleLicensable(a: Asset) {
-    const next = !a.licensable;
-    setRows((rs) =>
-      rs.map((r) => (r.id === a.id ? { ...r, licensable: next } : r)),
-    );
-    await fetch(`/api/admin/assets/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ licensable: next }),
-    });
-  }
-
-  async function savePrice(a: Asset) {
-    const raw = priceDrafts[a.id];
-    if (raw === undefined) return;
-    const price = raw === "" ? null : Number(raw);
-    setRows((rs) =>
-      rs.map((r) => (r.id === a.id ? { ...r, basePrice: price } : r)),
-    );
-    await fetch(`/api/admin/assets/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ basePrice: price }),
     });
   }
 
@@ -909,7 +870,6 @@ export function AdminMediaClient({
             </div>
             {tableRows.map((a) => {
               const status = STATUS_MAP[a.proxyStatus];
-              const isMaster = a.format === "Master";
               return (
                 <div
                   key={a.id}
@@ -1001,16 +961,6 @@ export function AdminMediaClient({
                         {a.internal && (
                           <span className="flex-none text-[9px] font-bold tracking-wide text-muted border border-line2 px-1.5 py-0.5">
                             INTERNAL
-                          </span>
-                        )}
-                        {a.licensable && (
-                          <span className="flex-none text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5">
-                            PAYWALLED
-                          </span>
-                        )}
-                        {a.licenseExpired && (
-                          <span className="flex-none text-[9px] font-bold tracking-wide text-accent border border-accent px-1.5 py-0.5">
-                            LICENSE EXPIRED
                           </span>
                         )}
                         {a.reingestCount > 0 && (
@@ -1236,24 +1186,6 @@ export function AdminMediaClient({
                       </div>
                     ) : (
                       <div className="flex gap-2 items-center justify-start md:justify-end flex-wrap">
-                        {/* The price is data rather than an action, so it stays on the row
-                        where it can be read without opening anything. Everything you *do*
-                        to a file moved into the menu. */}
-                        {isMaster && a.licensable && (
-                          <input
-                            defaultValue={a.basePrice ?? ""}
-                            onChange={(e) =>
-                              setPriceDrafts((d) => ({
-                                ...d,
-                                [a.id]: e.target.value,
-                              }))
-                            }
-                            onBlur={() => savePrice(a)}
-                            placeholder="Base $"
-                            aria-label={`Base price for ${a.name}`}
-                            className="w-20 bg-bg border border-line2 text-text text-[11px] px-2 py-1.5 outline-none focus:border-accent"
-                          />
-                        )}
                         <RowMenu label={`Actions for ${a.name}`}>
                           {(close) => (
                             <>
@@ -1286,31 +1218,6 @@ export function AdminMediaClient({
                                     ? "Regenerate proxy"
                                     : "Retry proxy"}
                                 </RowMenuItem>
-                              )}
-                              {isMaster && (
-                                <>
-                                  <div className="h-px bg-line my-1" />
-                                  <RowMenuItem
-                                    onClick={() => {
-                                      toggleLicensable(a);
-                                      close();
-                                    }}
-                                  >
-                                    {a.licensable
-                                      ? "License off"
-                                      : "Licensable"}
-                                  </RowMenuItem>
-                                  {a.licensable && a.basePrice != null && (
-                                    <RowMenuItem
-                                      onClick={() => {
-                                        setGrantingLicenseFor(a);
-                                        close();
-                                      }}
-                                    >
-                                      Grant custom license
-                                    </RowMenuItem>
-                                  )}
-                                </>
                               )}
                               <div className="h-px bg-line my-1" />
                               <RowMenuItem
@@ -1367,19 +1274,6 @@ export function AdminMediaClient({
         />
       )}
 
-      {grantingLicenseFor && selectedClientName && (
-        <GrantLicenseDialog
-          assetId={grantingLicenseFor.id}
-          assetName={grantingLicenseFor.name}
-          clientName={selectedClientName}
-          seats={clientSeats}
-          onClose={() => setGrantingLicenseFor(null)}
-          onGranted={() => {
-            setGrantingLicenseFor(null);
-            router.refresh();
-          }}
-        />
-      )}
     </div>
   );
 }

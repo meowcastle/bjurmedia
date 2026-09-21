@@ -40,13 +40,6 @@ async function buildZipResponse(
     }
   }
 
-  const licenses = session.isAdmin
-    ? []
-    : await db.license.findMany({
-        where: { clientId: session.clientId ?? undefined, assetId: { in: project.assets.map((a) => a.id) } },
-      });
-  const licensedAssetIds = new Set(licenses.map((l) => l.assetId));
-
   // A held project zips its watermarked copies. Anything not marked yet is left out
   // rather than substituted with the master — a zip is the easiest place to leak the
   // whole gallery at once, so it fails closed, file by file.
@@ -55,8 +48,6 @@ async function buildZipResponse(
 
   const entries: { path: string; name: string }[] = [];
   for (const asset of project.assets) {
-    const useProxy = asset.licensable && !session.isAdmin && !licensedAssetIds.has(asset.id);
-
     let relPath: string | null;
     let derived: boolean;
     if (watermark) {
@@ -67,8 +58,8 @@ async function buildZipResponse(
       relPath = asset.markedFileRelPath;
       derived = true;
     } else {
-      relPath = useProxy ? asset.proxyRelPath : asset.relPath;
-      derived = useProxy;
+      relPath = asset.relPath;
+      derived = false;
     }
 
     if (!relPath) continue;

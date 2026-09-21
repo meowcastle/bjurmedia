@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { sendWeeklyDigestEmail, sendExpiryEmail, sendLicenseEmail, sendReleasedEmail } from "@/lib/mailer";
-import { signThumbUrl, canSignPublishTokens } from "@/lib/publishToken";
+import { sendExpiryEmail, sendReleasedEmail } from "@/lib/mailer";
 import { formatBytes } from "@/lib/format";
 import { isLive } from "@/lib/deliveryNotify";
 
@@ -13,93 +12,9 @@ function day(d: Date) {
 }
 
 export type ClientMailDeps = {
-  sendWeekly: typeof sendWeeklyDigestEmail;
   sendExpiry: typeof sendExpiryEmail;
-  sendLicense: typeof sendLicenseEmail;
   sendReleased: typeof sendReleasedEmail;
 };
-
-/**
- * Email #3 — the Monday digest.
- *
- * Governed by the client's own notifyWeekly flag rather than by a client "type": a
- * client with nothing recurring has nothing to summarise, and sends nothing when the
- * week is empty, which is how a sender avoids being filtered.
- */
-export async function sendWeeklyDigests(weekStart: Date, deps: Partial<ClientMailDeps> = {}) {
-  const send = deps.sendWeekly ?? sendWeeklyDigestEmail;
-  const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
-
-  const clients = await db.client.findMany({
-    where: { status: "ACTIVE", notifyWeekly: true },
-    select: { id: true, name: true },
-  });
-
-  let sent = 0;
-  for (const client of clients) {
-    const assets = await db.asset.findMany({
-      where: {
-        // Scheduled work only. The digest is "here is your week", which is a sentence
-        // that only makes sense for a project on the board. This used to be expressed
-        // as "retainer clients only"; scoping it to the board says the same thing about
-        // the work rather than guessing from a category on the client, and it stops a
-        // one-off delivery triggering a Monday digest in the same week its own delivery
-        // email went out.
-        project: { clientId: client.id, calendar: true },
-        internal: false,
-        OR: [
-          { weekOf: { gte: weekStart, lt: weekEnd } },
-          { publishAt: { gte: weekStart, lt: weekEnd } },
-        ],
-      },
-      orderBy: [{ publishAt: "asc" }, { weekOf: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        contentTitle: true,
-        thumbRelPath: true,
-        publishAt: true,
-        publishIg: true,
-        publishYt: true,
-        publishState: true,
-        project: { select: { title: true } },
-      },
-    });
-    if (assets.length === 0) continue;
-
-    const recipients = await db.user.findMany({
-      where: { clientId: client.id, isAdmin: false, deactivatedAt: null, notifyDelivery: true },
-      select: { email: true, name: true },
-    });
-    if (recipients.length === 0) continue;
-
-    const items = assets.map((a) => {
-      const platforms = [a.publishIg && "Instagram", a.publishYt && "YouTube"].filter(Boolean).join(" + ");
-      return {
-        title: a.contentTitle || a.name,
-        projectTitle: a.project.title,
-        // Unsigned when there is no secret to sign with: a broken image is better than
-        // a URL that 401s in every recipient's client.
-        thumbUrl:
-          a.thumbRelPath && canSignPublishTokens() ? signThumbUrl(portalUrl(), a.id) : null,
-        detail: a.publishAt ? `${day(a.publishAt)}${platforms ? ` · ${platforms}` : ""}` : "Delivered",
-        state: a.publishState === "NONE" ? null : a.publishState.charAt(0) + a.publishState.slice(1).toLowerCase(),
-      };
-    });
-
-    for (const r of recipients) {
-      await send(r.email, {
-        clientName: client.name,
-        recipientName: r.name?.split(/\s+/)[0] ?? "there",
-        weekLabel: day(weekStart),
-        items,
-        portalUrl: portalUrl(),
-      });
-      sent++;
-    }
-  }
-  return { sent };
-}
 
 /**
  * Email #5 — expiry reminders at 14 and 3 days.
@@ -162,64 +77,6 @@ export async function sendExpiryReminders(now = new Date(), deps: Partial<Client
     }
   }
   return { sent };
-}
-
-/**
- * Email #6 — the license receipt. To the person it was issued to, plus the client's
- * owners, who need the record even when someone else on the account did the buying.
- *
- * Never throws: a failed receipt must not roll back a license the client has already
- * paid for.
- */
-export async function sendLicenseReceipt(licenseId: string, deps: Partial<ClientMailDeps> = {}) {
-  const send = deps.sendLicense ?? sendLicenseEmail;
-  try {
-    const license = await db.license.findUnique({
-      where: { id: licenseId },
-      select: {
-        tier: true,
-        amount: true,
-        scope: true,
-        purchasedAt: true,
-        expiresAt: true,
-        asset: { select: { id: true, name: true, projectId: true } },
-        client: { select: { id: true, name: true } },
-        user: { select: { email: true, name: true, isAdmin: true } },
-      },
-    });
-    if (!license) return { sent: 0 };
-
-    const owners = await db.user.findMany({
-      where: { clientId: license.client.id, role: "OWNER", isAdmin: false, deactivatedAt: null },
-      select: { email: true, name: true },
-    });
-
-    // The purchaser is an admin when staff granted the license, and mailing a receipt to
-    // ourselves is noise — the owners are the ones who need the record either way.
-    const granted = license.user.isAdmin;
-    const recipients = [...(granted ? [] : [license.user]), ...owners].filter(
-      (r, i, all) => all.findIndex((x) => x.email === r.email) === i
-    );
-
-    for (const r of recipients) {
-      await send(r.email, {
-        recipientName: r.name?.split(/\s+/)[0] ?? "there",
-        clientName: license.client.name,
-        assetName: license.asset.name,
-        tier: license.tier.charAt(0) + license.tier.slice(1).toLowerCase(),
-        amount: license.amount,
-        scope: license.scope,
-        purchasedAtLabel: day(license.purchasedAt),
-        expiresAtLabel: license.expiresAt ? day(license.expiresAt) : null,
-        granted,
-        assetUrl: `${portalUrl()}/p/${license.asset.projectId}`,
-      });
-    }
-    return { sent: recipients.length };
-  } catch (err) {
-    console.error("[license-mail] failed to send receipt:", err);
-    return { sent: 0 };
-  }
 }
 
 /**

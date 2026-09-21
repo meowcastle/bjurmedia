@@ -33,13 +33,8 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   // current viewCount is stored, so a change figure would have to be invented.
   const since = new Date(new Date().getTime() - 30 * 86_400_000);
 
-  const [socialAccounts, licenses, topPosts] = await Promise.all([
+  const [socialAccounts, topPosts] = await Promise.all([
     db.socialAccount.findMany({ where: { clientId: client.id } }),
-    db.license.findMany({
-      where: { clientId: client.id },
-      orderBy: { purchasedAt: "desc" },
-      include: { asset: { select: { name: true } }, user: { select: { name: true } } },
-    }),
     db.socialPost.findMany({
       where: { socialAccount: { clientId: client.id }, postedAt: { gte: since } },
       orderBy: { viewCount: "desc" },
@@ -64,21 +59,9 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         ytHandle: socialAccounts.find((a) => a.platform === "YOUTUBE")?.handle ?? null,
         autoCaption: client.autoCaption,
         captionStyle: client.captionStyle,
-        approvalRequired: client.approvalRequired,
-        approvalAutoHours: client.approvalAutoHours,
         accentColor: client.accentColor,
         logoUrl: client.logoUrl,
       }}
-      licenses={licenses.map((l) => ({
-        id: l.id,
-        assetName: l.asset.name,
-        tier: l.tier,
-        amount: l.amount,
-        scope: l.scope,
-        purchasedAt: l.purchasedAt.toISOString(),
-        expiresAt: l.expiresAt?.toISOString() ?? null,
-        userName: l.user.name,
-      }))}
       topPosts={topPosts.map((p) => ({
         id: p.id,
         // The asset name is the thing an admin recognises; the caption is what
@@ -117,10 +100,8 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         status: p.status,
         deliveredAt: p.deliveredAt?.toISOString() ?? null,
         expiresAt: p.expiresAt?.toISOString() ?? null,
-        clientUploads: p.clientUploads,
-        calendar: p.calendar,
+        type: p.type,
         review: p.review,
-        sellMasters: p.sellMasters,
         paymentHold: p.paymentHold,
         assetCount: p.assets.filter((a) => !a.internal).length,
         submissionCount: p._count.submissions,

@@ -8,12 +8,9 @@ import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
 import { SeatAccessDialog } from "@/components/SeatAccessDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
-import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
-import { ClientSubmissionsDialog } from "@/components/ClientSubmissionsDialog";
 import { lighten } from "@/lib/color";
 import { initials } from "@/lib/initials";
-import { IconUpload } from "@/components/ui/Icon";
 import { Toast } from "@/components/ui/Toast";
 
 type ProjectAccessGrant = { projectId: string; role: string };
@@ -31,10 +28,8 @@ type ProjectRow = {
   status: string;
   deliveredAt: string | null;
   expiresAt: string | null;
-  clientUploads: boolean;
-  calendar: boolean;
+  type: "DELIVERY" | "CALENDAR";
   review: boolean;
-  sellMasters: boolean;
   paymentHold: boolean;
   assetCount: number;
   submissionCount: number;
@@ -49,8 +44,6 @@ type ClientInfo = {
   ytHandle: string | null;
   autoCaption: boolean;
   captionStyle: string | null;
-  approvalRequired: boolean;
-  approvalAutoHours: number;
   accentColor: string | null;
   logoUrl: string | null;
 };
@@ -63,25 +56,7 @@ type SocialAccountRow = {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
 };
-type LicenseRow = {
-  id: string;
-  assetName: string;
-  tier: "SOCIAL" | "COMMERCIAL" | "BUYOUT" | "CUSTOM";
-  amount: number;
-  scope: string;
-  purchasedAt: string;
-  expiresAt: string | null;
-  userName: string;
-};
-
 const DEFAULT_ACCENT = "#ec3013";
-
-const TIER_LABEL: Record<LicenseRow["tier"], string> = {
-  SOCIAL: "Social & Digital",
-  COMMERCIAL: "Commercial & Broadcast",
-  BUYOUT: "Full Buyout",
-  CUSTOM: "Custom",
-};
 
 const ROLE_COLOR: Record<string, string> = {
   OWNER: "#2ec36b",
@@ -118,7 +93,6 @@ export function AdminClientDetailClient({
   seats,
   projects,
   socialAccounts,
-  licenses,
   topPosts,
   postsSyncedAt,
 }: {
@@ -126,7 +100,6 @@ export function AdminClientDetailClient({
   seats: Seat[];
   projects: ProjectRow[];
   socialAccounts: SocialAccountRow[];
-  licenses: LicenseRow[];
   topPosts: TopPost[];
   postsSyncedAt: string | null;
 }) {
@@ -143,9 +116,7 @@ export function AdminClientDetailClient({
   const [removingSeat, setRemovingSeat] = useState<string | null>(null);
   const [seatError, setSeatError] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
-  const [submissionsFor, setSubmissionsFor] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [autoCaption, setAutoCaption] = useState(client.autoCaption);
   const [styleDraft, setStyleDraft] = useState(client.captionStyle ?? "");
@@ -176,33 +147,6 @@ export function AdminClientDetailClient({
 
   const ytPublishReady = client.ytPublishReady;
   const ytHandle = client.ytHandle;
-  const [approvalRequired, setApprovalRequired] = useState(
-    client.approvalRequired,
-  );
-  const [approvalHours, setApprovalHours] = useState(
-    String(client.approvalAutoHours),
-  );
-  const [approvalError, setApprovalError] = useState<string | null>(null);
-
-  async function saveApproval(fields: {
-    approvalRequired?: boolean;
-    approvalAutoHours?: number;
-  }) {
-    setApprovalError(null);
-    const res = await fetch(`/api/admin/clients/${client.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fields),
-    });
-    if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
-      setApprovalError(body.error ?? "Could not save that.");
-      // Put the control back rather than showing a state the database never took.
-      setApprovalRequired(client.approvalRequired);
-      setApprovalHours(String(client.approvalAutoHours));
-    }
-  }
-
   const [accentColor, setAccentColor] = useState(
     client.accentColor ?? DEFAULT_ACCENT,
   );
@@ -770,72 +714,6 @@ export function AdminClientDetailClient({
         </div>
       </div>
 
-      {/* §13. The policy the approval loop runs on. Without a control here these two
-          columns existed but nothing could change them, so every client was pinned to
-          "approval required, 24 hours". */}
-      <div className="mb-9" data-testid="approval-policy">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
-          Publishing approval
-        </h2>
-        <div className="border border-line bg-s1 p-5 flex flex-col gap-4">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={approvalRequired}
-              onChange={(e) => {
-                setApprovalRequired(e.target.checked);
-                saveApproval({ approvalRequired: e.target.checked });
-              }}
-              className="mt-1 w-3.5 h-3.5 cursor-pointer"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-bold">
-                Ask before publishing
-              </span>
-              <span className="block text-xs text-muted mt-1">
-                Scheduled posts go to this client&apos;s owner for sign-off.
-                Turn this off and they publish on their date without asking.
-              </span>
-            </span>
-          </label>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[11px] uppercase tracking-wide text-dim">
-              Auto-approve after
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={168}
-              value={approvalHours}
-              disabled={!approvalRequired}
-              aria-label="Auto-approve after (hours)"
-              onChange={(e) => setApprovalHours(e.target.value)}
-              onBlur={() => {
-                const n = Number(approvalHours);
-                if (Number.isInteger(n) && n >= 1 && n <= 168)
-                  saveApproval({ approvalAutoHours: n });
-                else {
-                  setApprovalHours(String(client.approvalAutoHours));
-                  setApprovalError(
-                    "Hours must be a whole number between 1 and 168.",
-                  );
-                }
-              }}
-              className="w-20 bg-bg border border-line2 text-text text-[12px] px-2 py-1.5 outline-none focus:border-accent disabled:opacity-40"
-            />
-            <span className="text-[11px] text-dim">
-              hours of silence — never later than the post&apos;s own publish
-              time
-            </span>
-          </div>
-
-          {approvalError && (
-            <div className="text-[12px] text-accentb">{approvalError}</div>
-          )}
-        </div>
-      </div>
-
       {/* §10c. Which delivered files are actually performing — the question a
           retainer conversation opens with. No change-vs-last-period figure: only the
           current viewCount is stored, so a delta would have to be invented. */}
@@ -926,27 +804,14 @@ export function AdminClientDetailClient({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
               <span className="text-muted">{p.assetCount} assets</span>
-              {/* What each project actually does, visible from the list rather than
-                  only by opening each one. Uploads keeps the accent — it is the one
-                  that lets someone else write to the studio's storage. */}
-              {p.clientUploads && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb/40 px-[7px] py-[3px]">
-                  <IconUpload /> Uploads open
-                </span>
-              )}
-              {p.calendar && (
-                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
-                  Board
-                </span>
-              )}
+              {/* What each project is, visible from the list rather than only by
+                  opening it. Set at creation and never changes. */}
+              <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
+                {p.type === "CALENDAR" ? "Calendar" : "Delivery"}
+              </span>
               {p.review && (
                 <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
                   Review
-                </span>
-              )}
-              {p.sellMasters && (
-                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
-                  Masters
                 </span>
               )}
               {p.paymentHold && (
@@ -965,25 +830,11 @@ export function AdminClientDetailClient({
               </span>
             </div>
             <div className="flex gap-2 justify-start md:justify-end">
-              {p.submissionCount > 0 && (
-                <button
-                  onClick={() => setSubmissionsFor(p)}
-                  className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accent/40 hover:border-text px-2.5 py-1.5"
-                >
-                  Client uploads ({p.submissionCount})
-                </button>
-              )}
               <button
                 onClick={() => setUploadingTo(p)}
                 className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
               >
                 Upload
-              </button>
-              <button
-                onClick={() => setEditing(p)}
-                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
-              >
-                Edit
               </button>
             </div>
           </div>
@@ -993,56 +844,6 @@ export function AdminClientDetailClient({
             No projects yet.
           </div>
         )}
-      </div>
-
-      <div className="mt-9">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
-          Licenses
-        </h2>
-        <div className="border border-line">
-          {licenses.map((l) => {
-            const now = new Date();
-            const expired = l.expiresAt != null && new Date(l.expiresAt) < now;
-            const statusLabel =
-              l.expiresAt == null
-                ? "Perpetual"
-                : expired
-                  ? "Expired"
-                  : "Active";
-            const statusColor = expired
-              ? "text-accent"
-              : l.expiresAt == null
-                ? "text-muted"
-                : "text-success";
-            return (
-              <div
-                key={l.id}
-                className="flex flex-col gap-1.5 px-5 py-4 border-b border-line last:border-b-0"
-              >
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-sm font-semibold">{l.assetName}</span>
-                  <span
-                    className={`text-[11px] font-bold tracking-wide uppercase ${statusColor}`}
-                  >
-                    {statusLabel}
-                  </span>
-                </div>
-                <div className="text-xs text-muted">
-                  {TIER_LABEL[l.tier]} · ${l.amount} · {l.scope}
-                </div>
-                <div className="text-[11px] text-dim">
-                  {fmtDate(l.purchasedAt)} · {l.userName}
-                  {l.expiresAt && ` · expires ${fmtDate(l.expiresAt)}`}
-                </div>
-              </div>
-            );
-          })}
-          {licenses.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm text-muted">
-              No licenses yet.
-            </div>
-          )}
-        </div>
       </div>
 
       {seatDialogOpen && (
@@ -1084,33 +885,6 @@ export function AdminClientDetailClient({
           onCreated={() => router.refresh()}
         />
       )}
-      {editing && (
-        <EditProjectDialog
-          notify={setToast}
-          project={{
-            id: editing.id,
-            title: editing.title,
-            status: editing.status,
-            clientUploads: editing.clientUploads,
-            calendar: editing.calendar,
-            review: editing.review,
-            sellMasters: editing.sellMasters,
-            paymentHold: editing.paymentHold,
-            deliveredAt: editing.deliveredAt,
-            expiresAt: editing.expiresAt,
-            assetCount: editing.assetCount,
-          }}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            router.refresh();
-          }}
-          onDeleted={() => {
-            setEditing(null);
-            router.refresh();
-          }}
-        />
-      )}
       <Toast message={toast} onDone={() => setToast(null)} />
 
       {uploadingTo && (
@@ -1119,13 +893,6 @@ export function AdminClientDetailClient({
           projectTitle={uploadingTo.title}
           onClose={() => setUploadingTo(null)}
           onUploaded={() => router.refresh()}
-        />
-      )}
-      {submissionsFor && (
-        <ClientSubmissionsDialog
-          projectId={submissionsFor.id}
-          projectTitle={submissionsFor.title}
-          onClose={() => setSubmissionsFor(null)}
         />
       )}
     </div>

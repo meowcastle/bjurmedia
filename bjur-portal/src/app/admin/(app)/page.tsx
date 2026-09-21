@@ -73,8 +73,8 @@ export default async function AdminDashboardPage() {
     // a "retainer" before, which was a guess; the board switch says it outright.
     db.asset.groupBy({
       by: ["projectId"],
-      where: { internal: false, weekOf: null, project: { calendar: true, client: { status: "ACTIVE" } } },
-      _count: { _all: true },
+      where: { internal: false, weekOf: null, project: { type: "CALENDAR", client: { status: "ACTIVE" } } },
+      _count: true,
     }),
   ]);
 
@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
       })
     : [];
   const unscheduledCountByProject = new Map(
-    unscheduledRetainer.map((r) => [r.projectId, r._count._all])
+    unscheduledRetainer.map((r) => [r.projectId, r._count])
   );
 
   const attention = [

@@ -88,7 +88,7 @@ async function sendForProject(project: {
       internal: false,
       OR: [{ createdAt: { gte: since } }, { lastReplacedAt: { gte: since } }],
     },
-    select: { format: true, licensable: true, createdAt: true },
+    select: { format: true, createdAt: true },
   });
 
   const clearPending = () =>
@@ -104,11 +104,13 @@ async function sendForProject(project: {
     return;
   }
 
+  // No BRAW line any more: it counted masters offered for licence, and masters are
+  // internal now — the client never sees one, so announcing a count of them was only
+  // ever going to prompt a question with no answer.
   const counts = {
     reels: assets.filter((a) => a.format === "Reel").length,
     films: assets.filter((a) => a.format === "Film").length,
     stills: assets.filter((a) => a.format === "Still").length,
-    braw: assets.filter((a) => a.licensable).length,
   };
   const isUpdate = assets.every((a) => a.createdAt < since);
 
@@ -134,7 +136,7 @@ async function sendForProject(project: {
         action:
           `(dry run) would email ${recipients.length} recipient(s) about ${project.title} ` +
           `(${project.client.name}): ${recipients.map((r) => r.email).join(", ")} — ` +
-          `${counts.reels} reels, ${counts.films} films, ${counts.stills} stills, ${counts.braw} BRAW`,
+          `${counts.reels} reels, ${counts.films} films, ${counts.stills} stills`,
       },
     });
     await db.project.update({

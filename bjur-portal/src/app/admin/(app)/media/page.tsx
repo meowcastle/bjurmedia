@@ -20,19 +20,12 @@ export default async function AdminMediaPage({
   // for you, which was indistinguishable from actually choosing one.
   const selected = projectParam ? (projects.find((p) => p.id === projectParam) ?? null) : null;
 
-  const [assets, clientSeats, folders] = await Promise.all([
+  const [assets, folders] = await Promise.all([
     selected
       ? db.asset.findMany({
           where: { projectId: selected.id },
           orderBy: { createdAt: "desc" },
-          include: { socialPosts: true, licenses: { select: { expiresAt: true } } },
-        })
-      : Promise.resolve([]),
-    selected
-      ? db.user.findMany({
-          where: { clientId: selected.clientId, deactivatedAt: null },
-          select: { id: true, name: true, email: true },
-          orderBy: { name: "asc" },
+          include: { socialPosts: true },
         })
       : Promise.resolve([]),
     selected
@@ -67,11 +60,10 @@ export default async function AdminMediaPage({
       selectedProjectTitle={selected?.title ?? null}
       selectedClientId={selected?.clientId ?? null}
       selectedClientName={selected?.client.name ?? null}
-      projectOnBoard={selected?.calendar ?? false}
+      projectOnBoard={selected?.type === "CALENDAR"}
       clientAutoCaption={selected?.client.autoCaption ?? false}
       siblingProjects={siblingProjects}
       clientGroups={clientGroups}
-      clientSeats={clientSeats}
       folders={folders.map((f) => ({ id: f.id, name: f.name, assetCount: f._count.assets }))}
       assets={assets.map((a) => ({
         id: a.id,
@@ -92,8 +84,6 @@ export default async function AdminMediaPage({
         reingestCount: a.reingestCount,
         lastReplacedAt: a.lastReplacedAt?.toISOString() ?? null,
         internal: a.internal,
-        licensable: a.licensable,
-        basePrice: a.basePrice,
         weekOf: a.weekOf?.toISOString() ?? null,
         folderId: a.folderId,
         contentTitle: a.contentTitle,
@@ -101,7 +91,6 @@ export default async function AdminMediaPage({
         captionYT: a.captionYT,
         captionApprovedAt: a.captionApprovedAt?.toISOString() ?? null,
         postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
-        licenseExpired: a.licenses.some((l) => l.expiresAt != null && l.expiresAt < new Date()),
         socialPosts: a.socialPosts.map((p) => ({
           id: p.id,
           permalink: p.permalink,

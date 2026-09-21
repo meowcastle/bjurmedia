@@ -32,13 +32,8 @@ export default async function AdminIntegrationsPage() {
           connected: config.connected,
           webhookUrl: config.webhookUrl ?? "",
           defaultChannel: config.defaultChannel,
-          weeklyDay: config.weeklyDay,
-          weeklyTime: config.weeklyTime,
-          autoWeekly: config.autoWeekly,
-          autoContentCalendar: config.autoContentCalendar,
           autoUpload: config.autoUpload,
           autoDownload: config.autoDownload,
-          autoLicense: config.autoLicense,
           autoSubmission: config.autoSubmission,
         }}
         clientRows={clients.map((c) => {
@@ -47,9 +42,6 @@ export default async function AdminIntegrationsPage() {
             id: c.id,
             name: c.name,
             channel: ch?.channel ?? "",
-            autoPostSlack: ch?.autoPostSlack ?? false,
-            autoPostDay: ch?.autoPostDay ?? 0,
-            autoPostHour: ch?.autoPostHour ?? 21,
           };
         })}
       />
@@ -67,9 +59,6 @@ export default async function AdminIntegrationsPage() {
       <AdminSocialIntegrationsClient
         initialConfig={{
           youtubeApiKey: socialConfig.youtubeApiKey ?? "",
-          weeklyDay: socialConfig.weeklyDay,
-          weeklyTime: socialConfig.weeklyTime,
-          autoWeekly: socialConfig.autoWeekly,
         }}
       />
     </>

@@ -13,7 +13,7 @@
  * change (line below) is the standard "reset state when switching to a new
  * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
-import { MasterSheet } from "@/components/MasterSheet";
+import { DownloadSheet } from "@/components/DownloadSheet";
 import { useTapGestures, useHeartBurst } from "@/lib/useTapGestures";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
@@ -25,8 +25,6 @@ import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCaro
 export type VideoNavAsset = {
   id: string;
   name: string;
-  licensable: boolean;
-  licensed: boolean;
   /** Formatted master size for the download control. */
   size: string;
   /** Facts the master sheet shows before someone commits to a download. */
@@ -49,7 +47,6 @@ export function VideoViewer({
   canDownload,
   watermarked = false,
   onClose,
-  onRequestLicense,
   favorites,
   onToggleFavorite,
 }: {
@@ -59,7 +56,6 @@ export function VideoViewer({
   /** The project is on a payment hold — downloads come back marked, at full quality. */
   watermarked?: boolean;
   onClose: () => void;
-  onRequestLicense: (assetId: string) => void;
   /** Ids currently favourited, so the heart reflects the page's state. */
   favorites?: Set<string>;
   onToggleFavorite?: (assetId: string) => void;
@@ -149,8 +145,6 @@ export function VideoViewer({
   const currentItem = carousel.currentItem;
   if (!currentItem) return null;
 
-  const activeLocked = currentItem.licensable && !currentItem.licensed;
-
   return (
     <Portal>
       <div className="fixed inset-0 z-50 bg-black bjfade overscroll-contain">
@@ -226,7 +220,7 @@ export function VideoViewer({
 
         <SwipeHint visible={carousel.swipeHintVisible} />
 
-        <MasterSheet
+        <DownloadSheet
           open={masterOpen}
           assetId={currentItem.id}
           canDownload={canDownload}
@@ -240,15 +234,9 @@ export function VideoViewer({
                 ).padStart(2, "0")}`
               : null,
             size: currentItem.size,
-            locked: activeLocked,
-            licensable: currentItem.licensable,
             watermarked,
           }}
           onClose={() => setMasterOpen(false)}
-          onRequestLicense={() => {
-            setMasterOpen(false);
-            onRequestLicense(currentItem.id);
-          }}
         />
 
         <VideoChrome
@@ -261,7 +249,6 @@ export function VideoViewer({
           hasPrev={carousel.hasPrev}
           hasNext={carousel.hasNext}
           isFavorite={isFavorite}
-          locked={activeLocked}
           onTogglePlay={togglePlay}
           onToggleMute={toggleMute}
           onSeek={seek}

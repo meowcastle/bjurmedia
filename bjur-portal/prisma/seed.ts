@@ -134,7 +134,6 @@ async function seedPublishStates() {
       publishIg: true,
       publishYt: true,
       publishState: "AWAITING",
-      approvalDueAt: at(2, 10),
       caption: "Behind the scenes from the rooftop set — full film out Friday.",
       contentTitle: "TOVA (FAM ONLY)",
     },
@@ -169,7 +168,6 @@ async function seedPublishStates() {
       publishAt: at(6, 11),
       publishIg: true,
       publishState: "DRAFT",
-      heldAt: new Date(),
       caption: "Needs a different opening line.",
     },
   });
@@ -250,10 +248,6 @@ function bytes(size: string) {
   return BigInt(Math.round(n * (unit === "GB" ? 1_000_000_000 : 1_000_000)));
 }
 
-function price(p: string) {
-  return parseInt(p.replace("$", ""), 10);
-}
-
 function date(d: string, year = 2026) {
   return new Date(`${d}, ${year}`);
 }
@@ -269,8 +263,6 @@ type SeedAsset = {
   dims?: string;
   masterCodec?: string;
   proxyRes?: string;
-  licensable?: boolean;
-  basePrice?: number;
   weekOf?: Date;
 };
 
@@ -314,13 +306,7 @@ const still = (
   sizeBytes: bytes(size),
 });
 
-const master = (
-  name: string,
-  d: string,
-  dt: string,
-  size: string,
-  priceStr: string
-): SeedAsset => ({
+const master = (name: string, d: string, dt: string, size: string): SeedAsset => ({
   kind: "VIDEO",
   format: "Master",
   orientation: "landscape",
@@ -329,9 +315,7 @@ const master = (
   durationSec: dur(d),
   sizeBytes: bytes(size),
   masterCodec: `BRAW · ${size}`,
-  proxyRes: "watermarked 1080p",
-  licensable: true,
-  basePrice: price(priceStr),
+  proxyRes: "1080p H.264",
 });
 
 const assetsByProject: Record<string, SeedAsset[]> = {
@@ -347,8 +331,8 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     still("SSH_Portrait_07.jpg", "portrait", "4032×6048", "Jun 15", "24.9 MB"),
     still("SSH_Still_031.jpg", "landscape", "6048×4032", "Jun 15", "23.3 MB"),
     still("SSH_Detail_08.jpg", "landscape", "5760×3240", "Jun 15", "11.2 MB"),
-    master("SSH_HeroCut_MASTER.braw", "01:00", "Jun 14", "47.2 GB", "$450"),
-    master("SSH_ProductFilm_MASTER.braw", "00:40", "Jun 14", "31.8 GB", "$380"),
+    master("SSH_HeroCut_MASTER.braw", "01:00", "Jun 14", "47.2 GB"),
+    master("SSH_ProductFilm_MASTER.braw", "00:40", "Jun 14", "31.8 GB"),
   ],
   p2: [
     reel("Aera_Reel_Launch.mp4", "00:20", "Jul 03", "2.0 GB"),
@@ -357,7 +341,7 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     still("Aera_Pack_01.jpg", "landscape", "7008×4672", "Jul 03", "38.2 MB"),
     still("Aera_Pack_02.jpg", "landscape", "7008×4672", "Jul 03", "36.1 MB"),
     still("Aera_Hero.jpg", "portrait", "4672×7008", "Jul 03", "39.0 MB"),
-    master("Aera_Launch_MASTER.braw", "00:45", "Jul 03", "29.4 GB", "$400"),
+    master("Aera_Launch_MASTER.braw", "00:45", "Jul 03", "29.4 GB"),
   ],
   p3: [
     still("Studio_P01.jpg", "portrait", "4032×6048", "May 28", "21.2 MB"),
@@ -374,7 +358,7 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     reel("NYC_Rooftop_Reel_03.mp4", "00:15", "Jul 02", "1.5 GB"),
     film("NYC_Rooftop_Film.mp4", "01:12", "Jul 02", "11.6 GB"),
     still("NYC_Roof_Still_02.jpg", "landscape", "6048×4032", "Jul 02", "25.4 MB"),
-    master("NYC_Rooftop_MASTER.braw", "01:12", "Jul 02", "53.1 GB", "$500"),
+    master("NYC_Rooftop_MASTER.braw", "01:12", "Jul 02", "53.1 GB"),
   ],
   p5: [
     still("FW26_Look_01.jpg", "portrait", "4672×7008", "Jun 09", "35.9 MB"),
@@ -387,13 +371,13 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     reel("SUYIN_Live_Reel_01.mp4", "00:20", "Jun 21", "2.1 GB"),
     reel("SUYIN_Live_Reel_02.mp4", "00:17", "Jun 21", "1.7 GB"),
     film("SUYIN_Live_Recap.mp4", "02:04", "Jun 21", "16.2 GB"),
-    master("SUYIN_Live_MASTER.braw", "02:04", "Jun 21", "61.8 GB", "$550"),
+    master("SUYIN_Live_MASTER.braw", "02:04", "Jun 21", "61.8 GB"),
   ],
   p7: [
     film("Halcyon_BrandAnthem_60.mp4", "01:00", "Jul 01", "7.9 GB"),
     reel("Halcyon_Anthem_Reel.mp4", "00:18", "Jul 01", "1.8 GB"),
     still("Halcyon_Key_01.jpg", "landscape", "6048×4032", "Jul 01", "23.4 MB"),
-    master("Halcyon_Anthem_MASTER.braw", "01:00", "Jul 01", "44.6 GB", "$500"),
+    master("Halcyon_Anthem_MASTER.braw", "01:00", "Jul 01", "44.6 GB"),
   ],
   p8: [
     { ...reel("IG_Jul06_ReelA.mp4", "00:14", "Jul 06", "1.6 GB"), weekOf: date("Jul 06") },
@@ -404,17 +388,6 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     { ...reel("IG_Jul13_ReelC.mp4", "00:12", "Jul 13", "1.3 GB"), weekOf: date("Jul 13") },
   ],
 };
-
-// Retainer working masters (BRAW) are internal — hidden from clients, used for the studio's
-// own edits. Halcyon (p7, one-off) is the exception: its master is offered for licensing.
-for (const [pid, assets] of Object.entries(assetsByProject)) {
-  if (pid === "p7") continue;
-  for (const a of assets) {
-    if (a.format === "Master") {
-      a.licensable = false;
-    }
-  }
-}
 
 const clientsSeed = [
   {
@@ -529,9 +502,7 @@ async function seedReviews() {
   await db.project.update({ where: { id: "p2" }, data: { review: true } });
   // p8 (57.NYC IG Posting) is the board project — the weekly-reel workflow the
   // calendar and the Slack push were built for.
-  await db.project.update({ where: { id: "p8" }, data: { calendar: true } });
-  // Halcyon's delivery is the one that sells its master — the licensing spec buys it.
-  await db.project.update({ where: { id: "p7" }, data: { sellMasters: true } });
+  await db.project.update({ where: { id: "p8" }, data: { type: "CALENDAR" } });
 
   // Two reels with no day yet. New uploads arrive unscheduled, so the board's tray is
   // only empty on a week that has already been laid out — seeding it full is the
@@ -592,7 +563,6 @@ async function main() {
   console.log("Seeding…");
 
   await db.favorite.deleteMany();
-  await db.license.deleteMany();
   await db.session.deleteMany();
   await db.submission.deleteMany();
   await db.uploadBatch.deleteMany();
@@ -662,9 +632,9 @@ async function main() {
             masterCodec: a.masterCodec,
             proxyRes: a.proxyRes,
             proxyStatus: "READY",
-            internal: a.format === "Master" && !a.licensable,
-            licensable: a.licensable ?? false,
-            basePrice: a.basePrice,
+            // Masters are working files with nothing a client can do with them, so they
+            // are never client-visible now that licensing is gone.
+            internal: a.format === "Master",
             weekOf: a.weekOf,
             createdAt: a.createdAt,
           })),
@@ -709,10 +679,16 @@ async function main() {
     });
   }
 
-  // Client uploads are opt-in per project now. p1 is the two-way one the submission
-  // specs exercise; everything else stays delivery-only, which is the default a real
-  // project starts from.
-  await db.project.update({ where: { id: "p1" }, data: { clientUploads: true } });
+  // Footage comes in through a named request now, not a per-project switch. p1 carries
+  // the open one the submission specs upload into; it is the folder their files land in.
+  await db.submissionRequest.create({
+    data: {
+      projectId: "p1",
+      name: "Camera originals",
+      token: "seedtoken00000000000000000000001",
+      expiresAt: new Date(Date.now() + 14 * 86_400_000),
+    },
+  });
 
   await seedSubmissions();
   await seedReviews();

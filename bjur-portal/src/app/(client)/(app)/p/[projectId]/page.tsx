@@ -36,9 +36,8 @@ export default async function ProjectDetailPage({
   const totalPosts = allSocialPosts.length;
 
   const assetIds = project.assets.map((a) => a.id);
-  const [favorites, licenses, reviews] = await Promise.all([
+  const [favorites, reviews] = await Promise.all([
     db.favorite.findMany({ where: { userId: session.id, assetId: { in: assetIds } } }),
-    db.license.findMany({ where: { clientId: session.clientId, assetId: { in: assetIds } } }),
     // Newest cut first: a client with several rounds open cares about the one that just
     // landed. Answered rounds stay on the page so the reply they sent is still there.
     db.review.findMany({
@@ -69,7 +68,6 @@ export default async function ProjectDetailPage({
         clientName: project.client.name,
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,
-        clientUploads: project.clientUploads,
         paymentHold: project.paymentHold,
         folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
@@ -85,8 +83,6 @@ export default async function ProjectDetailPage({
         durationSec: a.durationSec,
         // Serialised: sizeBytes is a BigInt, which does not survive the RSC boundary.
         sizeBytes: a.sizeBytes.toString(),
-        licensable: a.licensable,
-        basePrice: a.basePrice,
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
         weekOf: a.weekOf?.toISOString() ?? null,
@@ -98,8 +94,6 @@ export default async function ProjectDetailPage({
         publishIg: a.publishIg,
         publishYt: a.publishYt,
         publishState: a.publishState,
-        approvalDueAt: a.approvalDueAt?.toISOString() ?? null,
-        heldAt: a.heldAt?.toISOString() ?? null,
         viewCount: a.socialPosts.length
           ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
           : null,
@@ -120,7 +114,6 @@ export default async function ProjectDetailPage({
         durationSec: r.asset.durationSec,
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
-      initialLicensedAssetIds={licenses.map((l) => l.assetId)}
       role={access.role}
     />
   );

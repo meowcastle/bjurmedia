@@ -9,33 +9,34 @@ generator client {
 
 // ── Orgs & users ───────────────────────────────────────────
 model Client {
-  id                String          @id @default(cuid())
-  name              String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
-  username          String          @unique // login handle for the org
-  status            ClientStatus    @default(ACTIVE)
-  accentColor       String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
-  logoUrl           String? // brand logo, admin-set — null = initials fallback
+  id             String          @id @default(cuid())
+  name           String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username       String          @unique // login handle for the org
+  status         ClientStatus    @default(ACTIVE)
+  accentColor    String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  logoUrl        String? // brand logo, admin-set — null = initials fallback
   // approval policy. Required by default: publishing to a client's own channels
   // without their sign-off is the failure nobody forgives.
   // Draft captions from the audio. Off by default: this sends the client's audio to a
   // third party, which is a decision to make per client rather than a default.
-  autoCaption       Boolean         @default(false)
+  autoCaption    Boolean         @default(false)
   /**
    * This client's house style, in their own words — structure, tone, sign-off, hashtag
    * habits. Fed to the drafter as instructions. Without it the model writes generic
    * social copy that reads like nobody in particular.
    */
-  captionStyle      String?
-  approvalRequired  Boolean         @default(true)
-  approvalAutoHours Int             @default(24)
-  notifyWeekly      Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  users             User[]
-  projects          Project[]
-  licenses          License[]
-  channel           ClientChannel?
-  socialAccounts    SocialAccount[]
-  members           ClientMember[]
+  captionStyle   String?
+  createdAt      DateTime        @default(now())
+  users          User[]
+  projects       Project[]
+  channel        ClientChannel?
+  socialAccounts SocialAccount[]
+  members        ClientMember[]
+}
+
+enum ProjectType {
+  DELIVERY // a gallery of finished work
+  CALENDAR // scheduled social posts, approved in Slack
 }
 
 enum ClientStatus {
@@ -60,7 +61,6 @@ model User {
   createdAt          DateTime        @default(now())
   sessions           Session[]
   favorites          Favorite[]
-  licenses           License[]
   projectMemberships ProjectMember[]
   submissions        Submission[]
   uploadBatches      UploadBatch[]
@@ -110,31 +110,23 @@ model Project {
   inboxSlug String @unique // folder name under INBOX_ROOT/<client.username>/<inboxSlug> — export destination for finals
   status    String @default("LIVE")
 
-  // Two-way projects: the client may send footage back, not just take delivery.
-  // Off by default and turned on per project by staff — a delivery gallery that
-  // silently accepts uploads is a place for files to arrive that nobody is watching.
-  clientUploads Boolean @default(false)
-
-  // v2 service switches. A project is defined by what it does, not by what kind of
-  // client owns it — the same client can have a scheduled social project and a one-off
-  // delivery running at once, which ClientType could never express.
-  calendar          Boolean   @default(false) // scheduled on the board, week pushed to Slack
-  review            Boolean   @default(false) // each new asset asks the client to approve or send notes
   /**
-   * Master files landing here are offered to the client to licence, rather than kept
-   * internal. This used to be inferred from the client being "one-off", which meant a
-   * client was permanently one shape; the same client can now have a delivery they can
-   * buy the master from and a retainer project where masters stay in-house.
+   * What this project is, fixed at creation. Replaced a row of independent booleans that
+   * could each be flipped forever: a project that changed shape after files had landed
+   * left assets behind that were ingested under the old rules, and no screen could say
+   * which. Type and review are write-once — PATCH rejects changes to either.
    */
-  sellMasters       Boolean   @default(false)
+  type   ProjectType @default(DELIVERY)
+  review Boolean     @default(false) // each new asset asks the client to approve or send notes
+
   /**
-   * Payment hold. While this is on, everything the client can reach from this project
-   * is watermarked: the gallery streams a marked proxy and Download hands over a marked
-   * full-quality copy instead of the master. Turning it off once payment clears releases
-   * the clean files instantly — both renditions are already on disk, so nothing
-   * re-encodes at the one moment the client is standing there waiting.
-   * Distinct from sellMasters, which refuses the download outright until a License row
-   * exists. Here the client takes delivery of everything immediately; it is just marked.
+   * Payment hold — the only switch that still flips after creation, because it describes
+   * where the job has got to rather than what the job is.
+   * While it is on, everything the client can reach is watermarked: the gallery streams a
+   * marked proxy and Download hands over a marked full-quality copy instead of the master.
+   * Turning it off once payment clears releases the clean files instantly — both
+   * renditions are already on disk, so nothing re-encodes at the one moment the client is
+   * standing there waiting.
    */
   paymentHold       Boolean   @default(false)
   paymentReleasedAt DateTime? // when the hold was last lifted — the record of when they got clean files
@@ -150,12 +142,13 @@ model Project {
   deliveryPendingAt    DateTime?
   deliveryNotifiedAt   DateTime?
 
-  createdAt             DateTime        @default(now())
+  createdAt             DateTime            @default(now())
   assets                Asset[]
   members               ProjectMember[]
   folders               Folder[]
   submissions           Submission[]
   uploadBatches         UploadBatch[]
+  submissionRequests    SubmissionRequest[]
   // Which reminder threshold has already gone out (14 or 3). Null = none yet, and it
   // resets whenever expiresAt moves, so extending a gallery re-arms both.
   expiryReminderSentFor Int?
@@ -198,17 +191,52 @@ model Folder {
 // picked files), grouped so they land in one human-readable, SMB-browsable folder
 // instead of a flat bucket — see submissionRelPath() in src/lib/submissions.ts. label
 // is the actual on-disk folder name under SUBMISSIONS_ROOT/<client>/<project>/.
+/**
+ * A "send us footage" link: one named request, one URL token, no login behind it.
+ * Replaced Project.clientUploads. A boolean could only say "this project accepts files",
+ * which meant one undifferentiated pile and no way to hand the link to a DP without also
+ * handing them a seat. A request names what is wanted ("Berlin raws"), becomes the folder
+ * the files land in, and can be closed once it has served its purpose.
+ */
+model SubmissionRequest {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String // "Berlin raws" — also the on-disk folder name
+  token     String    @unique // URL token for /send/<projectSlug>/<name>-<token>
+  expiresAt DateTime // default now + SUBMISSION_REQUEST_TTL_DAYS
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  batches UploadBatch[]
+
+  @@index([projectId])
+}
+
 model UploadBatch {
-  id          String       @id @default(cuid())
-  projectId   String
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Null for anyone who arrived through a send link. They have no account and never get
+  // one — the point of a request is that a DP can send rushes without being given a seat.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  requestId String?
+  request   SubmissionRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  /**
+   * Optionally typed on the public send page: "Who's sending? — optional".
+   */
+  senderName String?
+
   label       String
   createdAt   DateTime     @default(now())
   submissions Submission[]
 
   @@index([projectId])
+  @@index([requestId])
 }
 
 // A client-submitted raw file (camera originals, an NLE project file) for the studio
@@ -283,9 +311,7 @@ model Asset {
   lastReplacedAt DateTime?
 
   // visibility & licensing
-  internal   Boolean @default(false) // studio working master — hidden from clients
-  licensable Boolean @default(false) // BRAW master offered to the client (raw:true)
-  basePrice  Int? // in whole dollars; tiers derive from this
+  internal Boolean @default(false) // studio working master — hidden from clients
 
   // grouping (57.NYC IG workflow)
   weekOf DateTime?
@@ -314,34 +340,30 @@ model Asset {
    */
   captionSource    CaptionSource    @default(HUMAN)
 
-  publishAt          DateTime?
-  publishIg          Boolean      @default(false)
-  publishYt          Boolean      @default(false)
-  collaborators      String? // JSON string[] of IG handles
-  publishState       PublishState @default(NONE)
-  approvedById       String?
-  approvedBy         User?        @relation("AssetApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
-  approvedAt         DateTime?
-  heldAt             DateTime? // client pressed Hold — blocks auto-approve until staff clear it
-  approvalDueAt      DateTime? // when auto-approve fires; set on entering AWAITING
+  publishAt         DateTime?
+  publishIg         Boolean      @default(false)
+  publishYt         Boolean      @default(false)
+  collaborators     String? // JSON string[] of IG handles
+  publishState      PublishState @default(NONE)
+  approvedById      String?
+  approvedBy        User?        @relation("AssetApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
   /**
    * Staff signed off the caption. A week cannot be pushed with unapproved captions.
    */
-  captionApprovedAt  DateTime?
+  captionApprovedAt DateTime?
   /**
    * When this asset's week was pushed to Slack.
    */
-  postedToSlackAt    DateTime?
-  approvalRemindedAt DateTime? // T-12h nudge sent; cleared whenever the post re-enters AWAITING
-  publishAttempts    Int          @default(0)
-  publishError       String?
-  igMediaId          String?
-  ytVideoId          String?
+  postedToSlackAt   DateTime?
+  publishAttempts   Int          @default(0)
+  publishError      String?
+  igMediaId         String?
+  ytVideoId         String?
 
   createdAt   DateTime     @default(now()) // "Added"
   updatedAt   DateTime     @updatedAt // "Updated"
   favorites   Favorite[]
-  licenses    License[]
   socialPosts SocialPost[]
   reviews     Review[]
 
@@ -375,37 +397,6 @@ enum MarkStatus {
 }
 
 // ── Licensing (BRAW) ───────────────────────────────────────
-model License {
-  id          String      @id @default(cuid())
-  assetId     String
-  asset       Asset       @relation(fields: [assetId], references: [id])
-  clientId    String
-  client      Client      @relation(fields: [clientId], references: [id])
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  tier        LicenseTier
-  amount      Int // dollars charged
-  scope       String // frozen copy of the scope text
-  purchasedAt DateTime    @default(now())
-
-  // enterprise dials (admin-granted custom licenses only) — all additive/nullable,
-  // existing tier-based rows are unaffected
-  termMonths Int? // null = perpetuity
-  territory  String? // null = "Worldwide"
-  channels   String? // JSON array: ["organic_social","paid_social","ooh","broadcast"]
-  exclusive  Boolean   @default(false)
-  expiresAt  DateTime? // purchasedAt + termMonths, computed once at creation
-
-  @@index([assetId])
-}
-
-enum LicenseTier {
-  SOCIAL
-  COMMERCIAL
-  BUYOUT
-  CUSTOM // admin-granted enterprise license — term/territory/channels/exclusivity instead of a fixed tier
-}
-
 // ── Favorites, sessions, activity ──────────────────────────
 /**
  * One round of client feedback on one cut.
@@ -483,37 +474,20 @@ model WorkerHeartbeat {
 
 // ── Integrations ───────────────────────────────────────────
 model SlackConfig {
-  id                  Int     @id @default(1) // singleton row
-  connected           Boolean @default(false)
-  workspace           String?
-  webhookUrl          String?
-  defaultChannel      String  @default("#client-deliveries")
-  weeklyDay           String  @default("Monday")
-  weeklyTime          String  @default("09:00")
-  autoWeekly          Boolean @default(true)
-  // Global kill switch for the per-client weekly content calendar, matching the
-  // toggle-per-event-type pattern of the fields around it.
-  autoContentCalendar Boolean @default(true)
-  autoUpload          Boolean @default(true)
-  autoDownload        Boolean @default(false)
-  autoLicense         Boolean @default(true)
-  autoSubmission      Boolean @default(true)
+  id             Int     @id @default(1) // singleton row
+  connected      Boolean @default(false)
+  workspace      String?
+  webhookUrl     String?
+  defaultChannel String  @default("#client-deliveries")
+  autoUpload     Boolean @default(true)
+  autoDownload   Boolean @default(false)
+  autoSubmission Boolean @default(true)
 }
 
 model ClientChannel {
   clientId String @id
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   channel  String // "#ssh-deliveries" (empty => use default)
-
-  // Weekly content-calendar auto-post (the block Justin used to hand-type and paste).
-  // Deliberately opt-in per client rather than the default-on the handoff proposed:
-  // this posts into a *client's* channel, and a ClientChannel row exists purely to
-  // override a channel name, so defaulting to true would start messaging every client
-  // that happens to have an override the moment this ships.
-  autoPostSlack Boolean   @default(false)
-  autoPostDay   Int       @default(0) // 0 = Sunday, JS getDay()
-  autoPostHour  Int       @default(21) // local hour, 0-23
-  lastPostedAt  DateTime? // set after a successful post; guards against double-posting
 }
 
 // ── Social insights (weekly IG/YouTube view counts) ────────
@@ -610,12 +584,6 @@ model SocialPost {
 }
 
 model SocialConfig {
-  id                 Int     @id @default(1) // singleton row
-  youtubeApiKey      String?
-  weeklyDay          String  @default("Tuesday")
-  weeklyTime         String  @default("09:00")
-  autoWeekly         Boolean @default(true)
-  // ISO date of the Monday the client digest last went out. Persisted rather than held
-  // in memory: a worker restart on a Monday morning would otherwise re-send it.
-  lastWeeklyDigestOn String?
+  id            Int     @id @default(1) // singleton row
+  youtubeApiKey String?
 }

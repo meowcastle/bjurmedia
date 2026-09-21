@@ -16,8 +16,6 @@ export type ScheduledPost = {
   publishIg: boolean;
   publishYt: boolean;
   publishState: PublishState;
-  approvalDueAt: string | null;
-  heldAt: string | null;
   viewCount: number | null;
 };
 
@@ -132,11 +130,7 @@ export function ClientPostsPanel({
               {awaiting.length} post{awaiting.length > 1 ? "s need" : " needs"} your OK
             </div>
             <div className="text-[13px] text-muted mt-1">
-              {awaiting[0].approvalDueAt
-                ? `Auto-publishes ${dayKicker(awaiting[0].approvalDueAt)} ${clockOf(
-                    awaiting[0].approvalDueAt
-                  )} unless you hold ${awaiting.length > 1 ? "them" : "it"}.`
-                : "Waiting on you before anything goes out."}
+              Waiting on you before anything goes out.
             </div>
           </div>
           <button

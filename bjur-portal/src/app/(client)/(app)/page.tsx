@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectListClient } from "@/components/ProjectListClient";
-import { WeeklyDigest } from "@/components/WeeklyDigest";
 import { mondayOfWeek } from "@/lib/weeks";
 import { getAccessibleProjectIds } from "@/lib/projectAccess";
 
@@ -40,8 +39,7 @@ export default async function ProjectListPage() {
   });
   const coverByProject = new Map(covers.map((c) => [c.projectId, c.id]));
 
-  // "This week" digest: assets whose admin-set delivery week (weekOf) falls in
-  // the current calendar week. Computed fresh on every load straight off that
+  // Assets whose admin-set delivery week (weekOf) falls in the current calendar week. Computed fresh on every load straight off that
   // column — no scheduler or DB write needed, the calendar week boundary does
   // that job for free.
   const weekStart = mondayOfWeek(new Date());
@@ -55,17 +53,14 @@ export default async function ProjectListPage() {
     select: { projectId: true, format: true },
   });
 
-  const totalsByFormat: Record<string, number> = {};
+  // Still built per project, for the "N new" count on each card — the weekly digest that
+  // also read this is gone, but the card is not.
   const perProjectTotals = new Map<string, Record<string, number>>();
   for (const a of weeklyAssets) {
-    totalsByFormat[a.format] = (totalsByFormat[a.format] ?? 0) + 1;
-    const projectTotals = perProjectTotals.get(a.projectId) ?? {};
-    projectTotals[a.format] = (projectTotals[a.format] ?? 0) + 1;
-    perProjectTotals.set(a.projectId, projectTotals);
+    const totals = perProjectTotals.get(a.projectId) ?? {};
+    totals[a.format] = (totals[a.format] ?? 0) + 1;
+    perProjectTotals.set(a.projectId, totals);
   }
-  const digestProjects = projects
-    .filter((p) => perProjectTotals.has(p.id))
-    .map((p) => ({ id: p.id, title: p.title, totalsByFormat: perProjectTotals.get(p.id)! }));
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto">
@@ -80,8 +75,6 @@ export default async function ProjectListPage() {
           {projects.length} active project{projects.length !== 1 ? "s" : ""}
         </div>
       </div>
-
-      <WeeklyDigest totalsByFormat={totalsByFormat} projects={digestProjects} />
 
       <ProjectListClient
         projects={projects.map((p) => ({

@@ -2,11 +2,8 @@ import nodemailer from "nodemailer";
 import { db } from "@/lib/db";
 import { renderOnboardingEmailHtml, type OnboardingEmailProps } from "@/emails/onboarding";
 import { renderDeliveryEmailHtml, type DeliveryEmailProps } from "@/emails/delivery";
-import { renderApprovalEmailHtml, type ApprovalEmailProps } from "@/emails/approval";
 import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/staffAlert";
-import { renderWeeklyDigestEmailHtml, type WeeklyDigestEmailProps } from "@/emails/weekly";
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
-import { renderLicenseEmailHtml, type LicenseEmailProps } from "@/emails/license";
 import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
 import {
   renderReviewRequestEmailHtml,
@@ -114,14 +111,6 @@ export async function sendDeliveryEmail(to: string, props: DeliveryEmailProps) {
   return sendMail({ to, subject, html });
 }
 
-export async function sendApprovalEmail(to: string, props: ApprovalEmailProps) {
-  const html = renderApprovalEmailHtml(props);
-  const subject = props.isReminder
-    ? `Reminder: "${props.title}" publishes soon`
-    : `Approve "${props.title}" before it publishes`;
-  return sendMail({ to, subject, html });
-}
-
 export async function sendReviewRequestEmail(to: string, props: ReviewRequestEmailProps) {
   return sendMail({
     to,
@@ -142,14 +131,6 @@ export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProp
   return sendMail({ to, subject: `[Bjur] ${props.headline}`, html });
 }
 
-export async function sendWeeklyDigestEmail(to: string, props: WeeklyDigestEmailProps) {
-  return sendMail({
-    to,
-    subject: `Your week of ${props.weekLabel}`,
-    html: renderWeeklyDigestEmailHtml(props),
-  });
-}
-
 export async function sendExpiryEmail(to: string, props: ExpiryEmailProps) {
   return sendMail({
     to,
@@ -158,16 +139,6 @@ export async function sendExpiryEmail(to: string, props: ExpiryEmailProps) {
         ? `Last chance: ${props.projectTitle} closes in ${props.daysLeft} days`
         : `${props.projectTitle} closes in ${props.daysLeft} days`,
     html: renderExpiryEmailHtml(props),
-  });
-}
-
-export async function sendLicenseEmail(to: string, props: LicenseEmailProps) {
-  return sendMail({
-    to,
-    subject: props.granted
-      ? `${props.assetName} has been licensed to ${props.clientName}`
-      : `Your license for ${props.assetName}`,
-    html: renderLicenseEmailHtml(props),
   });
 }
 

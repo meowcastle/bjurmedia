@@ -58,12 +58,12 @@ export async function previewProjectWeek(
     select: {
       id: true,
       title: true,
-      calendar: true,
+      type: true,
       clientId: true,
       client: { select: { name: true } },
     },
   });
-  if (!project || !project.calendar) return null;
+  if (!project || project.type !== "CALENDAR") return null;
 
   const [config, override] = await Promise.all([
     db.slackConfig.findUnique({ where: { id: 1 } }),
