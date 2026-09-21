@@ -24,8 +24,11 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
   try {
     await page.goto("/p/p1");
 
-    // The client is told what the mark is before they go looking for a fault.
-    await expect(page.getByText("These files carry a BJUR MEDIA watermark")).toBeVisible();
+    // The client is told what the mark is before they go looking for a fault — one
+    // line now, the same sentence the viewer's download sheet uses.
+    await expect(page.getByTestId("hold-line")).toContainText(
+      /Downloads carry a preview mark until the invoice is settled/i,
+    );
 
     await page.getByText("SSH_Reel_Hero.mp4").click();
     await expect(page.getByTestId("video-gesture-surface")).toBeVisible();
@@ -52,7 +55,7 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
 
 test("with no hold there is no mark line and no notice", async ({ page }) => {
   await page.goto("/p/p1");
-  await expect(page.getByText("These files carry a BJUR MEDIA watermark")).not.toBeVisible();
+  await expect(page.getByTestId("hold-line")).toHaveCount(0);
 
   await page.getByText("SSH_Reel_Hero.mp4").click();
   await page.getByTestId("master-chip").click();

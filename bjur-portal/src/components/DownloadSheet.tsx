@@ -53,7 +53,20 @@ export function DownloadSheet({
   // someone else's error along with it.
   const [error, setError] = useState<{ assetId: string; message: string } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [finished, setFinished] = useState(false);
   const visibleError = error?.assetId === assetId ? error.message : null;
+
+  /**
+   * Above this the browser does the transfer and there is no percentage.
+   *
+   * A live number means reading the response in JS and holding it as a Blob until it is
+   * complete — that is the only way to count bytes — and delivered files here run to
+   * gigabytes. A multi-gigabyte blob on a laptop is a killed tab, and a killed tab
+   * mid-download is worse than no progress bar. Under the ceiling the count is real;
+   * over it the button hands off to the browser rather than lying with an animation.
+   */
+  const PROGRESS_CEILING = 2 * 1024 * 1024 * 1024;
 
   /**
    * Ask for one byte before committing the browser to a navigation.
@@ -68,6 +81,7 @@ export function DownloadSheet({
   async function startDownload(e: React.MouseEvent<HTMLAnchorElement>) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
+    if (progress !== null && !finished) return; // re-clicking a running download does nothing
 
     const url = `/api/assets/${assetId}/download`;
     setError(null);
@@ -76,8 +90,15 @@ export function DownloadSheet({
     try {
       const res = await fetch(url, { headers: { Range: "bytes=0-0" }, signal: ctrl.signal });
       if (res.ok) {
-        ctrl.abort(); // never read the body — this was only ever a question
-        window.location.href = url;
+        // Content-Range on the probe gives the real size before committing to a path.
+        const total = Number(res.headers.get("content-range")?.split("/")[1] ?? 0);
+        ctrl.abort(); // never read the probe's body — it was only ever a question
+
+        if (!total || total > PROGRESS_CEILING) {
+          window.location.href = url;
+          return;
+        }
+        await downloadWithProgress(url, total);
         return;
       }
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -90,6 +111,41 @@ export function DownloadSheet({
     } finally {
       setChecking(false);
     }
+  }
+
+  /** Streams the file, counting as it goes, then hands the finished blob to the browser. */
+  async function downloadWithProgress(url: string, total: number) {
+    setProgress(0);
+    setFinished(false);
+    const res = await fetch(url);
+    if (!res.ok || !res.body) {
+      setError({ assetId, message: "The download did not start. Try again." });
+      setProgress(null);
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const parts: BlobPart[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value as unknown as BlobPart);
+      received += value.length;
+      // Capped at 99 until the blob is actually handed over, so "100%" and "Downloaded"
+      // arrive together rather than the bar sitting full while nothing has saved.
+      setProgress(Math.min(99, Math.round((received / total) * 100)));
+    }
+
+    const href = URL.createObjectURL(new Blob(parts));
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = facts.name;
+    a.click();
+    URL.revokeObjectURL(href);
+
+    setProgress(100);
+    setFinished(true);
   }
 
   return (
@@ -136,9 +192,25 @@ export function DownloadSheet({
               >
                 <span className="inline-flex items-center gap-2">
                   <IconDownload />
-                  {checking ? "Starting…" : `Download${facts.size ? ` · ${facts.size}` : ""}`}
+                  {finished
+                    ? "Downloaded"
+                    : progress !== null
+                      ? `Downloading ${progress}%`
+                      : checking
+                        ? "Starting…"
+                        : `Download${facts.size ? ` · ${facts.size}` : ""}`}
                 </span>
               </a>
+              {/* The rule fills with the transfer. Only drawn while one is running, so a
+                  sheet at rest is not a progress bar showing nothing. */}
+              {progress !== null && (
+                <span className="block h-[2px] bg-white/12 mt-[3px]" data-testid="download-progress">
+                  <span
+                    className="block h-full bg-white transition-[width] duration-200"
+                    style={{ width: `${progress}%` }}
+                  />
+                </span>
+              )}
               {/* One quiet line, no red and no lock glyph: a mark on an unpaid job is a
                   normal condition of the work, not an error the client has hit. */}
               {facts.watermarked && (
