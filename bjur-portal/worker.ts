@@ -175,10 +175,18 @@ async function proxyLoopTick() {
     orderBy: { createdAt: "asc" },
   });
 
-  for (const asset of pending) {
-    console.log(`[proxy] generating for ${asset.id} (${asset.name})`);
-    await generateProxy(asset);
-  }
+  // Promise.all, not a for-await: CONCURRENCY has to mean "this many at once", and with
+  // a sequential loop it only ever meant "fetch this many, then do them one by one". The
+  // parallelism used to come from setInterval ticks overlapping each other, which is not
+  // a limit anyone chose — and the guard that stopped that overlap turned an accidental
+  // three into a deliberate one. generateProxy handles its own failures, so a bad file
+  // cannot take the batch down with it.
+  await Promise.all(
+    pending.map((asset) => {
+      console.log(`[proxy] generating for ${asset.id} (${asset.name})`);
+      return generateProxy(asset);
+    })
+  );
 }
 
 /**
@@ -200,10 +208,12 @@ async function markLoopTick() {
     orderBy: { createdAt: "asc" },
   });
 
-  for (const asset of unmarked) {
-    console.log(`[mark] watermarking ${asset.id} (${asset.name})`);
-    await generateMarkedRenditions(asset);
-  }
+  await Promise.all(
+    unmarked.map((asset) => {
+      console.log(`[mark] watermarking ${asset.id} (${asset.name})`);
+      return generateMarkedRenditions(asset);
+    })
+  );
 }
 
 /**
