@@ -295,8 +295,13 @@ async function generateMarkedDelivery(srcPath: string, outPath: string) {
     mark,
     "-c:v",
     "libx264",
+    // veryfast, not medium. This is a full-resolution encode — 4K for anything shot
+    // wide — and at medium a single 40-second clip took five minutes on the NAS, which
+    // put a 60-clip delivery at eight hours. veryfast is 3-4x quicker for a file around
+    // 15% larger at the same visible quality, and this copy exists only until an invoice
+    // clears. The clean master it stands in for is untouched either way.
     "-preset",
-    "medium",
+    "veryfast",
     "-profile:v",
     "high",
     "-crf",
@@ -339,57 +344,82 @@ async function generateMarkedStill(srcPath: string, outPath: string) {
  * refuses rather than falling back to the clean original, so a BRAW master ffmpeg cannot
  * decode ends up undownloadable rather than accidentally released.
  */
-export async function generateMarkedRenditions(asset: AssetRow) {
+/**
+ * The half of watermarking the client is waiting on: poster and streaming proxy.
+ *
+ * Split from the download copy because they are wildly different jobs. This one is a
+ * 1080p encode of a short clip — seconds. The download copy is full resolution, 4K for
+ * anything shot wide, and minutes. Run as one job they were indistinguishable to the
+ * queue, so two slow 4K encodes blocked every quick preview behind them and a held
+ * gallery stayed empty while the box ran flat out.
+ *
+ * Leaves markStatus PENDING on purpose: the asset is not finished, it is watchable. The
+ * delivery pass below picks it up from there.
+ */
+async function generateMarkedPreview(asset: AssetRow) {
   await db.asset.update({ where: { id: asset.id }, data: { markStatus: "GENERATING" } });
 
+  const srcPath = await resolveMediaPath(asset.relPath);
+  await mkdir(path.join(DERIVED_ROOT, asset.id), { recursive: true });
+
+  const markedThumbRelPath = `${asset.id}/thumb.marked.jpg`;
+  await generateThumb(
+    srcPath,
+    path.join(DERIVED_ROOT, markedThumbRelPath),
+    asset.kind === "VIDEO",
+    asset.durationSec,
+    "hold"
+  );
+  await db.asset.update({ where: { id: asset.id }, data: { markedThumbRelPath } });
+
+  if (asset.kind === "VIDEO") {
+    const markedProxyRelPath = `${asset.id}/proxy.marked.mp4`;
+    await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, markedProxyRelPath), asset.format, "hold");
+    await db.asset.update({ where: { id: asset.id }, data: { markedProxyRelPath } });
+  }
+
+  // Back to PENDING, not READY: the download copy still has to be made.
+  await db.asset.update({ where: { id: asset.id }, data: { markStatus: "PENDING" } });
+}
+
+/** The expensive half: the full-resolution copy Download hands over. */
+async function generateMarkedDeliveryCopy(asset: AssetRow) {
+  await db.asset.update({ where: { id: asset.id }, data: { markStatus: "GENERATING" } });
+
+  const srcPath = await resolveMediaPath(asset.relPath);
+  let markedFileRelPath: string;
+
+  if (asset.kind === "VIDEO") {
+    markedFileRelPath = `${asset.id}/delivery.marked.mp4`;
+    await generateMarkedDelivery(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
+  } else {
+    const ext = path.extname(asset.name).toLowerCase() === ".png" ? ".png" : ".jpg";
+    markedFileRelPath = `${asset.id}/delivery.marked${ext}`;
+    await generateMarkedStill(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
+  }
+
+  await db.asset.update({
+    where: { id: asset.id },
+    data: { markStatus: "READY", markedFileRelPath },
+  });
+
+  await db.activity.create({
+    data: { actor: "Worker", action: `watermarked "${asset.name}" for the payment hold` },
+  });
+}
+
+/**
+ * Builds the watermarked renditions one asset needs while its project sits on a payment
+ * hold. Two phases, so the gallery lights up long before the downloads are ready.
+ *
+ * Failure is safe by construction. markStatus goes FAILED, and every serving route
+ * refuses rather than falling back to the clean original, so a file ffmpeg cannot decode
+ * ends up undownloadable rather than accidentally released.
+ */
+export async function generateMarkedRenditions(asset: AssetRow, phase: "preview" | "delivery") {
   try {
-    const srcPath = await resolveMediaPath(asset.relPath);
-    await mkdir(path.join(DERIVED_ROOT, asset.id), { recursive: true });
-
-    // Each rendition is recorded the moment it exists, cheapest first, for the same
-    // reason generateProxy persists its thumbnail early: the delivery copy is a
-    // full-resolution encode that takes minutes, and holding the poster and the proxy
-    // back behind it leaves the client staring at a gallery of dead players long after
-    // the files they need are sitting on disk. Writing them as they land means the
-    // gallery is watchable within seconds and only the *download* waits for the slow one
-    // — which is exactly the thing that is allowed to wait.
-    //
-    // Safe against the routes: the proxy and thumb routes read their own path, so they
-    // light up as soon as it is set, while markedReady() still gates the download on
-    // markStatus === READY, which is only set at the very end.
-    const markedThumbRelPath = `${asset.id}/thumb.marked.jpg`;
-    await generateThumb(
-      srcPath,
-      path.join(DERIVED_ROOT, markedThumbRelPath),
-      asset.kind === "VIDEO",
-      asset.durationSec,
-      "hold"
-    );
-    await db.asset.update({ where: { id: asset.id }, data: { markedThumbRelPath } });
-
-    let markedFileRelPath: string;
-
-    if (asset.kind === "VIDEO") {
-      const markedProxyRelPath = `${asset.id}/proxy.marked.mp4`;
-      await generateVideoProxy(srcPath, path.join(DERIVED_ROOT, markedProxyRelPath), asset.format, "hold");
-      await db.asset.update({ where: { id: asset.id }, data: { markedProxyRelPath } });
-
-      markedFileRelPath = `${asset.id}/delivery.marked.mp4`;
-      await generateMarkedDelivery(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
-    } else {
-      const ext = path.extname(asset.name).toLowerCase() === ".png" ? ".png" : ".jpg";
-      markedFileRelPath = `${asset.id}/delivery.marked${ext}`;
-      await generateMarkedStill(srcPath, path.join(DERIVED_ROOT, markedFileRelPath));
-    }
-
-    await db.asset.update({
-      where: { id: asset.id },
-      data: { markStatus: "READY", markedFileRelPath },
-    });
-
-    await db.activity.create({
-      data: { actor: "Worker", action: `watermarked "${asset.name}" for the payment hold` },
-    });
+    if (phase === "preview") await generateMarkedPreview(asset);
+    else await generateMarkedDeliveryCopy(asset);
   } catch (err) {
     await db.asset.update({ where: { id: asset.id }, data: { markStatus: "FAILED" } });
     await db.activity.create({

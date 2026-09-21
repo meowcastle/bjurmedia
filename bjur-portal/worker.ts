@@ -202,16 +202,36 @@ async function proxyLoopTick() {
  * is a bounded and much more useful place to spend the box.
  */
 async function markLoopTick() {
-  const unmarked = await db.asset.findMany({
-    where: { markStatus: "PENDING" },
+  // Previews first, always. A held gallery shows nothing until the marked proxy exists,
+  // and that is a seconds-long 1080p encode — it must never wait behind a four-minute 4K
+  // download copy. Only once nothing is waiting to become watchable do we spend the box
+  // on the copies people download later.
+  const needPreview = await db.asset.findMany({
+    where: { markStatus: "PENDING", markedThumbRelPath: null },
+    take: CONCURRENCY,
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (needPreview.length > 0) {
+    await Promise.all(
+      needPreview.map((asset) => {
+        console.log(`[mark] preview for ${asset.id} (${asset.name})`);
+        return generateMarkedRenditions(asset, "preview");
+      })
+    );
+    return;
+  }
+
+  const needDelivery = await db.asset.findMany({
+    where: { markStatus: "PENDING", markedThumbRelPath: { not: null } },
     take: CONCURRENCY,
     orderBy: { createdAt: "asc" },
   });
 
   await Promise.all(
-    unmarked.map((asset) => {
-      console.log(`[mark] watermarking ${asset.id} (${asset.name})`);
-      return generateMarkedRenditions(asset);
+    needDelivery.map((asset) => {
+      console.log(`[mark] delivery copy for ${asset.id} (${asset.name})`);
+      return generateMarkedRenditions(asset, "delivery");
     })
   );
 }
