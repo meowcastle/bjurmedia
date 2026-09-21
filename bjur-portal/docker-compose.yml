@@ -55,7 +55,11 @@ services:
       - DERIVED_ROOT=/media/_derived
       - INBOX_ROOT=/media/_inbox
       - ARCHIVE_ROOT=/media/_archive
-      - WORKER_CONCURRENCY=1
+      # How many encodes run at once, per queue — proxies and watermarks each get their
+      # own guarded loop, so this is 1 of each by default rather than 1 in total. Tunable
+      # from .env because the right number depends on what the box is doing at the time:
+      # a 60-clip delivery wants more, a night with a client uploading wants fewer.
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-1}
       - CRON_SECRET=${CRON_SECRET}
       - PORTAL_URL=${PORTAL_URL}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
