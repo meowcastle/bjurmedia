@@ -30,20 +30,26 @@ export default async function AdminIntegrationsPage() {
       <AdminIntegrationsClient
         initialConfig={{
           connected: config.connected,
+          workspace: config.workspace,
           webhookUrl: config.webhookUrl ?? "",
           defaultChannel: config.defaultChannel,
           autoUpload: config.autoUpload,
           autoDownload: config.autoDownload,
           autoSubmission: config.autoSubmission,
         }}
-        clientRows={clients.map((c) => {
-          const ch = channelByClient.get(c.id);
-          return {
-            id: c.id,
-            name: c.name,
-            channel: ch?.channel ?? "",
-          };
-        })}
+        clientRows={clients.map((c) => ({
+          id: c.id,
+          name: c.name,
+          accentColor: c.accentColor,
+          channel: channelByClient.get(c.id)?.channel ?? "",
+          // The handles, not a count: "@57nyc · @57NYCtv" answers "which account is this
+          // posting as", which is the question anyone actually has here.
+          accounts: socialAccounts
+            .filter((a) => a.clientId === c.id && a.handle)
+            .map((a) => a.handle)
+            .join(" · "),
+          autoCaption: c.autoCaption,
+        }))}
       />
       <AdminClientAccounts
         rows={clients.map((c) => ({

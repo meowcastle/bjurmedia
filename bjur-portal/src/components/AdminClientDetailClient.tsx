@@ -31,6 +31,7 @@ type ProjectRow = {
   type: "DELIVERY" | "CALENDAR";
   review: boolean;
   paymentHold: boolean;
+  openRequests: number;
   assetCount: number;
   submissionCount: number;
   inboxPath: string;
@@ -40,34 +41,30 @@ type ClientInfo = {
   name: string;
   username: string;
   status: "ACTIVE" | "DISABLED";
-  ytPublishReady: boolean;
-  ytHandle: string | null;
-  autoCaption: boolean;
-  captionStyle: string | null;
   accentColor: string | null;
   hasSlackChannel: boolean;
+  slackChannel: string | null;
+  accountCount: number;
+  autoCaption: boolean;
   logoUrl: string | null;
 };
 
-type SocialAccountRow = {
-  platform: "INSTAGRAM" | "YOUTUBE";
-  externalId: string;
+type TopPost = {
+  id: string;
+  title: string;
+  platform: "IG" | "YT";
   handle: string;
-  hasToken: boolean;
-  lastSyncedAt: string | null;
-  lastSyncError: string | null;
+  postedAt: string;
+  views: number;
+  permalink: string | null;
 };
+
 const DEFAULT_ACCENT = "#ec3013";
 
 const ROLE_COLOR: Record<string, string> = {
   OWNER: "#2ec36b",
   DOWNLOADER: "var(--accentb)",
   VIEWER: "var(--muted)",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  LIVE: "text-success",
-  DRAFT: "text-muted",
 };
 
 function fmtDate(d: string | null) {
@@ -79,30 +76,18 @@ function fmtDate(d: string | null) {
   });
 }
 
-export type TopPost = {
-  id: string;
-  title: string;
-  platform: "IG" | "YT";
-  handle: string;
-  postedAt: string;
-  views: number;
-  permalink: string | null;
-};
-
 export function AdminClientDetailClient({
   client,
-  seats,
-  projects,
-  socialAccounts,
   topPosts,
   postsSyncedAt,
+  seats,
+  projects,
 }: {
   client: ClientInfo;
-  seats: Seat[];
-  projects: ProjectRow[];
-  socialAccounts: SocialAccountRow[];
   topPosts: TopPost[];
   postsSyncedAt: string | null;
+  seats: Seat[];
+  projects: ProjectRow[];
 }) {
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
@@ -119,35 +104,7 @@ export function AdminClientDetailClient({
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
-  const [autoCaption, setAutoCaption] = useState(client.autoCaption);
-  const [styleDraft, setStyleDraft] = useState(client.captionStyle ?? "");
-  const [styleSaved, setStyleSaved] = useState(false);
 
-  async function saveCaptionStyle() {
-    if (styleDraft === (client.captionStyle ?? "")) return;
-    const res = await fetch(`/api/admin/clients/${client.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ captionStyle: styleDraft }),
-    });
-    if (!res.ok) return;
-    setStyleSaved(true);
-    setTimeout(() => setStyleSaved(false), 1600);
-  }
-
-  async function saveAutoCaption(next: boolean) {
-    setAutoCaption(next);
-    const res = await fetch(`/api/admin/clients/${client.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autoCaption: next }),
-    });
-    // Put it back rather than showing a state the database never took.
-    if (!res.ok) setAutoCaption(client.autoCaption);
-  }
-
-  const ytPublishReady = client.ytPublishReady;
-  const ytHandle = client.ytHandle;
   const [accentColor, setAccentColor] = useState(
     client.accentColor ?? DEFAULT_ACCENT,
   );
@@ -155,89 +112,6 @@ export function AdminClientDetailClient({
   const [logoUrl, setLogoUrl] = useState(client.logoUrl);
   const [logoDraft, setLogoDraft] = useState(client.logoUrl ?? "");
   const [savingLogo, setSavingLogo] = useState(false);
-  const [social, setSocial] = useState(socialAccounts);
-
-  function socialRow(platform: "INSTAGRAM" | "YOUTUBE"): SocialAccountRow {
-    return (
-      social.find((s) => s.platform === platform) ?? {
-        platform,
-        externalId: "",
-        handle: "",
-        hasToken: false,
-        lastSyncedAt: null,
-        lastSyncError: null,
-      }
-    );
-  }
-
-  const [igDraft, setIgDraft] = useState(() => {
-    const r = socialRow("INSTAGRAM");
-    return { externalId: r.externalId, handle: r.handle, accessToken: "" };
-  });
-  const [ytDraft, setYtDraft] = useState(() => {
-    const r = socialRow("YOUTUBE");
-    return { externalId: r.externalId, handle: r.handle };
-  });
-  const [savingSocial, setSavingSocial] = useState<
-    "INSTAGRAM" | "YOUTUBE" | null
-  >(null);
-
-  async function saveIg() {
-    setSavingSocial("INSTAGRAM");
-    await saveSocialAccount("INSTAGRAM", {
-      externalId: igDraft.externalId,
-      handle: igDraft.handle,
-      accessToken: igDraft.accessToken || undefined,
-    });
-    setIgDraft((d) => ({ ...d, accessToken: "" }));
-    setSavingSocial(null);
-  }
-
-  async function saveYt() {
-    setSavingSocial("YOUTUBE");
-    await saveSocialAccount("YOUTUBE", {
-      externalId: ytDraft.externalId,
-      handle: ytDraft.handle,
-    });
-    setSavingSocial(null);
-  }
-
-  async function unlinkSocial(platform: "INSTAGRAM" | "YOUTUBE") {
-    setSavingSocial(platform);
-    await saveSocialAccount(platform, { externalId: "", handle: "" });
-    if (platform === "INSTAGRAM")
-      setIgDraft({ externalId: "", handle: "", accessToken: "" });
-    else setYtDraft({ externalId: "", handle: "" });
-    setSavingSocial(null);
-  }
-
-  async function saveSocialAccount(
-    platform: "INSTAGRAM" | "YOUTUBE",
-    fields: { externalId: string; handle: string; accessToken?: string },
-  ) {
-    await fetch(`/api/admin/clients/${client.id}/social`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform, ...fields }),
-    });
-    setSocial((rows) => {
-      const next = rows.filter((r) => r.platform !== platform);
-      if (fields.externalId.trim()) {
-        next.push({
-          platform,
-          externalId: fields.externalId.trim(),
-          handle: fields.handle.trim(),
-          hasToken:
-            fields.accessToken !== undefined
-              ? !!fields.accessToken.trim()
-              : (rows.find((r) => r.platform === platform)?.hasToken ?? false),
-          lastSyncedAt: null,
-          lastSyncError: null,
-        });
-      }
-      return next;
-    });
-  }
 
   async function removeSeat(seat: Seat) {
     setRemovingSeat(seat.id);
@@ -292,6 +166,14 @@ export function AdminClientDetailClient({
     setLogoUrl(trimmed || null);
     setSavingLogo(false);
   }
+
+  const integrationParts = [
+    client.slackChannel ? `Slack ${client.slackChannel}` : null,
+    client.accountCount > 0
+      ? `${client.accountCount} account${client.accountCount === 1 ? "" : "s"}`
+      : null,
+    client.autoCaption ? "AI captions" : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
@@ -402,144 +284,6 @@ export function AdminClientDetailClient({
           >
             {active ? "Disable client" : "Enable client"}
           </button>
-        </div>
-      </div>
-
-      <div className="mb-9">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
-          Social accounts
-        </h2>
-        <div className="border border-line bg-s1 p-5 flex flex-col gap-5">
-          <div>
-            <div className="text-sm font-bold mb-1">Instagram</div>
-            <div className="text-xs text-muted mb-3">
-              Business/Creator Account ID + a long-lived access token — powers
-              weekly view counts, matched automatically to delivered
-              reels/stills.
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              <input
-                value={igDraft.handle}
-                onChange={(e) =>
-                  setIgDraft((d) => ({ ...d, handle: e.target.value }))
-                }
-                placeholder="@handle"
-                className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
-              />
-              <input
-                value={igDraft.externalId}
-                onChange={(e) =>
-                  setIgDraft((d) => ({ ...d, externalId: e.target.value }))
-                }
-                placeholder="IG Business Account ID"
-                className="w-52 bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
-              />
-              <input
-                value={igDraft.accessToken}
-                onChange={(e) =>
-                  setIgDraft((d) => ({ ...d, accessToken: e.target.value }))
-                }
-                placeholder={
-                  socialRow("INSTAGRAM").hasToken
-                    ? "•••• (saved — paste to replace)"
-                    : "Long-lived access token"
-                }
-                className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
-              />
-              <button
-                onClick={saveIg}
-                disabled={
-                  savingSocial === "INSTAGRAM" || !igDraft.externalId.trim()
-                }
-                className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
-              >
-                Save
-              </button>
-              {socialRow("INSTAGRAM").externalId && (
-                <button
-                  onClick={() => unlinkSocial("INSTAGRAM")}
-                  disabled={savingSocial === "INSTAGRAM"}
-                  className="cursor-pointer text-xs font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-3.5 py-2 disabled:opacity-40"
-                >
-                  Unlink
-                </button>
-              )}
-            </div>
-            {socialRow("INSTAGRAM").lastSyncError && (
-              <div className="text-xs text-accentb mt-2">
-                {socialRow("INSTAGRAM").lastSyncError}
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-line pt-5">
-            <div className="text-sm font-bold mb-1">YouTube</div>
-            <div className="text-xs text-muted mb-3">
-              Connect the channel to publish to it. View counts alone need only
-              a channel ID and the shared API key on the Integrations page —
-              publishing needs the channel&apos;s own consent, which is what
-              Connect asks for.
-            </div>
-            {/* The manual channel-ID fields below still exist because they are all
-                read-only insights need, and because a channel can be worth tracking
-                before anyone decides to publish to it. */}
-            <div className="flex flex-wrap items-center gap-2.5 mb-3">
-              <a
-                href={`/api/admin/clients/${client.id}/youtube/connect`}
-                className="text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2"
-              >
-                {ytPublishReady
-                  ? "Reconnect for publishing"
-                  : "Connect for publishing"}
-              </a>
-              <span className="text-xs text-muted">
-                {ytPublishReady
-                  ? `Publishing enabled${ytHandle ? ` · ${ytHandle}` : ""}`
-                  : "Not connected for publishing"}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              <input
-                value={ytDraft.handle}
-                onChange={(e) =>
-                  setYtDraft((d) => ({ ...d, handle: e.target.value }))
-                }
-                placeholder="Channel name"
-                className="w-32 bg-bg border border-line2 text-text text-[13px] px-2.5 py-2 outline-none focus:border-accent"
-              />
-              <input
-                value={ytDraft.externalId}
-                onChange={(e) =>
-                  setYtDraft((d) => ({ ...d, externalId: e.target.value }))
-                }
-                placeholder="YouTube Channel ID"
-                className="flex-1 min-w-[220px] bg-bg border border-line2 text-text text-[13px] font-mono px-2.5 py-2 outline-none focus:border-accent"
-              />
-              <button
-                onClick={saveYt}
-                disabled={
-                  savingSocial === "YOUTUBE" || !ytDraft.externalId.trim()
-                }
-                className="cursor-pointer text-xs font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2 disabled:opacity-50"
-              >
-                Save
-              </button>
-              {socialRow("YOUTUBE").externalId && (
-                <button
-                  onClick={() => unlinkSocial("YOUTUBE")}
-                  disabled={savingSocial === "YOUTUBE"}
-                  className="cursor-pointer text-xs font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-3.5 py-2 disabled:opacity-40"
-                >
-                  Unlink
-                </button>
-              )}
-            </div>
-            {socialRow("YOUTUBE").lastSyncError && (
-              <div className="text-xs text-accentb mt-2">
-                {socialRow("YOUTUBE").lastSyncError}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -655,66 +399,6 @@ export function AdminClientDetailClient({
         )}
       </div>
 
-      <div className="mb-9">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted mb-4">
-          Caption drafts
-        </h2>
-        <div className="border border-line bg-s1 p-5">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoCaption}
-              onChange={(e) => saveAutoCaption(e.target.checked)}
-              className="mt-1 w-3.5 h-3.5 cursor-pointer"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-bold">
-                Draft captions from the audio on new reels
-              </span>
-              <span className="block text-xs text-muted mt-1 leading-relaxed">
-                Transcribes each new reel and writes a first pass at the
-                Instagram and YouTube copy, marked as a draft until you edit it.
-                Off by default: this sends this client&apos;s audio to a
-                transcription service, which is worth deciding per client rather
-                than by default.
-              </span>
-            </span>
-          </label>
-
-          {autoCaption && (
-            <div className="mt-5 pt-5 border-t border-line">
-              <div className="flex items-baseline justify-between gap-3 mb-2">
-                <label
-                  htmlFor="captionstyle"
-                  className="text-[11px] uppercase tracking-[.05em] font-bold text-muted"
-                >
-                  House style
-                </label>
-                {styleSaved && (
-                  <span className="text-[11px] text-success">Saved</span>
-                )}
-              </div>
-              <textarea
-                id="captionstyle"
-                value={styleDraft}
-                onChange={(e) => setStyleDraft(e.target.value)}
-                onBlur={saveCaptionStyle}
-                rows={10}
-                placeholder={
-                  "How this client writes. Structure, tone, sign-off, hashtags — and paste two or three real posts as examples.\n\nExamples do more than description: the model copies the shape rather than guessing at it."
-                }
-                className="w-full bg-bg border border-line2 text-[12px] text-text px-3 py-2.5 outline-none focus:border-accent resize-y leading-relaxed font-mono"
-              />
-              <div className="text-[11px] text-dim mt-2">
-                Drafts also follow the last five captions someone wrote by hand
-                for this client, so the voice keeps tracking yours without
-                editing this box.
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* §10c. Which delivered files are actually performing — the question a
           retainer conversation opens with. No change-vs-last-period figure: only the
           current viewCount is stored, so a delta would have to be invented. */}
@@ -773,6 +457,19 @@ export function AdminClientDetailClient({
         </div>
       )}
 
+      {/* One line, not a column of cards. What is switched on for this client is worth
+          knowing at a glance; changing it is rare enough to be a trip to Integrations,
+          which is now the only place any of it is edited. */}
+      <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-semibold uppercase tracking-[.08em] text-dim mb-9 -mt-4">
+        <span className={`w-1.5 h-1.5 ${integrationParts.length ? "bg-success" : "bg-line2"}`} />
+        <span data-testid="integrations-line">
+          {integrationParts.length ? integrationParts.join(" · ") : "No integrations"}
+        </span>
+        <Link href="/admin/integrations" className="text-text hover:text-accent">
+          {integrationParts.length ? "Manage →" : "Add →"}
+        </Link>
+      </div>
+
       <div className="flex items-end justify-between mb-4">
         <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
           Projects
@@ -817,19 +514,22 @@ export function AdminClientDetailClient({
                   Review
                 </span>
               )}
-              {p.paymentHold && (
+              {/* One flag per project, in the order that decides what to do about it:
+                  money owed first, then footage you are waiting on, then the date it
+                  closes. Draft/Live is gone from here — it is automatic and says nothing
+                  a person can act on. */}
+              {p.paymentHold ? (
                 <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]">
-                  Unpaid
+                  Held for payment
                 </span>
-              )}
-              <span
-                className={`text-[11px] font-bold tracking-wide uppercase ${STATUS_COLOR[p.status] ?? "text-muted"}`}
-              >
-                {p.status}
-              </span>
+              ) : p.openRequests > 0 ? (
+                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-success border border-success/40 px-[7px] py-[3px]">
+                  Awaiting footage
+                </span>
+              ) : null}
               <span className="text-muted md:text-right">
                 <span className="md:hidden text-dim">Expires · </span>
-                {fmtDate(p.expiresAt)}
+                {p.expiresAt ? fmtDate(p.expiresAt) : fmtDate(p.deliveredAt)}
               </span>
             </div>
             <div className="flex gap-2 justify-start md:justify-end">

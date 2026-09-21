@@ -34,8 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ client });
   }
 
-  // §13 approval policy. Kept as its own branch, like accentColor and logoUrl above,
-  // because this route's fallthrough treats an unrecognised body as a status change.
+  // Its own branch, like accentColor and logoUrl above, because this route's fallthrough
+  // treats an unrecognised body as a status change.
   if ("captionStyle" in body) {
     const { captionStyle } = body as { captionStyle: string | null };
     if (captionStyle !== null && typeof captionStyle !== "string") {
@@ -59,34 +59,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "autoCaption must be true or false." }, { status: 400 });
     }
     const client = await db.client.update({ where: { id }, data: { autoCaption } });
-    return NextResponse.json({ client });
-  }
-
-  if ("approvalRequired" in body || "approvalAutoHours" in body) {
-    const { approvalRequired, approvalAutoHours } = body as {
-      approvalRequired?: boolean;
-      approvalAutoHours?: number;
-    };
-    if (approvalRequired !== undefined && typeof approvalRequired !== "boolean") {
-      return NextResponse.json({ error: "approvalRequired must be true or false." }, { status: 400 });
-    }
-    if (approvalAutoHours !== undefined) {
-      // 1–168 hours. Zero would auto-approve the instant it was asked, which is
-      // indistinguishable from not asking, and anything past a week outlives the post.
-      if (!Number.isInteger(approvalAutoHours) || approvalAutoHours < 1 || approvalAutoHours > 168) {
-        return NextResponse.json(
-          { error: "approvalAutoHours must be a whole number of hours between 1 and 168." },
-          { status: 400 }
-        );
-      }
-    }
-    const client = await db.client.update({
-      where: { id },
-      data: {
-        ...(approvalRequired !== undefined ? { approvalRequired } : {}),
-        ...(approvalAutoHours !== undefined ? { approvalAutoHours } : {}),
-      },
-    });
     return NextResponse.json({ client });
   }
 

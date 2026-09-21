@@ -22,6 +22,11 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         orderBy: { createdAt: "desc" },
         include: {
           assets: { select: { id: true, internal: true } },
+          // Only the live ones: a closed request is history, not something still owed.
+          submissionRequests: {
+            where: { closedAt: null, expiresAt: { gt: new Date() } },
+            select: { id: true },
+          },
           _count: { select: { submissions: true } },
         },
       },
@@ -29,12 +34,15 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   });
   if (!client) notFound();
 
-  // §10c "Top posts · last 30 days". No delta against the previous period: only the
-  // current viewCount is stored, so a change figure would have to be invented.
+
   const since = new Date(new Date().getTime() - 30 * 86_400_000);
 
   const [socialAccounts, topPosts, channel] = await Promise.all([
-    db.socialAccount.findMany({ where: { clientId: client.id } }),
+    db.socialAccount.findMany({
+      where: { clientId: client.id },
+      select: { platform: true, handle: true },
+    }),
+    // §10c "Top posts · last 30 days" — which delivered files are actually performing.
     db.socialPost.findMany({
       where: { socialAccount: { clientId: client.id }, postedAt: { gte: since } },
       orderBy: { viewCount: "desc" },
@@ -44,7 +52,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         asset: { select: { name: true } },
       },
     }),
-    db.clientChannel.findUnique({ where: { clientId: client.id }, select: { clientId: true } }),
+    db.clientChannel.findUnique({ where: { clientId: client.id }, select: { channel: true } }),
   ]);
 
   return (
@@ -54,15 +62,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         name: client.name,
         username: client.username,
         status: client.status,
-        // A refresh token is what separates "we can read this channel's view counts"
-        // from "we can put a video on it".
-        ytPublishReady: socialAccounts.some((a) => a.platform === "YOUTUBE" && a.refreshToken != null),
-        ytHandle: socialAccounts.find((a) => a.platform === "YOUTUBE")?.handle ?? null,
-        autoCaption: client.autoCaption,
-        captionStyle: client.captionStyle,
         accentColor: client.accentColor,
         hasSlackChannel: channel !== null,
         logoUrl: client.logoUrl,
+        // The one quiet line under the header, assembled here so the page can stay a
+        // list: what is switched on for this client, and where to go to change it.
+        slackChannel: channel?.channel ?? null,
+        accountCount: socialAccounts.filter((a) => a.handle).length,
+        autoCaption: client.autoCaption,
       }}
       topPosts={topPosts.map((p) => ({
         id: p.id,
@@ -78,14 +85,6 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
       postsSyncedAt={
         topPosts[0]?.socialAccount.lastSyncedAt?.toISOString() ?? null
       }
-      socialAccounts={socialAccounts.map((s) => ({
-        platform: s.platform,
-        externalId: s.externalId,
-        handle: s.handle,
-        hasToken: !!s.accessToken,
-        lastSyncedAt: s.lastSyncedAt?.toISOString() ?? null,
-        lastSyncError: s.lastSyncError,
-      }))}
       seats={client.members.map((m) => ({
         id: m.user.id,
         name: m.user.name,
@@ -105,6 +104,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         type: p.type,
         review: p.review,
         paymentHold: p.paymentHold,
+        openRequests: p.submissionRequests.length,
         assetCount: p.assets.filter((a) => !a.internal).length,
         submissionCount: p._count.submissions,
         inboxPath: inboxDirFor(client.username, p.inboxSlug),

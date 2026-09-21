@@ -38,10 +38,11 @@ test.describe("the per-client switch", () => {
     expect(off.ok()).toBe(true);
   });
 
-  test("appears on the client page with the privacy consequence stated", async ({ page }) => {
-    await page.goto("/admin/clients");
-    await page.getByText("SSH", { exact: true }).click();
-    await expect(page.getByText("Draft captions from the audio on new reels")).toBeVisible();
+  test("lives on Integrations, with the privacy consequence stated", async ({ page }) => {
+    // Moved off the client page: every integration is edited in one place now, so "what
+    // is switched on for this client" is answerable by looking rather than remembering.
+    await page.goto("/admin/integrations");
+    await expect(page.getByTestId("captions-c1")).toBeVisible();
     // The reason it is off by default has to be on screen, not just in a commit message.
     await expect(page.getByText(/sends this client's audio/i)).toBeVisible();
   });
@@ -111,9 +112,8 @@ test.describe("the switch on the media page", () => {
     await page.goto("/admin/media?project=p1");
     await expect(page.getByTestId("media-auto-caption")).toHaveAttribute("aria-pressed", "true");
 
-    await page.goto("/admin/clients");
-    await page.getByText("SSH", { exact: true }).click();
-    await expect(page.getByRole("checkbox", { name: /Draft captions from the audio/ })).toBeChecked();
+    await page.goto("/admin/integrations");
+    await expect(page.getByTestId("captions-c1")).toHaveAttribute("aria-pressed", "true");
 
     await request.patch("/api/admin/clients/c1", { data: { autoCaption: false } });
   });
