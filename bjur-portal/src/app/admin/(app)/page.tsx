@@ -103,6 +103,25 @@ export default async function AdminDashboardPage() {
     },
   });
 
+  // Footage that arrived through a send link. It reaches Slack as it lands, file by
+  // file, which is the wrong shape for "what needs me" — a 40-clip drop is 40 pings and
+  // one job. This is one row per batch, and it ages out after a week rather than needing
+  // to be dismissed: a card that cannot go quiet is one people stop reading.
+  const landedBatches = await db.uploadBatch.findMany({
+    where: {
+      requestId: { not: null },
+      createdAt: { gte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) },
+      submissions: { some: { status: "COMPLETE" } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+    include: {
+      request: { select: { name: true } },
+      project: { select: { id: true, title: true, client: { select: { name: true } } } },
+      submissions: { where: { status: "COMPLETE" }, select: { sizeBytes: true } },
+    },
+  });
+
   const unscheduledProjects = unscheduledRetainer.length
     ? await db.project.findMany({
         where: { id: { in: unscheduledRetainer.map((r) => r.projectId) } },
@@ -136,6 +155,20 @@ export default async function AdminDashboardPage() {
             href: `/admin/media?project=${r.asset.projectId}`,
             action: "Open",
           };
+    }),
+    ...landedBatches.map((b) => {
+      const bytes = b.submissions.reduce((n, x) => n + Number(x.sizeBytes), 0);
+      const from = b.senderName ? ` · from ${b.senderName}` : "";
+      return {
+        id: `landed-${b.id}`,
+        kind: "landed" as const,
+        subject: `Upload landed · ${b.request?.name ?? b.label}${from}`,
+        body: `${b.project.client.name} · ${b.project.title} — ${b.submissions.length} file${
+          b.submissions.length === 1 ? "" : "s"
+        } · ${formatBytes(bytes)}`,
+        href: `/admin/projects/${b.project.id}`,
+        action: "Open",
+      };
     }),
     ...soonExpiring.map((p) => ({
       id: `expiry-${p.id}`,
