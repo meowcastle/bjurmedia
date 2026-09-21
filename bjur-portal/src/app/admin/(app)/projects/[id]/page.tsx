@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { inboxDirFor } from "@/lib/projects";
+import { formatBytes } from "@/lib/format";
 import { slugify, stateOf, SUBMISSION_REQUEST_TTL_DAYS } from "@/lib/submissionRequests";
 import { AdminProjectDetailClient } from "@/components/AdminProjectDetailClient";
 
@@ -17,8 +18,11 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
   });
   if (!project) notFound();
 
-  const [visibleAssets, receivedBytes] = await Promise.all([
-    db.asset.count({ where: { projectId: id, internal: false } }),
+  const [assets, receivedBytes] = await Promise.all([
+    db.asset.findMany({
+      where: { projectId: id },
+      orderBy: { createdAt: "asc" },
+    }),
     db.submission.aggregate({ where: { projectId: id }, _sum: { sizeBytes: true } }),
   ]);
 
@@ -36,7 +40,7 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
         expiresAt: project.expiresAt?.toISOString() ?? null,
         inboxPath: inboxDirFor(project.client.name, project.inboxSlug),
         slug: slugify(project.title),
-        fileCount: visibleAssets,
+        fileCount: assets.filter((a) => !a.internal).length,
         submissionCount: project._count.submissions,
         // BigInt cannot cross the RSC boundary.
         receivedBytes: String(receivedBytes._sum.sizeBytes ?? 0),
@@ -54,6 +58,24 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
         folder: `submissions/${slugify(r.name)}/`,
         createdAt: r.createdAt.toISOString(),
         expiresAt: r.expiresAt.toISOString(),
+      }))}
+      assets={assets.map((a) => ({
+        id: a.id,
+        name: a.name,
+        kind: a.kind,
+        format: a.format,
+        // Serialised: sizeBytes is a BigInt, which does not survive the RSC boundary.
+        size: formatBytes(Number(a.sizeBytes)),
+        dims: a.dims,
+        durationSec: a.durationSec,
+        masterCodec: a.masterCodec,
+        proxyRes: a.proxyRes,
+        relPath: a.relPath,
+        proxyStatus: a.proxyStatus,
+        internal: a.internal,
+        weekOf: a.weekOf?.toISOString() ?? null,
+        thumbReady: a.thumbRelPath != null,
+        markStatus: a.markStatus,
       }))}
       ttlDays={SUBMISSION_REQUEST_TTL_DAYS}
     />

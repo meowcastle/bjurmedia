@@ -108,3 +108,19 @@ test("a project holding files says so instead of offering delete", async ({ page
 
   await request.delete(`/api/admin/projects/${project.id}`);
 });
+
+test("the project page shows what is in it and what state it is in", async ({ page }) => {
+  // p1 is the seeded gallery with real assets and posters.
+  await page.goto("/admin/projects/p1");
+
+  const grid = page.locator('[data-testid^="file-"]');
+  await expect(grid.first()).toBeVisible();
+  // The pipeline state is stated, not left to be inferred from a blank thumbnail.
+  await expect(page.getByTestId("proxy-progress")).toContainText(/ready|encoding|failed/i);
+
+  // A file with a proxy opens the viewer; the page behind it stays put.
+  await grid.first().click();
+  await expect(page.getByTestId("admin-proxy-viewer")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("admin-proxy-viewer")).toHaveCount(0);
+});

@@ -4,9 +4,15 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
+import { AdminProxyViewer, type ProxyViewerAsset } from "@/components/AdminProxyViewer";
 import { formatBytes } from "@/lib/format";
 
 type RequestState = "open" | "closed" | "expired";
+
+type FileRow = ProxyViewerAsset & {
+  thumbReady: boolean;
+  markStatus: "NONE" | "PENDING" | "GENERATING" | "READY" | "FAILED";
+};
 
 type RequestRow = {
   id: string;
@@ -73,11 +79,13 @@ export function AdminProjectDetailClient({
   project,
   client,
   requests: initialRequests,
+  assets,
   ttlDays,
 }: {
   project: ProjectRow;
   client: { id: string; name: string };
   requests: RequestRow[];
+  assets: FileRow[];
   ttlDays: number;
 }) {
   const router = useRouter();
@@ -104,6 +112,7 @@ export function AdminProjectDetailClient({
   const [delivered, setDelivered] = useState(toDateInput(project.deliveredAt));
   const [expires, setExpires] = useState(toDateInput(project.expiresAt));
 
+  const [openFileId, setOpenFileId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [askName, setAskName] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -221,6 +230,16 @@ export function AdminProjectDetailClient({
             ? "Every new cut asks the client to approve it or send notes."
             : "The client can stream and download everything as it arrives.",
         ];
+
+  const internalCount = assets.filter((a) => a.internal).length;
+  const ready = assets.filter((a) => a.proxyStatus === "READY").length;
+  const failed = assets.filter((a) => a.proxyStatus === "FAILED").length;
+  const encoding = assets.filter(
+    (a) => a.proxyStatus === "PENDING" || a.proxyStatus === "GENERATING"
+  ).length;
+  const markPending = assets.filter(
+    (a) => !a.internal && a.markStatus !== "READY" && a.proxyStatus === "READY"
+  ).length;
 
   const received = Number(project.receivedBytes);
 
@@ -393,6 +412,90 @@ export function AdminProjectDetailClient({
         </div>
       </div>
 
+      {/* What is actually in the project, and what state it is in.
+          The client's gallery shows finished work; this shows the pipeline — which files
+          still have no proxy, which failed, and (on a held project) which have their
+          watermarked copy yet. "Is anything weird" is the question this answers, and
+          without it the only way to ask was the media table on another screen. */}
+      {assets.length > 0 && (
+        <div className="mt-10">
+          <div className="text-[11px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2 flex justify-between items-baseline">
+            <span>
+              Files <span className="text-dim2">· {assets.length}</span>
+              {internalCount > 0 && (
+                // The facts row above counts what the client can see. This counts what is
+                // here. Saying so stops the two numbers reading as a contradiction.
+                <span className="text-dim2 normal-case tracking-normal">
+                  {" "}
+                  ({internalCount} internal)
+                </span>
+              )}
+            </span>
+            <span className="text-dim2 normal-case tracking-normal text-[11px]" data-testid="proxy-progress">
+              {encoding > 0
+                ? `${ready} ready · ${encoding} still encoding`
+                : failed > 0
+                  ? `${ready} ready · ${failed} failed`
+                  : "all ready"}
+              {held && markPending > 0 ? ` · ${markPending} awaiting watermark` : ""}
+            </span>
+          </div>
+
+          <div
+            className="grid gap-px bg-line2 border border-line2 border-t-0 mt-0"
+            style={{ gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))" }}
+          >
+            {assets.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => a.proxyStatus === "READY" && setOpenFileId(a.id)}
+                data-testid={`file-${a.id}`}
+                className={`bg-s1 text-left ${
+                  a.proxyStatus === "READY" ? "cursor-pointer hover:bg-s2" : "cursor-default"
+                }`}
+              >
+                <span className="block relative aspect-video bg-s0 overflow-hidden">
+                  {a.thumbReady ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/api/assets/${a.id}/thumb`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 grid place-items-center text-[10px] tracking-[.1em] uppercase text-dim2">
+                      {a.proxyStatus === "FAILED" ? "No preview" : "Encoding…"}
+                    </span>
+                  )}
+                  {a.internal && (
+                    <span className="absolute top-2 left-2 text-[9px] font-bold tracking-wide text-dim2 border border-line2 bg-bg/80 px-1.5 py-0.5">
+                      INTERNAL
+                    </span>
+                  )}
+                  {held && a.markStatus === "READY" && !a.internal && (
+                    <span className="absolute top-2 right-2 text-[9px] font-bold tracking-wide text-muted border border-line2 bg-bg/80 px-1.5 py-0.5">
+                      MARKED
+                    </span>
+                  )}
+                </span>
+                <span className="block px-3 pt-2.5 pb-3">
+                  <span className="block text-[12px] truncate">{a.name}</span>
+                  <span className="block text-[10.5px] text-dim mt-1">
+                    {a.proxyStatus === "READY"
+                      ? [a.dims, a.proxyRes, a.size].filter(Boolean).join(" · ")
+                      : a.proxyStatus === "FAILED"
+                        ? "Proxy failed"
+                        : a.proxyStatus === "GENERATING"
+                          ? "Encoding now"
+                          : "Waiting to encode"}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-10">
         <div className="text-[11px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2 flex justify-between items-baseline">
           <span>
@@ -518,6 +621,33 @@ export function AdminProjectDetailClient({
           </span>
         )}
       </div>
+
+      {openFileId && (
+        <AdminProxyViewer
+          assets={assets}
+          activeId={openFileId}
+          onNavigate={setOpenFileId}
+          onClose={() => setOpenFileId(null)}
+          onRegenerate={async (a) => {
+            await fetch(`/api/admin/assets/${a.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ retry: true }),
+            });
+            setToast(`Re-encoding ${a.name}`);
+            router.refresh();
+          }}
+          onToggleInternal={async (a) => {
+            await fetch(`/api/admin/assets/${a.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ internal: !a.internal }),
+            });
+            setToast(a.internal ? `${a.name} shown to client` : `${a.name} hidden from client`);
+            router.refresh();
+          }}
+        />
+      )}
 
       <Toast message={toast} onDone={() => setToast(null)} />
     </div>
