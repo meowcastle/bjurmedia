@@ -27,7 +27,7 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
     // The client is told what the mark is before they go looking for a fault — one
     // line now, the same sentence the viewer's download sheet uses.
     await expect(page.getByTestId("hold-line")).toContainText(
-      /Downloads carry a preview mark until the invoice is settled/i,
+      /watermarked 1080p previews until the invoice is settled/i,
     );
 
     await page.getByText("SSH_Reel_Hero.mp4").click();
@@ -37,7 +37,7 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
     const download = page.getByTestId("sheet-download");
     // The hold is stated in one quiet line beside the button rather than in its label.
     await expect(page.getByTestId("download-sheet")).toContainText(
-      /Downloads carry a preview mark until the invoice is settled/i,
+      /watermarked 1080p previews until the invoice is settled/i,
     );
     // Still a real link, so save-as and middle-click behave.
     await expect(download).toHaveAttribute("href", /^\/api\/assets\/[^/]+\/download$/);
@@ -60,5 +60,5 @@ test("with no hold there is no mark line and no notice", async ({ page }) => {
   await page.getByText("SSH_Reel_Hero.mp4").click();
   await page.getByTestId("master-chip").click();
   await expect(page.getByTestId("sheet-download")).toBeVisible();
-  await expect(page.getByTestId("download-sheet")).not.toContainText(/preview mark/i);
+  await expect(page.getByTestId("download-sheet")).not.toContainText(/watermarked 1080p/i);
 });

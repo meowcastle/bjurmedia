@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 import { getProjectAccess } from "@/lib/projectAccess";
-import { holdApplies, markedReady } from "@/lib/paymentHold";
+import { holdApplies, markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
 
 /** Same extension-swap as the single-file download: the marked copy is mp4/jpg. */
 function markedZipName(assetName: string, markedPath: string) {
@@ -55,7 +55,7 @@ async function buildZipResponse(
         skipped.push(asset.name);
         continue;
       }
-      relPath = asset.markedFileRelPath;
+      relPath = markedDownloadRelPath(asset);
       derived = true;
     } else {
       relPath = asset.relPath;

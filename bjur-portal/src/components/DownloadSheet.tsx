@@ -27,6 +27,16 @@ export type DownloadFacts = {
   watermarked: boolean;
 };
 
+/**
+ * What a held project actually hands over: the marked 1080p proxy, not the master. The
+ * sheet's facts come from the Asset row, so without this a 4K master advertises "3840 ×
+ * 2160 · 2.4 GB" above a button that downloads an 80 MB preview. Reels are 1080 × 1920,
+ * everything else 1920 × 1080 — the same rule proxyDims() encodes to.
+ */
+function heldDims(format: string) {
+  return format === "Reel" ? "1080 × 1920" : "1920 × 1080";
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5 border-b border-white/10">
@@ -173,9 +183,13 @@ export function DownloadSheet({
 
         <div className="px-5">
           <Fact label="Format" value={facts.format} />
-          {facts.dims && <Fact label="Resolution" value={facts.dims} />}
+          {facts.watermarked ? (
+            <Fact label="Resolution" value={heldDims(facts.format)} />
+          ) : (
+            facts.dims && <Fact label="Resolution" value={facts.dims} />
+          )}
           {facts.durationLabel && <Fact label="Duration" value={facts.durationLabel} />}
-          {facts.size && <Fact label="Size" value={facts.size} />}
+          {!facts.watermarked && facts.size && <Fact label="Size" value={facts.size} />}
         </div>
 
         <div className="px-5 pt-4 pb-6">
@@ -198,7 +212,7 @@ export function DownloadSheet({
                       ? `Downloading ${progress}%`
                       : checking
                         ? "Starting…"
-                        : `Download${facts.size ? ` · ${facts.size}` : ""}`}
+                        : `Download${!facts.watermarked && facts.size ? ` · ${facts.size}` : ""}`}
                 </span>
               </a>
               {/* The rule fills with the transfer. Only drawn while one is running, so a
@@ -215,7 +229,8 @@ export function DownloadSheet({
                   normal condition of the work, not an error the client has hit. */}
               {facts.watermarked && (
                 <div className="mt-3 text-[12px] leading-relaxed text-white/55">
-                  Downloads carry a preview mark until the invoice is settled.
+                  Downloads are watermarked 1080p previews until the invoice is settled.
+                  Masters release at full resolution the moment it clears.
                 </div>
               )}
               {visibleError && (

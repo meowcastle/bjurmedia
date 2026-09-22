@@ -134,10 +134,11 @@ async function main() {
   check("a failed mark is still not servable", markedReady(failed) === false, `markStatus=${failed.markStatus}`);
 
   // --- a half-finished mark streams but does not download ----------------------------
-  // The renditions are persisted as they land, cheapest first, so the gallery is
-  // watchable long before the full-resolution delivery copy exists. That must not be
-  // mistaken for the file being releasable: the poster and proxy are set here while
-  // markStatus is still GENERATING, and the download has to stay shut.
+  // Renditions are persisted as they land, so the poster and proxy exist on disk before
+  // the job is finished. The download serves that same proxy now, which makes markStatus
+  // the only thing standing between a part-marked asset and a release: if the gate were
+  // the path alone, an asset caught mid-encode would hand over a file whose mark may not
+  // have been drawn yet. It stays shut until the worker says READY.
   await db.asset.update({
     where: { id: asset.id },
     data: {
@@ -153,17 +154,19 @@ async function main() {
     midway.markedProxyRelPath !== null && midway.markedThumbRelPath !== null
   );
   check(
-    "but still cannot be downloaded",
+    "but still cannot be downloaded while the mark is being drawn",
     markedReady(midway) === false,
-    `markStatus=${midway.markStatus}, markedFileRelPath=${midway.markedFileRelPath}`
+    `markStatus=${midway.markStatus}, markedProxyRelPath=${midway.markedProxyRelPath}`
   );
 
-  // --- once marked, it serves the marked copy ----------------------------------------
+  // --- once marked, it serves the marked proxy ---------------------------------------
+  // No markedFileRelPath: a held video download is the marked proxy. Leaving it null is
+  // the point of the check — markedReady must be satisfied by the proxy alone.
   await db.asset.update({
     where: { id: asset.id },
     data: {
       markStatus: "READY",
-      markedFileRelPath: `${asset.id}/delivery.marked.mp4`,
+      markedFileRelPath: null,
       markedProxyRelPath: `${asset.id}/proxy.marked.mp4`,
       markedThumbRelPath: `${asset.id}/thumb.marked.jpg`,
     },
@@ -189,7 +192,7 @@ async function main() {
   // The marked renditions survive a release, so re-holding is instant rather than a
   // second pass over the whole gallery.
   const kept = await db.asset.findUniqueOrThrow({ where: { id: asset.id } });
-  check("the marked copies are kept for a re-hold", kept.markedFileRelPath !== null);
+  check("the marked copies are kept for a re-hold", kept.markedProxyRelPath !== null);
 
   // --- an unheld project is untouched -------------------------------------------------
   check("holdApplies is false on an unheld project", holdApplies({ paymentHold: false }, session) === false);

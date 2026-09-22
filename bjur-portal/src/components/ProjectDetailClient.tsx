@@ -161,7 +161,7 @@ export function ProjectDetailClient({
     clientName: string;
     deliveredAt: string | null;
     expiresAt: string | null;
-    /** Everything here is watermarked until the invoice is settled. */
+    /** Everything here streams and downloads watermarked until the invoice is settled. */
     paymentHold: boolean;
     folders: { id: string; name: string }[];
   };
@@ -643,7 +643,7 @@ export function ProjectDetailClient({
           data-testid="hold-line"
           className="text-[11.5px] text-muted leading-relaxed py-3.5 border-b border-line mb-6"
         >
-          Downloads carry a preview mark until the invoice is settled.
+          Downloads are watermarked 1080p previews until the invoice is settled.
         </div>
       )}
 

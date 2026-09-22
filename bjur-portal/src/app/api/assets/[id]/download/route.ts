@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { authorizeAssetAccess } from "@/lib/authz";
 import { resolveDerivedPath, resolveMediaPath, streamFile } from "@/lib/media";
-import { markedReady } from "@/lib/paymentHold";
+import { markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
 import { db } from "@/lib/db";
 import { postSlackEvent } from "@/lib/slack";
 
@@ -25,9 +25,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(null, { status: auth.status });
   }
 
-  // Payment hold: hand over the watermarked full-quality copy in place of the master.
-  // If it is not encoded yet, refuse — serving the master "just this once" because the
-  // mark is still rendering would release exactly the file the hold exists to withhold.
+  // Payment hold: hand over the watermarked rendition in place of the master. If it is
+  // not encoded yet, refuse — serving the master "just this once" because the mark is
+  // still rendering would release exactly the file the hold exists to withhold.
   if (auth.watermark && !markedReady(auth.asset)) {
     return Response.json(
       {
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const filePath = auth.watermark
-    ? await resolveDerivedPath(auth.asset.markedFileRelPath!).catch(() => null)
+    ? await resolveDerivedPath(markedDownloadRelPath(auth.asset)!).catch(() => null)
     : await resolveMediaPath(auth.asset.relPath).catch(() => null);
   if (!filePath) return new Response(null, { status: 404 });
 

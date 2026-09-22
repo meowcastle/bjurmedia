@@ -16,13 +16,40 @@ export function holdApplies(
 }
 
 /**
+ * The file a held project hands over when the client hits Download.
+ *
+ * For video that is the marked *proxy* — the same 1080p rendition the gallery streams.
+ * It used to be a second, full-resolution watermarked encode, which was correct and
+ * unaffordable: 31 of one 60-clip delivery were 4K, and marking at source resolution put
+ * the job at eight hours on the NAS while the client sat looking at an empty gallery. A
+ * held download is a file you can watch and approve, not a master you can cut with; the
+ * clean master is one invoice away, and nothing about it is touched meanwhile.
+ *
+ * Stills keep their own full-resolution marked copy. The cost problem was entirely in
+ * video re-encodes — a marked JPEG is well under a second — so there is nothing to save
+ * by handing back a 960px thumbnail.
+ */
+export function markedDownloadRelPath(asset: {
+  kind: string;
+  markedProxyRelPath: string | null;
+  markedFileRelPath: string | null;
+}) {
+  return asset.kind === "VIDEO" ? asset.markedProxyRelPath : asset.markedFileRelPath;
+}
+
+/**
  * True once this asset actually has the marked rendition a held project owes the client.
  * Kept separate from holdApplies because the two failure modes are different: the hold
  * being on is a policy, the renditions existing is a fact about the disk, and a route
  * that confuses them serves the clean master by accident.
  */
-export function markedReady(asset: { markStatus: string; markedFileRelPath: string | null }) {
-  return asset.markStatus === "READY" && !!asset.markedFileRelPath;
+export function markedReady(asset: {
+  markStatus: string;
+  kind: string;
+  markedProxyRelPath: string | null;
+  markedFileRelPath: string | null;
+}) {
+  return asset.markStatus === "READY" && !!markedDownloadRelPath(asset);
 }
 
 /**
