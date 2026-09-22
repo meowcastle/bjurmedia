@@ -12,7 +12,20 @@ const TABS = [
   { href: "/admin/media", label: "Media" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/integrations", label: "Integrations" },
-  { href: "/admin/team", label: "Team" },
+];
+
+/**
+ * The two screens that are real but occasional. Neither belongs on a bar you read every
+ * morning: Team is where staff logins are added, which happens a few times a year, and
+ * Library registers footage already sitting on the NAS into a project — reached until now
+ * only from a contextual link on Media, which made it findable by memory and nothing else.
+ *
+ * They sit in the account menu rather than a second control beside it. A hamburger next to
+ * an avatar that already opens a menu is two doors into one room.
+ */
+const MENU_LINKS = [
+  { href: "/admin/team", label: "Team", hint: "Staff logins for Bjur Media" },
+  { href: "/admin/library", label: "Library", hint: "Register footage already on the NAS" },
 ];
 
 export function AdminHeader({ userName }: { userName: string }) {
@@ -43,6 +56,12 @@ export function AdminHeader({ userName }: { userName: string }) {
       document.removeEventListener("keydown", onEsc);
     };
   }, []);
+
+  // The menu holds links now, so it has to close when one is followed. Without this it
+  // stays open over the page it just navigated to.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -98,8 +117,24 @@ export function AdminHeader({ userName }: { userName: string }) {
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-[calc(100%+8px)] min-w-[180px] bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-40"
+              data-testid="admin-account-menu"
+              className="absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-40"
             >
+              {MENU_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  role="menuitem"
+                  href={item.href}
+                  className="block px-4 py-3 border-b border-line hover:bg-s3 group"
+                >
+                  <span className="block text-[13px] font-semibold text-muted group-hover:text-text">
+                    {item.label}
+                  </span>
+                  {/* Neither name says what the screen does — "Library" especially reads
+                      like a media browser when it is an ingest tool. One line each. */}
+                  <span className="block text-[11px] text-muted/70 mt-0.5">{item.hint}</span>
+                </Link>
+              ))}
               <div className="px-4 py-3 border-b border-line text-[13px] font-semibold truncate">
                 {userName}
               </div>
