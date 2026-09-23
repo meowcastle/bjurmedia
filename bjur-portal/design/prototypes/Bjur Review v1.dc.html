@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0d;}
+*{box-sizing:border-box;}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left;}
+button:disabled{cursor:default;}
+input{font:inherit;color:inherit;}
+a{color:#f2efe9;}a:hover{color:#fff;}
+@keyframes rvfade{from{opacity:0}to{opacity:1}}
+@keyframes rvrise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="font-family:'Fragment Mono',ui-monospace,monospace;height:100vh;min-height:620px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;--bg:#0c0c0d;--s1:#151517;--s2:#1c1c1f;--ink:#f2efe9;--body:#c9c5bd;--mut:#a8a49c;--dim:#8a877f;--dim2:#6f6c66;--rule:rgba(255,255,255,.1);--rule2:rgba(255,255,255,.2);--ok:#2ec36b;--acc:oklch(0.72 0.12 200);background:var(--bg);color:var(--ink);">
+
+<div style="display:flex;align-items:center;gap:4px;padding:7px 16px;color:#8a877f;font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;">
+  <span style="color:#6f6c66;margin-right:10px;">REVIEW v1.1</span>
+  <sc-for list="{{ views }}" as="v" hint-placeholder-count="2">
+    <button onClick="{{ v.set }}" style="padding:5px 10px;border:1px solid {{ v.border }};color:{{ v.color }};background:{{ v.bg }};">{{ v.label }}</button>
+  </sc-for>
+  <sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}">
+    <span style="color:#6f6c66;margin:0 6px 0 12px;">AS</span>
+    <sc-for list="{{ reviewers }}" as="r" hint-placeholder-count="3">
+      <button onClick="{{ r.set }}" style="padding:5px 10px;border:1px solid {{ r.border }};color:{{ r.color }};background:{{ r.bg }};">{{ r.label }}</button>
+    </sc-for>
+  </sc-if>
+  <button onClick="{{ reset }}" style="padding:5px 10px;color:#6f6c66;" style-hover="color:#f2efe9;">RESET</button>
+  <span style="margin-left:auto;color:#6f6c66;">SPACE play · N note · ← → 1s · M next note</span>
+</div>
+
+<header style="display:flex;align-items:center;gap:22px;padding:14px 22px;border-bottom:1px solid var(--rule);flex-wrap:wrap;">
+  <span style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;">Bjur</span>
+  <span style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+    <span style="font-size:12px;">AK MV HURT</span>
+    <span style="font-size:10.5px;color:var(--dim);">Adam Knights · HURT — Music Video</span>
+  </span>
+  <div style="display:flex;gap:2px;margin-left:auto;" aria-label="Cuts">
+    <sc-for list="{{ cuts }}" as="c" hint-placeholder-count="3">
+      <button onClick="{{ c.set }}" disabled="{{ c.disabled }}" style="padding:7px 12px;background:{{ c.bg }};color:{{ c.color }};display:flex;flex-direction:column;gap:3px;min-width:84px;border:1px {{ c.borderStyle }} {{ c.border }};" style-hover="color:var(--ink);">
+        <span style="font-size:11px;letter-spacing:.08em;">{{ c.label }}</span>
+        <span style="font-size:9.5px;color:{{ c.subColor }};">{{ c.sub }}</span>
+      </button>
+    </sc-for>
+  </div>
+  <span style="font-size:11px;color:var(--dim);">{{ who }}</span>
+</header>
+
+<div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;">
+
+  <div data-screen-label="Player" style="flex:1 1 620px;min-width:0;display:flex;flex-direction:column;background:#000;">
+    <div style="flex:1;min-height:260px;display:grid;place-items:center;padding:22px;">
+      <div onClick="{{ togglePlay }}" style="width:100%;max-width:1180px;aspect-ratio:3840/1606;position:relative;overflow:hidden;background:{{ frameBg }};transition:background .6s;cursor:pointer;">
+        <span style="position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(14px,2.4vw,28px);letter-spacing:.34em;color:rgba(255,255,255,.08);">BJUR MEDIA</span>
+        <span style="position:absolute;top:12px;left:14px;font-size:10.5px;letter-spacing:.08em;color:rgba(255,255,255,.7);">{{ frameCut }}</span>
+        <sc-if value="{{ burn }}" hint-placeholder-val="{{ false }}">
+          <span style="position:absolute;top:12px;right:14px;font-size:11px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.55);padding:3px 7px;">{{ tcLong }}</span>
+        </sc-if>
+        <sc-if value="{{ paused }}" hint-placeholder-val="{{ true }}">
+          <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border:1px solid rgba(255,255,255,.5);display:grid;place-items:center;font-size:14px;color:#fff;background:rgba(0,0,0,.35);">▶</span>
+        </sc-if>
+        <sc-if value="{{ ov.show }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:16px;bottom:14px;max-width:min(460px,70%);background:rgba(0,0,0,.72);padding:10px 12px;display:flex;gap:12px;animation:rvrise .25s ease both;">
+            <span style="font-size:11px;color:{{ ov.color }};white-space:nowrap;">{{ ov.time }}</span>
+            <span style="font-size:12.5px;line-height:1.45;color:#f2efe9;">{{ ov.body }}</span>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="padding:0 22px 18px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button onClick="{{ togglePlay }}" aria-label="{{ playLabel }}" style="width:38px;height:38px;border:1px solid var(--rule2);display:grid;place-items:center;font-size:12px;flex:none;" style-hover="border-color:var(--ink);">{{ playGlyph }}</button>
+        <span style="font-size:12px;white-space:nowrap;">{{ tc }} <span style="color:var(--dim2);">/ {{ dur }}</span></span>
+        <div onClick="{{ seekBar }}" onMouseMove="{{ hoverBar }}" onMouseLeave="{{ leaveBar }}" style="flex:1;height:38px;position:relative;cursor:pointer;">
+          <span style="position:absolute;left:0;right:0;top:24px;height:3px;background:rgba(255,255,255,.14);"></span>
+          <span style="position:absolute;left:0;top:24px;height:3px;width:{{ pct }};background:var(--ink);"></span>
+          <span style="position:absolute;top:19px;left:{{ pct }};width:1px;height:13px;background:var(--ink);"></span>
+          <sc-for list="{{ markers }}" as="m" hint-placeholder-count="3">
+            <button onClick="{{ m.seek }}" title="{{ m.title }}" aria-label="{{ m.title }}" style="position:absolute;top:4px;left:{{ m.left }};transform:translateX(-50%);width:14px;height:18px;display:flex;flex-direction:column;align-items:center;">
+              <span style="width:{{ m.size }};height:{{ m.size }};background:{{ m.bg }};border:1.5px solid {{ m.border }};flex:none;"></span>
+              <span style="width:1px;flex:1;background:{{ m.border }};opacity:.6;"></span>
+            </button>
+          </sc-for>
+          <sc-if value="{{ hv.show }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;bottom:40px;left:{{ hv.left }};transform:translateX(-50%);font-size:10.5px;background:var(--s2);border:1px solid var(--rule2);padding:3px 7px;white-space:nowrap;pointer-events:none;">{{ hv.label }}</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ canCompose }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;border:1px solid {{ cmpBorder }};background:var(--s1);transition:border-color .15s;">
+          <span style="padding:0 14px;font-size:12px;color:var(--acc);white-space:nowrap;border-right:1px solid var(--rule);align-self:stretch;display:flex;align-items:center;">@ {{ lockLabel }}</span>
+          <input ref="{{ inpRef }}" value="{{ draft }}" onChange="{{ setDraft }}" onFocus="{{ lockNow }}" onBlur="{{ unlock }}" onKeyDown="{{ cmpKey }}" placeholder="{{ cmpPlaceholder }}" aria-label="Note at the current time" style="flex:1;min-width:0;background:transparent;border:0;outline:none;padding:15px 14px;font-size:13px;">
+          <button onMouseDown="{{ addNoteMD }}" style="padding:0 16px;align-self:stretch;font-size:11px;letter-spacing:.06em;color:{{ addColor }};" style-hover="color:var(--ink);">ADD ↵</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ oldCompose }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;color:var(--dim);padding:14px;border:1px dashed var(--rule2);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>{{ oldLine }}</span><button onClick="{{ goLatest }}" style="color:var(--ink);" style-hover="color:var(--acc);">{{ goLatestLabel }}</button></div>
+      </sc-if>
+    </div>
+  </div>
+
+  <aside data-screen-label="Notes" style="flex:1 1 360px;max-width:100%;min-width:0;display:flex;flex-direction:column;border-left:1px solid var(--rule);min-height:0;max-height:100%;">
+    <div style="padding:20px 22px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid var(--rule);">
+      <span style="font-family:'Source Serif 4',Georgia,serif;font-size:24px;font-weight:300;letter-spacing:-.02em;">{{ headTitle }}</span>
+      <span style="font-size:10.5px;letter-spacing:.08em;color:var(--dim);">{{ headMeta }}</span>
+    </div>
+
+    <sc-if value="{{ banner.show }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:12px 22px;font-size:11.5px;line-height:1.5;color:var(--body);background:var(--s1);border-bottom:1px solid var(--rule);display:flex;gap:10px;align-items:baseline;"><span style="width:6px;height:6px;background:{{ banner.dot }};flex:none;transform:translateY(-1px);"></span><span>{{ banner.text }}</span></div>
+    </sc-if>
+
+    <div style="flex:1;min-height:0;overflow:auto;">
+      <sc-if value="{{ empty.show }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:32px 22px;font-size:12px;line-height:1.6;color:var(--dim);max-width:36ch;">{{ empty.text }}</div>
+      </sc-if>
+      <sc-for list="{{ notes }}" as="n" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:{{ n.cols }};gap:0 12px;padding:14px 22px;border-bottom:1px solid var(--rule);background:{{ n.bg }};transition:background .2s;animation:rvfade .25s ease both;">
+          <button onClick="{{ n.seek }}" style="font-size:12px;color:{{ n.timeColor }};padding-top:1px;" style-hover="color:var(--ink);">{{ n.time }}</button>
+          <div style="min-width:0;">
+            <button onClick="{{ n.seek }}" style="display:block;font-size:13px;line-height:1.5;color:var(--ink);text-wrap:pretty;">{{ n.body }}</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--dim);margin-top:7px;align-items:center;">
+              <span>{{ n.meta }}</span>
+              <sc-if value="{{ n.isDraft }}" hint-placeholder-val="{{ false }}"><button onClick="{{ n.del }}" style="color:var(--dim);" style-hover="color:var(--ink);">Delete</button></sc-if>
+            </div>
+            <sc-if value="{{ n.hasOutcome }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:10px;padding-left:12px;border-left:1px solid {{ n.outColor }};font-size:12px;line-height:1.5;color:var(--body);"><span style="display:block;font-size:10px;letter-spacing:.1em;color:{{ n.outColor }};margin-bottom:3px;">{{ n.outLabel }}</span>{{ n.response }}</div>
+            </sc-if>
+            <sc-if value="{{ n.addressing }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+                <button onClick="{{ n.setChanged }}" style="padding:9px;font-size:10.5px;letter-spacing:.08em;text-align:center;background:{{ n.chBg }};color:{{ n.chColor }};" style-hover="color:var(--ink);">CHANGED</button>
+                <button onClick="{{ n.setKept }}" style="padding:9px;font-size:10.5px;letter-spacing:.08em;text-align:center;background:{{ n.kpBg }};color:{{ n.kpColor }};" style-hover="color:var(--ink);">KEPT AS IS</button>
+              </div>
+              <input value="{{ n.response }}" onChange="{{ n.setResponse }}" placeholder="{{ n.respPlaceholder }}" aria-label="Your answer to this note" style="margin-top:2px;width:100%;background:var(--s1);border:0;border-bottom:1px solid var(--rule2);outline:none;padding:10px;font-size:12px;">
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{ prev.show }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:22px 22px 8px;font-size:10px;letter-spacing:.1em;color:var(--dim);">{{ prev.label }}</div>
+        <sc-for list="{{ prev.notes }}" as="n" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:{{ n.cols }};gap:0 12px;padding:12px 22px;border-bottom:1px solid var(--rule);">
+            <button onClick="{{ n.seek }}" style="font-size:12px;color:var(--dim);padding-top:1px;" style-hover="color:var(--ink);">{{ n.time }}</button>
+            <div style="min-width:0;">
+              <button onClick="{{ n.seek }}" style="display:block;font-size:12.5px;line-height:1.5;color:var(--mut);text-wrap:pretty;">{{ n.body }}</button>
+              <div style="margin-top:8px;padding-left:12px;border-left:1px solid {{ n.outColor }};font-size:12px;line-height:1.5;color:var(--body);"><span style="display:block;font-size:10px;letter-spacing:.1em;color:{{ n.outColor }};margin-bottom:3px;">{{ n.outLabel }}</span>{{ n.response }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </sc-if>
+    </div>
+
+    <div style="padding:18px 22px 22px;border-top:1px solid var(--rule2);display:flex;flex-direction:column;gap:10px;">
+      <sc-if value="{{ f.send }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ sendNotes }}" style="width:100%;padding:15px;background:var(--acc);color:#0c0c0d;font-size:12px;letter-spacing:.04em;text-align:center;" style-hover="filter:brightness(1.1);">{{ f.sendLabel }}</button>
+        <span style="font-size:10.5px;line-height:1.55;color:var(--dim);">Only you can see these until you send. Keep adding as you watch.</span>
+      </sc-if>
+      <sc-if value="{{ f.approve }}" hint-placeholder-val="{{ false }}">
+        <span style="font-size:11.5px;line-height:1.55;color:var(--body);">{{ f.approveLead }}</span>
+        <button onClick="{{ approve }}" style="width:100%;padding:15px;border:1px solid {{ f.apBorder }};background:{{ f.apBg }};color:{{ f.apColor }};font-size:12px;letter-spacing:.04em;text-align:center;" style-hover="border-color:var(--ink);">{{ f.approveLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ f.approved }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;"><span style="font-size:12px;display:flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:var(--ok);"></span>{{ f.approvedLine }}</span><sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}"><button onClick="{{ unapprove }}" style="font-size:11px;color:var(--dim);" style-hover="color:var(--ink);">Undo</button></sc-if></div>
+      </sc-if>
+
+      <sc-if value="{{ f.studio }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ f.hasSent }}" hint-placeholder-val="{{ true }}">
+          <span style="font-size:10px;letter-spacing:.1em;color:var(--dim);">MARKERS FOR YOUR EDIT</span>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;margin-bottom:6px;">
+            <sc-for list="{{ exports }}" as="x" hint-placeholder-count="3">
+              <button onClick="{{ x.go }}" style="padding:11px 8px;background:var(--s1);font-size:11px;text-align:center;display:flex;flex-direction:column;gap:3px;align-items:center;" style-hover="background:var(--s2);"><span>{{ x.label }}</span><span style="font-size:9.5px;color:var(--dim);">{{ x.sub }}</span></button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <button onClick="{{ upload }}" style="width:100%;padding:15px;background:{{ f.upBg }};color:{{ f.upColor }};border:1px solid {{ f.upBorder }};font-size:12px;letter-spacing:.04em;text-align:center;" style-hover="filter:brightness(1.1);">{{ f.upLabel }}</button>
+        <span style="font-size:10.5px;line-height:1.55;color:var(--dim);">{{ f.upHint }}</span>
+      </sc-if>
+
+      <sc-if value="{{ f.uploading }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span>{{ f.upFile }}</span><span style="color:var(--dim);">{{ f.upPct }}</span></div>
+        <div style="height:3px;background:rgba(255,255,255,.12);"><div style="height:100%;width:{{ f.upPct }};background:var(--acc);transition:width .1s linear;"></div></div>
+      </sc-if>
+
+      <sc-if value="{{ f.addressing }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span>{{ f.addrLine }}</span><button onClick="{{ cancelUpload }}" style="color:var(--dim);" style-hover="color:var(--ink);">Cancel</button></div>
+        <div style="height:3px;background:rgba(255,255,255,.12);"><div style="height:100%;width:{{ f.addrPct }};background:var(--ok);transition:width .2s;"></div></div>
+        <button onClick="{{ previewMail }}" disabled="{{ f.addrBlocked }}" style="width:100%;padding:15px;background:{{ f.pvBg }};color:{{ f.pvColor }};font-size:12px;letter-spacing:.04em;text-align:center;">{{ f.pvLabel }}</button>
+      </sc-if>
+    </div>
+  </aside>
+</div>
+
+<sc-if value="{{ mail.open }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Cut ready email" style="position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;justify-content:center;overflow:auto;padding:40px 20px;z-index:6;animation:rvfade .2s ease both;">
+    <div style="width:100%;max-width:620px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--dim);">
+        <span>TO <span style="color:var(--ink);">{{ mail.to }}</span></span>
+        <span>SUBJECT <span style="color:var(--ink);">{{ mail.subject }}</span></span>
+      </div>
+      <div style="background:#f6f4f0;color:#17161a;">
+        <div style="padding:40px 40px 28px;">
+          <div style="font-size:11px;letter-spacing:.14em;color:oklch(0.5 0.1 200);margin-bottom:16px;">FOR YOUR REVIEW · ADAM KNIGHTS</div>
+          <div style="font-family:'Source Serif 4',Georgia,serif;font-size:38px;line-height:1.02;letter-spacing:-.025em;margin-bottom:18px;">{{ mail.headline }}</div>
+          <div style="font-size:14px;line-height:1.65;color:#4a4844;text-wrap:pretty;">{{ mail.body }}</div>
+        </div>
+        <sc-if value="{{ mail.hasRows }}" hint-placeholder-val="{{ true }}">
+          <div style="margin:0 40px 28px;border-top:1px solid #17161a;">
+            <sc-for list="{{ mail.rows }}" as="r" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:48px minmax(0,1fr);gap:0 14px;padding:16px 0;border-bottom:1px solid #dcd8d1;">
+                <span style="font-size:12px;color:#6e6b66;">{{ r.time }}</span>
+                <div style="min-width:0;">
+                  <div style="font-size:12.5px;line-height:1.5;color:#6e6b66;">“{{ r.body }}” <span style="white-space:nowrap;">· {{ r.by }}</span></div>
+                  <div style="margin-top:8px;font-size:13px;line-height:1.5;color:#17161a;"><span style="font-size:10px;letter-spacing:.1em;color:{{ r.color }};margin-right:8px;">{{ r.label }}</span>{{ r.response }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div style="padding:0 40px 36px;display:flex;gap:2px;flex-wrap:wrap;">
+          <span style="padding:14px 22px;background:#17161a;color:#f6f4f0;font-size:12px;letter-spacing:.06em;">{{ mail.cta }}</span>
+        </div>
+        <div style="padding:18px 40px;border-top:1px solid #dcd8d1;font-size:10.5px;color:#8a877f;line-height:1.6;">Leave notes right on the video. They reach Bjur when you press send.</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;">
+        <button onClick="{{ closeMail }}" style="padding:13px 18px;font-size:12px;color:var(--mut);border:1px solid var(--rule2);" style-hover="color:var(--ink);">← Back to notes</button>
+        <button onClick="{{ sendMail }}" style="padding:13px 22px;font-size:12px;background:var(--acc);color:#0c0c0d;letter-spacing:.04em;" style-hover="filter:brightness(1.1);">{{ mail.sendLabel }}</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#0c0c0d;font-size:12px;padding:11px 16px;animation:rvrise .25s ease both;z-index:7;">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  D = 323;
+  DATES = { 1: "Aug 28", 2: "Sep 12", 3: "Sep 23" };
+  HUES = [215, 200, 35, 350, 205, 265, 25, 190];
+  seed() {
+    return [
+      { id: "a", by: "Adam", cut: 1, t: 12.2, body: "Open on the car, not the hallway.", status: "sent", outcome: "changed", response: "Opens on the car now." },
+      { id: "b", by: "Adam", cut: 2, t: 47.5, body: "The flash at the chorus is too much. Can it be one frame instead of three?", status: "sent", outcome: "changed", response: "Down to one frame." },
+      { id: "c", by: "Tom", cut: 2, t: 131.0, body: "Lose the wide here, stay close on Adam.", status: "sent", outcome: "changed", response: "" },
+      { id: "d", by: "Adam", cut: 2, t: 288.4, body: "Credits: my name first, then the label.", status: "sent", outcome: "kept", response: "The label's contract needs their logo last. Your name is first in the card before it." },
+      { id: "e", by: "Adam", cut: 3, t: 74.2, body: "Rooftop color reads green on my phone. Warmer?", status: "draft", outcome: null, response: "" },
+      { id: "f", by: "Adam", cut: 3, t: 196.8, body: "This transition is perfect, don't touch it.", status: "draft", outcome: null, response: "" },
+      { id: "g", by: "Mia", cut: 3, t: 142.0, body: "Use the white label logo on the dark shots.", status: "sent", outcome: null, response: "" }
+    ];
+  }
+  PEOPLE = { Adam: { role: "Artist · owner", email: "adam@adamknights.com" }, Tom: { role: "Director · seat", email: "tom@northfilms.co" }, Mia: { role: "Label · guest link", email: "mia@heavyrecords.com" } };
+  fresh() { return { cuts: [1, 2, 3], cut: 3, t: 70.4, notes: this.seed(), draft: "", lockT: null, sentAt: { Mia: "4:02 PM" }, me: "Adam", approved: false, up: null, addressing: false, mailOpen: false }; }
+  state = { view: "client", playing: false, hoverT: null, toast: null, seq: 0, ...this.fresh() };
+  inp = React.createRef();
+
+  componentDidMount() {
+    this._k = (e) => {
+      const tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Escape" && this.state.mailOpen) return this.setState({ mailOpen: false });
+      if (e.code === "Space") { e.preventDefault(); this.togglePlay(); }
+      else if (e.key === "n" || e.key === "N") { e.preventDefault(); this.inp.current?.focus(); }
+      else if (e.key === "ArrowRight") this.seek(this.state.t + (e.shiftKey ? 5 : 1));
+      else if (e.key === "ArrowLeft") this.seek(this.state.t - (e.shiftKey ? 5 : 1));
+      else if (e.key === "m" || e.key === "M") { const v = this.visible(); const nx = v.find(n => n.t > this.state.t + 0.05) ?? v[0]; if (nx) this.seek(nx.t); }
+    };
+    window.addEventListener("keydown", this._k);
+  }
+  componentWillUnmount() { window.removeEventListener("keydown", this._k); clearInterval(this._p); clearInterval(this._u); clearTimeout(this._tt); }
+
+  play(on) {
+    clearInterval(this._p);
+    if (on) this._p = setInterval(() => this.setState(s => s.t + 0.1 >= this.D ? (clearInterval(this._p), { t: this.D, playing: false }) : { t: s.t + 0.1 }), 100);
+    this.setState({ playing: on });
+  }
+  togglePlay = () => this.play(!this.state.playing);
+  seek(t) { this.play(false); this.setState({ t: Math.max(0, Math.min(this.D, t)) }); }
+  flash(msg) { clearTimeout(this._tt); this.setState({ toast: msg }); this._tt = setTimeout(() => this.setState({ toast: null }), 2800); }
+  fmt(t) { return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`; }
+  smpte(t) { const p = (n) => String(n).padStart(2, "0"), s = Math.floor(t); return `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}:${p(Math.floor((t % 1) * 24))}`; }
+  latest() { return Math.max(...this.state.cuts); }
+  visible() {
+    const s = this.state, studio = s.view === "studio";
+    return s.notes.filter(n => n.cut === s.cut && (n.status === "sent" || (!studio && n.by === s.me))).sort((a, b) => a.t - b.t);
+  }
+  patch(id, p) { this.setState(st => ({ notes: st.notes.map(x => x.id === id ? { ...x, ...p } : x) })); }
+  addNote() {
+    const s = this.state, body = s.draft.trim();
+    if (!body) return;
+    const t = s.lockT ?? s.t;
+    this.setState(st => ({ notes: [...st.notes, { id: "n" + st.seq, by: st.me, cut: st.cut, t, body, status: "draft", outcome: null, response: "" }], seq: st.seq + 1, draft: "", lockT: st.t, approved: false }));
+  }
+  outcome(n) { return n.outcome === "kept" ? { outLabel: "KEPT AS IS", outColor: "var(--mut)" } : { outLabel: "CHANGED", outColor: "var(--ok)" }; }
+
+  renderVals() {
+    const s = this.state, studio = s.view === "studio", L = this.latest(), latest = s.cut === L, next = L + 1;
+    const T = studio ? (t) => this.smpte(t) : (t) => this.fmt(t);
+    const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+    const list = this.visible();
+    const cutAll = s.notes.filter(n => n.cut === s.cut);
+    const drafts = cutAll.filter(n => n.status === "draft" && n.by === s.me), sent = cutAll.filter(n => n.status === "sent").sort((a, b) => a.t - b.t);
+    const prevNotes = s.addressing ? [] : s.notes.filter(n => n.cut === s.cut - 1 && n.status === "sent" && n.outcome).sort((a, b) => a.t - b.t);
+    const active = [...list, ...prevNotes].filter(n => s.t >= n.t - 0.3 && s.t < n.t + 3).pop();
+    const h = this.HUES[(Math.floor(s.t / 42) + s.cut) % this.HUES.length];
+    const seg = (on) => ({ bg: on ? "#f2efe9" : "transparent", color: on ? "#0c0c0d" : "#8a877f", border: on ? "#f2efe9" : "rgba(255,255,255,.2)" });
+    const answered = sent.filter(n => n.outcome).length;
+
+    let banner = { show: false }, empty = { show: false };
+    if (s.addressing) banner = { show: true, dot: "var(--acc)", text: `Cut ${next} uploaded. Answer each of Adam's notes on cut ${L}. They go out in the cut ${next} email.` };
+    else if (!latest) banner = { show: true, dot: "var(--dim)", text: `Cut ${s.cut} is closed. Cut ${s.cut + 1} answered ${cutAll.length ? pl(sent.length, "note") : "it"}.` };
+    else if (s.approved) banner = { show: true, dot: "var(--ok)", text: studio ? `Adam approved cut ${L}. Deliver the master from the project page.` : "You approved this cut. Bjur is preparing the final files." };
+    else if (s.sentAt[s.me] && !studio && !drafts.length) banner = { show: true, dot: "var(--acc)", text: `Your notes went to Bjur at ${s.sentAt[s.me]}. Everyone gets one email when cut ${next} is up, with every note answered.` };
+    if (!list.length) empty = { show: true, text: studio ? (latest ? "Adam, Tom and Mia can leave notes. Nothing sent yet." : "No notes on this cut.") : (latest ? "Pause anywhere and type. Your note lands on that moment." : "No notes on this cut.") };
+
+    const f = { send: false, approve: false, approved: false, studio: false, uploading: false, addressing: false };
+    if (!studio && latest) {
+      if (s.approved) Object.assign(f, { approved: true, approvedLine: `Cut ${L} approved` });
+      else if (drafts.length) Object.assign(f, { send: true, sendLabel: `Send ${pl(drafts.length, "note")} to Bjur` });
+      else Object.assign(f, { approve: true, approveLead: sent.length ? `Happy with it after all? Approving tells Bjur cut ${L} is final.` : "Nothing to change?", approveLabel: `Approve cut ${L}`,
+        apBg: sent.length ? "transparent" : "var(--acc)", apColor: sent.length ? "var(--ink)" : "#0c0c0d", apBorder: sent.length ? "var(--rule2)" : "var(--acc)" });
+    }
+    if (studio && latest) {
+      if (s.approved) Object.assign(f, { approved: true, approvedLine: "Approved by Adam" });
+      else if (s.addressing) Object.assign(f, { addressing: true, addrLine: `${answered} of ${sent.length} answered`, addrPct: `${sent.length ? (answered / sent.length) * 100 : 100}%`,
+        addrBlocked: answered < sent.length, pvLabel: answered < sent.length ? `Answer ${pl(sent.length - answered, "more note")} to continue` : `Preview cut ${next} email →`,
+        pvBg: answered < sent.length ? "var(--s2)" : "var(--acc)", pvColor: answered < sent.length ? "var(--dim)" : "#0c0c0d" });
+      else if (s.up != null) Object.assign(f, { uploading: true, upFile: `AK MV HURT v${next}.mov`, upPct: `${Math.round(s.up)}%` });
+      else Object.assign(f, { studio: true, hasSent: sent.length > 0, upLabel: `Upload cut ${next}`,
+        upBg: sent.length ? "var(--acc)" : "transparent", upColor: sent.length ? "#0c0c0d" : "var(--ink)", upBorder: sent.length ? "var(--acc)" : "var(--rule2)",
+        upHint: sent.length ? `Next you'll answer each note. Every reviewer gets cut ${next} and your answers in one email.` : "No one has sent notes on this cut." });
+    }
+
+    const mailRows = sent.map(n => ({ time: this.fmt(n.t), body: n.body, by: n.by, label: n.outcome === "kept" ? "KEPT AS IS" : "CHANGED", color: n.outcome === "kept" ? "#6e6b66" : "oklch(0.5 0.13 150)",
+      response: n.response.trim() || (n.outcome === "kept" ? "" : "Done.") }));
+    const changedN = sent.filter(n => n.outcome === "changed").length;
+
+    return {
+      views: [["client", "CLIENT · ADAM"], ["studio", "STUDIO · JUSTIN"]].map(([k, l]) => ({ label: l, set: () => this.setState({ view: k, mailOpen: false }), ...seg(s.view === k) })),
+      reset: () => { this.play(false); clearInterval(this._u); this.setState(this.fresh()); },
+      reviewers: Object.keys(this.PEOPLE).map(p => ({ label: p.toUpperCase(), set: () => this.setState({ me: p, draft: "", lockT: null }), ...seg(s.me === p) })),
+      who: studio ? "JUSTIN · BJUR" : `${s.me.toUpperCase()} · ${this.PEOPLE[s.me].role.toUpperCase()}`, isClient: !studio,
+      cuts: [...s.cuts, ...(s.addressing ? [next] : [])].map(c => { const on = c === s.cut, pending = s.addressing && c === next;
+        return { label: `CUT ${c}`, sub: pending ? "Not sent yet" : c === L ? (s.approved ? "Approved" : "Latest") : (this.DATES[c] ?? "Today"), disabled: pending,
+          set: () => this.setState({ cut: c, draft: "", lockT: null }), bg: on ? "var(--s2)" : "transparent", color: pending ? "var(--dim)" : on ? "var(--ink)" : "var(--dim)",
+          subColor: c === L && !on ? "var(--acc)" : "var(--dim)", border: pending ? "var(--rule2)" : "transparent", borderStyle: pending ? "dashed" : "solid" }; }),
+      frameBg: `radial-gradient(ellipse at 35% 60%, oklch(0.34 0.07 ${h}), oklch(0.13 0.02 ${h}) 72%)`, frameCut: `CUT ${s.cut}`,
+      burn: studio, tcLong: this.smpte(s.t), paused: !s.playing,
+      ov: active && s.playing ? { show: true, time: T(active.t), body: active.body, color: active.cut === s.cut ? "var(--acc)" : "var(--dim)" } : { show: false },
+      togglePlay: this.togglePlay, playLabel: s.playing ? "Pause" : "Play", playGlyph: s.playing ? "❚❚" : "▶",
+      tc: T(s.t), dur: T(this.D), pct: `${(s.t / this.D) * 100}%`,
+      seekBar: (e) => { const r = e.currentTarget.getBoundingClientRect(); this.seek(((e.clientX - r.left) / r.width) * this.D); },
+      hoverBar: (e) => { const r = e.currentTarget.getBoundingClientRect(); this.setState({ hoverT: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * this.D }); },
+      leaveBar: () => this.setState({ hoverT: null }),
+      hv: s.hoverT == null ? { show: false } : { show: true, left: `${(s.hoverT / this.D) * 100}%`, label: T(s.hoverT) },
+      markers: [...prevNotes.map(n => ({ n, prev: true })), ...list.map(n => ({ n, prev: false }))].map(({ n, prev }) => { const on = active?.id === n.id, col = prev ? "var(--dim2)" : (s.addressing && n.outcome ? "var(--ok)" : "var(--acc)");
+        return { left: `${(n.t / this.D) * 100}%`, size: on ? "10px" : prev ? "6px" : "8px", bg: n.status === "draft" || prev ? "#000" : col, border: col, title: `${T(n.t)} · ${n.body}`,
+          seek: (e) => { e.stopPropagation(); this.seek(n.t); } }; }),
+
+      canCompose: !studio && latest && !s.approved, oldCompose: !studio && (!latest || s.approved),
+      oldLine: s.approved && latest ? `Cut ${L} is approved.` : "Notes go on the latest cut.",
+      goLatest: () => s.approved && latest ? this.setState({ approved: false }) : this.setState({ cut: L }),
+      goLatestLabel: s.approved && latest ? "Reopen for notes" : `Go to cut ${L} →`,
+      inpRef: this.inp, draft: s.draft, lockLabel: this.fmt(s.lockT ?? s.t),
+      cmpBorder: s.lockT != null ? "var(--acc)" : "var(--rule2)", addColor: s.draft.trim() ? "var(--acc)" : "var(--dim2)",
+      cmpPlaceholder: s.lockT != null ? "What should change here?" : "Leave a note at this moment. Press N",
+      setDraft: (e) => this.setState({ draft: e.target.value }),
+      lockNow: () => { this.play(false); this.setState(st => ({ lockT: st.t })); },
+      unlock: () => this.setState(st => ({ lockT: st.draft.trim() ? st.lockT : null })),
+      cmpKey: (e) => { if (e.key === "Enter") { e.preventDefault(); this.addNote(); } if (e.key === "Escape") { this.setState({ draft: "", lockT: null }); e.target.blur(); } },
+      addNoteMD: (e) => { e.preventDefault(); this.addNote(); },
+
+      headTitle: s.addressing ? `Answer cut ${L} notes` : "Notes",
+      headMeta: `CUT ${s.cut}${!studio && drafts.length && latest ? ` · ${drafts.length} UNSENT` : studio && sent.length ? ` · ${pl(sent.length, "NOTE").toUpperCase()}` : ""}`,
+      banner, empty,
+      notes: list.map(n => { const isDraft = n.status === "draft", on = active?.id === n.id, addr = studio && s.addressing;
+        return { key: n.id, time: T(n.t), body: n.body, cols: studio ? "88px minmax(0,1fr)" : "44px minmax(0,1fr)",
+          bg: on ? "var(--s1)" : "transparent", timeColor: studio || n.by === s.me ? "var(--acc)" : "var(--mut)",
+          meta: isDraft ? "Draft · only you" : `${n.by}${!studio && n.by === s.me ? " (you)" : ""} · ${latest ? (s.sentAt[n.by] ? "sent " + s.sentAt[n.by] : "sent") : `answered in cut ${n.cut + 1}`}`,
+          seek: () => this.seek(n.t), isDraft: isDraft && latest && !studio,
+          del: () => this.setState(st => ({ notes: st.notes.filter(x => x.id !== n.id) })),
+          hasOutcome: !latest && !!n.outcome, response: n.response, ...this.outcome(n),
+          addressing: addr,
+          setChanged: () => this.patch(n.id, { outcome: "changed" }), setKept: () => this.patch(n.id, { outcome: "kept" }),
+          chBg: n.outcome === "changed" ? "var(--ok)" : "var(--s1)", chColor: n.outcome === "changed" ? "#0c0c0d" : "var(--mut)",
+          kpBg: n.outcome === "kept" ? "var(--ink)" : "var(--s1)", kpColor: n.outcome === "kept" ? "#0c0c0d" : "var(--mut)",
+          respPlaceholder: n.outcome === "kept" ? "Why it stays (Adam reads this)" : "What you did (optional)",
+          setResponse: (e) => this.patch(n.id, { response: e.target.value }) };
+      }),
+      prev: { show: prevNotes.length > 0, label: `CUT ${s.cut - 1} NOTES · ${prevNotes.filter(n => n.outcome === "changed").length} CHANGED`,
+        notes: prevNotes.map(n => ({ key: n.id, time: T(n.t), body: `${n.body} · ${n.by}`, cols: studio ? "88px minmax(0,1fr)" : "44px minmax(0,1fr)", seek: () => this.seek(n.t),
+          response: n.response || (n.outcome === "changed" ? "Done." : ""), ...this.outcome(n) })) },
+
+      f,
+      sendNotes: () => { const n = drafts.length; this.setState(st => ({ notes: st.notes.map(x => x.cut === st.cut && x.status === "draft" && x.by === st.me ? { ...x, status: "sent" } : x), sentAt: { ...st.sentAt, [st.me]: "4:20 PM" } })); this.flash(`${pl(n, "note")} sent to Bjur.`); },
+      approve: () => { this.play(false); this.setState({ approved: true }); this.flash(`Cut ${L} approved.`); },
+      unapprove: () => this.setState({ approved: false }),
+      exports: [["Premiere", ".csv markers"], ["Resolve", ".edl markers"], ["Copy", "as text"]].map(([l, sub]) => ({ label: l, sub,
+        go: () => this.flash(l === "Copy" ? `${pl(sent.length, "note")} copied with timecodes.` : `AK MV HURT cut${s.cut} markers${sub.split(" ")[0]} downloaded.`) })),
+      upload: () => { this.play(false); clearInterval(this._u); this.setState({ up: 0 });
+        this._u = setInterval(() => this.setState(st => { const u = (st.up ?? 0) + 9; if (u >= 100) { clearInterval(this._u); return { up: null, addressing: true }; } return { up: u }; }), 90); },
+      cancelUpload: () => this.setState({ addressing: false }),
+      previewMail: () => this.setState({ mailOpen: true }),
+      mail: { open: s.mailOpen, to: Object.values(this.PEOPLE).map(p => p.email).join(", "), subject: `AK MV HURT · cut ${next} is ready`, headline: `Cut ${next} is ready.`,
+        body: sent.length ? `Went through all ${pl(sent.length, "note")} on cut ${L} from ${[...new Set(sent.map(n => n.by))].join(", ")}. ${changedN === sent.length ? "Every one is changed." : `${changedN} changed, ${sent.length - changedN} kept, with the reason below.`} Watch it, then approve or send more notes.` : "Watch it, then approve or send notes.",
+        hasRows: mailRows.length > 0, rows: mailRows, cta: `WATCH CUT ${next} →`, sendLabel: `Send to ${Object.keys(this.PEOPLE).length} reviewers` },
+      closeMail: () => this.setState({ mailOpen: false }),
+      sendMail: () => { this.setState(st => ({ mailOpen: false, addressing: false, cuts: [...st.cuts, next], cut: next, sentAt: {}, approved: false, t: sent[0]?.t ?? st.t }));
+        this.flash(`Cut ${next} emailed to all reviewers with ${pl(sent.length, "answered note")}.`); },
+      toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

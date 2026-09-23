@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0d;}
+*{box-sizing:border-box;}
+:root{--eo:cubic-bezier(.22,1,.36,1);--edrawer:cubic-bezier(.32,.72,0,1);}
+a{color:inherit;text-decoration:none;}a:hover{color:inherit;}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;transition:transform .15s var(--eo),opacity .15s var(--eo),color .15s var(--eo),background-color .15s var(--eo),border-color .15s var(--eo);}
+button:active{transform:scale(.97);}
+button:focus-visible{outline:2px solid currentColor;outline-offset:3px;}
+input,textarea,select{font:inherit;color:inherit;}
+::selection{background:#17161a;color:#f6f4f0;}
+@keyframes v2rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes v2fade{from{opacity:0}to{opacity:1}}
+@keyframes v2sheet{from{transform:translateX(100%)}to{transform:none}}
+@keyframes v2toast{from{opacity:0;transform:translate(-50%,16px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes v2pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v2flash{0%{background:rgba(23,22,26,.06)}100%{background:transparent}}
+@keyframes v2shimmer{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+@keyframes v2sheetUp{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
+@keyframes v2heart{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}60%{transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+@keyframes v2nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes v2grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+
+<div style="font-family:'Fragment Mono',ui-monospace,monospace;min-height:{{ M.minH }};display:flex;flex-direction:column;font-variant-numeric:tabular-nums;--acc:{{ acc }};--bg:{{ TD.bg }};--bgA:{{ TD.bgA }};--s0:{{ TD.s0 }};--s1:{{ TD.s1 }};--s2:{{ TD.s2 }};--ink:{{ TD.ink }};--body:{{ TD.body }};--mut:{{ TD.mut }};--dim:{{ TD.dim }};--dim2:{{ TD.dim2 }};--rule:{{ TD.rule }};--rule2:{{ TD.rule2 }};--rule3:{{ TD.rule3 }};--inkA:{{ TD.inkA }};--ok:{{ TD.ok }};--warn:{{ TD.warn }};">
+
+<!-- prototype switcher -->
+<div style="display:{{ M.switcher }};align-items:center;gap:4px;padding:7px 16px;background:#0c0c0d;color:#8a877f;font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;">
+  <span style="color:#5e5b55;margin-right:10px;">PROTOTYPE</span>
+  <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+    <button onClick="{{ n.go }}" style="padding:5px 10px;border:1px solid {{ n.border }};color:{{ n.color }};background:{{ n.bg }};font-size:10.5px;letter-spacing:.06em;">{{ n.label }}</button>
+  </sc-for>
+  <span style="margin-left:auto;color:#5e5b55;">ESC closes</span>
+</div>
+
+<!-- ══════════════ CLIENT ══════════════ -->
+<sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;background:var(--bg);color:var(--ink);animation:v2fade .35s var(--eo) both;transition:background .3s var(--eo),color .3s var(--eo);--bg:{{ TC.bg }};--bgA:{{ TC.bgA }};--s0:{{ TC.s0 }};--s1:{{ TC.s1 }};--s2:{{ TC.s2 }};--ink:{{ TC.ink }};--body:{{ TC.body }};--mut:{{ TC.mut }};--dim:{{ TC.dim }};--dim2:{{ TC.dim2 }};--rule:{{ TC.rule }};--rule2:{{ TC.rule2 }};--rule3:{{ TC.rule3 }};--inkA:{{ TC.inkA }};--ok:{{ TC.ok }};--warn:{{ TC.warn }};">
+
+
+  <!-- ── login ── -->
+  <sc-if value="{{ cLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:{{ M.loginH }};display:grid;grid-template-columns:{{ M.loginCols }};">
+    <div style="padding:{{ M.padLogin }};display:flex;flex-direction:column;justify-content:space-between;gap:40px;border-right:1px solid var(--rule);">
+      <div style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / CLIENT PORTAL</span></div>
+      <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:clamp(48px,6vw,96px);line-height:.95;letter-spacing:-.03em;margin:0;max-width:14ch;text-wrap:pretty;animation:v2rise .7s var(--eo) both;">Your deliveries,<br><em style="font-style:italic;font-weight:300;">ready when you are.</em></h1>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.08em;color:var(--dim2);"><span>BJUR MEDIA · NEW YORK</span><span>SELF-HOSTED</span></div>
+    </div>
+    <div style="padding:40px 56px;display:flex;flex-direction:column;justify-content:center;animation:v2rise .7s var(--eo) .1s both;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:40px;"><span style="font-size:11px;letter-spacing:.14em;color:var(--acc);">SIGN IN</span><button onClick="{{ toggleThemeC }}" style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);" style-hover="color:var(--ink);">{{ themeCLabel }}</button></div>
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">EMAIL</label>
+      <input value="{{ lf.email }}" onChange="{{ lfEmail }}" placeholder="you@company.com" autoComplete="username" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:8px 0 12px;font-size:16px;outline:none;margin-bottom:28px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">PASSWORD</label>
+      <input type="password" value="{{ lf.pw }}" onChange="{{ lfPw }}" placeholder="••••••••••" autoComplete="current-password" onKeyDown="{{ lfKey }}" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:8px 0 12px;font-size:16px;outline:none;margin-bottom:12px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+      <sc-if value="{{ lf.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ lf.error }}</div></sc-if>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:16px;">
+        <button onClick="{{ signInC }}" style="background:var(--ink);color:var(--bg);padding:16px 24px;font-size:12px;letter-spacing:.08em;" style-hover="background:var(--acc);">{{ lf.cta }}</button>
+        <button onClick="{{ lfForgot }}" style="font-size:11px;letter-spacing:.06em;color:var(--dim);" style-hover="color:var(--ink);">FORGOT PASSWORD</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--dim2);margin-top:40px;line-height:1.6;">Your login is personal. Need another seat? Ask Bjur.</div>
+    </div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ cAuthed }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:baseline;gap:{{ M.headGap }};padding:{{ M.padHead }};border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px) saturate(1.2);z-index:20;flex-wrap:wrap;">
+    <button onClick="{{ goList }}" style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / </span>{{ clientName }}</button>
+    <div style="display:flex;gap:22px;font-size:11px;color:var(--mut);letter-spacing:.06em;">
+      <button onClick="{{ goList }}" style="color:{{ listNavColor }};padding-bottom:3px;border-bottom:1px solid {{ listNavRule }};">DELIVERIES</button>
+      <button onClick="{{ goSettings }}" style="color:{{ setNavColor }};padding-bottom:3px;border-bottom:1px solid {{ setNavRule }};" style-hover="color:var(--ink);">SETTINGS</button>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:{{ M.headGap2 }};align-items:center;font-size:11px;color:var(--mut);">
+      <span style="display:{{ M.wide }};">{{ userName }}</span>
+      <span style="width:8px;height:8px;background:var(--acc);display:inline-block;"></span>
+      <button onClick="{{ toggleThemeC }}" aria-label="Toggle theme" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">{{ themeCLabel }}</button>
+      <button onClick="{{ signOutC }}" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">SIGN OUT</button>
+    </div>
+  </div>
+
+  </sc-if>
+  <!-- ── project list ── -->
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1320px;margin:0 auto;padding:{{ M.pad }};">
+    <div style="display:grid;grid-template-columns:{{ M.listTop }};gap:{{ M.gap }};align-items:end;margin-bottom:{{ M.gap }};">
+      <div style="animation:v2rise .6s var(--eo) both;">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:14px;">{{ todayLabel }} · {{ projectCount }} PROJECTS</div>
+        <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:clamp(44px,5.4vw,80px);line-height:.96;letter-spacing:-.025em;margin:0;text-wrap:pretty;">Your deliveries,<br><em style="font-style:italic;font-weight:300;">{{ clientName }}.</em></h1>
+      </div>
+      <sc-if value="{{ hasAwaiting }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ goDetailApprovals }}" style="text-align:left;border:1px solid var(--ink);padding:18px 20px;display:flex;gap:16px;align-items:center;background:var(--bg);animation:v2rise .6s var(--eo) .12s both;" style-hover="background:var(--ink);color:var(--bg);">
+        <span style="width:10px;height:10px;background:var(--acc);flex:none;"></span>
+        <span style="flex:1;min-width:0;">
+          <span style="display:block;font-size:12px;letter-spacing:.04em;">{{ awaitingLabel }}</span>
+          <span style="display:block;font-size:11px;opacity:.6;margin-top:4px;">{{ awaitingSub }}</span>
+        </span>
+        <span style="font-size:12px;">Review →</span>
+      </button>
+      </sc-if>
+    </div>
+
+    <button onClick="{{ hero.open }}" style="display:block;width:100%;text-align:left;position:relative;aspect-ratio:{{ M.heroRatio }};overflow:hidden;background:#1a1a1a;color:#f4f2ee;margin-bottom:8px;animation:v2rise .7s var(--eo) .08s both;" style-hover="--hz:1.025;">
+      <div style="position:absolute;inset:0;background:{{ hero.bg }};transform:scale(var(--hz,1));transition:transform .9s var(--eo);"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.15) 45%,rgba(0,0,0,0) 70%);"></div>
+      <div style="position:absolute;top:22px;left:26px;font-size:11px;letter-spacing:.14em;opacity:.85;">LATEST · {{ hero.delivered }}</div>
+      <div style="position:absolute;top:22px;right:26px;font-size:11px;letter-spacing:.1em;opacity:.85;">{{ hero.meta }}</div>
+      <div style="position:absolute;left:26px;right:26px;bottom:26px;display:flex;align-items:end;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-size:clamp(34px,4vw,60px);line-height:1;letter-spacing:-.025em;font-weight:400;">{{ hero.title }}</div>
+        <div style="font-size:12px;letter-spacing:.06em;border:1px solid rgba(246,244,240,.6);padding:10px 14px;">OPEN →</div>
+      </div>
+    </button>
+    <div style="display:flex;gap:18px;font-size:11px;color:var(--dim);padding:0 2px;margin-bottom:{{ M.gapL }};"><span>{{ hero.path }}</span></div>
+
+    <div style="display:{{ M.tableHead }};grid-template-columns:24px minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:20px;font-size:11px;letter-spacing:.1em;color:var(--dim);padding:0 0 12px;border-bottom:1px solid var(--ink);">
+      <span></span><span>PROJECT</span><span>DELIVERED</span><span>CONTENTS</span><span>SIZE</span>
+    </div>
+    <sc-for list="{{ index }}" as="p" hint-placeholder-count="3">
+      <button onClick="{{ p.open }}" style="display:grid;grid-template-columns:{{ M.indexCols }};gap:20px;align-items:center;width:100%;text-align:left;padding:22px 8px;margin:0 -8px;width:calc(100% + 16px);border-bottom:1px solid var(--rule);animation:v2rise .5s var(--eo) both;animation-delay:{{ p.delay }};" style-hover="background:var(--inkA);--ax:4px;">
+        <span style="width:24px;height:32px;background:{{ p.bg }};"></span>
+        <span style="min-width:0;">
+          <span style="display:block;font-family:'Source Serif 4',Georgia,serif;font-size:26px;letter-spacing:-.015em;line-height:1.1;">{{ p.title }}</span>
+          <sc-if value="{{ p.note }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:11px;color:var(--acc);margin-top:6px;">{{ p.note }}</span></sc-if>
+        </span>
+        <span style="font-size:12px;color:var(--mut);display:{{ M.wide }};">{{ p.delivered }}</span>
+        <span style="font-size:12px;color:var(--mut);display:{{ M.wide }};">{{ p.meta }}</span>
+        <span style="font-size:12px;color:var(--mut);text-align:right;display:inline-block;transform:translateX(var(--ax,0));transition:transform .2s var(--eo);">{{ p.size }} →</span>
+      </button>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <!-- ── project detail ── -->
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px;margin:0 auto;padding:{{ M.padD }};">
+    <button onClick="{{ goList }}" style="font-size:11px;letter-spacing:.1em;color:var(--mut);margin-bottom:36px;display:inline-block;" style-hover="color:var(--ink);">← ALL DELIVERIES</button>
+
+    <div style="display:grid;grid-template-columns:{{ M.detailHead }};gap:{{ M.gapS }};align-items:end;padding-bottom:28px;border-bottom:1px solid var(--ink);margin-bottom:{{ M.gapS }};animation:v2rise .6s var(--eo) both;">
+      <div>
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:14px;">{{ clientName }} · {{ detail.path }}</div>
+        <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:clamp(40px,5vw,72px);line-height:.98;letter-spacing:-.025em;margin:0 0 18px;">{{ detail.title }}</h1>
+        <div style="display:flex;gap:22px;font-size:12px;color:var(--mut);flex-wrap:wrap;">
+          <span>{{ detail.meta }}</span><span>{{ detail.size }}</span><span>Delivered {{ detail.delivered }}</span>
+          <sc-if value="{{ detail.views }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink);">{{ detail.views }}</span></sc-if>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:stretch;gap:10px;">
+        <button onClick="{{ downloadAll }}" style="position:relative;overflow:hidden;background:{{ dlBg }};color:var(--bg);padding:16px 22px;font-size:12px;letter-spacing:.06em;white-space:nowrap;min-width:{{ M.dlMin }};text-align:left;" style-hover="background:var(--acc);">
+          <sc-if value="{{ dlBusy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:0;bottom:0;left:0;width:33%;background:rgba(255,255,255,.18);animation:v2shimmer 1.1s linear infinite;"></span></sc-if>
+          <span style="position:relative;">{{ dlLabel }}</span>
+        </button>
+        <sc-if value="{{ uploadsOpen }}" hint-placeholder-val="{{ true }}"><button onClick="{{ goUpload }}" style="font-size:11px;letter-spacing:.08em;color:var(--mut);text-align:right;" style-hover="color:var(--ink);">↑ SEND US FOOTAGE</button></sc-if>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:{{ M.detailCols }};gap:{{ M.gap }};align-items:start;">
+      <div style="position:{{ M.railPos }};top:92px;display:flex;flex-direction:column;gap:2px;font-size:11px;">
+        <div style="display:flex;gap:2px;margin-bottom:22px;flex-wrap:wrap;">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <button onClick="{{ f.set }}" style="padding:6px 9px;border:1px solid {{ f.border }};color:{{ f.color }};background:{{ f.bg }};font-size:10.5px;letter-spacing:.06em;" style-hover="border-color:var(--ink);">{{ f.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:{{ M.wide }};color:var(--dim);letter-spacing:.1em;margin-bottom:8px;">WEEKS</div>
+        <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="2">
+          <button onClick="{{ w.jump }}" data-rail="{{ true }}" style="display:{{ M.railItem }};justify-content:space-between;gap:8px;padding:8px 0 8px 10px;border-top:1px solid var(--rule);color:{{ w.railColor }};text-align:left;position:relative;" style-hover="color:var(--ink);">
+            <span style="position:absolute;left:0;top:8px;bottom:8px;width:2px;background:{{ w.railBar }};transition:background .2s var(--eo);"></span>
+            <span>{{ w.short }}</span><span style="color:var(--dim);">{{ w.count }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div>
+        <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="2">
+          <div data-week="{{ w.short }}" style="margin-bottom:72px;animation:v2rise .5s var(--eo) both;animation-delay:{{ w.delay }};">
+            <div style="display:flex;align-items:baseline;gap:12px 16px;margin-bottom:22px;flex-wrap:{{ M.weekWrap }};">
+              <span style="font-family:'Source Serif 4',Georgia,serif;font-size:{{ M.weekTitle }};letter-spacing:-.02em;white-space:nowrap;">{{ w.label }}</span>
+              <span style="font-size:11px;color:var(--dim);">{{ w.count }} · {{ w.size }}</span>
+              <button onClick="{{ w.selectAll }}" style="margin-left:auto;font-size:11px;color:var(--mut);letter-spacing:.06em;" style-hover="color:var(--ink);">{{ w.selectLabel }}</button>
+            </div>
+
+            <sc-for list="{{ w.posts }}" as="po" hint-placeholder-count="1">
+              <div key="{{ po.key }}" style="display:grid;grid-template-columns:{{ M.postCols }};gap:{{ M.gapS2 }};align-items:start;padding:18px 8px;margin:0 -8px 18px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);animation:v2flash 1.2s var(--eo) both;">
+                <button onClick="{{ po.open }}" style="width:{{ po.thumbW }};aspect-ratio:{{ po.ratio }};background:{{ po.bg }};position:relative;display:block;" style-hover="opacity:.9;">
+                  <span style="position:absolute;right:6px;bottom:6px;font-size:10px;color:#fff;background:rgba(0,0,0,.6);padding:1px 4px;">{{ po.dur }}</span>
+                </button>
+                <div style="min-width:0;">
+                  <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:11px;letter-spacing:.08em;">
+                    <span style="color:{{ po.stateColor }};display:inline-flex;align-items:center;gap:7px;"><span style="width:6px;height:6px;background:{{ po.stateColor }};display:inline-block;"></span>{{ po.state }}</span>
+                    <span style="color:var(--dim);">{{ po.when }} · {{ po.platforms }}</span>
+                  </div>
+                  <div style="font-family:'Source Serif 4',Georgia,serif;font-size:22px;letter-spacing:-.01em;margin:8px 0 6px;">{{ po.title }}</div>
+                  <div style="font-size:13px;color:var(--body);line-height:1.5;max-width:60ch;text-wrap:pretty;">{{ po.caption }}</div>
+                  <sc-if value="{{ po.due }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--dim);margin-top:10px;">Publishes {{ po.due }} if not held.</div></sc-if>
+                </div>
+                <sc-if value="{{ po.actionable }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:{{ M.actDir }};gap:6px;grid-column:{{ M.actCol }};">
+                    <button onClick="{{ po.approve }}" style="background:var(--ink);color:var(--bg);padding:12px 18px;font-size:11px;letter-spacing:.08em;min-width:110px;" style-hover="background:var(--acc);">APPROVE</button>
+                    <button onClick="{{ po.hold }}" style="border:1px solid var(--rule2);padding:11px 18px;font-size:11px;letter-spacing:.08em;" style-hover="border-color:var(--ink);">HOLD</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ po.stat }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:var(--mut);text-align:right;">{{ po.stat }}</div></sc-if>
+                <sc-if value="{{ po.review }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:{{ M.actDir }};gap:6px;grid-column:{{ M.actCol }};">
+                    <button onClick="{{ po.approve }}" style="background:var(--ink);color:var(--bg);padding:12px 18px;font-size:11px;letter-spacing:.08em;min-width:130px;" style-hover="background:var(--acc);">APPROVE</button>
+                    <button onClick="{{ po.openFb }}" style="border:1px solid var(--rule2);padding:11px 18px;font-size:11px;letter-spacing:.08em;" style-hover="border-color:var(--ink);">FEEDBACK</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ po.fbOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:8px;animation:v2rise .25s var(--eo) both;">
+                    <textarea value="{{ po.fbText }}" onChange="{{ po.setFb }}" rows="{{ 3 }}" placeholder="What should change?" style="width:100%;background:var(--s0);border:1px solid var(--rule2);padding:12px;font-size:13px;line-height:1.5;resize:vertical;outline:none;" style-focus="border-color:var(--ink);"></textarea>
+                    <div style="display:flex;gap:3px;justify-content:flex-end;"><button onClick="{{ po.cancelFb }}" style="padding:10px 14px;font-size:11px;letter-spacing:.08em;color:var(--mut);">CANCEL</button><button onClick="{{ po.sendFb }}" style="background:var(--ink);color:var(--bg);padding:10px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">SEND TO BJUR</button></div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax({{ M.fileMin }},1fr));gap:{{ M.fileGap }};align-items:start;">
+              <sc-for list="{{ w.files }}" as="a" hint-placeholder-count="3">
+                <div style="animation:v2rise .45s var(--eo) both;animation-delay:{{ a.delay }};">
+                  <button onClick="{{ a.open }}" style="display:block;width:100%;position:relative;aspect-ratio:{{ a.ratio }};background:{{ a.bg }};overflow:hidden;outline:{{ a.outline }};outline-offset:3px;text-align:left;transition:transform .2s var(--eo),outline-color .15s var(--eo);--pr:1;" style-hover="transform:translateY(-2px);--pr:1.08;" style-active="transform:scale(.98);">
+                    <span style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 45%);"></span>
+                    <span onClick="{{ a.toggle }}" role="checkbox" aria-checked="{{ a.isSelected }}" style="position:absolute;top:0;left:0;padding:8px;display:grid;place-items:center;"><span style="width:16px;height:16px;border:1px solid rgba(255,255,255,.8);background:{{ a.checkBg }};display:grid;place-items:center;font-size:10px;color:var(--ink);transition:background .15s var(--eo);">{{ a.check }}</span></span>
+                    <sc-if value="{{ a.isNew }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:8px;right:8px;font-size:9px;letter-spacing:.1em;color:#fff;background:var(--acc);padding:2px 5px;">NEW</span></sc-if>
+                    <sc-if value="{{ a.isVideo }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(var(--pr));width:34px;height:34px;border:1px solid rgba(255,255,255,.8);display:grid;place-items:center;color:#fff;font-size:11px;transition:transform .25s var(--eo);padding-left:2px;">▶</span></sc-if>
+                    <span style="position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:space-between;gap:6px;font-size:10px;color:#fff;">
+                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.name }}</span><span style="flex:none;opacity:.7;">{{ a.badge }}</span>
+                    </span>
+                  </button>
+                  <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);padding-top:7px;"><span>{{ a.added }}</span><span style="display:inline-flex;gap:8px;"><span style="color:{{ a.favColor }};">♥</span>{{ a.size }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:{{ M.selBottom }};width:{{ M.selW }};z-index:40;animation:v2toast .35s var(--eo) both;">
+        <div style="background:var(--ink);color:var(--bg);padding:14px 20px;display:flex;align-items:center;gap:20px;font-size:12px;box-shadow:0 24px 60px rgba(0,0,0,.28);">
+          <span key="{{ selCount }}" style="display:inline-block;animation:v2pop .3s var(--eo) both;">{{ selCount }} selected · {{ selSize }}</span>
+          <button onClick="{{ clearSel }}" style="color:var(--dim2);letter-spacing:.06em;font-size:11px;" style-hover="color:var(--bg);">CLEAR</button>
+          <button onClick="{{ favSel }}" style="color:var(--dim2);letter-spacing:.06em;font-size:11px;" style-hover="color:var(--bg);">♥ FAVORITE</button>
+          <button style="margin-left:auto;background:var(--acc);color:var(--ink);padding:10px 16px;font-size:11px;letter-spacing:.06em;" style-hover="filter:brightness(1.1);">↓ DOWNLOAD {{ selCount }}</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ── client upload ── -->
+  <sc-if value="{{ isUpload }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:960px;margin:0 auto;padding:{{ M.padD }};">
+    <button onClick="{{ goDetail }}" style="font-size:11px;letter-spacing:.1em;color:var(--mut);margin-bottom:36px;display:inline-block;" style-hover="color:var(--ink);">← IG POSTING</button>
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:14px;animation:v2rise .5s var(--eo) both;">{{ clientName }} · SEND FOOTAGE</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0 0 16px;animation:v2rise .6s var(--eo) .05s both;">Send us footage.</h1>
+    <p style="font-size:13px;color:var(--mut);line-height:1.6;max-width:56ch;margin:0 0 40px;text-wrap:pretty;animation:v2rise .6s var(--eo) .1s both;">Files or whole folders. Interrupted uploads resume where they stopped.</p>
+
+    <div onClick="{{ simulateDrop }}" onDragOver="{{ allowDrop }}" onDrop="{{ simulateDrop }}" style="border:1px dashed {{ dropBorder }};padding:64px 32px;text-align:center;cursor:pointer;transition:border-color .15s var(--eo),background .15s var(--eo);background:{{ dropBg }};animation:v2rise .6s var(--eo) .15s both;" style-hover="border-color:var(--ink);background:var(--inkA);">
+      <div style="font-family:'Source Serif 4',Georgia,serif;font-size:26px;letter-spacing:-.015em;margin-bottom:10px;">{{ dropTitle }}</div>
+      <div style="font-size:11px;letter-spacing:.08em;color:var(--dim);">ANY FORMAT · UP TO 300 GB</div>
+    </div>
+
+    <sc-if value="{{ hasQueue }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:40px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--ink);">
+          <span>BATCH · {{ queueLabel }}</span><span style="color:var(--ink);">{{ queueTotal }}</span>
+        </div>
+        <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:20px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);animation:v2rise .4s var(--eo) both;">
+            <div style="min-width:0;">
+              <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ q.name }}</div>
+              <div style="height:2px;background:var(--s2);margin-top:8px;position:relative;overflow:hidden;"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ q.pct }};background:{{ q.barColor }};transition:width .25s linear;"></span></div>
+            </div>
+            <span style="font-size:11px;color:var(--dim);text-align:right;">{{ q.size }}</span>
+            <span style="font-size:11px;letter-spacing:.06em;color:{{ q.statusColor }};min-width:90px;text-align:right;">{{ q.status }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);padding-top:14px;"><span>{{ queueNote }}</span><button onClick="{{ pauseQueue }}" style="letter-spacing:.08em;color:var(--mut);" style-hover="color:var(--ink);">{{ pauseLabel }}</button></div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ── settings ── -->
+  <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:960px;margin:0 auto;padding:{{ M.padD }};">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:14px;animation:v2rise .5s var(--eo) both;">{{ clientName }} · {{ st.role }}</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0 0 48px;animation:v2rise .6s var(--eo) .05s both;">{{ st.name }}</h1>
+
+    <div style="display:grid;grid-template-columns:{{ M.settingsCols }};gap:24px 48px;align-items:start;animation:v2rise .6s var(--eo) .1s both;">
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-top:4px;">PROFILE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
+        <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">NAME</span><input value="{{ st.name }}" onChange="{{ stName }}" style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+        <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">EMAIL</span><input value="{{ st.email }}" onChange="{{ stEmail }}" style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+      </div>
+
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-top:4px;border-top:1px solid var(--rule);margin-top:16px;padding-top:20px;">PASSWORD</div>
+      <div style="border-top:1px solid var(--rule);margin-top:16px;padding-top:16px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:10px;">
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">CURRENT</span><input type="password" value="{{ st.pw0 }}" onChange="{{ stPw0 }}" style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">NEW</span><input type="password" value="{{ st.pw1 }}" onChange="{{ stPw1 }}" style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">CONFIRM</span><input type="password" value="{{ st.pw2 }}" onChange="{{ stPw2 }}" style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;"><span style="font-size:11px;color:var(--dim);">Signs out your other devices.</span><button onClick="{{ stSavePw }}" style="background:var(--ink);color:var(--bg);padding:11px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">UPDATE PASSWORD</button></div>
+      </div>
+
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);border-top:1px solid var(--rule);margin-top:16px;padding-top:20px;">EMAILS</div>
+      <div style="border-top:1px solid var(--rule);margin-top:16px;padding-top:4px;">
+        <sc-for list="{{ st.notifs }}" as="n" hint-placeholder-count="3">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule);">
+            <span><span style="display:block;font-size:13px;">{{ n.name }}</span><span style="display:block;font-size:11px;color:var(--dim);margin-top:2px;">{{ n.when }}</span></span>
+            <button onClick="{{ n.toggle }}" aria-pressed="{{ n.on }}" style="width:28px;height:16px;border:1px solid {{ n.border }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ n.knobX }};width:10px;height:10px;background:{{ n.knobBg }};transition:left .18s var(--eo),background .18s var(--eo);"></span></button>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);border-top:1px solid var(--rule);margin-top:16px;padding-top:20px;">DEVICES</div>
+      <div style="border-top:1px solid var(--rule);margin-top:16px;padding-top:4px;">
+        <sc-for list="{{ st.sessions }}" as="se" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);animation:v2fade .3s var(--eo) both;">
+            <span><span style="display:block;font-size:13px;">{{ se.device }}</span><span style="display:block;font-size:11px;color:var(--dim);margin-top:2px;">{{ se.where }} · {{ se.when }}</span></span>
+            <sc-if value="{{ se.current }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;letter-spacing:.1em;color:var(--acc);">THIS DEVICE</span></sc-if>
+            <sc-if value="{{ se.other }}" hint-placeholder-val="{{ true }}"><button onClick="{{ se.revoke }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--dim);border:1px solid var(--rule2);padding:7px 10px;" style-hover="color:var(--ink);border-color:var(--ink);">SIGN OUT</button></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── viewer ── -->
+  <sc-if value="{{ viewerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:80;background:#000;color:#fff;animation:v2fade .25s var(--eo) both;overflow:hidden;user-select:none;touch-action:none;" onPointerDown="{{ vDown }}" onPointerMove="{{ vMove }}" onPointerUp="{{ vUp }}" onPointerCancel="{{ vUp }}">
+      <div data-vtrack="{{ true }}" style="position:absolute;inset:0;display:flex;width:300%;left:-100%;transform:translateX(0px);will-change:transform;">
+        <div style="width:33.3333%;flex:none;display:grid;place-items:center;"><sc-if value="{{ v.prev }}" hint-placeholder-val="{{ false }}"><div style="height:{{ v.h }};aspect-ratio:{{ v.ratio }};background:{{ v.prev.bg }};"></div></sc-if></div>
+        <div style="width:33.3333%;flex:none;display:grid;place-items:center;">
+        <div key="{{ v.id }}" style="height:{{ v.h }};aspect-ratio:{{ v.ratio }};background:{{ v.bg }};position:relative;flex:none;transform:translateY({{ vLift }});transition:transform .5s var(--edrawer);">
+          <sc-if value="{{ v.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;display:flex;flex-direction:column;gap:22px;justify-content:center;transform:rotate(-24deg) scale(1.6);pointer-events:none;"><span style="font-size:11px;letter-spacing:.32em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center;">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</span><span style="font-size:11px;letter-spacing:.32em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center;">PREVIEW · BJUR MEDIA · PREVIEW · BJUR MEDIA</span><span style="font-size:11px;letter-spacing:.32em;color:rgba(255,255,255,.12);white-space:nowrap;text-align:center;">BJUR MEDIA · PREVIEW · BJUR MEDIA · PREVIEW</span></div></sc-if>
+          <sc-if value="{{ heart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:72px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.5);animation:v2heart .7s var(--eo) both;pointer-events:none;">♥</span></sc-if>
+          <span style="position:absolute;top:16px;right:14px;font-size:14px;color:{{ v.favColor }};text-shadow:0 1px 3px rgba(0,0,0,.6);transition:color .2s var(--eo);">♥</span>
+          <sc-if value="{{ vPaused }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border:1px solid rgba(255,255,255,.8);display:grid;place-items:center;font-size:16px;padding-left:3px;animation:v2pop .3s var(--eo) both;">▶</span></sc-if>
+        </div>
+        </div>
+        <div style="width:33.3333%;flex:none;display:grid;place-items:center;"><sc-if value="{{ v.next }}" hint-placeholder-val="{{ false }}"><div style="height:{{ v.h }};aspect-ratio:{{ v.ratio }};background:{{ v.next.bg }};"></div></sc-if></div>
+      </div>
+
+      <!-- chrome -->
+      <div style="position:absolute;inset:0;pointer-events:none;opacity:{{ chromeOpacity }};transition:opacity .2s var(--eo);">
+        <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:{{ M.vTop }};background:linear-gradient(to bottom,rgba(0,0,0,.6),rgba(0,0,0,0));">
+          <span style="font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.7);white-space:nowrap;flex:none;">{{ v.pos }} / {{ v.total }} · {{ v.weekLabel }}</span>
+          <button onClick="{{ closeViewer }}" style="pointer-events:auto;font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.85);padding:8px 10px;" style-hover="color:#fff;">ESC ✕</button>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:{{ M.vPad }};background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,0));">
+          <sc-if value="{{ v.post }}" hint-placeholder-val="{{ false }}">
+            <div style="max-width:{{ M.vCapW }};margin:0 auto 16px;pointer-events:auto;">
+              <div style="font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.6);margin-bottom:6px;">{{ v.post.when }}</div>
+              <div style="font-family:'Source Serif 4',Georgia,serif;font-size:{{ M.vTitle }};letter-spacing:-.01em;line-height:1.1;color:#fff;margin-bottom:6px;">{{ v.post.title }}</div>
+              <div style="font-size:12px;line-height:1.5;color:rgba(255,255,255,.75);max-width:52ch;text-wrap:pretty;">{{ v.post.caption }}</div>
+            </div>
+          </sc-if>
+          <div style="display:flex;align-items:center;gap:12px;pointer-events:auto;margin-bottom:12px;">
+            <span style="font-size:11px;color:rgba(255,255,255,.7);width:34px;text-align:right;">{{ vTime }}</span>
+            <div onClick="{{ vSeek }}" style="flex:1;height:18px;display:flex;align-items:center;cursor:pointer;"><div style="flex:1;height:2px;background:rgba(255,255,255,.25);position:relative;"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ vPct }};background:var(--acc);"></span><span style="position:absolute;left:{{ vPct }};top:50%;width:10px;height:10px;background:#fff;transform:translate(-50%,-50%);"></span></div></div>
+            <span style="font-size:11px;color:rgba(255,255,255,.7);width:34px;">{{ v.dur }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;pointer-events:auto;">
+            <button onClick="{{ vToggle }}" aria-label="Play/Pause" style="width:36px;height:36px;display:grid;place-items:center;background:rgba(0,0,0,.4);color:rgba(255,255,255,.85);font-size:12px;" style-hover="background:rgba(0,0,0,.7);">{{ vPlayGlyph }}</button>
+            <button onClick="{{ vMute }}" aria-label="Mute" style="width:36px;height:36px;display:grid;place-items:center;background:rgba(0,0,0,.4);color:rgba(255,255,255,.85);font-size:11px;letter-spacing:.04em;" style-hover="background:rgba(0,0,0,.7);">{{ vMuteGlyph }}</button>
+            <span style="flex:1;"></span>
+            <button onClick="{{ openSheet }}" style="display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.35);padding:9px 12px;" style-hover="border-color:#fff;color:#fff;"><span style="display:inline-block;animation:v2nudge 1.8s var(--eo) infinite;">↑</span>{{ v.sheetCta }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- master sheet -->
+      <sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheetV }}" style="position:absolute;inset:0;background:rgba(0,0,0,.5);animation:v2fade .3s var(--eo) both;"></div>
+        <div onPointerDown="{{ stop }}" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(560px,100%);background:var(--bg);color:var(--ink);padding:{{ M.sheetPad }};animation:v2sheetUp .5s var(--edrawer) both;">
+          <div style="width:36px;height:3px;background:var(--rule2);margin:0 auto 22px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px;">
+            <div style="font-family:'Source Serif 4',Georgia,serif;font-size:26px;letter-spacing:-.015em;">{{ v.name }}</div>
+            <span style="font-size:11px;letter-spacing:.08em;color:{{ v.sheetTagColor }};">{{ v.sheetTag }}</span>
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:22px;">{{ v.specs }}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;margin-bottom:22px;">
+            <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">MASTER</span><span style="font-size:12px;">{{ v.master }}</span></div>
+            <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">PROXY</span><span style="font-size:12px;">{{ v.proxy }}</span></div>
+            <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">LICENSE</span><span style="font-size:12px;">{{ v.license }}</span></div>
+          </div>
+          <sc-if value="{{ v.locked }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;">
+              <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.pick }}" style="display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:14px;align-items:center;text-align:left;padding:14px 16px;border:1px solid {{ t.border }};background:{{ t.bg }};" style-hover="border-color:var(--ink);">
+                  <span style="width:12px;height:12px;border:1px solid var(--ink);background:{{ t.dot }};"></span>
+                  <span><span style="display:block;font-size:13px;">{{ t.name }}</span><span style="display:block;font-size:11px;color:var(--dim);margin-top:3px;">{{ t.scope }}</span></span>
+                  <span style="font-size:14px;">{{ t.price }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <button onClick="{{ vDownload }}" style="position:relative;overflow:hidden;width:100%;background:{{ vDlBg }};color:var(--bg);padding:16px 20px;font-size:12px;letter-spacing:.06em;text-align:left;" style-hover="background:var(--acc);">
+            <sc-if value="{{ vDlBusy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:0;bottom:0;left:0;width:{{ vDlPct }};background:rgba(255,255,255,.18);transition:width .3s linear;"></span></sc-if>
+            <span style="position:relative;display:flex;justify-content:space-between;"><span>{{ vDlLabel }}</span><span style="opacity:.7;">{{ v.size }}</span></span>
+          </button>
+          <div style="font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6;">Interrupted? Tap again to resume.</div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:{{ toastBottom }};transform:translateX(-50%);z-index:50;animation:v2toast .35s var(--eo) both;background:var(--bg);color:var(--ink);border:1px solid var(--ink);padding:12px 16px;display:flex;gap:18px;align-items:center;font-size:12px;box-shadow:0 20px 50px rgba(0,0,0,.18);">
+      <span style="width:8px;height:8px;background:var(--acc);"></span><span>{{ toast.msg }}</span>
+      <sc-if value="{{ toast.undo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toast.undo }}" style="letter-spacing:.08em;font-size:11px;border-bottom:1px solid var(--ink);">UNDO</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ══════════════ ADMIN ══════════════ -->
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;background:var(--bg);color:var(--ink);animation:v2fade .35s var(--eo) both;transition:background .3s var(--eo),color .3s var(--eo);--bg:{{ TA.bg }};--bgA:{{ TA.bgA }};--s0:{{ TA.s0 }};--s1:{{ TA.s1 }};--s2:{{ TA.s2 }};--ink:{{ TA.ink }};--body:{{ TA.body }};--mut:{{ TA.mut }};--dim:{{ TA.dim }};--dim2:{{ TA.dim2 }};--rule:{{ TA.rule }};--rule2:{{ TA.rule2 }};--rule3:{{ TA.rule3 }};--inkA:{{ TA.inkA }};--ok:{{ TA.ok }};--warn:{{ TA.warn }};">
+
+
+  <!-- ── login ── -->
+  <sc-if value="{{ aLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:calc(100vh - 34px);display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.9fr);">
+    <div style="padding:40px 56px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--rule);">
+      <div style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / STUDIO</span></div>
+      <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(48px,6vw,96px);line-height:.95;letter-spacing:-.03em;margin:0;max-width:14ch;text-wrap:pretty;animation:v2rise .7s var(--eo) both;">Everything<br><em style="font-style:italic;">in one place.</em></h1>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.08em;color:var(--dim2);"><span>BJUR MEDIA · NEW YORK</span><span>SELF-HOSTED</span></div>
+    </div>
+    <div style="padding:40px 56px;display:flex;flex-direction:column;justify-content:center;animation:v2rise .7s var(--eo) .1s both;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:40px;"><span style="font-size:11px;letter-spacing:.14em;color:var(--acc);">SIGN IN</span><button onClick="{{ toggleThemeA }}" style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);" style-hover="color:var(--ink);">{{ themeALabel }}</button></div>
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">EMAIL</label>
+      <input value="{{ lf.email }}" onChange="{{ lfEmail }}" placeholder="admin@bjurmedia.nyc" autoComplete="username" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:8px 0 12px;font-size:16px;outline:none;margin-bottom:28px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">PASSWORD</label>
+      <input type="password" value="{{ lf.pw }}" onChange="{{ lfPw }}" placeholder="••••••••••" autoComplete="current-password" onKeyDown="{{ lfKey }}" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:8px 0 12px;font-size:16px;outline:none;margin-bottom:12px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+      <sc-if value="{{ lf.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ lf.error }}</div></sc-if>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:16px;">
+        <button onClick="{{ signInA }}" style="background:var(--ink);color:var(--bg);padding:16px 24px;font-size:12px;letter-spacing:.08em;" style-hover="background:var(--acc);">{{ lf.cta }}</button>
+        <button onClick="{{ lfForgot }}" style="font-size:11px;letter-spacing:.06em;color:var(--dim);" style-hover="color:var(--ink);">FORGOT PASSWORD</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--dim2);margin-top:40px;line-height:1.6;">Staff only. Sessions expire after 30 days.</div>
+    </div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ aAuthed }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:center;gap:28px;padding:18px 40px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px);z-index:20;flex-wrap:wrap;">
+    <span style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim2);"> / STUDIO</span></span>
+    <div style="display:flex;gap:22px;font-size:11px;letter-spacing:.06em;">
+      <button onClick="{{ goToday }}" style="color:{{ todayNavColor }};padding-bottom:3px;border-bottom:1px solid {{ todayNavRule }};" style-hover="color:var(--ink);">TODAY</button>
+      <button onClick="{{ goBoard }}" style="color:{{ boardNavColor }};padding-bottom:3px;border-bottom:1px solid {{ boardNavRule }};" style-hover="color:var(--ink);">WEEK BOARD</button>
+      <button onClick="{{ goClient }}" style="color:{{ clientNavColor }};padding-bottom:3px;border-bottom:1px solid {{ clientNavRule }};" style-hover="color:var(--ink);">CLIENTS</button>
+      <button onClick="{{ goReports }}" style="color:{{ repNavColor }};padding-bottom:3px;border-bottom:1px solid {{ repNavRule }};" style-hover="color:var(--ink);">REPORTS</button>
+      <button onClick="{{ goLibrary }}" style="color:{{ libNavColor }};padding-bottom:3px;border-bottom:1px solid {{ libNavRule }};" style-hover="color:var(--ink);">LIBRARY</button>
+      <button onClick="{{ goTeam }}" style="color:{{ teamNavColor }};padding-bottom:3px;border-bottom:1px solid {{ teamNavRule }};" style-hover="color:var(--ink);">TEAM</button>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:11px;color:var(--dim);">
+      <span style="border:1px solid var(--rule2);padding:7px 12px;min-width:220px;color:var(--dim2);display:flex;justify-content:space-between;"><span>⌕ search</span><span style="opacity:.6;">⌘K</span></span>
+      <span style="width:8px;height:8px;background:var(--ok);display:inline-block;box-shadow:0 0 0 3px rgba(46,195,107,.15);"></span><span>worker · {{ queueCount }} in queue</span>
+      <button onClick="{{ toggleThemeA }}" aria-label="Toggle theme" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">{{ themeALabel }}</button>
+      <button onClick="{{ signOutA }}" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">SIGN OUT</button>
+    </div>
+  </div>
+
+  </sc-if>
+  <!-- ── today ── -->
+  <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1100px;margin:0 auto;padding:52px 40px 120px;">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;animation:v2rise .5s var(--eo) both;">{{ todayLabel }}</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,72px);line-height:.98;letter-spacing:-.025em;margin:0 0 48px;animation:v2rise .6s var(--eo) .05s both;">{{ needsHeadline }}</h1>
+
+    <sc-if value="{{ hasNeeds }}" hint-placeholder-val="{{ true }}">
+    <div style="margin-bottom:64px;">
+      <sc-for list="{{ needs }}" as="n" hint-placeholder-count="4">
+        <div key="{{ n.id }}" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px;align-items:center;padding:18px 0;border-top:1px solid var(--rule);animation:v2rise .5s var(--eo) both;animation-delay:{{ n.delay }};">
+          <span style="width:{{ n.thumbW }};aspect-ratio:{{ n.ratio }};background:{{ n.bg }};display:block;"></span>
+          <span style="min-width:0;">
+            <span style="display:block;font-size:11px;letter-spacing:.08em;color:{{ n.color }};margin-bottom:5px;display:flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ n.color }};"></span>{{ n.kind }} · {{ n.client }}</span>
+            <span style="display:block;font-family:'Source Serif 4',Georgia,serif;font-size:22px;letter-spacing:-.01em;line-height:1.15;">{{ n.subject }}</span>
+            <sc-if value="{{ n.quote }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:13px;color:var(--body);margin-top:8px;line-height:1.5;max-width:60ch;padding-left:12px;border-left:1px solid var(--rule2);">{{ n.quote }}</span></sc-if>
+            <span style="display:block;font-size:11px;color:var(--dim);margin-top:6px;">{{ n.body }}</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:3px;">
+            <button onClick="{{ n.go }}" style="font-size:11px;letter-spacing:.08em;background:var(--ink);color:var(--bg);padding:10px 14px;white-space:nowrap;" style-hover="background:var(--ink);">{{ n.action }}</button>
+            <button onClick="{{ n.dismiss }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--dim2);padding:8px 14px;" style-hover="color:var(--ink);">{{ n.dismissLabel }}</button>
+          </span>
+        </div>
+      </sc-for>
+      <div style="border-top:1px solid var(--rule);"></div>
+    </div>
+    </sc-if>
+
+    <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;animation:v2rise .6s var(--eo) .15s both;">
+      <span>RECENT ACTIVITY</span><span>{{ activityCount }}</span>
+    </div>
+    <div style="animation:v2rise .6s var(--eo) .2s both;">
+      <sc-for list="{{ activity }}" as="a" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:12px 0;border-top:1px solid var(--rule);font-size:12px;">
+          <span style="font-size:10.5px;color:var(--dim2);letter-spacing:.04em;">{{ a.when }}</span>
+          <span style="min-width:0;"><span style="color:var(--ink);">{{ a.who }}</span> <span style="color:var(--dim);">{{ a.what }}</span></span>
+          <span style="font-size:10.5px;color:var(--dim2);">{{ a.client }}</span>
+        </div>
+      </sc-for>
+      <div style="border-top:1px solid var(--rule);"></div>
+    </div>
+
+    <div style="display:flex;gap:28px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.06em;color:var(--dim2);margin-top:56px;animation:v2fade .6s var(--eo) .3s both;">
+      <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:var(--ok);"></span>WORKER · {{ queueCount }} IN QUEUE</span>
+      <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ slackDot }};"></span>SLACK · {{ slackStatus }}</span>
+      <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ syncDot }};"></span>{{ syncStatus }}<sc-if value="{{ syncBroken }}" hint-placeholder-val="{{ false }}"><button onClick="{{ reconnectSync }}" style="color:var(--warn);letter-spacing:.06em;margin-left:6px;" style-hover="color:var(--ink);">RECONNECT</button></sc-if></span>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── week board ── -->
+  <sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;min-height:calc(100vh - 100px);">
+    <div style="padding:32px 40px 60px;min-width:0;overflow-x:auto;">
+      <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:26px;flex-wrap:wrap;animation:v2rise .5s var(--eo) both;">
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <button style="font-size:16px;color:var(--dim);width:28px;" style-hover="color:var(--ink);">‹</button>
+          <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:40px;letter-spacing:-.025em;margin:0;">Week of Jul 13</h1>
+          <button style="font-size:16px;color:var(--dim);width:28px;" style-hover="color:var(--ink);">›</button>
+        </div>
+        <div style="display:flex;gap:2px;margin-left:8px;">
+          <sc-for list="{{ clientChips }}" as="ch" hint-placeholder-count="5">
+            <button onClick="{{ ch.set }}" style="padding:6px 10px;border:1px solid {{ ch.border }};color:{{ ch.color }};background:{{ ch.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;" style-hover="border-color:var(--rule3);"><span style="width:6px;height:6px;background:{{ ch.acc }};"></span>{{ ch.label }}</button>
+          </sc-for>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:18px;font-size:11px;color:var(--dim);letter-spacing:.06em;">
+          <button onClick="{{ openSlack }}" style="color:var(--ink);" style-hover="color:var(--ink);">{{ slackBtn }}</button><button style-hover="color:var(--ink);">IMPORT FROM NAS</button><button style-hover="color:var(--ink);">UPLOAD</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:150px repeat(7,minmax(0,1fr));gap:3px;min-width:1000px;">
+        <div onDragOver="{{ allowDrop }}" onDrop="{{ dropTray }}" style="background:var(--s0);border:1px dashed {{ trayBorder }};padding:10px;min-height:560px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s var(--eo);">
+          <span style="font-size:10px;letter-spacing:.1em;color:var(--dim);">UNSCHEDULED · {{ trayCount }}</span>
+          <sc-if value="{{ trayEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;color:var(--dim2);line-height:1.5;margin-top:8px;">Drag here to unschedule.</span></sc-if>
+          <sc-for list="{{ tray }}" as="c" hint-placeholder-count="3">
+            <div draggable="{{ true }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ dragEnd }}" onClick="{{ c.select }}" style="cursor:grab;position:relative;overflow:hidden;aspect-ratio:{{ c.ratio }};background:{{ c.bg }};outline:{{ c.outline }};outline-offset:3px;border-left:2px solid {{ c.acc }};opacity:{{ c.opacity }};transition:transform .18s var(--eo),opacity .18s var(--eo),outline-color .15s var(--eo);" style-hover="transform:translateY(-2px);" style-active="cursor:grabbing;">
+              <span style="position:absolute;left:0;right:0;bottom:0;padding:6px 7px;font-size:9.5px;color:#fff;background:linear-gradient(to top,rgba(0,0,0,.7),rgba(0,0,0,0));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+          <div onDragOver="{{ allowDrop }}" onDrop="{{ d.drop }}" style="background:{{ d.colBg }};padding:10px;min-height:560px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 1px {{ d.ring }};transition:box-shadow .15s var(--eo),background .15s var(--eo);">
+            <div style="display:flex;justify-content:space-between;font-size:10px;letter-spacing:.08em;color:{{ d.color }};"><span>{{ d.dow }}</span><span>{{ d.date }}</span></div>
+            <sc-for list="{{ d.cards }}" as="c" hint-placeholder-count="1">
+              <div draggable="{{ true }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ dragEnd }}" onClick="{{ c.select }}" style="cursor:grab;position:relative;overflow:hidden;aspect-ratio:{{ c.ratio }};background:{{ c.bg }};outline:{{ c.outline }};outline-offset:3px;border-left:2px solid {{ c.acc }};opacity:{{ c.opacity }};animation:v2rise .3s var(--eo) both;transition:transform .18s var(--eo),opacity .18s var(--eo),outline-color .15s var(--eo);" style-hover="transform:translateY(-2px);" style-active="cursor:grabbing;">
+                <span style="position:absolute;top:7px;left:7px;right:7px;font-size:9.5px;letter-spacing:.06em;color:{{ c.stateColor }};text-shadow:0 1px 2px rgba(0,0,0,.6);display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;background:{{ c.stateColor }};"></span>{{ c.state }}</span>
+                <span style="position:absolute;left:0;right:0;bottom:0;padding:22px 8px 8px;background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,0));color:#fff;">
+                  <span style="display:block;font-family:'Source Serif 4',Georgia,serif;font-size:15px;line-height:1.15;letter-spacing:-.01em;">{{ c.title }}</span>
+                  <span style="display:block;font-size:9.5px;opacity:.75;margin-top:4px;">{{ c.client }} · {{ c.time }} · {{ c.platforms }}</span>
+                </span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ d.dropHint }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;letter-spacing:.08em;color:var(--dim);text-align:center;padding:18px 0;border:1px dashed var(--rule2);">DROP · {{ d.dow }}</span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.35);animation:v2fade .3s var(--eo) both;"></div>
+      <div style="position:fixed;top:0;right:0;bottom:0;width:min(400px,100vw);z-index:60;border-left:1px solid var(--rule);background:var(--s0);padding:28px 28px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v2sheet .5s var(--edrawer) both;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+          <span style="font-size:10.5px;letter-spacing:.1em;color:{{ sel.sheetColor }};display:inline-flex;align-items:center;gap:7px;"><span style="width:6px;height:6px;background:{{ sel.sheetColor }};"></span>{{ sel.state }}</span>
+          <div style="display:flex;gap:14px;align-items:center;font-size:11px;color:var(--dim2);"><span style="transition:opacity .3s var(--eo);opacity:{{ savedOpacity }};">Saved</span><button onClick="{{ closeSheet }}" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button></div>
+        </div>
+        <div style="aspect-ratio:16/9;background:{{ sel.bg }};margin-bottom:18px;position:relative;">
+          <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:1px solid rgba(255,255,255,.8);display:grid;place-items:center;color:#fff;font-size:12px;padding-left:2px;">▶</span>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:4px;">{{ sel.name }} · {{ sel.client }} · {{ sel.project }}</div>
+        <div style="font-size:11px;color:var(--dim2);margin-bottom:22px;">{{ sel.specs }}</div>
+
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">TITLE</label>
+        <input value="{{ sel.title }}" onChange="{{ setTitle }}" placeholder="Untitled post" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;letter-spacing:-.01em;outline:none;margin-bottom:22px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:22px;">
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">PUBLISH</span><span style="font-size:12px;">{{ sel.when }}</span></div>
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">CHANNELS</span><span style="font-size:12px;">{{ sel.platforms }}</span></div>
+        </div>
+
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">CAPTION · INSTAGRAM <span style="color:{{ sel.capColor }};">{{ sel.capTag }}</span></label>
+        <textarea value="{{ sel.caption }}" onChange="{{ setCaption }}" rows="{{ 5 }}" placeholder="Caption" style="width:100%;background:var(--s1);border:1px solid var(--rule);padding:12px;font-size:13px;line-height:1.5;resize:vertical;outline:none;margin-bottom:6px;transition:border-color .15s var(--eo);" style-focus="border-color:var(--rule3);"></textarea>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:{{ sel.capLenColor }};margin-bottom:22px;"><span>{{ sel.capLen }} / 2200</span><button style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">DRAFT FROM TRANSCRIPT</button></div>
+
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">CAPTION · YOUTUBE</label>
+        <textarea value="{{ sel.captionYT }}" rows="{{ 3 }}" placeholder="Optional" style="width:100%;background:var(--s1);border:1px solid var(--rule);padding:12px;font-size:13px;line-height:1.5;resize:vertical;outline:none;margin-bottom:28px;transition:border-color .15s var(--eo);" style-focus="border-color:var(--rule3);"></textarea>
+
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          <sc-if value="{{ sel.showPrimary }}" hint-placeholder-val="{{ true }}"><button onClick="{{ sendApproval }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">{{ sel.primary }}</button></sc-if><sc-if value="{{ sel.autoStatus }}" hint-placeholder-val="{{ false }}"><span style="flex:1;display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px solid var(--rule2);font-size:10.5px;letter-spacing:.08em;color:var(--dim);"><span style="width:6px;height:6px;background:var(--ok);"></span>{{ sel.autoStatus }}</span></sc-if>
+          <button style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;" style-hover="border-color:rgba(255,255,255,.6);">HIDE FROM CLIENT</button>
+        </div>
+        <div style="margin-top:28px;font-size:11px;color:var(--dim2);line-height:1.6;text-wrap:pretty;">{{ sel.footnote }}</div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ── client settings ── -->
+  <sc-if value="{{ isClientAdmin }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px;margin:0 auto;padding:44px 40px 120px;">
+    <div style="display:flex;gap:2px;margin-bottom:36px;font-size:10.5px;letter-spacing:.06em;animation:v2rise .5s var(--eo) both;">
+      <sc-for list="{{ clientTabs }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.set }}" style="padding:6px 10px;border:1px solid {{ t.border }};color:{{ t.color }};background:{{ t.bg }};display:flex;gap:7px;align-items:center;" style-hover="border-color:var(--rule3);"><span style="width:6px;height:6px;background:{{ t.acc }};"></span>{{ t.label }}</button>
+      </sc-for>
+      <button onClick="{{ newClient }}" style="padding:6px 10px;border:1px dashed var(--rule3);color:var(--dim);margin-left:6px;" style-hover="border-color:var(--ink);color:var(--ink);">+ NEW CLIENT</button>
+    </div>
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--rule2);margin-bottom:44px;animation:v2rise .6s var(--eo) .05s both;">
+      <div>
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">SINCE {{ ca.since }}</div>
+        <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;display:flex;align-items:center;gap:20px;"><span style="width:18px;height:18px;background:{{ ca.acc }};flex:none;"></span>{{ ca.name }}</h1>
+      </div>
+      <div style="display:flex;gap:22px;font-size:11px;color:var(--dim);">
+        <span>{{ ca.projectsN }} projects</span><span>{{ ca.files }}</span><span>{{ ca.views }} views</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:56px;align-items:start;">
+      <div>
+        <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;"><span>PROJECTS</span><button onClick="{{ newProject }}" style="color:var(--ink);" style-hover="color:var(--ink);">+ NEW</button></div>
+        <sc-for list="{{ ca.projects }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px 0;border-bottom:1px solid var(--rule);animation:v2rise .45s var(--eo) both;animation-delay:{{ p.delay }};">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;min-width:0;">
+              <div style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;">{{ p.title }}</div>
+              <span style="font-size:10.5px;letter-spacing:.06em;color:{{ p.expColor }};white-space:nowrap;">{{ p.expiry }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--dim);">{{ p.meta }}</span>
+            <span style="display:flex;gap:14px;flex-wrap:wrap;">
+            <sc-for list="{{ p.services }}" as="sv" hint-placeholder-count="3">
+            <button onClick="{{ sv.toggle }}" aria-pressed="{{ sv.on }}" title="{{ sv.hint }}" style="display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.06em;color:{{ sv.color }};white-space:nowrap;" style-hover="color:var(--ink);">
+              <span style="width:24px;height:14px;border:1px solid {{ sv.border }};position:relative;transition:border-color .15s var(--eo);"><span style="position:absolute;top:2px;left:{{ sv.knobX }};width:8px;height:8px;background:{{ sv.knobBg }};transition:left .18s var(--eo),background .18s var(--eo);"></span></span>
+              {{ sv.label }}
+            </button>
+            </sc-for>
+            </span>
+            </div>
+          </div>
+        </sc-for>
+
+        <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;margin-top:48px;"><span>SEATS</span><button onClick="{{ inviteSeat }}" style="color:var(--ink);" style-hover="color:var(--ink);">+ INVITE</button></div>
+        <sc-for list="{{ ca.seats }}" as="u" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:32px minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);">
+            <span style="width:32px;height:32px;background:var(--s2);display:grid;place-items:center;font-size:10px;">{{ u.initials }}</span>
+            <div style="min-width:0;"><div style="font-size:13px;">{{ u.name }}</div><div style="font-size:11px;color:var(--dim);margin-top:2px;">{{ u.email }}</div></div>
+            <span style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);">{{ u.role }}</span>
+            <span style="font-size:10.5px;color:var(--dim2);">{{ u.last }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:3px;animation:v2rise .6s var(--eo) .15s both;">
+        <div style="background:var(--s1);padding:22px 24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:11px;letter-spacing:.1em;color:var(--dim);">AUTO-CAPTION REELS</span>
+            <button onClick="{{ toggleAutoCaption }}" aria-pressed="{{ autoCaption }}" style="width:28px;height:16px;border:1px solid {{ acBorder }};position:relative;"><span style="position:absolute;top:2px;left:{{ acKnobX }};width:10px;height:10px;background:{{ acKnobBg }};transition:left .18s var(--eo),background .18s var(--eo);"></span></button>
+          </div>
+          <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 18px;text-wrap:pretty;">Drafts a caption from each new reel. Marked AI until edited.</p>
+          <sc-if value="{{ autoCaption }}" hint-placeholder-val="{{ true }}">
+            <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">HOUSE STYLE</label>
+            <textarea value="{{ styleGuide }}" onChange="{{ setStyle }}" rows="{{ 5 }}" style="width:100%;background:var(--bg);border:1px solid var(--rule);padding:12px;font-size:13px;line-height:1.55;resize:vertical;outline:none;transition:border-color .15s var(--eo);" style-focus="border-color:var(--rule3);"></textarea>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim2);margin-top:6px;"><span></span><span style="transition:opacity .3s var(--eo);opacity:{{ savedOpacity }};">Saved</span></div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--s1);padding:22px 24px;">
+          <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:14px;display:flex;justify-content:space-between;"><span>SLACK</span><button onClick="{{ openSlack }}" style="color:{{ slackLinkColor }};" style-hover="color:var(--ink);">{{ slackLink }}</button></div>
+          <sc-if value="{{ slackConnected }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
+            <div style="background:var(--bg);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">CHANNEL</span><input value="{{ slackChannel }}" onChange="{{ setSlack }}" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+            <div style="background:var(--bg);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">WEEKLY CALENDAR</span><span style="font-size:12px;">Manual · from the board</span></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--dim2);margin-top:8px;">Posts a project's week when you ask. Client approves each post there.</div>
+          </sc-if>
+          <sc-if value="{{ slackNotConnected }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:var(--dim);">Not connected.</div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--s1);padding:22px 24px;">
+          <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:14px;">EMAILS</div>
+          <div style="font-size:10.5px;color:var(--dim2);margin-bottom:6px;">Review projects email each cut. Calendar approvals happen in Slack.</div>
+          <sc-for list="{{ mailRules }}" as="m" hint-placeholder-count="4">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 0;border-top:1px solid var(--rule);">
+              <span><span style="display:block;font-size:12px;">{{ m.name }}</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:2px;">{{ m.when }}</span></span>
+              <button onClick="{{ m.toggle }}" aria-pressed="{{ m.on }}" style="width:28px;height:16px;border:1px solid {{ m.border }};position:relative;flex:none;opacity:{{ m.opacity }};cursor:{{ m.cursor }};"><span style="position:absolute;top:2px;left:{{ m.knobX }};width:10px;height:10px;background:{{ m.knobBg }};transition:left .18s var(--eo),background .18s var(--eo);"></span></button>
+            </div>
+          </sc-for>
+          <a href="Bjur%20Emails%20v2.dc.html" style="display:inline-block;margin-top:14px;font-size:10.5px;letter-spacing:.08em;color:var(--dim);" style-hover="color:var(--ink);">PREVIEW →</a>
+        </div>
+
+        <div style="background:var(--s1);padding:22px 24px;">
+          <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:14px;display:flex;justify-content:space-between;"><span>CONNECTED ACCOUNTS</span><button onClick="{{ connectAccount }}" style="color:var(--ink);" style-hover="color:var(--ink);">+ CONNECT</button></div>
+          <sc-for list="{{ ca.accounts }}" as="ac" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;padding:10px 0;border-top:1px solid var(--rule);">
+              <span><span style="display:block;color:var(--ink);">{{ ac.handle }}</span><span style="display:block;color:var(--dim);margin-top:3px;">{{ ac.platform }}</span></span>
+              <span style="color:{{ ac.color }};letter-spacing:.06em;">{{ ac.status }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── reports ── -->
+  <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1100px;margin:0 auto;padding:44px 40px 120px;">
+    <div style="display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:36px;animation:v2rise .5s var(--eo) both;">
+      <div style="display:flex;gap:2px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.06em;">
+        <sc-for list="{{ repTabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.set }}" style="padding:6px 10px;border:1px solid {{ t.border }};color:{{ t.color }};background:{{ t.bg }};display:flex;gap:7px;align-items:center;" style-hover="border-color:var(--rule3);"><span style="width:6px;height:6px;background:{{ t.acc }};"></span>{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:2px;font-size:10.5px;letter-spacing:.06em;">
+        <sc-for list="{{ repRanges }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.set }}" style="padding:6px 10px;border:1px solid {{ r.border }};color:{{ r.color }};background:{{ r.bg }};">{{ r.label }}</button></sc-for>
+        <button onClick="{{ printReport }}" style="margin-left:12px;background:var(--ink);color:var(--bg);padding:7px 14px;font-size:10.5px;letter-spacing:.08em;" style-hover="background:var(--acc);">SAVE PDF</button>
+      </div>
+    </div>
+
+    <sc-if value="{{ rep.empty }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px dashed var(--rule2);padding:64px;text-align:center;font-size:12px;color:var(--dim);">No linked accounts for {{ repClient }}. <button onClick="{{ repConnect }}" style="color:var(--ink);letter-spacing:.06em;margin-left:8px;">CONNECT ONE →</button></div>
+    </sc-if>
+
+    <sc-if value="{{ rep.has }}" hint-placeholder-val="{{ true }}">
+    <!-- the page itself: always paper -->
+    <div style="background:#f6f4f0;color:#17161a;padding:56px 64px;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:v2rise .6s var(--eo) .08s both;">
+      <div style="border-top:3px solid {{ rep.acc }};padding-top:22px;display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:44px;">
+        <div>
+          <div style="font-size:11px;letter-spacing:.14em;color:{{ rep.acc }};margin-bottom:12px;">BJUR MEDIA · ATTRIBUTION REPORT</div>
+          <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:48px;line-height:1;letter-spacing:-.025em;">{{ repClient }}</div>
+        </div>
+        <div style="font-size:11px;color:#6e6b66;text-align:right;line-height:1.7;">{{ rep.range }}<br>{{ rep.prepared }}</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;margin-bottom:44px;">
+        <sc-for list="{{ rep.stats }}" as="s" hint-placeholder-count="5">
+          <div style="background:#eeebe5;padding:18px 16px;"><div style="font-family:'Source Serif 4',Georgia,serif;font-size:34px;letter-spacing:-.02em;line-height:1;">{{ s.v }}</div><div style="font-size:10px;letter-spacing:.1em;color:#6e6b66;margin-top:8px;">{{ s.k }}</div></div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;margin-bottom:44px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;"><span>PLATFORM</span><span>POSTS</span><span>VIEWS</span><span>MEDIAN</span></div>
+          <sc-for list="{{ rep.platforms }}" as="p" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #dcd8d1;font-size:12px;"><span>{{ p.name }}</span><span style="color:#6e6b66;">{{ p.posts }}</span><span>{{ p.views }}</span><span style="color:#6e6b66;">{{ p.median }}</span></div>
+          </sc-for>
+        </div>
+        <div>
+          <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;">TOP CONTENT</div>
+          <sc-for list="{{ rep.top }}" as="t" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #dcd8d1;font-size:12px;">
+              <span style="width:28px;aspect-ratio:9/16;background:{{ t.bg }};display:block;"></span>
+              <span style="min-width:0;"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.name }}</span><span style="display:block;font-size:10.5px;color:#8a877f;margin-top:2px;">{{ t.platform }} · {{ t.date }}</span></span>
+              <span style="font-family:'Source Serif 4',Georgia,serif;font-size:18px;">{{ t.views }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;display:flex;justify-content:space-between;"><span>BY WEEK</span><span>■ DELIVERED &nbsp; <span style="color:{{ rep.acc }};">■</span> VIEWS</span></div>
+      <div style="display:grid;grid-template-columns:repeat({{ rep.weekN }},minmax(0,1fr));gap:6px;align-items:end;height:120px;padding-top:16px;">
+        <sc-for list="{{ rep.weeks }}" as="w" hint-placeholder-count="8">
+          <div style="display:flex;gap:2px;align-items:end;height:100%;">
+            <span title="{{ w.dTitle }}" style="flex:1;height:{{ w.dH }};background:#cfcbc3;"></span>
+            <span title="{{ w.vTitle }}" style="flex:1;height:{{ w.vH }};background:{{ rep.acc }};"></span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat({{ rep.weekN }},minmax(0,1fr));gap:6px;font-size:9.5px;color:#8a877f;padding-top:8px;">
+        <sc-for list="{{ rep.weeks }}" as="w" hint-placeholder-count="8"><span>{{ w.label }}</span></sc-for>
+      </div>
+      <div style="margin-top:44px;padding-top:16px;border-top:1px solid #dcd8d1;font-size:10px;color:#8a877f;line-height:1.6;">Views pulled from the client's connected Instagram and YouTube accounts, matched to delivered files. Bjur Media · New York.</div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ── library ── -->
+  <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1300px;margin:0 auto;padding:44px 40px 140px;">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;animation:v2rise .5s var(--eo) both;">BACK CATALOG · {{ lib.root }}</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(36px,4.5vw,56px);line-height:.98;letter-spacing:-.025em;margin:0 0 12px;animation:v2rise .6s var(--eo) .05s both;">Pull from the archive.</h1>
+    <p style="font-size:12px;color:var(--dim);margin:0 0 36px;">Pick files, choose a project. Nothing moves; files are registered in place.</p>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:40px;align-items:start;">
+      <div style="border-top:1px solid var(--rule2);animation:v2rise .6s var(--eo) .1s both;">
+        <sc-for list="{{ lib.rows }}" as="r" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:14px 18px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0 9px {{ r.indent }};border-bottom:1px solid var(--rule);font-size:12px;" style-hover="background:var(--inkA);">
+            <button onClick="{{ r.expand }}" style="color:var(--dim);font-size:10px;width:14px;text-align:center;">{{ r.caret }}</button>
+            <button onClick="{{ r.pick }}" role="checkbox" aria-checked="{{ r.picked }}" style="width:14px;height:14px;border:1px solid {{ r.boxBorder }};background:{{ r.boxBg }};display:grid;place-items:center;font-size:9px;color:var(--bg);">{{ r.check }}</button>
+            <span style="color:{{ r.color }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.name }}</span>
+            <span style="font-size:10.5px;color:var(--dim2);">{{ r.meta }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="position:sticky;top:92px;display:flex;flex-direction:column;gap:3px;animation:v2rise .6s var(--eo) .15s both;">
+        <div style="background:var(--s1);padding:18px 20px;">
+          <div style="font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:10px;">REGISTER TO</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;">
+            <sc-for list="{{ lib.targets }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.set }}" style="padding:5px 9px;border:1px solid {{ t.border }};color:{{ t.color }};background:{{ t.bg }};font-size:10px;letter-spacing:.06em;">{{ t.label }}</button></sc-for>
+          </div>
+        </div>
+        <div style="background:var(--s1);padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <span><span style="display:block;font-size:12px;">Auto-map from path</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:3px;">Date from filename, format from file.</span></span>
+          <button onClick="{{ lib.toggleAuto }}" aria-pressed="{{ lib.auto }}" style="width:28px;height:16px;border:1px solid {{ lib.autoBorder }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ lib.autoKnobX }};width:10px;height:10px;background:{{ lib.autoKnobBg }};transition:left .18s var(--eo);"></span></button>
+        </div>
+        <div style="background:var(--s1);padding:18px 20px;">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px;"><span style="font-family:'Source Serif 4',Georgia,serif;font-size:36px;line-height:1;">{{ lib.pickedN }}</span><span style="font-size:11px;color:var(--dim);">files · {{ lib.pickedSize }}</span></div>
+          <sc-if value="{{ lib.hasPreview }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">WILL LAND AS</div>
+            <sc-for list="{{ lib.preview }}" as="p" hint-placeholder-count="3">
+              <div style="font-size:10.5px;padding:7px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px;"><span style="color:var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.dest }}</span><button onClick="{{ p.cycle }}" title="Change format" style="color:var(--dim);letter-spacing:.06em;flex:none;" style-hover="color:var(--ink);">{{ p.fmt }} ↻</button></div>
+            </sc-for>
+            <button onClick="{{ lib.register }}" style="width:100%;margin-top:14px;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">REGISTER {{ lib.pickedN }} →</button>
+          </sc-if>
+          <sc-if value="{{ lib.noPreview }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ lib.runPreview }}" style="width:100%;border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;" style-hover="border-color:var(--ink);">PREVIEW MAPPING</button>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── team ── -->
+  <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:860px;margin:0 auto;padding:44px 40px 120px;">
+    <div style="display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:36px;animation:v2rise .5s var(--eo) both;">
+      <div><div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">STAFF LOGINS</div><h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(36px,4.5vw,56px);line-height:.98;letter-spacing:-.025em;margin:0;">Team.</h1></div>
+      <button onClick="{{ addStaff }}" style="border:1px dashed var(--rule2);padding:10px 14px;font-size:11px;letter-spacing:.08em;color:var(--dim);" style-hover="border-color:var(--ink);color:var(--ink);">+ ADD</button>
+    </div>
+    <div style="border-top:1px solid var(--rule2);animation:v2rise .6s var(--eo) .1s both;">
+      <sc-for list="{{ team }}" as="u" hint-placeholder-count="2">
+        <div style="display:grid;grid-template-columns:32px minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);animation:v2fade .3s var(--eo) both;">
+          <span style="width:32px;height:32px;background:var(--s2);display:grid;place-items:center;font-size:10px;">{{ u.initials }}</span>
+          <span><span style="display:block;font-size:13px;">{{ u.name }}<sc-if value="{{ u.you }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;letter-spacing:.1em;color:var(--acc);margin-left:10px;">YOU</span></sc-if></span><span style="display:block;font-size:11px;color:var(--dim);margin-top:2px;">{{ u.email }}</span></span>
+          <span style="font-size:10.5px;color:var(--dim2);">{{ u.last }}</span>
+          <sc-if value="{{ u.canRemove }}" hint-placeholder-val="{{ false }}"><button onClick="{{ u.remove }}" style="font-size:10.5px;letter-spacing:.08em;color:{{ u.removeColor }};border:1px solid var(--rule2);padding:7px 10px;" style-hover="border-color:var(--warn);color:var(--warn);">{{ u.removeLabel }}</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin-top:18px;">Staff see every client. Give clients seats instead.</p>
+  </div>
+  </sc-if>
+
+  <!-- ── create sheet ── -->
+  <sc-if value="{{ createOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeCreate }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);animation:v2fade .3s var(--eo) both;"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:60;background:var(--s0);border-left:1px solid var(--rule);padding:28px 32px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v2sheet .5s var(--edrawer) both;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+        <div style="display:flex;gap:2px;visibility:{{ cm.tabsVis }};">
+          <button onClick="{{ createModeClient }}" style="padding:6px 10px;font-size:10.5px;letter-spacing:.06em;border:1px solid {{ cm.clientBorder }};color:{{ cm.clientColor }};background:{{ cm.clientBg }};">CLIENT</button>
+          <button onClick="{{ createModeProject }}" style="padding:6px 10px;font-size:10.5px;letter-spacing:.06em;border:1px solid {{ cm.projectBorder }};color:{{ cm.projectColor }};background:{{ cm.projectBg }};">PROJECT</button>
+          <button onClick="{{ createModeSeat }}" style="padding:6px 10px;font-size:10.5px;letter-spacing:.06em;border:1px solid {{ cm.seatBorder }};color:{{ cm.seatColor }};background:{{ cm.seatBg }};">SEAT</button>
+          <button onClick="{{ createModeAccount }}" style="padding:6px 10px;font-size:10.5px;letter-spacing:.06em;border:1px solid {{ cm.acctBorder }};color:{{ cm.acctColor }};background:{{ cm.acctBg }};">ACCOUNT</button>
+        </div>
+        <button onClick="{{ closeCreate }}" style="font-size:11px;color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button>
+      </div>
+
+      <sc-if value="{{ cm.isClient }}" hint-placeholder-val="{{ true }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">New client.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Owner gets an onboarding email.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">CLIENT NAME</label>
+        <input value="{{ cf.name }}" onChange="{{ cfName }}" placeholder="e.g. Levi's Culture" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+                <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">ACCENT</label>
+        <div style="display:flex;gap:3px;margin-bottom:22px;">
+          <sc-for list="{{ cm.swatches }}" as="sw" hint-placeholder-count="5">
+            <button onClick="{{ sw.pick }}" aria-label="Accent" style="width:32px;height:32px;background:{{ sw.color }};outline:2px solid {{ sw.ring }};outline-offset:2px;"></button>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:28px;">
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">OWNER NAME</span><input value="{{ cf.owner }}" onChange="{{ cfOwner }}" placeholder="Full name" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+          <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">OWNER EMAIL</span><input value="{{ cf.email }}" onChange="{{ cfEmail }}" placeholder="name@company.com" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+        </div>
+        <sc-if value="{{ cm.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ cm.error }}</div></sc-if>
+        <button onClick="{{ submitClient }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">CREATE CLIENT</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">CREATED · EMAIL SENT</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ cf.name }}</div>
+        <div style="border-top:1px solid var(--rule2);">
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">OWNER</span><span>{{ cf.email }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">TEMP PASSWORD</span><span>{{ cm.temp }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">NAS FOLDER</span><span>/media/{{ cm.slug }}/</span></div>
+        </div>
+        <p style="font-size:11px;color:var(--dim);line-height:1.6;margin:18px 0 24px;">Shown once. They set their own on first login.</p>
+        <div style="display:flex;gap:3px;"><button onClick="{{ openNewClient }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">OPEN CLIENT →</button><button onClick="{{ createModeProject }}" style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;">+ PROJECT</button><button onClick="{{ createModeAccount }}" style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;">+ ACCOUNT</button></div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ cm.isProject }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">New project.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Drop exports in the inbox folder; the rest is automatic.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT</label>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+          <sc-for list="{{ cm.clientPicks }}" as="cp" hint-placeholder-count="4">
+            <button onClick="{{ cp.pick }}" style="padding:6px 10px;border:1px solid {{ cp.border }};color:{{ cp.color }};background:{{ cp.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ cp.acc }};"></span>{{ cp.label }}</button>
+          </sc-for>
+        </div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">TITLE</label>
+        <input value="{{ cf.title }}" onChange="{{ cfTitle }}" placeholder="e.g. Fall Campaign 2026" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:8px;" style-focus="border-bottom-color:var(--ink);">
+        <div style="font-size:10.5px;color:var(--dim2);margin-bottom:22px;">/media/_inbox/{{ cm.projSlug }}/</div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">HOW IT'S SERVICED</label>
+        <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:3px;">
+        <sc-for list="{{ cm.newServices }}" as="ns" hint-placeholder-count="3">
+        <button onClick="{{ ns.toggle }}" style="width:100%;background:var(--s1);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:16px;text-align:left;">
+          <span><span style="display:block;font-size:12px;">{{ ns.label }}</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.5;">{{ ns.hint }}</span></span>
+          <span style="width:28px;height:16px;border:1px solid {{ ns.border }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ ns.knobX }};width:10px;height:10px;background:{{ ns.knobBg }};transition:left .18s var(--eo);"></span></span>
+        </button>
+        </sc-for>
+        </div>
+        <div style="background:var(--s1);padding:12px 14px;margin-bottom:28px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">EXPIRES · OPTIONAL</span><input value="{{ cf.expires }}" onChange="{{ cfExpires }}" placeholder="Leave empty for no expiry" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+        <sc-if value="{{ cm.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ cm.error }}</div></sc-if>
+        <button onClick="{{ submitProject }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">CREATE PROJECT</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">CREATED</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ cf.title }}</div>
+        <div style="background:var(--s1);padding:16px;font-size:12px;line-height:1.7;margin-bottom:18px;">Drop finished exports into<br><span style="color:var(--ink);">/media/_inbox/{{ cm.projSlug }}/</span><br><span style="color:var(--dim);">Client is emailed when files land.</span></div>
+        <div style="display:flex;gap:3px;"><button onClick="{{ goBoard }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">OPEN WEEK BOARD →</button><button onClick="{{ closeCreate }}" style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;">DONE</button></div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ cm.isSeat }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">Invite a seat.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Login for <span style="color:var(--ink);">{{ cf.client }}</span>. They get an onboarding email.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT</label>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+          <sc-for list="{{ cm.clientPicks }}" as="cp" hint-placeholder-count="4">
+            <button onClick="{{ cp.pick }}" style="padding:6px 10px;border:1px solid {{ cp.border }};color:{{ cp.color }};background:{{ cp.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ cp.acc }};"></span>{{ cp.label }}</button>
+          </sc-for>
+        </div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">NAME</label>
+        <input value="{{ cf.owner }}" onChange="{{ cfOwner }}" placeholder="Full name" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+        <div style="background:var(--s1);padding:12px 14px;margin-bottom:22px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">EMAIL</span><input value="{{ cf.email }}" onChange="{{ cfEmail }}" placeholder="name@company.com" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">ROLE</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:28px;">
+          <sc-for list="{{ cm.roles }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.pick }}" style="text-align:left;padding:12px;border:1px solid {{ r.border }};background:{{ r.bg }};"><span style="display:block;font-size:11px;letter-spacing:.06em;">{{ r.name }}</span><span style="display:block;font-size:10px;color:var(--dim);margin-top:4px;line-height:1.5;">{{ r.desc }}</span></button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ cm.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ cm.error }}</div></sc-if>
+        <button onClick="{{ submitSeat }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">SEND INVITE</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">INVITED · EMAIL SENT</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ cf.owner }}</div>
+        <div style="border-top:1px solid var(--rule2);">
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">CLIENT</span><span>{{ cf.client }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">EMAIL</span><span>{{ cf.email }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">ROLE</span><span>{{ cf.role }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">TEMP PASSWORD</span><span>{{ cm.temp }}</span></div>
+        </div>
+        <p style="font-size:11px;color:var(--dim);line-height:1.6;margin:18px 0 24px;">They set their own password on first login.</p>
+        <div style="display:flex;gap:3px;"><button onClick="{{ createModeSeat }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">+ ANOTHER SEAT</button><button onClick="{{ closeCreate }}" style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;">DONE</button></div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ cm.isStaff }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">Add staff.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Full access to this admin. They get a login email.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">NAME</label>
+        <input value="{{ cf.owner }}" onChange="{{ cfOwner }}" placeholder="Full name" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+        <div style="background:var(--s1);padding:12px 14px;margin-bottom:28px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">EMAIL</span><input value="{{ cf.email }}" onChange="{{ cfEmail }}" placeholder="name@bjurmedia.nyc" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+        <sc-if value="{{ cm.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ cm.error }}</div></sc-if>
+        <button onClick="{{ submitStaff }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">ADD & SEND LOGIN</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">ADDED · EMAIL SENT</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ cf.owner }}</div>
+        <div style="border-top:1px solid var(--rule2);"><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">TEMP PASSWORD</span><span>{{ cm.temp }}</span></div></div>
+        <button onClick="{{ closeCreate }}" style="width:100%;margin-top:24px;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">DONE</button>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ cm.isSlack }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ slackNotConnected }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">Connect Slack.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Once, for the studio workspace. Each client gets its own channel after.</p>
+        <div style="background:var(--s1);padding:14px;margin-bottom:3px;display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--dim);font-size:10px;letter-spacing:.1em;">WORKSPACE</span><span>bjurmedia.slack.com</span></div>
+        <div style="background:var(--s1);padding:12px 14px;margin-bottom:28px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">DEFAULT CHANNEL</span><input value="{{ slackDefault }}" onChange="{{ setSlackDefault }}" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+        <button onClick="{{ connectSlack }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">ADD TO SLACK →</button>
+        </sc-if>
+        <sc-if value="{{ slackConnected }}" hint-placeholder-val="{{ true }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">Post the week.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 22px;">Shares the week for one project. The client approves each post in Slack.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT</label>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+          <sc-for list="{{ cm.clientPicks }}" as="cp" hint-placeholder-count="4">
+            <button onClick="{{ cp.pick }}" style="padding:6px 10px;border:1px solid {{ cp.border }};color:{{ cp.color }};background:{{ cp.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ cp.acc }};"></span>{{ cp.label }}</button>
+          </sc-for>
+        </div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">PROJECT</label>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+          <sc-for list="{{ slackPreview.projects }}" as="sp" hint-placeholder-count="1"><button onClick="{{ sp.pick }}" style="padding:6px 10px;border:1px solid {{ sp.border }};color:{{ sp.color }};background:{{ sp.bg }};font-size:10.5px;letter-spacing:.06em;">{{ sp.label }}</button></sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;"><span>PREVIEW</span><span>{{ slackTarget }}</span></div>
+        <div style="background:var(--s1);border-left:2px solid {{ cm.slackAcc }};padding:14px 16px;margin-bottom:22px;">
+          <div style="font-size:12px;margin-bottom:10px;">{{ slackPreview.title }}</div>
+          <sc-for list="{{ slackPreview.lines }}" as="l" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--body);line-height:1.7;"><span>{{ l.text }}</span><span style="font-size:9.5px;letter-spacing:.08em;color:{{ l.tagColor }};flex:none;">{{ l.tag }}</span></div>
+          </sc-for>
+          <sc-if value="{{ slackPreview.empty }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:var(--dim2);">Nothing scheduled this week.</div></sc-if>
+        </div>
+        <button onClick="{{ postSlack }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">POST NOW</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">POSTED · {{ slackTarget }}</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ slackPreview.title }}</div>
+        <div style="font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT RESPONSES · LIVE FROM SLACK</div>
+        <div style="border-top:1px solid var(--rule2);margin-bottom:24px;">
+          <sc-for list="{{ slackPreview.lines }}" as="l" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);">
+              <span><span style="display:block;font-size:12px;">{{ l.text }}</span><span style="display:block;font-size:9.5px;letter-spacing:.08em;color:{{ l.slackColor }};margin-top:4px;">{{ l.slackState }}</span></span>
+              <span style="display:flex;gap:2px;"><button onClick="{{ l.approve }}" title="Simulate client ✅" style="border:1px solid var(--rule2);padding:6px 9px;font-size:10px;">✅</button><button onClick="{{ l.changes }}" title="Simulate client ✏️" style="border:1px solid var(--rule2);padding:6px 9px;font-size:10px;">✏️</button></span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="font-size:11px;color:var(--dim);line-height:1.6;margin:0 0 24px;">✅ approves · ✏️ requests changes. Reactions update the board.</p>
+        <button onClick="{{ closeCreate }}" style="width:100%;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">DONE</button>
+        </sc-if>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ cm.isAccount }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cm.notDone }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">Connect an account.</div>
+        <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Pulls view counts for <span style="color:var(--ink);">{{ cf.client }}</span>'s posts.</p>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT</label>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+          <sc-for list="{{ cm.clientPicks }}" as="cp" hint-placeholder-count="4">
+            <button onClick="{{ cp.pick }}" style="padding:6px 10px;border:1px solid {{ cp.border }};color:{{ cp.color }};background:{{ cp.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ cp.acc }};"></span>{{ cp.label }}</button>
+          </sc-for>
+        </div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">PLATFORM</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:22px;">
+          <sc-for list="{{ cm.platforms }}" as="pl" hint-placeholder-count="2">
+            <button onClick="{{ pl.pick }}" style="text-align:left;padding:14px;border:1px solid {{ pl.border }};background:{{ pl.bg }};"><span style="display:block;font-size:12px;">{{ pl.name }}</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:4px;">{{ pl.desc }}</span></button>
+          </sc-for>
+        </div>
+        <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">WHO LOGS IN</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:28px;">
+          <button onClick="{{ cfWhoMe }}" style="text-align:left;padding:14px;border:1px solid {{ cm.meBorder }};background:{{ cm.meBg }};"><span style="display:block;font-size:12px;">ME, NOW</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:4px;">I have the client's login.</span></button>
+          <button onClick="{{ cfWhoOwner }}" style="text-align:left;padding:14px;border:1px solid {{ cm.ownerBorder }};background:{{ cm.ownerBg }};"><span style="display:block;font-size:12px;">THE CLIENT</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:4px;">Email the owner a connect link.</span></button>
+        </div>
+        <button onClick="{{ submitAccount }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--ink);">{{ cm.acctCta }}</button>
+        </sc-if>
+        <sc-if value="{{ cm.done }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">{{ cm.acctDoneKicker }}</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ cm.acctHandle }}</div>
+        <div style="border-top:1px solid var(--rule2);">
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">CLIENT</span><span>{{ cf.client }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">PLATFORM</span><span>{{ cf.platform }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">SYNC</span><span>Weekly · Mondays</span></div>
+        </div>
+        <p style="font-size:11px;color:var(--dim);line-height:1.6;margin:18px 0 24px;">{{ cm.acctDoneNote }}</p>
+        <div style="display:flex;gap:3px;"><button onClick="{{ closeCreate }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">DONE</button></div>
+        </sc-if>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;animation:v2toast .35s var(--eo) both;background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;gap:18px;align-items:center;font-size:12px;box-shadow:0 20px 50px rgba(0,0,0,.5);">
+      <span style="width:8px;height:8px;background:var(--ok);"></span><span>{{ toast.msg }}</span>
+      <sc-if value="{{ toast.undo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toast.undo }}" style="letter-spacing:.08em;font-size:11px;border-bottom:1px solid var(--bg);">UNDO</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;client&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;57.NYC&quot;,&quot;Space Invaders&quot;,&quot;Adam Knights&quot;,&quot;SSH&quot;,&quot;SUYINSAMA&quot;,&quot;Halcyon Films&quot;],&quot;default&quot;:&quot;57.NYC&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Client portal&quot;},&quot;showApprovals&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Client portal&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;c-login&quot;,&quot;c-list&quot;,&quot;c-detail&quot;,&quot;c-upload&quot;,&quot;c-settings&quot;,&quot;a-login&quot;,&quot;a-today&quot;,&quot;a-board&quot;,&quot;a-client&quot;,&quot;a-reports&quot;,&quot;a-library&quot;,&quot;a-team&quot;],&quot;default&quot;:&quot;c-detail&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;slackConnected&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;mobile&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;openViewer&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: this.props.startScreen ?? "c-list",
+    filter: "ALL", selected: {}, favorites: { f2: true }, activeWeek: null,
+    clientChip: "ALL", selId: null, dragId: null, toast: null, dl: null, saved: false,
+    viewer: this.props.openViewer ? "f1" : null, heart: false, vw: typeof window !== "undefined" ? window.innerWidth : 1200, vTime: 0, vPaused: false, vMuted: false, chrome: true, sheet: false, tier: 0, vDl: null, vDlPct: 0, vLift: false,
+    queue: [], queuePaused: false, dropHover: false,
+    adminClient: "57.NYC", autoCaption: true, styleGuide: "Short. Lowercase is fine. Name the guest only if they say their name. No hashtag walls — one or two at most. Never say 'vibes'.", slackChannel: "#57nyc-content",
+    uploadsByProject: { p8: true, p4: false, p5: false, si1: true }, services: {}, reviews: { r1: "PENDING", r2: "APPROVED", r3: "PENDING" }, fbOpen: null, fbText: "", mail: { delivery: true, approval: true, weekly: true, expiry: false },
+    create: null, cf: { name: "", type: "RETAINER", accent: "oklch(0.6 0.17 145)", owner: "", email: "", title: "", client: "57.NYC", expires: "", uploads: false, calendar: false, review: false, role: "DOWNLOADER", platform: "Instagram", who: "me" }, extraClients: {}, extraProjects: {}, extraSeats: {}, extraAccounts: {},
+    slackConnected: this.props.slackConnected ?? true, slackDefault: "#bjur-content", dismissed: {}, syncFixed: false,
+    lf: { email: "", pw: "", error: null, busy: false },
+    settings: { name: "", email: "", pw0: "", pw1: "", pw2: "", notifs: { delivery: true, weekly: true, expiry: false }, revoked: {} },
+    repClient: "57.NYC", repRange: "8W", libExpanded: { "57NYC": true }, libPicked: {}, libTarget: "p8", libAuto: true, libPreview: null, libFormats: {},
+    team: [["Justin Bjur", "justin@bjurmedia.nyc", "now", true], ["Studio Admin", "admin@bjurmedia.nyc", "3d ago", false]], teamConfirm: null, themeC: localStorage.getItem("bjur:v2:themeC") ?? "light", themeA: localStorage.getItem("bjur:v2:themeA") ?? "dark",
+    posts: { a1: { state: "AWAITING" }, a2: { state: "APPROVED" }, a3: { state: "PUBLISHED" }, a4: { state: "DRAFT" } },
+    board: {
+      b1: { day: 3, title: "TOVA (FAM ONLY)", caption: "Behind the scenes from the rooftop set — full film out Friday.", captionYT: "", client: "57.NYC", project: "IG Posting", time: "10:00", platforms: "IG + YT", state: "AWAITING", name: "IG_Jul13_ReelA.mp4", specs: "1080×1920 · ProRes 422 · 1.5 GB · 0:15", capSrc: "HUMAN" },
+      b2: { day: 5, title: "Golden hour, roof", caption: "Nothing beats golden hour on the roof.", captionYT: "", client: "57.NYC", project: "IG Posting", time: "17:00", platforms: "IG", state: "APPROVED", name: "IG_Jul13_ReelB.mp4", specs: "1080×1920 · ProRes 422 · 1.9 GB · 0:18", capSrc: "HUMAN" },
+      b3: { day: 1, title: "Aera — launch cut", caption: "Introducing Aera. Designed in the studio, built for the street.", captionYT: "Aera launch film — SSH", client: "SSH", project: "Product Launch — Aera", time: "12:00", platforms: "YT", state: "DRAFT", name: "Aera_Reel_Launch.mp4", specs: "1080×1920 · ProRes 422 · 2.0 GB · 0:20", capSrc: "AI" },
+      b4: { day: null, title: "", caption: "", captionYT: "", client: "57.NYC", project: "IG Posting", time: "—", platforms: "—", state: "NONE", name: "IG_Jul13_ReelC.mp4", specs: "1080×1920 · ProRes 422 · 1.3 GB · 0:12", capSrc: "HUMAN" },
+      b5: { day: null, title: "Live set — warehouse", caption: "", captionYT: "", client: "SUYINSAMA", project: "Live Set — Warehouse", time: "—", platforms: "—", state: "NONE", name: "SUYIN_Live_Reel_02.mp4", specs: "1080×1920 · ProRes 422 · 1.7 GB · 0:17", capSrc: "AI" },
+      b6: { day: null, title: "", caption: "", captionYT: "", client: "SSH", project: "Product Launch — Aera", time: "—", platforms: "—", state: "NONE", name: "Aera_Reel_Detail.mp4", specs: "1080×1920 · ProRes 422 · 1.6 GB · 0:16", capSrc: "HUMAN" },
+    },
+  };
+
+  CLIENTS = {
+    "57.NYC": { acc: "oklch(0.6 0.17 145)", user: "Dana Okafor" },
+    "SSH": { acc: "oklch(0.6 0.16 250)", user: "Sasha Hale" },
+    "SUYINSAMA": { acc: "oklch(0.7 0.17 80)", user: "Suyin Sama" },
+    "Halcyon Films": { acc: "oklch(0.62 0.19 25)", user: "Ivy Chen" },
+    "Space Invaders": { acc: "oklch(0.6 0.15 320)", user: "Marcus Lee" },
+    "Adam Knights": { acc: "oklch(0.55 0.12 200)", user: "Adam Knights" },
+  };
+  SERVICES = { p8: { calendar: true, review: false, uploads: true }, p4: { calendar: false, review: false, uploads: false }, p5: { calendar: false, review: false, uploads: false }, si1: { calendar: false, review: true, uploads: true }, ak1: { calendar: false, review: true, uploads: false }, p7: { calendar: false, review: false, uploads: false }, p1: {}, p2: {}, p3: {}, p6: {} };
+  STATE = { AWAITING: ["NEEDS YOUR OK", "acc"], APPROVED: ["APPROVED", "var(--ok)"], PUBLISHED: ["PUBLISHED", "var(--ok)"], DRAFT: ["ON HOLD", "muted"], READY: ["READY", "muted"], CHANGES: ["CHANGES REQUESTED", "acc"], NONE: ["UNSCHEDULED", "muted"] };
+  ADMIN_STATE = { AWAITING: "IN SLACK · AWAITING", APPROVED: "APPROVED IN SLACK", DRAFT: "REVIEW CAPTION", READY: "READY FOR SLACK", CHANGES: "CHANGES REQUESTED", NONE: "UNSCHEDULED", PUBLISHED: "PUBLISHED" };
+
+  componentDidMount() {
+    this._key = (e) => {
+      if (e.key === "Escape") { if (this.state.create) return this.setState({ create: null }); if (this.state.sheet) return this.setState({ sheet: false, vLift: false }); if (this.state.viewer) return this.closeViewer(); this.setState({ selId: null, selected: {}, toast: null }); }
+      if (this.state.viewer && !this.state.sheet) { if (e.key === "ArrowRight") this.vStep(1); if (e.key === "ArrowLeft") this.vStep(-1); if (e.key === " ") { e.preventDefault(); this.setState(s => ({ vPaused: !s.vPaused })); } if (e.key === "ArrowUp") this.setState({ sheet: true, vLift: true }); }
+    };
+    this._tick = setInterval(() => {
+      const s = this.state;
+      if (s.viewer && !s.vPaused && !s.sheet && !this._dragging && !this._settling) { const d = this.vDur(); this.setState({ vTime: s.vTime + .25 >= d ? 0 : s.vTime + .25 }); }
+      if (s.queue.length && !s.queuePaused) {
+        const q = s.queue.map(x => ({ ...x })); const cur = q.find(x => x.pct < 100);
+        if (cur) { cur.pct = Math.min(100, cur.pct + (cur.pct < 30 ? 6 : 3)); this.setState({ queue: q }); if (cur.pct === 100 && q.every(x => x.pct === 100)) this.toast("Upload complete"); }
+      }
+      if (s.vDl === "busy") { const p = Math.min(100, s.vDlPct + 4); this.setState({ vDlPct: p, vDl: p === 100 ? "done" : "busy" }); if (p === 100) setTimeout(() => this.setState({ vDl: null, vDlPct: 0 }), 2600); }
+    }, 250);
+    this._scroll = () => {
+      const els = [...document.querySelectorAll("[data-week]")];
+      if (!els.length) return;
+      let cur = els[0].dataset.week;
+      for (const el of els) if (el.getBoundingClientRect().top < 200) cur = el.dataset.week;
+      if (cur !== this.state.activeWeek) this.setState({ activeWeek: cur });
+    };
+    this._resize = () => this.setState({ vw: window.innerWidth });
+    window.addEventListener("resize", this._resize);
+    window.addEventListener("keydown", this._key);
+    window.addEventListener("scroll", this._scroll, { passive: true });
+    const st = document.createElement("style");
+    st.textContent = "@keyframes v2grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}";
+    document.head.appendChild(st);
+  }
+  componentWillUnmount() { window.removeEventListener("keydown", this._key); window.removeEventListener("scroll", this._scroll); clearInterval(this._tick); }
+
+  VFILES = [
+    { id: "f1", name: "IG_Jul13_ReelA.mp4", dur: 15, size: "1.5 GB", week: "WEEK OF JUL 13", specs: "1080×1920 · 0:15 · ProRes 422 · Rec.709" },
+    { id: "f2", name: "IG_Jul13_ReelB.mp4", dur: 18, size: "1.9 GB", week: "WEEK OF JUL 13", specs: "1080×1920 · 0:18 · ProRes 422 · Rec.709" },
+    { id: "f3", name: "IG_Jul13_ReelC.mp4", dur: 12, size: "1.3 GB", week: "WEEK OF JUL 13", specs: "1080×1920 · 0:12 · ProRes 422 · Rec.709" },
+    { id: "f4", name: "IG_Jul06_ReelA.mp4", dur: 14, size: "1.6 GB", week: "WEEK OF JUL 6", specs: "1080×1920 · 0:14 · ProRes 422 · Rec.709" },
+    { id: "f5", name: "IG_Jul06_ReelB.mp4", dur: 16, size: "1.7 GB", week: "WEEK OF JUL 6", specs: "1080×1920 · 0:16 · ProRes 422 · Rec.709" },
+    { id: "m1", name: "Rooftop_MASTER.braw", dur: 72, size: "53.1 GB", week: "MASTER", specs: "6144×3456 · 1:12 · BRAW 5:1 · watermarked preview", locked: true, base: 500 },
+  ];
+  portal(client, s) {
+    if (client === "Space Invaders") return {
+      projects: [{ id: "si1", title: "Reels", delivered: "Jul 13, 2026", meta: "6 reels", size: "9.2 GB", path: "SPACEINVADERS / Reels", note: this.pendingN(s, ["r1", "r3"]) ? `${this.pendingN(s, ["r1", "r3"])} for your review` : null }],
+      detail: { title: "Reels", path: "REELS", meta: "6 reels", size: "9.2 GB", delivered: "Jul 13, 2026", views: null },
+      weekDefs: [["Week of Jul 13", "JUL 13", "3.1 GB"], ["Week of Jul 6", "JUL 6", "3.0 GB"]], awaitingSub: "Reels · approve, or send notes", pendingN: (st) => this.pendingN(st, ["r1", "r3"]),
+      posts: [
+        { id: "r1", review: true, vid: "f1", title: "Invaders — Set Recap", caption: "Cut 2. Tightened the intro, swapped the last shot for the crowd wide.", when: "UPLOADED TODAY", platforms: "Reel · 0:24", dur: "0:24", week: 0, name: "SI_SetRecap_v2.mp4", thumbW: "72px", ratio: "9/16" },
+        { id: "r3", review: true, vid: "f2", title: "Invaders — Merch Drop", caption: "First cut.", when: "UPLOADED YESTERDAY", platforms: "Reel · 0:18", dur: "0:18", week: 0, name: "SI_Merch_v1.mp4", thumbW: "72px", ratio: "9/16" },
+        { id: "r2", review: true, vid: "f4", title: "Invaders — Warehouse", caption: "Final.", when: "JUL 8", platforms: "Reel · 0:21", dur: "0:21", week: 1, name: "SI_Warehouse_final.mp4", thumbW: "72px", ratio: "9/16" },
+      ],
+      files: [
+        { id: "f1", name: "SI_SetRecap_v2.mp4", fmt: "Reel", badge: "0:24", size: "1.6 GB", added: "Jul 13", week: 0, isNew: true },
+        { id: "f2", name: "SI_Merch_v1.mp4", fmt: "Reel", badge: "0:18", size: "1.5 GB", added: "Jul 12", week: 0, isNew: true },
+        { id: "f4", name: "SI_Warehouse_final.mp4", fmt: "Reel", badge: "0:21", size: "1.5 GB", added: "Jul 8", week: 1 },
+        { id: "f5", name: "SI_Warehouse_v1.mp4", fmt: "Reel", badge: "0:22", size: "1.5 GB", added: "Jul 6", week: 1 },
+      ] };
+    if (client === "Adam Knights") return {
+      projects: [{ id: "ak1", title: "Music Video — Color", delivered: "Jul 13, 2026", meta: "2 films", size: "21 GB", path: "ADAMKNIGHTS / MusicVideo-Color", note: this.pendingN(s, ["r1"]) ? "Color pass v2 for your review" : null }],
+      detail: { title: "Music Video — Color", path: "MUSICVIDEO-COLOR", meta: "2 films · color", size: "21 GB", delivered: "Jul 13, 2026", views: null },
+      weekDefs: [["Color pass v2", "V2 · JUL 13", "11 GB"], ["Color pass v1", "V1 · JUL 9", "10 GB"]], awaitingSub: "Music Video — Color · watch, approve, or send notes", pendingN: (st) => this.pendingN(st, ["r1"]),
+      posts: [
+        { id: "r1", review: true, vid: "f1", title: "Color pass v2", caption: "Lifted the shadows through the chorus, pulled the magenta out of the skin tones in the bridge. Verse 2 is untouched from v1.", when: "UPLOADED TODAY", platforms: "Film · 3:42 · 4K", dur: "3:42", week: 0, name: "AK_MV_Color_v2.mp4", thumbW: "160px", ratio: "16/9" },
+        { id: "r2", review: true, vid: "f2", title: "Color pass v1", caption: "First pass.", when: "JUL 9", platforms: "Film · 3:42 · 4K", dur: "3:42", week: 1, name: "AK_MV_Color_v1.mp4", thumbW: "160px", ratio: "16/9" },
+      ],
+      files: [
+        { id: "f1", name: "AK_MV_Color_v2.mp4", fmt: "Film", badge: "3:42", size: "11 GB", added: "Jul 13", week: 0, isNew: true },
+        { id: "f2", name: "AK_MV_Color_v1.mp4", fmt: "Film", badge: "3:42", size: "10 GB", added: "Jul 9", week: 1 },
+      ] };
+    return {};
+  }
+  pendingN(s, ids) { return ids.filter(id => (s.reviews[id] ?? "PENDING") === "PENDING").length; }
+  svc(id) { return { ...(this.SERVICES[id] ?? {}), ...(this.state.services[id] ?? {}) }; }
+  TOK = {
+    light: { bg: "#f6f4f0", bgA: "rgba(246,244,240,.88)", s0: "#f1eee8", s1: "#eeebe5", s2: "#e6e2db", ink: "#17161a", body: "#4a4844", mut: "#6e6b66", dim: "#8a877f", dim2: "#b5b1a9", rule: "#dcd8d1", rule2: "#cfcbc3", rule3: "#17161a", inkA: "rgba(23,22,26,.04)", ok: "#2b6b47", warn: "oklch(0.55 0.19 25)" },
+    dark: { bg: "#0c0c0d", bgA: "rgba(12,12,13,.86)", s0: "#101012", s1: "#151517", s2: "#1c1c1f", ink: "#f2efe9", body: "#c9c5bd", mut: "#a8a49c", dim: "#8a877f", dim2: "#6f6c66", rule: "rgba(255,255,255,.1)", rule2: "rgba(255,255,255,.2)", rule3: "rgba(255,255,255,.5)", inkA: "rgba(255,255,255,.03)", ok: "#2ec36b", warn: "#ff9d85" },
+  };
+  extraVals(s, clientName, cl, CA, clients, delay, knob, seg, cf, cr) {
+    const on = (id) => s.screen === id;
+    const navc = (id) => ({ color: on(id) ? "var(--ink)" : "var(--dim)", rule: on(id) ? "var(--ink)" : "transparent" });
+    // settings
+    const S = s.settings; const name = S.name || cl.user; const email = S.email || (cl.email ?? (cl.user.toLowerCase().split(" ")[0] + "@" + this.slug(clientName).replace(/-/g, "") + ".com"));
+    const setS = (k) => (e) => this.setState(st => ({ settings: { ...st.settings, [k]: e.target.value } }));
+    const sessions = [["MacBook Pro · Safari", "New York", "now", true], ["iPhone · Safari", "New York", "2h ago", false], ["Windows · Chrome", "Los Angeles", "9d ago", false]].filter(([d]) => !S.revoked[d]);
+    const st = { role: "OWNER SEAT", name, email, pw0: S.pw0, pw1: S.pw1, pw2: S.pw2,
+      notifs: [["delivery", "New delivery", "When files land"], ["weekly", "Weekly digest", "Mondays 09:00"], ["expiry", "Expiry reminder", "Before a project closes"]].map(([k, nm, when]) => ({ name: nm, when, on: !!S.notifs[k], ...knob(!!S.notifs[k]), toggle: () => this.setState(st0 => ({ settings: { ...st0.settings, notifs: { ...st0.settings.notifs, [k]: !st0.settings.notifs[k] } } })) })),
+      sessions: sessions.map(([device, where, when, current]) => ({ device, where, when, current, other: !current, revoke: () => { this.setState(st0 => ({ settings: { ...st0.settings, revoked: { ...st0.settings.revoked, [device]: true } } })); this.toast(`Signed out ${device}`); } })) };
+    // reports
+    const hasData = ["57.NYC", "SSH"].includes(s.repClient);
+    const wk = { "8W": 8, "4W": 4, "13W": 13 }[s.repRange];
+    const dl = [3, 2, 4, 3, 5, 2, 3, 3, 4, 2, 3, 5, 3].slice(0, wk), vw = [12, 19, 15, 31, 48, 27, 62, 77, 40, 35, 51, 66, 58].slice(0, wk);
+    const maxD = Math.max(...dl), maxV = Math.max(...vw);
+    const totalV = vw.reduce((a, b) => a + b, 0);
+    const rep = { has: hasData, empty: !hasData, acc: CA[s.repClient], range: `${s.repRange === "4W" ? "Jun 15" : s.repRange === "13W" ? "Apr 13" : "May 18"} – Jul 13, 2026`, prepared: "Prepared Jul 13, 2026", weekN: wk,
+      stats: [{ v: dl.reduce((a, b) => a + b, 0), k: "REELS DELIVERED" }, { v: s.repClient === "57.NYC" ? 2 : 3, k: "FILMS" }, { v: s.repClient === "57.NYC" ? 9 : 12, k: "STILLS" }, { v: "86%", k: "PUBLISH RATE" }, { v: `${totalV}k`, k: "VIEWS" }],
+      platforms: s.repClient === "57.NYC" ? [{ name: "Instagram", posts: 21, views: `${totalV}k`, median: "9.4k" }] : [{ name: "YouTube", posts: 6, views: `${totalV}k`, median: "31k" }],
+      top: [["IG_Jul06_ReelA.mp4", "Instagram", "Jul 9", "48.2k"], ["NYC_Rooftop_Reel_02.mp4", "Instagram", "Jul 3", "19.3k"], ["FW26_Reel_Runway.mp4", "Instagram", "Jun 12", "7.1k"], ["IG_Jul06_ReelB.mp4", "Instagram", "Jul 12", "2.4k"]].map(([n, p, d, v]) => ({ name: n, platform: p, date: d, views: v, bg: this.bg(n) })),
+      weeks: dl.map((d, i) => ({ dH: `${Math.round(d / maxD * 100)}%`, vH: `${Math.round(vw[i] / maxV * 100)}%`, dTitle: `${d} delivered`, vTitle: `${vw[i]}k views`, label: i === 0 || i === wk - 1 || wk <= 8 ? ["MAY 18", "MAY 25", "JUN 1", "JUN 8", "JUN 15", "JUN 22", "JUN 29", "JUL 6", "JUL 13", "", "", "", ""][i + (8 - Math.min(wk, 8))] ?? "" : "" })) };
+    // library
+    const TREE = [
+      ["57NYC", null, "folder", null], ["57NYC/2025-IG", "57NYC", "folder", null], ["57NYC/2025-IG/IG_Dec01_ReelA.mp4", "57NYC/2025-IG", "file", "1.4 GB"], ["57NYC/2025-IG/IG_Dec01_ReelB.mp4", "57NYC/2025-IG", "file", "1.6 GB"], ["57NYC/2025-IG/IG_Dec08_Carousel.jpg", "57NYC/2025-IG", "file", "8.2 MB"],
+      ["57NYC/Rooftop-BTS", "57NYC", "folder", null], ["57NYC/Rooftop-BTS/BTS_0702_01.mp4", "57NYC/Rooftop-BTS", "file", "3.1 GB"], ["57NYC/Rooftop-BTS/BTS_0702_02.mp4", "57NYC/Rooftop-BTS", "file", "2.8 GB"],
+      ["SSH", null, "folder", null], ["SSH/Aera-Selects", "SSH", "folder", null], ["SSH/Aera-Selects/Aera_Sel_01.jpg", "SSH/Aera-Selects", "file", "36 MB"], ["SSH/Aera-Selects/Aera_Sel_02.jpg", "SSH/Aera-Selects", "file", "34 MB"],
+      ["_loose", null, "folder", null], ["_loose/IMG_4432.jpg", "_loose", "file", "12 MB"], ["_loose/C0041.MP4", "_loose", "file", "5.9 GB"],
+    ];
+    const visible = TREE.filter(([p, parent]) => !parent || (s.libExpanded[parent] && (parent.split("/").every((_, i, a) => s.libExpanded[a.slice(0, i + 1).join("/")]))));
+    const pickedPaths = Object.keys(s.libPicked).filter(k => s.libPicked[k]);
+    const gb = (m) => m.endsWith("GB") ? parseFloat(m) : parseFloat(m) / 1000;
+    const pickedSize = pickedPaths.reduce((n, p) => n + gb(TREE.find(t => t[0] === p)?.[3] ?? "0 MB"), 0);
+    const targets = [["p8", "57.NYC · IG Posting"], ["p4", "57.NYC · Rooftop Series"], ["p2", "SSH · Aera"], ["si1", "Space Invaders · Reels"]];
+    const tgt = targets.find(t => t[0] === s.libTarget);
+    const fmtOf = (p) => s.libFormats[p] ?? (/\.(jpg|jpeg|png)$/i.test(p) ? "Still" : /BTS|C00/.test(p) ? "Film" : "Reel");
+    const dateOf = (p) => { const m = p.match(/(Dec|Jul|Jun)(\d{2})|_(\d{2})(\d{2})_/); return m ? (m[1] ? `2025-12-${m[2]}` : `2026-${m[3]}-${m[4]}`) : "2026-07-13"; };
+    const ak = knob(s.libAuto);
+    const lib = { root: "/volume1/media/_archive", pickedN: pickedPaths.length, pickedSize: `${pickedSize.toFixed(1)} GB`, hasPreview: !!s.libPreview && pickedPaths.length > 0, noPreview: !s.libPreview || pickedPaths.length === 0,
+      auto: s.libAuto, autoBorder: ak.border, autoKnobX: ak.knobX, autoKnobBg: ak.knobBg, toggleAuto: () => this.setState(st0 => ({ libAuto: !st0.libAuto, libPreview: null })),
+      rows: visible.map(([path, parent, kind, size]) => { const depth = path.split("/").length - 1; const isF = kind === "folder"; const kids = TREE.filter(t => t[1] === path || (t[0].startsWith(path + "/") && t[2] === "file")).filter(t => t[2] === "file"); const picked = isF ? kids.length > 0 && kids.every(k => s.libPicked[k[0]]) : !!s.libPicked[path];
+        return { name: path.split("/").pop(), indent: `${depth * 22}px`, caret: isF ? (s.libExpanded[path] ? "▾" : "▸") : "", meta: isF ? `${kids.length} files` : size, color: isF ? "var(--ink)" : "var(--body)", picked, check: picked ? "✓" : "", boxBorder: picked ? "var(--ink)" : "var(--rule2)", boxBg: picked ? "var(--ink)" : "transparent",
+          expand: () => isF && this.setState(st0 => ({ libExpanded: { ...st0.libExpanded, [path]: !st0.libExpanded[path] } })),
+          pick: () => this.setState(st0 => { const np = { ...st0.libPicked }; if (isF) kids.forEach(k => np[k[0]] = !picked); else np[path] = !picked; return { libPicked: np, libPreview: null }; }) }; }),
+      targets: targets.map(([id, label]) => ({ label, ...seg(s.libTarget === id), set: () => this.setState({ libTarget: id, libPreview: null }) })),
+      runPreview: () => { if (!pickedPaths.length) return this.toast("Pick some files first"); this.setState({ libPreview: true }); },
+      preview: pickedPaths.map(p => ({ dest: `${(tgt?.[1] ?? "").split(" · ")[1]} / ${s.libAuto ? dateOf(p) : "2026-07-13"} / ${fmtOf(p)} / ${p.split("/").pop()}`, fmt: fmtOf(p).toUpperCase(), cycle: () => { const c = ["Reel", "Film", "Still", "Master"]; this.setState(st0 => ({ libFormats: { ...st0.libFormats, [p]: c[(c.indexOf(fmtOf(p)) + 1) % 4] } })); } })),
+      register: () => { const n = pickedPaths.length; this.setState({ libPicked: {}, libPreview: null }); this.toast(`${n} file${n === 1 ? "" : "s"} registered to ${tgt?.[1]}`); } };
+    // team
+    const team = s.team.map(([nm, em, last, you], i) => ({ name: nm, email: em, last, you, initials: nm.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(), canRemove: !you,
+      removeLabel: s.teamConfirm === em ? "CONFIRM REMOVE" : "REMOVE", removeColor: s.teamConfirm === em ? "var(--warn)" : "var(--dim)",
+      remove: () => { if (s.teamConfirm !== em) return this.setState({ teamConfirm: em }); this.setState(st0 => ({ team: st0.team.filter(t => t[1] !== em), teamConfirm: null })); this.toast(`${nm} removed`); } }));
+    const narrow = !!this.props.mobile || s.vw < 720;
+    const M = narrow ? { switcher: "none", minH: "auto", headGap: "14px", headGap2: "12px", padHead: "14px 18px 12px", wide: "none", pad: "28px 18px 100px", padD: "24px 18px 140px", listTop: "minmax(0,1fr)", gap: "24px", gapL: "36px", gapS: "20px", gapS2: "14px", heroRatio: "4/5", tableHead: "none", indexCols: "24px minmax(0,1fr) auto",
+        detailHead: "minmax(0,1fr)", detailCols: "minmax(0,1fr)", railPos: "static", railItem: "none", postCols: "auto minmax(0,1fr)", actDir: "row", actCol: "1 / -1", fileMin: "104px", fileGap: "8px", selBottom: "12px", selW: "calc(100vw - 24px)", dlMin: "0", settingsCols: "minmax(0,1fr)", loginH: "auto", loginCols: "minmax(0,1fr)", padLogin: "28px 22px", vPad: "60px 16px 44px", vCapW: "100%", vTitle: "20px", vTop: "58px 18px 12px", weekTitle: "24px", weekWrap: "wrap", sheetPad: "14px 18px 48px" }
+      : { switcher: this.props.mobile ? "none" : "flex", minH: "100vh", headGap: "28px", headGap2: "18px", padHead: "20px 48px 16px", wide: "inline", pad: "56px 48px 120px", padD: "40px 48px 160px", listTop: "minmax(0,1.6fr) minmax(280px,1fr)", gap: "48px", gapL: "64px", gapS: "40px", gapS2: "20px", heroRatio: "21/9", tableHead: "grid", indexCols: "24px minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto",
+        detailHead: "minmax(0,1fr) auto", detailCols: "180px minmax(0,1fr)", railPos: "sticky", railItem: "flex", postCols: "auto minmax(0,1fr) auto", actDir: "column", actCol: "auto", fileMin: "170px", fileGap: "14px", selBottom: "24px", selW: "min(880px,calc(100vw - 96px))", dlMin: "260px", settingsCols: "160px minmax(0,1fr)", loginH: "calc(100vh - 34px)", loginCols: "minmax(0,1.3fr) minmax(360px,.9fr)", padLogin: "40px 56px", vPad: "40px 20px 18px", vCapW: "min(560px,100%)", vTitle: "24px", vTop: "18px 20px", weekTitle: "30px", weekWrap: "nowrap", sheetPad: "18px 28px 36px" };
+    return {
+      M, heart: s.heart,
+      isSettings: on("c-settings"), isReports: on("a-reports"), isLibrary: on("a-library"), isTeam: on("a-team"),
+      goSettings: this.go("c-settings"), goReports: this.go("a-reports"), goLibrary: this.go("a-library"), goTeam: this.go("a-team"),
+      setNavColor: navc("c-settings").color, setNavRule: navc("c-settings").rule, listNavColor: on("c-settings") ? "var(--dim)" : "var(--ink)", listNavRule: on("c-settings") ? "transparent" : "var(--ink)",
+      repNavColor: navc("a-reports").color, repNavRule: navc("a-reports").rule, libNavColor: navc("a-library").color, libNavRule: navc("a-library").rule, teamNavColor: navc("a-team").color, teamNavRule: navc("a-team").rule,
+      st, stName: setS("name"), stEmail: setS("email"), stPw0: setS("pw0"), stPw1: setS("pw1"), stPw2: setS("pw2"),
+      stSavePw: () => { if (!S.pw0 || S.pw1.length < 8) return this.toast("New password needs 8+ characters"); if (S.pw1 !== S.pw2) return this.toast("Passwords don't match"); this.setState(st0 => ({ settings: { ...st0.settings, pw0: "", pw1: "", pw2: "", revoked: { ...st0.settings.revoked, "iPhone · Safari": true, "Windows · Chrome": true } } })); this.toast("Password updated · other devices signed out"); },
+      repClient: s.repClient, rep, repTabs: clients.filter(c => c !== "Adam Knights" && c !== "Space Invaders").map(c => ({ label: c, acc: CA[c], ...seg(s.repClient === c), set: () => this.setState({ repClient: c }) })),
+      repRanges: ["4W", "8W", "13W"].map(r => ({ label: r, ...seg(s.repRange === r), set: () => this.setState({ repRange: r }) })),
+      printReport: () => this.toast("Opens print · saves as PDF"), repConnect: () => this.setState({ create: { mode: "account" }, cf: { ...cf, client: s.repClient, platform: "Instagram", who: "me" } }),
+      lib, team, addStaff: () => this.setState({ create: { mode: "staff" }, cf: { ...cf, owner: "", email: "" } }),
+      submitStaff: () => { if (!cf.owner.trim() || !cf.email.includes("@")) return this.setState({ create: { ...cr, error: "Name and a valid email are required." } }); this.setState(st0 => ({ team: [...st0.team, [cf.owner.trim(), cf.email.trim(), "invited", false]], create: { ...cr, done: true, temp: "kite-harbor-" + String(Math.floor(Math.random() * 9000) + 1000) } })); this.toast(`Login sent to ${cf.email.trim()}`); },
+    };
+  }
+  signIn(p) { const lf = this.state.lf; if (!lf.email.includes("@") || !lf.pw) return this.setState({ lf: { ...lf, error: "Email and password, please." } }); this.setState({ lf: { ...lf, busy: true } }); setTimeout(() => { this.go(p === "c" ? "c-list" : "a-today")(); this.setState({ lf: { email: "", pw: "", error: null, busy: false } }); }, 700); }
+  setTheme(k, v) { localStorage.setItem("bjur:v2:" + k, v); this.setState({ [k]: v }); }
+  allClients() { return { ...this.CLIENTS, ...this.state.extraClients }; }
+  slug(s) { return (s || "untitled").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+  cfSet(k) { return (e) => this.setState(s => ({ cf: { ...s.cf, [k]: e && e.target ? e.target.value : e }, create: s.create ? { ...s.create, error: null } : null })); }
+  vfiles() {
+    const P = this.portal(this.props.client ?? "57.NYC", this.state);
+    if (!P.files) return this.VFILES;
+    const wk = Object.fromEntries((P.weekDefs ?? []).map(([, short], i) => [i, short]));
+    return P.files.filter(f => f.fmt !== "Still").map(f => { const [m, sec] = f.badge.split(":").map(Number); return { id: f.id, name: f.name, dur: m * 60 + sec, size: f.size, week: wk[f.week] ?? "", specs: f.fmt === "Film" ? `3840×2160 · ${f.badge} · ProRes 4444 · Rec.709` : `1080×1920 · ${f.badge} · ProRes 422 · Rec.709`, film: f.fmt === "Film" }; });
+  }
+  vDur() { return this.vfiles().find(f => f.id === this.state.viewer)?.dur ?? 15; }
+  vStep(n) { const V = this.vfiles(); const i = V.findIndex(f => f.id === this.state.viewer); const nx = V[i + n]; if (nx) this.setState({ viewer: nx.id, vTime: 0, vPaused: false, sheet: false, vLift: false, vDl: null, vDlPct: 0 }); }
+  closeViewer() { this.setState({ viewer: null, sheet: false, vLift: false, vDl: null, vDlPct: 0 }); }
+  fmtT(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${m}:${String(s).padStart(2, "0")}`; }
+
+  toast(msg, undo) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: { msg, undo } });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 3600);
+  }
+  markSaved() { clearTimeout(this._savedT); this.setState({ saved: true }); this._savedT = setTimeout(() => this.setState({ saved: false }), 1600); }
+  bg(seed, dark) {
+    let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const hue = h % 360, hue2 = (hue + 40) % 360;
+    return dark ? `linear-gradient(160deg, oklch(0.42 0.06 ${hue}), oklch(0.22 0.04 ${hue2}))` : `linear-gradient(160deg, oklch(0.5 0.08 ${hue}), oklch(0.28 0.06 ${hue2}))`;
+  }
+  stateLabel(s) { return this.STATE[s]?.[0] ?? s; }
+  stateColor(s, acc, muted) { const c = this.STATE[s]?.[1]; return c === "acc" ? acc : c === "muted" ? muted : c; }
+  go(screen) { return () => { this.setState({ screen, selId: null, selected: {} }); window.scrollTo({ top: 0 }); }; }
+  setPost(id, state) { this.setState(s => ({ posts: { ...s.posts, [id]: { state } } })); }
+  patchBoard(id, patch) { this.setState(s => ({ board: { ...s.board, [id]: { ...s.board[id], ...patch } } })); }
+
+  renderVals() {
+    const s = this.state;
+    const clientName = this.props.client ?? "57.NYC";
+    const ALLC = this.allClients();
+    const cl = ALLC[clientName] ?? this.CLIENTS["57.NYC"];
+    const acc = cl.acc;
+    const isClient = s.screen.startsWith("c-");
+    const delay = (i, step = 45) => `${i * step}ms`;
+
+    const nav = [["c-login", "CLIENT · LOGIN"], ["c-list", "CLIENT · DELIVERIES"], ["c-detail", "CLIENT · PROJECT"], ["c-upload", "CLIENT · UPLOAD"], ["c-settings", "CLIENT · SETTINGS"], ["a-login", "ADMIN · LOGIN"], ["a-today", "ADMIN · TODAY"], ["a-board", "ADMIN · WEEK BOARD"], ["a-client", "ADMIN · CLIENT"], ["a-reports", "ADMIN · REPORTS"], ["a-library", "ADMIN · LIBRARY"], ["a-team", "ADMIN · TEAM"]].map(([id, label]) => ({
+      label, go: this.go(id), border: s.screen === id ? "var(--ink)" : "var(--rule2)", color: s.screen === id ? "var(--bg)" : "var(--dim)", bg: s.screen === id ? "var(--ink)" : "transparent" }));
+
+    const P = this.portal(clientName, s);
+    const posts = P.posts ?? [
+      { id: "a1", title: "TOVA (FAM ONLY)", caption: "Behind the scenes from the rooftop set — full film out Friday.", when: "THU JUL 16 · 10:00", platforms: "IG + YT", due: "Wed Jul 15, 10:00", dur: "0:15", week: 0, name: "IG_Jul13_ReelA.mp4" },
+      { id: "a2", title: "Golden hour, roof", caption: "Nothing beats golden hour on the roof.", when: "SAT JUL 18 · 17:00", platforms: "IG", dur: "0:18", week: 0, name: "IG_Jul13_ReelB.mp4" },
+      { id: "a3", title: "Rooftop — out now", caption: "Out now.", when: "PUBLISHED THU JUL 09", platforms: "IG", dur: "0:14", week: 1, name: "IG_Jul06_ReelA.mp4", stat: "48.2k views" },
+      { id: "a4", title: "Reel B", caption: "Needs a different opening line.", when: "HELD · WAS SUN JUL 19", platforms: "IG", dur: "0:16", week: 1, name: "IG_Jul06_ReelB.mp4" },
+    ];
+    const files = P.files ?? [
+      { id: "f1", name: "IG_Jul13_ReelA.mp4", fmt: "Reel", badge: "0:15", size: "1.5 GB", added: "Jul 13", week: 0, isNew: true },
+      { id: "f2", name: "IG_Jul13_ReelB.mp4", fmt: "Reel", badge: "0:18", size: "1.9 GB", added: "Jul 13", week: 0, isNew: true },
+      { id: "f3", name: "IG_Jul13_ReelC.mp4", fmt: "Reel", badge: "0:12", size: "1.3 GB", added: "Jul 13", week: 0, isNew: true },
+      { id: "f4", name: "IG_Jul06_ReelA.mp4", fmt: "Reel", badge: "0:14", size: "1.6 GB", added: "Jul 6", week: 1 },
+      { id: "f5", name: "IG_Jul06_ReelB.mp4", fmt: "Reel", badge: "0:16", size: "1.7 GB", added: "Jul 6", week: 1 },
+      { id: "f6", name: "IG_Jul06_Carousel.jpg", fmt: "Still", badge: "5000×5000", size: "9.1 MB", added: "Jul 6", week: 1 },
+    ];
+    const favN = Object.values(s.favorites).filter(Boolean).length;
+    const filters = [["ALL", "ALL"], ["Reel", "REELS"], ["Film", "FILMS"], ["Still", "STILLS"], ["FAV", `♥ ${favN}`]].filter(([id]) => id === "ALL" || id === "FAV" || files.some(f => f.fmt === id)).map(([id, label]) => ({
+      label, set: () => this.setState({ filter: id }), border: s.filter === id ? "var(--ink)" : "var(--rule)", color: s.filter === id ? "var(--bg)" : "var(--mut)", bg: s.filter === id ? "var(--ink)" : "transparent" }));
+    const vis = files.filter(f => s.filter === "ALL" || (s.filter === "FAV" ? s.favorites[f.id] : f.fmt === s.filter));
+    const weekDefs = P.weekDefs ?? [["Week of Jul 13", "JUL 13", "5.4 GB"], ["Week of Jul 6", "JUL 6", "3.3 GB"]];
+    let fileIdx = 0;
+    const weeks = weekDefs.map(([label, short, size], i) => {
+      const wf = vis.filter(f => f.week === i);
+      const wp = posts.filter(p => p.week === i && s.filter !== "FAV");
+      const allIn = wf.length > 0 && wf.every(f => s.selected[f.id]);
+      const active = (s.activeWeek ?? weekDefs[0][1]) === short;
+      return {
+        label, short, size, count: `${wf.length} file${wf.length === 1 ? "" : "s"}`, delay: delay(i, 120),
+        railColor: active ? "var(--ink)" : "var(--dim)", railBar: active ? "var(--acc)" : "transparent",
+        jump: () => { const el = document.querySelector(`[data-week="${short}"]`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: "smooth" }); },
+        selectLabel: allIn ? "CLEAR WEEK" : "SELECT WEEK",
+        selectAll: () => this.setState(st => { const sel = { ...st.selected }; wf.forEach(f => sel[f.id] = !allIn); return { selected: sel }; }),
+        posts: wp.map(p => {
+          if (p.review) { const rs = s.reviews[p.id] ?? "PENDING"; const lbl = { PENDING: "FOR YOUR REVIEW", APPROVED: "APPROVED", FEEDBACK: "FEEDBACK SENT" }[rs];
+            return { ...p, key: `${p.id}-${rs}`, bg: this.bg(p.name), state: lbl, stateColor: rs === "APPROVED" ? "var(--ok)" : rs === "PENDING" ? acc : "var(--dim)", actionable: false, review: rs === "PENDING", fbOpen: s.fbOpen === p.id, fbText: s.fbOpen === p.id ? s.fbText : "",
+              open: () => this.setState({ viewer: p.vid ?? null, vTime: 0, vPaused: false, chrome: true, sheet: false, vLift: false }),
+              approve: () => { this.setState(st => ({ reviews: { ...st.reviews, [p.id]: "APPROVED" }, fbOpen: null })); this.toast(`Approved · ${p.title}`, () => { this.setState(st => ({ reviews: { ...st.reviews, [p.id]: "PENDING" }, toast: null })); }); },
+              openFb: () => this.setState({ fbOpen: p.id, fbText: "" }), setFb: (e) => this.setState({ fbText: e.target.value }), cancelFb: () => this.setState({ fbOpen: null }),
+              sendFb: () => { if (!s.fbText.trim()) return; this.setState(st => ({ reviews: { ...st.reviews, [p.id]: "FEEDBACK" }, fbOpen: null })); this.toast("Feedback emailed to Bjur"); } }; }
+          const st = s.posts[p.id].state;
+          return { ...p, thumbW: "72px", ratio: "9/16", open: () => this.setState({ viewer: files.find(f => f.name === p.name)?.id ?? null, vTime: 0, vPaused: false, chrome: true, sheet: false, vLift: false }), key: `${p.id}-${st}`, bg: this.bg(p.name), state: this.stateLabel(st), stateColor: this.stateColor(st, acc, "var(--dim)"), actionable: st === "AWAITING", due: st === "AWAITING" ? p.due : null,
+            approve: () => { this.setPost(p.id, "APPROVED"); this.toast(`Approved · goes out ${p.when.replace(" · ", " at ").replace(/\b([A-Z])([A-Z]+)\b/g, (m, a, b) => a + b.toLowerCase())}`, () => { this.setPost(p.id, "AWAITING"); this.setState({ toast: null }); }); },
+            hold: () => { this.setPost(p.id, "DRAFT"); this.toast("On hold", () => { this.setPost(p.id, "AWAITING"); this.setState({ toast: null }); }); } };
+        }),
+        files: wf.map(f => ({ ...f, delay: delay(fileIdx++, 35), bg: this.bg(f.name), ratio: f.fmt === "Reel" ? "9/16" : f.fmt === "Film" ? "16/9" : "1/1", isVideo: f.fmt !== "Still",
+          outline: s.selected[f.id] ? `2px solid ${acc}` : "2px solid transparent", checkBg: s.selected[f.id] ? acc : "rgba(0,0,0,.3)", check: s.selected[f.id] ? "✓" : "", isSelected: !!s.selected[f.id],
+          favColor: s.favorites[f.id] ? acc : "var(--rule)",
+          open: () => { if (f.fmt !== "Still") this.setState({ viewer: f.id, vTime: 0, vPaused: false, chrome: true, sheet: false, vLift: false }); else this.toast("Photo viewer · unchanged"); },
+          toggle: (e) => { e.stopPropagation(); this.setState(st => ({ selected: { ...st.selected, [f.id]: !st.selected[f.id] } })); } })),
+      };
+    }).filter(w => w.files.length || w.posts.length);
+    const selIds = Object.keys(s.selected).filter(k => s.selected[k]);
+    const awaitingN = Object.values(s.posts).filter(p => p.state === "AWAITING").length;
+
+    const projects = P.projects ?? [
+      { id: "p8", title: "IG Posting", delivered: "Jul 13, 2026", meta: "5 reels · 1 still", size: "8.7 GB", path: "57NYC / IG-Posting", note: awaitingN ? `${awaitingN} post${awaitingN > 1 ? "s" : ""} need${awaitingN > 1 ? "" : "s"} your OK` : null },
+      { id: "p4", title: "Rooftop Series", delivered: "Jul 05, 2026", meta: "3 reels · 1 film · 1 still", size: "16.9 GB", path: "57NYC / Rooftop-Series / 2026-07" },
+      { id: "p5", title: "FW26 Lookbook", delivered: "Jun 12, 2026", meta: "4 stills · 1 reel", size: "2.4 GB", path: "57NYC / FW26-Lookbook / 2026-06" },
+    ];
+    const hero = { ...projects[0], bg: this.bg(projects[0].title), open: this.go("c-detail"), delivered: projects[0].delivered.slice(0, 6).toUpperCase() };
+
+    const CA = Object.fromEntries(Object.entries(ALLC).map(([k, v]) => [k, v.acc]));
+    const card = (id) => { const b = s.board[id]; return { id, ...b, bg: this.bg(b.name, true), ratio: "9/16", acc: CA[b.client],
+      state: this.ADMIN_STATE[b.state] ?? b.state, stateColor: b.state === "DRAFT" || b.state === "CHANGES" ? "#ffa08a" : b.state === "APPROVED" || b.state === "PUBLISHED" ? "#7fe0a6" : b.state === "AWAITING" ? "#f4f2ee" : "rgba(244,242,238,.6)",
+      title: b.title || b.name, outline: s.selId === id ? "2px solid var(--ink)" : "2px solid transparent", opacity: s.dragId === id ? 0.4 : 1,
+      dragStart: () => this.setState({ dragId: id }), select: () => this.setState({ selId: id }) }; };
+    const visible = Object.keys(s.board).filter(id => s.clientChip === "ALL" || s.board[id].client === s.clientChip);
+    const dows = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+    const dragging = !!s.dragId;
+    const days = dows.map((dow, i) => ({ dow, date: `JUL ${13 + i}`, color: i === 0 ? "var(--ink)" : "var(--dim)", colBg: dragging ? "var(--s2)" : i >= 5 ? "var(--s0)" : "var(--s1)",
+      ring: dragging ? "var(--rule2)" : "transparent", dropHint: dragging && s.board[s.dragId]?.day !== i,
+      cards: visible.filter(id => s.board[id].day === i).map(card),
+      drop: () => { const id = s.dragId; if (!id) return; const b = s.board[id]; const wasNew = b.day == null;
+        const autoAsk = false;
+        this.patchBoard(id, { day: i, time: b.time === "—" ? "10:00" : b.time, platforms: b.platforms === "—" ? "IG" : b.platforms, state: b.state === "NONE" ? (b.capSrc === "HUMAN" && b.caption.trim() ? "READY" : "DRAFT") : b.state });
+        this.setState({ dragId: null, selId: wasNew ? id : s.selId });
+        this.toast(`${b.title || b.name} → ${dow} Jul ${13 + i}${wasNew && !b.caption.trim() ? " · add a caption" : wasNew && b.capSrc === "AI" ? " · review caption" : ""}`, () => { this.patchBoard(id, { day: b.day, state: b.state, time: b.time, platforms: b.platforms }); this.setState({ toast: null }); }); } }));
+    const tray = visible.filter(id => s.board[id].day == null).map(card);
+    const clientChips = ["ALL", ...Object.keys(ALLC)].map(c => ({ label: c, acc: c === "ALL" ? "var(--dim)" : CA[c], set: () => this.setState({ clientChip: c }),
+      border: s.clientChip === c ? "var(--ink)" : "var(--rule2)", color: s.clientChip === c ? "var(--bg)" : "var(--dim)", bg: s.clientChip === c ? "var(--ink)" : "transparent" }));
+    const selB = s.selId ? s.board[s.selId] : null;
+    const sel = selB ? { ...card(s.selId), title: selB.title, sheetColor: selB.state === "DRAFT" || selB.state === "CHANGES" ? "var(--warn)" : selB.state === "APPROVED" || selB.state === "PUBLISHED" ? "var(--ok)" : selB.state === "AWAITING" ? "var(--ink)" : "var(--dim)", when: selB.day == null ? "Not scheduled" : `${dows[selB.day]} JUL ${13 + selB.day} · ${selB.time}`,
+      capLen: selB.caption.length, capLenColor: selB.caption.length > 2000 ? "var(--warn)" : "var(--dim2)", capTag: selB.capSrc === "AI" ? "· AI DRAFT" : "", capColor: "var(--warn)",
+      primary: selB.state === "DRAFT" || selB.state === "CHANGES" || (selB.state === "NONE" && selB.caption.trim()) ? "APPROVE CAPTION" : selB.state === "READY" ? "POST WEEK TO SLACK →" : "",
+      autoStatus: selB.state === "AWAITING" ? "IN SLACK · WAITING ON CLIENT" : selB.state === "APPROVED" ? "APPROVED IN SLACK · SCHEDULED" : selB.state === "NONE" && !selB.caption.trim() ? "ADD A CAPTION, THEN A DAY" : "", showPrimary: selB.state === "DRAFT" || selB.state === "CHANGES" || selB.state === "READY" || (selB.state === "NONE" && !!selB.caption.trim()),
+      footnote: selB.state === "AWAITING" ? "Client approves or requests changes in Slack." : selB.state === "CHANGES" ? "Client asked for changes in Slack. Edit, then approve again." : selB.day == null ? "Drag onto a day to schedule." : selB.capSrc === "AI" ? "AI draft. Read it, edit if needed, approve." : "Approved captions go out in the weekly Slack post." } : {};
+
+    const NEEDS = [
+      { id: "n1", kind: "FEEDBACK", client: "Space Invaders", subject: "Invaders — Set Recap · cut 2", quote: "Love it. Can we lose the last crowd shot and end on the sign?", body: "Marcus Lee · 2h ago", action: "OPEN REEL", dismissLabel: "DONE", bg: this.bg("SI_SetRecap_v2.mp4", true), ratio: "9/16", thumbW: "40px", color: "var(--warn)", go: () => this.setState({ viewer: null }) },
+      { id: "n2", kind: "APPROVED", client: "Adam Knights", subject: "Color pass v2 · cleared", body: "Adam Knights · 3h ago · deliver the master", action: "OPEN PROJECT", dismissLabel: "SEEN", bg: this.bg("AK_MV_Color_v2.mp4", true), ratio: "16/9", thumbW: "72px", color: "var(--ok)", go: () => { this.setState({ adminClient: "Adam Knights" }); this.go("a-client")(); } },
+      { id: "n3", kind: "UPLOAD LANDED", client: "Space Invaders", subject: "4 files · 64.7 GB", body: "A001_C012–C014.braw + audio · finished 06:40", action: "OPEN FOLDER", dismissLabel: "PULLED", bg: this.bg("A001_C012_0713R4.braw", true), ratio: "16/9", thumbW: "72px", color: "var(--ink)", go: () => this.toast("Opens /media/_submissions/spaceinvaders/2026-07-13") },
+      { id: "n4", kind: "ENCODE FAILED", client: "SSH", subject: "Aera_Reel_Detail.mp4", body: "ffmpeg exit 1 · unsupported pixel format", action: "RETRY", dismissLabel: "IGNORE", bg: this.bg("Aera_Reel_Detail.mp4", true), ratio: "9/16", thumbW: "40px", color: "var(--warn)", go: () => { this.setState(st => ({ dismissed: { ...st.dismissed, n4: true } })); this.toast("Re-queued · Aera_Reel_Detail.mp4"); } },
+    ];
+    const needs = NEEDS.filter(n => !s.dismissed[n.id]).map((n, i) => ({ ...n, delay: delay(i, 60), dismiss: () => { this.setState(st => ({ dismissed: { ...st.dismissed, [n.id]: true } })); this.toast(`${n.subject} · ${n.dismissLabel.toLowerCase()}`, () => this.setState(st => ({ dismissed: { ...st.dismissed, [n.id]: false }, toast: null }))); } }));
+    const activity = [
+      { when: "TODAY 09:12", who: "Marcus Lee", what: "left feedback on Set Recap cut 2", client: "Space Invaders" },
+      { when: "TODAY 08:55", who: "Mail", what: "review request sent to Marcus · Set Recap cut 2", client: "Space Invaders" },
+      { when: "TODAY 08:40", who: "Adam Knights", what: "approved Color pass v2", client: "Adam Knights" },
+      { when: "TODAY 06:40", who: "Upload", what: "4 files landed from Space Invaders", client: "Space Invaders" },
+      { when: "SUN 22:10", who: "You", what: "delivered 3 reels to IG Posting", client: "57.NYC" },
+      { when: "SUN 21:55", who: "Worker", what: "3 proxies ready", client: "57.NYC" },
+      { when: "FRI 17:00", who: "You", what: "posted Week of Jul 6 to #57nyc-content", client: "57.NYC" },
+      { when: "FRI 11:20", who: "Dana Okafor", what: "downloaded Rooftop Series · 16.9 GB", client: "57.NYC" },
+      { when: "THU 15:04", who: "You", what: "delivered Color pass v1", client: "Adam Knights" },
+    ];
+
+    // ── viewer
+    const VF = this.vfiles();
+    const vi = VF.findIndex(f => f.id === s.viewer);
+    const vf = vi >= 0 ? VF[vi] : null;
+    const tierDefs = [["Social & Digital", "Organic social, web & internal · 1 year", 1], ["Commercial & Broadcast", "Paid ads, TV / OTT, out-of-home · 2 years", 2], ["Full Buyout", "All media, worldwide, in perpetuity", 4]];
+    const tiers = vf ? tierDefs.map(([name, scope, mult], i) => ({ name, scope, price: `$${Math.round((vf.base ?? 0) * mult / 50) * 50}`, pick: () => this.setState({ tier: i }),
+      border: s.tier === i ? "var(--ink)" : "var(--rule)", bg: s.tier === i ? "var(--inkA)" : "transparent", dot: s.tier === i ? "var(--ink)" : "transparent" })) : [];
+    const v = vf ? { id: vf.id, name: vf.name, bg: this.bg(vf.name), dur: this.fmtT(vf.dur), size: vf.size, specs: vf.specs, weekLabel: vf.week, pos: vi + 1, total: VF.length, ratio: vf.film ? "16/9" : "9/16", h: vf.film ? "min(70vh, calc((100vw - 48px) * 9 / 16))" : "min(86vh,calc((100vw - 48px) * 16 / 9))",
+      prev: vi > 0 ? { bg: this.bg(VF[vi - 1].name) } : null, next: vi < VF.length - 1 ? { bg: this.bg(VF[vi + 1].name) } : null, noPrev: vi === 0, noNext: vi === VF.length - 1,
+      favColor: s.favorites[vf.id] ? acc : "rgba(255,255,255,.55)", post: (P.posts ?? posts).find(p => p.name === vf.name) ? (() => { const p = (P.posts ?? posts).find(p => p.name === vf.name); return { title: p.title, caption: p.caption, when: p.when }; })() : null, locked: !!vf.locked, sheetCta: vf.locked ? "UNLOCK MASTER" : "MASTER", sheetTag: vf.locked ? "BRAW · LICENSE REQUIRED" : "MASTER · READY", sheetTagColor: vf.locked ? "oklch(0.62 0.19 25)" : "var(--ok)",
+      master: vf.locked ? "BRAW · 53.1 GB" : `${vf.film ? "ProRes 4444" : "ProRes 422"} · ${vf.size}`, proxy: "H.264 1080p · streaming", license: vf.locked ? "Not licensed" : "Included · retainer" } : {};
+    const vDlLabel = s.vDl === "busy" ? `↓ DOWNLOADING · ${s.vDlPct}%` : s.vDl === "done" ? "✓ SAVED TO DOWNLOADS" : vf?.locked ? `PAY ${tiers[s.tier]?.price} · UNLOCK & DOWNLOAD` : "↓ DOWNLOAD MASTER";
+
+    // ── upload
+    const qTotal = s.queue.reduce((n, q) => n + q.gb, 0);
+    const qDone = s.queue.filter(q => q.pct === 100).length;
+    const queue = s.queue.map(q => ({ ...q, pct: `${q.pct}%`, barColor: q.pct === 100 ? "var(--ok)" : acc, size: `${q.gb.toFixed(1)} GB`,
+      status: q.pct === 100 ? "RECEIVED ✓" : q.pct === 0 ? "QUEUED" : s.queuePaused ? "PAUSED" : `${q.pct}%`, statusColor: q.pct === 100 ? "var(--ok)" : q.pct === 0 ? "var(--dim2)" : "var(--ink)" }));
+
+    // ── admin client
+    const clients = Object.keys(ALLC);
+    const caName = s.adminClient;
+    const extraP = (s.extraProjects[caName] ?? []).map(p => [p.id, p.title, "0 files · inbox watching", p.expires || null]);
+    const clientTabs = clients.map(c => ({ label: c, acc: CA[c], set: () => this.setState({ adminClient: c }), border: caName === c ? "var(--ink)" : "var(--rule2)", color: caName === c ? "var(--bg)" : "var(--dim)", bg: caName === c ? "var(--ink)" : "transparent" }));
+    const caProjects = { "57.NYC": [["p8", "IG Posting", "5 reels · 1 still · 8.7 GB", null], ["p4", "Rooftop Series", "3 reels · 1 film · 1 still · 16.9 GB", null], ["p5", "FW26 Lookbook", "4 stills · 1 reel · 2.4 GB", null]],
+      "SSH": [["p1", "Spring Campaign 2026", "3 reels · 2 films · 6 stills · 2 masters", null], ["p2", "Product Launch — Aera", "2 reels · 1 film · 3 stills · 1 master", null], ["p3", "Studio Portraits", "6 stills · 1 reel", null]],
+      "SUYINSAMA": [["p6", "Live Set — Warehouse", "2 reels · 1 film · 1 master", null]], "Halcyon Films": [["p7", "Brand Anthem — Delivery", "1 film · 1 reel · 1 still · 1 BRAW master", "SEP 01"]], "Space Invaders": [["si1", "Reels", "6 reels · 9.2 GB", null]], "Adam Knights": [["ak1", "Music Video — Color", "2 films · 21 GB", null]] }[caName] ?? [];
+    caProjects.unshift(...extraP);
+    const ex = s.extraClients[caName];
+    const caSeats = ({ "57.NYC": [["57 Studio", "studio@57.nyc", "OWNER", "2h ago"], ["Dana Okafor", "dana@57.nyc", "DOWNLOADER", "yesterday"]], "SSH": [["Sasha Hale", "sasha@ssh.studio", "OWNER", "3d ago"], ["Marco Vidal", "marco@ssh.studio", "DOWNLOADER", "1w ago"]],
+      "SUYINSAMA": [["Suyin Sama", "suyin@suyinsama.com", "OWNER", "5d ago"], ["Studio Team", "team@suyinsama.com", "VIEWER", "never"]], "Halcyon Films": [["Ivy Chen", "ivy@halcyon.film", "OWNER", "Jul 4"]], "Space Invaders": [["Marcus Lee", "marcus@spaceinvaders.nyc", "OWNER", "1d ago"]], "Adam Knights": [["Adam Knights", "adam@adamknights.com", "OWNER", "3h ago"]] })[caName] ?? [[ex?.user ?? "Owner", ex?.email ?? "", "OWNER", "invited"]];
+    caSeats.push(...(s.extraSeats[caName] ?? []));
+    const extraAcc = s.extraAccounts[caName] ?? [];
+    const caAccounts = ({ "57.NYC": [["@57nyc", "Instagram", "SYNCED 1D", "var(--ok)"]], "SSH": [["@sshstudio", "YouTube", "SYNCED 1D", "var(--ok)"]], "SUYINSAMA": [["@suyinsama", "Instagram", "TOKEN EXPIRED", "var(--warn)"]], "Halcyon Films": [["—", "Not linked", "", "var(--dim2)"]] })[caName] ?? [["—", "Not linked", "", "var(--dim2)"]];
+    const knob = (on) => ({ knobX: on ? "14px" : "2px", knobBg: on ? "var(--ink)" : "var(--dim2)", border: on ? "var(--ink)" : "var(--rule3)" });
+    const ca = { name: caName, acc: CA[caName], type: "CLIENT", since: caName === "Halcyon Films" || ex ? "JUL 2026" : "2025", projectsN: caProjects.length, files: caName === "57.NYC" ? "31 files · 28 GB" : "—", views: caName === "57.NYC" ? "291k" : "—",
+      projects: caProjects.map(([id, title, meta, exp], i) => { const sv = this.svc(id); return { id, title, meta, delay: delay(i, 50), expiry: exp ? `UNTIL ${exp}` : "NO EXPIRY", expColor: exp ? "var(--warn)" : "var(--dim2)",
+        services: [["calendar", "CALENDAR → SLACK", "Schedule on the board, post the week to Slack"], ["review", "REVIEW", "Every upload emails the owner to approve or send notes"], ["uploads", "UPLOADS", "Client can send footage"]].map(([k, label, hint]) => { const on = !!sv[k]; const kn = knob(on); return { label, hint, on, color: on ? "var(--ink)" : "var(--dim2)", border: kn.border, knobX: on ? "13px" : "2px", knobBg: kn.knobBg,
+          toggle: () => { this.setState(st => ({ services: { ...st.services, [id]: { ...this.svc(id), [k]: !on } }, uploadsByProject: k === "uploads" ? { ...st.uploadsByProject, [id]: !on } : st.uploadsByProject })); this.toast(`${title} · ${label.toLowerCase()} ${on ? "off" : "on"}`); } }; }) }; }),
+      seats: caSeats.map(([name, email, role, last]) => ({ name, email, role, last, initials: name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() })),
+      accounts: [...(extraAcc.length ? caAccounts.filter(a => a[0] !== "—") : caAccounts), ...extraAcc].map(([handle, platform, status, color]) => ({ handle, platform, status, color })) };
+    const acK = knob(s.autoCaption);
+    const mailRules = [["delivery", "New delivery", "When files land"], ["weekly", "Weekly digest", "Mondays 09:00"], ["expiry", "Expiry reminder", "14 · 7 · 3 days before close"]]
+      .map(([id, name, when, fixed]) => ({ id, name, when, fixed: !!fixed, opacity: fixed ? .45 : 1, cursor: fixed ? "default" : "pointer", on: fixed || !!s.mail[id], ...knob(fixed || !!s.mail[id]), toggle: () => { if (fixed) return this.toast("Always on for AI captions"); this.setState(st => ({ mail: { ...st.mail, [id]: !st.mail[id] } })); } }));
+
+    // ── create sheet
+    const cr = s.create, cf = s.cf;
+    const seg = (on) => ({ border: on ? "var(--ink)" : "var(--rule2)", color: on ? "var(--bg)" : "var(--dim)", bg: on ? "var(--ink)" : "transparent" });
+    const pickType = ALLC[cf.client]?.type ?? (cf.client === "Halcyon Films" ? "ONEOFF" : "RETAINER");
+    const upK = knob(cf.uploads);
+    const cm = cr ? { isClient: cr.mode === "client", isProject: cr.mode === "project", isSeat: cr.mode === "seat", done: !!cr.done,
+      isSlack: cr.mode === "slack", tabsVis: cr.mode === "slack" || cr.mode === "staff" ? "hidden" : "visible", isStaff: cr.mode === "staff", slackAcc: CA[cf.client] ?? "var(--dim)",
+      isAccount: cr.mode === "account", acctBorder: seg(cr.mode === "account").border, acctColor: seg(cr.mode === "account").color, acctBg: seg(cr.mode === "account").bg,
+      platforms: [["Instagram", "Reels · views, reach"], ["YouTube", "Shorts & films · views"]].map(([name, desc]) => ({ name, desc, pick: () => this.cfSet("platform")(name), border: cf.platform === name ? "var(--ink)" : "var(--rule2)", bg: cf.platform === name ? "var(--inkA)" : "transparent" })),
+      meBorder: cf.who === "me" ? "var(--ink)" : "var(--rule2)", meBg: cf.who === "me" ? "var(--inkA)" : "transparent", ownerBorder: cf.who === "owner" ? "var(--ink)" : "var(--rule2)", ownerBg: cf.who === "owner" ? "var(--inkA)" : "transparent",
+      acctCta: cf.who === "me" ? `CONTINUE TO ${cf.platform.toUpperCase()} →` : "EMAIL CONNECT LINK", acctHandle: cr.handle, acctDoneKicker: cf.who === "me" ? "CONNECTED" : "LINK SENT", acctDoneNote: cf.who === "me" ? "First sync runs tonight." : "Shows here once the owner connects. Link expires in 7 days.",
+      seatBorder: seg(cr.mode === "seat").border, seatColor: seg(cr.mode === "seat").color, seatBg: seg(cr.mode === "seat").bg,
+      roles: [["OWNER", "Approves posts, manages seats."], ["DOWNLOADER", "View + download."], ["VIEWER", "View only."]].map(([name, desc]) => ({ name, desc, pick: () => this.cfSet("role")(name), border: cf.role === name ? "var(--ink)" : "var(--rule2)", bg: cf.role === name ? "var(--inkA)" : "transparent" })), notDone: !cr.done, error: cr.error, temp: cr.temp, slug: this.slug(cf.name), projSlug: this.slug(cf.title),
+      clientBorder: seg(cr.mode === "client").border, clientColor: seg(cr.mode === "client").color, clientBg: seg(cr.mode === "client").bg,
+      projectBorder: seg(cr.mode === "project").border, projectColor: seg(cr.mode === "project").color, projectBg: seg(cr.mode === "project").bg,
+      retBorder: cf.type === "RETAINER" ? "var(--ink)" : "var(--rule2)", retBg: cf.type === "RETAINER" ? "var(--inkA)" : "transparent",
+      oneBorder: cf.type === "ONEOFF" ? "var(--ink)" : "var(--rule2)", oneBg: cf.type === "ONEOFF" ? "var(--inkA)" : "transparent",
+      swatches: ["oklch(0.6 0.17 145)", "oklch(0.6 0.16 250)", "oklch(0.7 0.17 80)", "oklch(0.62 0.19 25)", "oklch(0.6 0.15 320)"].map(c => ({ color: c, ring: cf.accent === c ? "var(--ink)" : "transparent", pick: () => this.cfSet("accent")(c) })),
+      clientPicks: clients.map(c => ({ label: c, acc: CA[c], ...seg(cf.client === c), pick: () => this.cfSet("client")(c) })),
+      newServices: [["calendar", "Calendar → Slack", "Schedule reels on the board; you post the week to Slack."], ["review", "Review & feedback", "Each upload is emailed to the client to approve or send notes."], ["uploads", "Client uploads", "Client can send footage."]].map(([k, label, hint]) => { const on = !!cf[k]; const kn = knob(on); return { label, hint, on, border: kn.border, knobX: kn.knobX, knobBg: kn.knobBg, toggle: () => this.cfSet(k)(!on) }; }) } : {};
+
+    const slackProjects = [...new Set(Object.values(s.board).filter(b => b.client === cf.client).map(b => b.project))];
+    const slackProject = slackProjects.includes(cf.slackProject) ? cf.slackProject : slackProjects[0];
+    const slackCards = Object.keys(s.board).filter(id => s.board[id].day != null && s.board[id].client === cf.client && s.board[id].project === slackProject).sort((a, b) => s.board[a].day - s.board[b].day);
+    const slackPreview = { title: `${slackProject} · Week of Jul 13`, empty: slackCards.length === 0,
+      projects: slackProjects.map(p => ({ label: p, pick: () => this.cfSet("slackProject")(p), ...seg(p === slackProject) })),
+      lines: slackCards.map(id => { const b = s.board[id]; return { id, text: `${dows[b.day][0]}${dows[b.day].slice(1, 3).toLowerCase()} Jul ${13 + b.day} · ${b.time} — ${b.title || b.name} · ${b.platforms}`, tag: b.state === "DRAFT" || b.state === "CHANGES" ? "NOT REVIEWED" : "", tagColor: "var(--warn)", inSlack: b.state === "AWAITING" || b.state === "APPROVED", slackState: this.ADMIN_STATE[b.state], slackColor: b.state === "APPROVED" ? "var(--ok)" : b.state === "CHANGES" ? "var(--warn)" : "var(--dim)",
+        approve: () => { this.patchBoard(id, { state: "APPROVED" }); this.toast(`${b.title || b.name} approved in Slack`); }, changes: () => { this.patchBoard(id, { state: "CHANGES" }); this.toast(`Changes requested · ${b.title || b.name}`); } }; }),
+      unreviewed: slackCards.filter(id => s.board[id].state === "DRAFT" || s.board[id].state === "CHANGES").length };
+    const slackTarget = cf.client === "57.NYC" ? s.slackChannel : `#${this.slug(cf.client).replace(/-/g, "")}-content`;
+
+    return {
+      TD: this.TOK.dark, TC: this.TOK[s.themeC], TA: this.TOK[s.themeA],
+      ...this.extraVals(s, clientName, cl, CA, clients, delay, knob, seg, cf, cr),
+      cLogin: s.screen === "c-login", aLogin: s.screen === "a-login", cAuthed: s.screen !== "c-login", aAuthed: s.screen !== "a-login",
+      lf: { ...s.lf, cta: s.lf.busy ? "SIGNING IN…" : "SIGN IN →" }, lfEmail: (e) => this.setState({ lf: { ...s.lf, email: e.target.value, error: null } }), lfPw: (e) => this.setState({ lf: { ...s.lf, pw: e.target.value, error: null } }),
+      lfKey: (e) => { if (e.key === "Enter") (s.screen === "c-login" ? this.signIn("c") : this.signIn("a")); }, signInC: () => this.signIn("c"), signInA: () => this.signIn("a"),
+      lfForgot: () => this.toast(s.lf.email.includes("@") ? `Reset link sent to ${s.lf.email}` : "Enter your email first"),
+      signOutC: () => { this.go("c-login")(); this.setState({ lf: { email: "", pw: "", error: null, busy: false } }); }, signOutA: () => { this.go("a-login")(); this.setState({ lf: { email: "", pw: "", error: null, busy: false } }); },
+      themeCLabel: s.themeC === "light" ? "☾ DARK" : "☼ LIGHT", themeALabel: s.themeA === "dark" ? "☼ LIGHT" : "☾ DARK",
+      toggleThemeC: () => this.setTheme("themeC", s.themeC === "light" ? "dark" : "light"), toggleThemeA: () => this.setTheme("themeA", s.themeA === "dark" ? "light" : "dark"),
+      acc, nav, isClient, isAdmin: !isClient, clientName, userName: cl.user, todayLabel: "MON JUL 13, 2026",
+      slackConnected: s.slackConnected, slackNotConnected: !s.slackConnected, slackBtn: s.slackConnected ? "POST TO SLACK" : "CONNECT SLACK",
+      slackLink: s.slackConnected ? "POST NOW" : "+ CONNECT", slackLinkColor: s.slackConnected ? "var(--ink)" : "var(--warn)", slackDefault: s.slackDefault, setSlackDefault: (e) => this.setState({ slackDefault: e.target.value }),
+      openSlack: () => this.setState({ create: { mode: "slack" }, cf: { ...cf, client: s.screen === "a-client" ? caName : (s.clientChip === "ALL" ? "57.NYC" : s.clientChip) } }),
+      connectSlack: () => { this.setState({ slackConnected: true }); this.toast("Slack connected · bjurmedia.slack.com"); },
+      slackPreview, slackTarget, postSlack: () => { if (slackPreview.empty) return this.toast("Nothing to post"); if (slackPreview.unreviewed) return this.toast(`${slackPreview.unreviewed} caption${slackPreview.unreviewed > 1 ? "s" : ""} not reviewed yet`); slackCards.forEach(id => { if (s.board[id].state === "READY") this.patchBoard(id, { state: "AWAITING" }); }); this.setState({ create: { ...cr, done: true } }); this.toast(`Posted to ${slackTarget}`); },
+      createOpen: !!cr, cm, cf, closeCreate: () => this.setState({ create: null }),
+      newClient: () => this.setState({ create: { mode: "client" }, cf: { ...cf, name: "", owner: "", email: "", type: "RETAINER" } }),
+      newProject: () => this.setState({ create: { mode: "project" }, cf: { ...cf, title: "", expires: "", uploads: false, calendar: false, review: false, client: s.screen === "a-client" ? caName : cf.client } }),
+      createModeClient: () => this.setState({ create: { mode: "client" } }), createModeProject: () => this.setState({ create: { mode: "project" }, cf: { ...cf, title: "", expires: "", uploads: false, client: cr?.done && cr.mode === "client" ? cf.name : cf.client } }),
+      cfName: this.cfSet("name"), cfOwner: this.cfSet("owner"), cfEmail: this.cfSet("email"), cfTitle: this.cfSet("title"), cfExpires: this.cfSet("expires"),
+      cfRetainer: () => this.cfSet("type")("RETAINER"), cfOneoff: () => this.cfSet("type")("ONEOFF"), cfToggleUploads: () => this.cfSet("uploads")(!cf.uploads),
+      submitClient: () => { if (!cf.name.trim() || !cf.owner.trim() || !cf.email.includes("@")) return this.setState({ create: { ...cr, error: "Client name, owner name and a valid owner email are required." } });
+        this.setState(st => ({ extraClients: { ...st.extraClients, [cf.name.trim()]: { acc: cf.accent, user: cf.owner.trim(), email: cf.email.trim(), type: cf.type } }, create: { ...cr, done: true, temp: "kite-harbor-" + String(Math.floor(Math.random() * 9000) + 1000) } }));
+        this.toast(`Invite sent to ${cf.email.trim()}`); },
+      openNewClient: () => { this.setState({ adminClient: cf.name.trim(), create: null, screen: "a-client" }); window.scrollTo({ top: 0 }); },
+      submitProject: () => { if (!cf.title.trim()) return this.setState({ create: { ...cr, error: "Give the project a title." } }); const id = "px-" + this.slug(cf.title);
+        this.setState(st => ({ extraProjects: { ...st.extraProjects, [cf.client]: [{ id, title: cf.title.trim(), expires: cf.expires ? cf.expires.toUpperCase() : null }, ...(st.extraProjects[cf.client] ?? [])] }, uploadsByProject: { ...st.uploadsByProject, [id]: cf.uploads }, services: { ...st.services, [id]: { calendar: cf.calendar, review: cf.review, uploads: cf.uploads } }, adminClient: cf.client, create: { ...cr, done: true } }));
+        this.toast(`${cf.title.trim()} created`); },
+      isUpload: s.screen === "c-upload", isClientAdmin: s.screen === "a-client", goUpload: this.go("c-upload"), goDetail: this.go("c-detail"), goClient: this.go("a-client"),
+      clientNavColor: s.screen === "a-client" ? "var(--ink)" : "var(--dim)", clientNavRule: s.screen === "a-client" ? "var(--ink)" : "transparent",
+      uploadsOpen: !!s.uploadsByProject.p8,
+      viewerOpen: !!vf, v, tiers, vTime: this.fmtT(s.vTime), vPct: vf ? `${Math.min(100, s.vTime / vf.dur * 100)}%` : "0%", vPaused: s.vPaused, vPlayGlyph: s.vPaused ? "▶" : "❚❚", vMuteGlyph: s.vMuted ? "MUTED" : "SOUND",
+      chromeOpacity: s.chrome || s.sheet ? 1 : 0, vLift: s.vLift ? "-6vh" : "0", sheet: s.sheet,
+      closeViewer: (e) => { e.stopPropagation(); this.closeViewer(); }, vPrev: (e) => { e.stopPropagation(); this.vStep(-1); }, vNext: (e) => { e.stopPropagation(); this.vStep(1); },
+      vToggle: (e) => { e.stopPropagation(); this.setState(st => ({ vPaused: !st.vPaused })); }, vMute: (e) => { e.stopPropagation(); this.setState(st => ({ vMuted: !st.vMuted })); },
+      vSeek: (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); this.setState({ vTime: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (vf?.dur ?? 15) }); },
+      openSheet: (e) => { e.stopPropagation(); this.setState({ sheet: true, vLift: true }); }, closeSheetV: (e) => { e.stopPropagation(); this.setState({ sheet: false, vLift: false }); }, stop: (e) => e.stopPropagation(),
+      vDown: (e) => { if (s.sheet || this._settling || this._p) return; this._p = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId }; this._dragging = false; this._track = e.currentTarget.querySelector("[data-vtrack]"); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      vMove: (e) => { if (!this._p || s.sheet || this._settling || !this._track) return; const dx = e.clientX - this._p.x, dy = e.clientY - this._p.y; if (!this._dragging && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) { this._dragging = true; this._track.style.transition = "none"; } if (this._dragging) { const canL = vi < VF.length - 1, canR = vi > 0; const lim = (dx < 0 && !canL) || (dx > 0 && !canR) ? dx * .25 : dx; this._track.style.transform = `translateX(${lim}px)`; } },
+      vUp: (e) => { if (!this._p) return; const dx = e.clientX - this._p.x, dy = e.clientY - this._p.y, dt = Date.now() - this._p.t; try { e.currentTarget.releasePointerCapture(this._p.id); } catch (_) {} this._p = null; const wasDrag = this._dragging; this._dragging = false; const track = this._track;
+        if (s.sheet) return; if (!wasDrag && dy < -50 && Math.abs(dx) < 60) return this.setState({ sheet: true, vLift: true });
+        if (wasDrag && track) { const w = e.currentTarget.getBoundingClientRect().width; const vel = Math.abs(dx) / Math.max(dt, 1); const dir = dx < 0 ? 1 : -1; const commit = (Math.abs(dx) > w * .22 || vel > .5) && ((dir === 1 && vi < VF.length - 1) || (dir === -1 && vi > 0));
+          track.style.transition = "transform .38s cubic-bezier(.2,.8,.2,1)"; this._settling = true;
+          if (commit) { track.style.transform = `translateX(${-dir * w}px)`; setTimeout(() => { track.style.transition = "none"; track.style.transform = "translateX(0px)"; this._settling = false; this.vStep(dir); }, 390); }
+          else { track.style.transform = "translateX(0px)"; setTimeout(() => { this._settling = false; }, 390); } return; }
+        if (dt < 300 && Math.abs(dx) < 8 && Math.abs(dy) < 8 && !e.target.closest("button")) { const now = Date.now(); if (this._lastTap && now - this._lastTap < 320) { this._lastTap = 0; clearTimeout(this._tapT); const id = s.viewer; this.setState(st => ({ favorites: { ...st.favorites, [id]: !st.favorites[id] }, heart: true, chrome: st.chrome })); clearTimeout(this._heartT); this._heartT = setTimeout(() => this.setState({ heart: false }), 750); } else { this._lastTap = now; clearTimeout(this._tapT); this._tapT = setTimeout(() => this.setState(st => ({ chrome: !st.chrome })), 260); } } },
+      vDlBusy: s.vDl === "busy", vDlPct: `${s.vDlPct}%`, vDlBg: s.vDl === "done" ? "var(--ok)" : "var(--ink)", vDlLabel,
+      vDownload: (e) => { e.stopPropagation(); if (s.vDl) return; this.setState({ vDl: "busy", vDlPct: 0 }); if (vf?.locked) this.toast(`Licensed · ${tierDefs[s.tier][0]} · receipt emailed`); },
+      queue, hasQueue: s.queue.length > 0, queueLabel: `${qDone} / ${s.queue.length} FILES`, queueTotal: `${qTotal.toFixed(1)} GB`, queueNote: s.queuePaused ? "Paused" : qDone === s.queue.length ? "All received" : "Resumes automatically if the connection drops",
+      pauseLabel: s.queuePaused ? "RESUME" : "PAUSE", pauseQueue: () => this.setState(st => ({ queuePaused: !st.queuePaused })),
+      dropTitle: s.queue.length ? "Drop more files" : "Drop files here, or click to choose", dropBorder: "var(--dim2)", dropBg: "transparent",
+      simulateDrop: (e) => { e.preventDefault(); if (s.queue.length) return; this.setState({ queue: [{ name: "A001_C012_0713R4.braw", gb: 21.4, pct: 0 }, { name: "A001_C013_0713R4.braw", gb: 18.9, pct: 0 }, { name: "A001_C014_0713R4.braw", gb: 24.1, pct: 0 }, { name: "Audio/Sc3_Tk2.wav", gb: 0.3, pct: 0 }] }); },
+      clientTabs, ca, autoCaption: s.autoCaption, acBorder: acK.border, acKnobX: acK.knobX, acKnobBg: acK.knobBg, styleGuide: s.styleGuide, slackChannel: s.slackChannel, mailRules,
+      toggleAutoCaption: () => this.setState(st => ({ autoCaption: !st.autoCaption })), setStyle: (e) => { this.setState({ styleGuide: e.target.value }); this.markSaved(); }, setSlack: (e) => this.setState({ slackChannel: e.target.value }),
+      inviteSeat: () => this.setState({ create: { mode: "seat" }, cf: { ...cf, owner: "", email: "", role: "DOWNLOADER", client: caName } }),
+      connectAccount: () => this.setState({ create: { mode: "account" }, cf: { ...cf, client: caName, platform: "Instagram", who: "me" } }),
+      createModeAccount: () => this.setState({ create: { mode: "account" }, cf: { ...cf, platform: "Instagram", who: "me", client: s.screen === "a-client" ? caName : (cr?.done && cr.mode === "client" ? cf.name : cf.client) } }),
+      cfWhoMe: () => this.cfSet("who")("me"), cfWhoOwner: () => this.cfSet("who")("owner"),
+      submitAccount: () => { const handle = "@" + this.slug(cf.client).replace(/-/g, ""); const row = cf.who === "me" ? [handle, cf.platform, "CONNECTED · SYNCS TONIGHT", "var(--ok)"] : ["—", cf.platform, "LINK SENT", "var(--dim)"];
+        this.setState(st => ({ extraAccounts: { ...st.extraAccounts, [cf.client]: [...(st.extraAccounts[cf.client] ?? []), row] }, adminClient: cf.client, create: { ...cr, done: true, handle: cf.who === "me" ? handle : cf.platform } }));
+        this.toast(cf.who === "me" ? `${handle} connected` : `Connect link emailed to ${cf.client}'s owner`); },
+      createModeSeat: () => this.setState({ create: { mode: "seat" }, cf: { ...cf, owner: "", email: "", role: "DOWNLOADER", client: s.screen === "a-client" ? caName : cf.client } }),
+      submitSeat: () => { if (!cf.owner.trim() || !cf.email.includes("@")) return this.setState({ create: { ...cr, error: "Name and a valid email are required." } });
+        this.setState(st => ({ extraSeats: { ...st.extraSeats, [cf.client]: [...(st.extraSeats[cf.client] ?? []), [cf.owner.trim(), cf.email.trim(), cf.role, "invited"]] }, adminClient: cf.client, create: { ...cr, done: true, temp: "kite-harbor-" + String(Math.floor(Math.random() * 9000) + 1000) } }));
+        this.toast(`Invite sent to ${cf.email.trim()}`); },
+      isList: s.screen === "c-list", isDetail: s.screen === "c-detail", isToday: s.screen === "a-today", isBoard: s.screen === "a-board",
+      todayNavColor: s.screen === "a-today" ? "var(--ink)" : "var(--dim)", todayNavRule: s.screen === "a-today" ? "var(--ink)" : "transparent",
+      boardNavColor: s.screen === "a-board" ? "var(--ink)" : "var(--dim)", boardNavRule: s.screen === "a-board" ? "var(--ink)" : "transparent",
+      goList: this.go("c-list"), goDetailApprovals: this.go("c-detail"), goToday: this.go("a-today"), goBoard: this.go("a-board"),
+      projectCount: projects.length, hasAwaiting: (P.posts ? P.pendingN(s) > 0 : awaitingN > 0) && (this.props.showApprovals ?? true),
+      awaitingLabel: P.posts ? `${P.pendingN(s)} waiting for your review` : `${awaitingN} post${awaitingN > 1 ? "s" : ""} need${awaitingN > 1 ? "" : "s"} your OK`, awaitingSub: P.awaitingSub ?? "IG Posting · publishes Wed Jul 15 if not held",
+      hero, index: projects.slice(1).map((p, i) => ({ ...p, delay: delay(i + 2, 70), bg: this.bg(p.title), open: this.go("c-detail") })),
+      detail: P.detail ?? { title: "IG Posting", path: "IG-POSTING", meta: "5 reels · 1 still", size: "8.7 GB", delivered: "Jul 13, 2026", views: "48.2k views across 1 post" },
+      dlBusy: s.dl === "busy", dlBg: s.dl === "done" ? "var(--ok)" : "var(--ink)",
+      dlLabel: s.dl === "busy" ? "↓ ZIPPING… 1.2 GB" : s.dl === "done" ? `✓ SAVED · ${this.slug((P.detail ?? { title: "IG Posting" }).title)}.zip` : `↓ DOWNLOAD ALL · ${(P.detail ?? { size: "8.7 GB" }).size}`,
+      downloadAll: () => { if (s.dl) return; this.setState({ dl: "busy" }); setTimeout(() => this.setState({ dl: "done" }), 2400); setTimeout(() => this.setState({ dl: null }), 5200); },
+      filters, weeks, hasSelection: selIds.length > 0, selCount: selIds.length, selSize: `${(selIds.length * 1.6).toFixed(1)} GB`,
+      clearSel: () => this.setState({ selected: {} }),
+      favSel: () => this.setState(st => { const f = { ...st.favorites }; selIds.forEach(id => f[id] = true); return { favorites: f, selected: {} }; }, () => this.toast(`${selIds.length} added to favorites`)),
+      toast: s.toast, toastBottom: selIds.length ? "96px" : "24px",
+      queueCount: 2, needs, hasNeeds: needs.length > 0, needsHeadline: needs.length ? `${needs.length} thing${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you.` : "Nothing needs you.", activity, activityCount: `${activity.length} · 7 DAYS`,
+      slackDot: s.slackConnected ? "var(--ok)" : "var(--warn)", slackStatus: s.slackConnected ? "CONNECTED" : "NOT CONNECTED", syncBroken: !s.syncFixed, syncDot: s.syncFixed ? "var(--ok)" : "var(--warn)", syncStatus: s.syncFixed ? "ACCOUNTS · 3 SYNCED" : "ACCOUNTS · @SUYINSAMA TOKEN EXPIRED", reconnectSync: () => { this.setState({ syncFixed: true }); this.toast("@suyinsama reconnected"); },
+      clientChips, days, tray, trayCount: tray.length, trayEmpty: tray.length === 0, trayBorder: dragging ? "var(--rule3)" : "var(--rule2)",
+      allowDrop: (e) => e.preventDefault(), dragEnd: () => this.setState({ dragId: null }),
+      dropTray: () => { const id = s.dragId; if (!id) return; const b = s.board[id]; this.patchBoard(id, { day: null, state: "NONE" }); this.setState({ dragId: null }); this.toast(`${b.title || b.name} unscheduled`, () => { this.patchBoard(id, { day: b.day, state: b.state }); this.setState({ toast: null }); }); },
+      sheetOpen: !!selB, sel, savedOpacity: s.saved ? 1 : 0, closeSheet: () => this.setState({ selId: null }),
+      setTitle: (e) => { this.patchBoard(s.selId, { title: e.target.value }); this.markSaved(); },
+      setCaption: (e) => { this.patchBoard(s.selId, { caption: e.target.value, capSrc: "HUMAN" }); this.markSaved(); },
+      sendApproval: () => { if (!selB) return; if (selB.state === "READY") return this.setState({ create: { mode: "slack" }, cf: { ...cf, client: selB.client, slackProject: selB.project }, selId: null }); const prev = selB.state; this.patchBoard(s.selId, { state: selB.day == null ? "NONE" : "READY", capSrc: "HUMAN", reviewed: true }); this.toast("Caption approved", () => { this.patchBoard(s.selId, { state: prev }); this.setState({ toast: null }); }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

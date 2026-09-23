@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#e9e6e0;}
+*{box-sizing:border-box;}
+a{color:#17161a;text-decoration:none;}a:hover{color:#17161a;}
+</style>
+</helmet>
+
+<div style="font-family:'Fragment Mono',ui-monospace,monospace;color:#17161a;padding:56px 64px 120px;min-width:1400px;">
+
+  <div style="max-width:1100px;margin-bottom:64px;">
+    <div style="font-size:11px;letter-spacing:.14em;color:#8a877f;margin-bottom:14px;">BJUR PORTAL V2 · AUTOMATED MAIL</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:64px;line-height:.98;letter-spacing:-.025em;margin:0 0 18px;">Eight emails.</h1>
+    <p style="font-size:13px;color:#6e6b66;line-height:1.6;max-width:64ch;margin:0;text-wrap:pretty;">One action per email. Credentials only in onboarding. Approvals for calendar clients happen in Slack, not here.</p>
+  </div>
+
+  <!-- flow map -->
+  <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;margin-bottom:96px;max-width:1500px;">
+    <sc-for list="{{ flow }}" as="f" hint-placeholder-count="8">
+      <a href="#{{ f.anchor }}" style="display:block;background:#f6f4f0;padding:18px 18px 20px;border-top:2px solid {{ f.color }};min-height:190px;">
+        <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;margin-bottom:10px;">{{ f.n }} · {{ f.to }}</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;line-height:1.1;margin-bottom:12px;">{{ f.name }}</div>
+        <div style="font-size:10.5px;color:#6e6b66;line-height:1.55;">{{ f.trigger }}</div>
+      </a>
+    </sc-for>
+  </div>
+
+  <!-- templates -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,640px);gap:56px 40px;align-items:start;">
+    <sc-for list="{{ mails }}" as="m" hint-placeholder-count="8">
+      <div id="{{ m.anchor }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:#8a877f;margin-bottom:12px;">
+          <span>{{ m.n }} · {{ m.name }}</span><span>TO {{ m.to }}</span>
+        </div>
+        <div style="background:#f6f4f0;border:1px solid #dcd8d1;width:640px;">
+          <div style="padding:14px 40px;border-bottom:1px solid #dcd8d1;display:flex;justify-content:space-between;font-size:11px;color:#8a877f;">
+            <span>Subject: <span style="color:#17161a;">{{ m.subject }}</span></span>
+          </div>
+          <div style="padding:10px 40px 0;font-size:10.5px;color:#b5b1a9;">{{ m.preheader }}</div>
+          <div style="padding:28px 40px 0;display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:12px;letter-spacing:.14em;">BJUR</span>
+            <span style="width:10px;height:10px;background:{{ m.accent }};display:inline-block;"></span>
+          </div>
+          <div style="padding:40px 40px 28px;">
+            <div style="font-size:11px;letter-spacing:.14em;color:{{ m.accent }};margin-bottom:16px;">{{ m.kicker }}</div>
+            <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:38px;line-height:1.02;letter-spacing:-.025em;margin-bottom:18px;text-wrap:pretty;">{{ m.headline }}</div>
+            <div style="font-size:14px;line-height:1.65;color:#4a4844;text-wrap:pretty;">{{ m.body }}</div>
+          </div>
+          <sc-if value="{{ m.facts }}" hint-placeholder-val="{{ true }}">
+            <div style="margin:0 40px 28px;border-top:1px solid #17161a;">
+              <sc-for list="{{ m.facts }}" as="fa" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid #dcd8d1;font-size:12px;"><span style="color:#8a877f;letter-spacing:.06em;">{{ fa.k }}</span><span style="text-align:right;color:{{ fa.color }};">{{ fa.v }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.quote }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 40px 28px;padding:18px 20px;background:#eeebe5;">
+              <div style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;margin-bottom:8px;">{{ m.quoteTitle }}</div>
+              <div style="font-size:13px;line-height:1.6;color:#4a4844;">{{ m.quote }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.warn }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 40px 28px;padding:14px 18px;border:1px solid {{ m.accent }};font-size:12px;line-height:1.55;color:#17161a;">{{ m.warn }}</div>
+          </sc-if>
+          <div style="padding:0 40px 32px;display:flex;gap:3px;">
+            <span style="display:inline-block;background:#17161a;color:#f6f4f0;padding:15px 22px;font-size:12px;letter-spacing:.06em;">{{ m.cta }}</span>
+            <sc-if value="{{ m.cta2 }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border:1px solid #17161a;padding:14px 22px;font-size:12px;letter-spacing:.06em;">{{ m.cta2 }}</span></sc-if>
+          </div>
+          <div style="padding:20px 40px 28px;border-top:1px solid #dcd8d1;font-size:10.5px;line-height:1.6;color:#8a877f;">{{ m.footer }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const G = "oklch(0.6 0.17 145)", B = "oklch(0.6 0.16 250)", R = "oklch(0.62 0.19 25)", INK = "#17161a", AMB = "oklch(0.7 0.17 80)";
+    const mails = [
+      { n: "01", anchor: "onboarding", name: "ONBOARDING", to: "NEW SEAT", color: INK, accent: G, trigger: "New client or seat",
+        subject: "Your Bjur Media portal access is ready", preheader: "Your Bjur Media portal login is ready.", kicker: "WELCOME · 57.NYC", headline: "Your portal is ready, Dana.",
+        body: "Sign in below. You'll set your own password.",
+        facts: [{ k: "PORTAL", v: "portal.bjurmedia.nyc" }, { k: "USERNAME", v: "dana@57.nyc" }, { k: "TEMPORARY PASSWORD", v: "kite-harbor-0713", color: G }], cta: "SIGN IN →",
+        footer: "This login is yours. Don't forward it." },
+      { n: "02", anchor: "delivery", name: "DELIVERY", to: "ALL SEATS", color: INK, accent: G, trigger: "New files land",
+        subject: "Your IG Posting deliverables are ready", preheader: "New work is live in your IG Posting gallery.", kicker: "NEW DELIVERY · 57.NYC", headline: "Three new reels in IG Posting.",
+        body: "Stream in the portal or download the masters.",
+        facts: [{ k: "REELS", v: "3" }, { k: "STILLS", v: "0" }, { k: "TOTAL", v: "5.4 GB" }, { k: "WEEK OF", v: "Jul 13" }], cta: "OPEN THE DELIVERY →",
+        footer: "Turn these off in Settings." },
+      { n: "03", anchor: "review", name: "REVIEW REQUEST", to: "OWNER SEATS · REVIEW PROJECTS", color: "oklch(0.6 0.15 320)", accent: "oklch(0.6 0.15 320)", trigger: "A new cut lands on a project with Review on",
+        subject: "Set Recap · cut 2 is ready", preheader: "Watch it, approve it, or send notes.", kicker: "FOR YOUR REVIEW · SPACE INVADERS", headline: "Cut 2 is ready.",
+        body: "Tightened the intro, swapped the last shot for the crowd wide. Approve it or send notes; both take a minute.",
+        quoteTitle: "Invaders — Set Recap · 0:24", quote: "Reel · uploaded today · plays in the portal, no download needed.", cta: "WATCH & APPROVE", cta2: "SEND NOTES",
+        footer: "You're the owner for Space Invaders. Silence is fine; nothing publishes without you." },
+      { n: "04", anchor: "feedback", name: "FEEDBACK RECEIVED", to: "STUDIO", color: "oklch(0.6 0.15 320)", accent: "oklch(0.6 0.15 320)", trigger: "Client approves or sends notes",
+        subject: "[Bjur] Marcus left notes on Set Recap · cut 2", preheader: "Space Invaders · Set Recap · cut 2", kicker: "FEEDBACK · SPACE INVADERS", headline: "Notes on Set Recap, cut 2.",
+        body: "",
+        quoteTitle: "Marcus Lee · 09:12", quote: "Love it. Can we lose the last crowd shot and end on the sign?", cta: "OPEN REEL →",
+        footer: "Approvals arrive the same way, one line: “Approved · Color pass v2 · Adam Knights”." },
+      { n: "05", anchor: "weekly", name: "WEEKLY DIGEST", to: "ALL SEATS", color: INK, accent: G, trigger: "Mondays 09:00",
+        subject: "Your week of Jul 13", preheader: "3 items for the week of Jul 13", kicker: "THIS WEEK · 57.NYC", headline: "Week of July 13.",
+        body: "What's going out this week.",
+        facts: [{ k: "THU JUL 16 · 10:00", v: "TOVA (FAM ONLY) · IG + YT", color: G }, { k: "SAT JUL 18 · 17:00", v: "Golden hour, roof · IG" }, { k: "NEW FILES", v: "3 reels · 5.4 GB" }], cta: "OPEN THE WEEK →",
+        footer: "Turn these off in Settings." },
+      { n: "06", anchor: "expiry", name: "EXPIRY REMINDER", to: "ALL SEATS · ONE-OFF", color: R, accent: R, trigger: "14 · 7 · 3 days before a project closes",
+        subject: "Last chance: Brand Anthem — Delivery closes in 3 days", preheader: "Brand Anthem — Delivery downloads close in 3 days", kicker: "CLOSING SOON · HALCYON FILMS", headline: "Three days left to download.",
+        body: "Brand Anthem — Delivery closes Sep 01. Download before then.",
+        facts: [{ k: "CLOSES", v: "Sep 01, 2026", color: R }, { k: "NOT YET DOWNLOADED", v: "Halcyon_Anthem_MASTER.braw · 44.6 GB" }], cta: "DOWNLOAD EVERYTHING →",
+        footer: "Need more time? Reply to this email." },
+      { n: "07", anchor: "license", name: "LICENSE RECEIPT", to: "PURCHASER", color: INK, accent: R, trigger: "License purchased or granted",
+        subject: "Your license for Halcyon_Anthem_MASTER.braw", preheader: "Halcyon_Anthem_MASTER.braw — Commercial & Broadcast, through Sep 2028", kicker: "LICENSED · HALCYON FILMS", headline: "The master is yours to use.",
+        body: "Watermark removed. Keep this email; the scope below is your agreement.",
+        facts: [{ k: "TIER", v: "Commercial & Broadcast" }, { k: "SCOPE", v: "Paid ads, TV / OTT, out-of-home" }, { k: "TERM", v: "Through Sep 01, 2028" }, { k: "AMOUNT", v: "$1,000" }], cta: "DOWNLOAD MASTER · 44.6 GB",
+        footer: "Interrupted? Click again to resume." },
+      { n: "08", anchor: "staff", name: "STAFF ALERT", to: "STUDIO", color: AMB, accent: AMB, trigger: "Publish failed · token expiring · client upload complete",
+        subject: "[Bjur] @suyinsama token expires in 5 days", preheader: "@suyinsama token expires in 5 days", kicker: "ACTION NEEDED SOON", headline: "@suyinsama token expires in 5 days.",
+        body: "Reconnect from the client page.",
+        facts: [{ k: "CLIENT", v: "SUYINSAMA" }, { k: "PLATFORM", v: "Instagram" }, { k: "EXPIRES", v: "Jul 18, 2026", color: AMB }, { k: "LAST SYNC", v: "1d ago · ok" }], cta: "RECONNECT →",
+        footer: "Sent to admin@bjurmedia.nyc." },
+    ];
+    return { mails, flow: mails.map(m => ({ ...m })) };
+  }
+}
+</script>
+</body>
+</html>

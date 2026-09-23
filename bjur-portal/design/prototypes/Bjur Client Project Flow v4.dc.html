@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0d;}
+*{box-sizing:border-box;}
+:root{--eo:cubic-bezier(.22,1,.36,1);--edrawer:cubic-bezier(.32,.72,0,1);}
+a{color:inherit;text-decoration:none;}a:hover{color:inherit;}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left;}
+button:active{transform:scale(.985);}
+button:focus-visible{outline:2px solid currentColor;outline-offset:3px;}
+input,textarea{font:inherit;color:inherit;}
+@keyframes v3rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes v3fade{from{opacity:0}to{opacity:1}}
+@keyframes v3sheet{from{transform:translateX(100%)}to{transform:none}}
+@keyframes v3toast{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important}}
+</style>
+</helmet>
+
+<div style="font-family:'Fragment Mono',ui-monospace,monospace;min-height:100vh;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;--bg:#0c0c0d;--bgA:rgba(12,12,13,.86);--s0:#101012;--s1:#151517;--s2:#1c1c1f;--ink:#f2efe9;--body:#c9c5bd;--mut:#a8a49c;--dim:#8a877f;--dim2:#6f6c66;--rule:rgba(255,255,255,.1);--rule2:rgba(255,255,255,.2);--rule3:rgba(255,255,255,.5);--inkA:rgba(255,255,255,.03);--ok:#2ec36b;--warn:#ff9d85;--acc:{{ acc }};background:var(--bg);color:var(--ink);">
+
+<div style="display:flex;align-items:center;gap:4px;padding:7px 16px;background:#0c0c0d;color:#8a877f;font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;">
+  <span style="color:#5e5b55;margin-right:10px;">FLOW v4 · FILM</span>
+  <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+    <button onClick="{{ n.go }}" style="padding:5px 10px;border:1px solid {{ n.border }};color:{{ n.color }};background:{{ n.bg }};font-size:10.5px;letter-spacing:.06em;">{{ n.label }}</button>
+  </sc-for>
+  <span style="margin-left:auto;color:#5e5b55;">Client holds every possibility. The project decides.</span>
+</div>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:baseline;gap:32px;padding:18px 40px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px);z-index:20;flex-wrap:wrap;">
+  <span style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / ADMIN</span></span>
+  <div style="display:flex;gap:22px;font-size:11px;letter-spacing:.06em;">
+    <button onClick="{{ goToday }}" style="color:{{ navToday.color }};padding-bottom:3px;border-bottom:1px solid {{ navToday.rule }};" style-hover="color:var(--ink);">TODAY</button>
+    <button onClick="{{ goBoard }}" style="color:{{ navBoard.color }};padding-bottom:3px;border-bottom:1px solid {{ navBoard.rule }};" style-hover="color:var(--ink);">BOARD</button>
+    <button onClick="{{ goClient }}" style="color:{{ navClients.color }};padding-bottom:3px;border-bottom:1px solid {{ navClients.rule }};" style-hover="color:var(--ink);">CLIENTS</button>
+    <button onClick="{{ goIntegrations }}" style="color:{{ navInteg.color }};padding-bottom:3px;border-bottom:1px solid {{ navInteg.rule }};" style-hover="color:var(--ink);">INTEGRATIONS</button>
+    <button onClick="{{ goReports }}" style="color:{{ navReports.color }};padding-bottom:3px;border-bottom:1px solid {{ navReports.rule }};" style-hover="color:var(--ink);">REPORTS</button>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:3px;">
+    <button onClick="{{ openNewClient }}" style="border:1px solid var(--rule2);padding:7px 13px;font-size:10.5px;letter-spacing:.08em;" style-hover="border-color:var(--ink);">+ CLIENT</button>
+    <button onClick="{{ openNew }}" style="background:var(--ink);color:var(--bg);padding:8px 14px;font-size:10.5px;letter-spacing:.08em;" style-hover="background:var(--acc);">+ PROJECT</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCProj }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:baseline;gap:32px;padding:18px 40px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px);z-index:20;flex-wrap:wrap;">
+  <span style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / {{ C.upper }}</span></span>
+  <div style="display:flex;gap:22px;font-size:11px;letter-spacing:.06em;">
+    <span style="color:var(--ink);padding-bottom:3px;border-bottom:1px solid var(--ink);">PROJECTS</span>
+    <span style="color:var(--dim);">POSTS</span>
+    <span style="color:var(--dim);">SETTINGS</span>
+  </div>
+  <span style="margin-left:auto;font-size:10.5px;letter-spacing:.06em;color:var(--dim);">{{ C.owner }}</span>
+</div>
+</sc-if>
+
+<!-- ══ CLIENT PAGE ══ -->
+<sc-if value="{{ isClientPage }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Client page" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <div style="display:flex;gap:2px;margin-bottom:36px;font-size:10.5px;letter-spacing:.06em;animation:v3rise .5s var(--eo) both;flex-wrap:wrap;">
+    <sc-for list="{{ clientTabs }}" as="t" hint-placeholder-count="4">
+      <button onClick="{{ t.set }}" style="padding:6px 10px;border:1px solid {{ t.border }};color:{{ t.color }};background:{{ t.bg }};display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ t.acc }};"></span>{{ t.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;align-items:end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--rule2);margin-bottom:12px;animation:v3rise .6s var(--eo) .05s both;">
+    <div>
+      <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">SINCE {{ C.since }}</div>
+      <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;display:flex;align-items:center;gap:20px;"><span style="width:18px;height:18px;background:var(--acc);flex:none;"></span>{{ C.name }}</h1>
+    </div>
+    <div style="display:flex;gap:22px;font-size:11px;color:var(--dim);"><span>{{ C.projectsN }} projects</span><span>{{ C.files }}</span></div>
+  </div>
+
+  <!-- quiet facts line -->
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.06em;color:var(--dim);padding:10px 0;border-bottom:1px solid var(--rule);margin-bottom:44px;animation:v3rise .6s var(--eo) .1s both;">
+    <span style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+      <span style="display:flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ C.integDot }};"></span>{{ C.integLine }}</span>
+      <button onClick="{{ goIntegrations }}" style="color:var(--mut);" style-hover="color:var(--ink);">{{ C.integCta }}</button>
+    </span>
+    <span style="display:flex;gap:18px;align-items:center;">
+      <span>{{ C.owner }}</span>
+      <button onClick="{{ toggleAccent }}" style="color:var(--mut);display:flex;gap:8px;align-items:center;" style-hover="color:var(--ink);"><span style="width:8px;height:8px;background:var(--acc);"></span>ACCENT</button>
+    </span>
+  </div>
+  <sc-if value="{{ accentOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:3px;margin:-32px 0 36px;justify-content:flex-end;animation:v3fade .2s var(--eo) both;">
+      <sc-for list="{{ swatches }}" as="sw" hint-placeholder-count="6"><button onClick="{{ sw.pick }}" aria-label="Accent" style="width:22px;height:22px;background:{{ sw.color }};outline:2px solid {{ sw.ring }};outline-offset:2px;"></button></sc-for>
+    </div>
+  </sc-if>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:56px;align-items:start;">
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;"><span>PROJECTS</span><button onClick="{{ openNew }}" style="color:var(--ink);">+ NEW</button></div>
+      <sc-for list="{{ C.projects }}" as="p" hint-placeholder-count="3">
+        <button onClick="{{ p.open }}" style="width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;padding:16px 0;border-bottom:1px solid var(--rule);animation:v3rise .45s var(--eo) both;animation-delay:{{ p.delay }};" style-hover="background:var(--inkA);">
+          <span style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;">{{ p.title }}</span>
+          <span style="font-size:10px;letter-spacing:.1em;color:var(--mut);white-space:nowrap;display:flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ p.typeDot }};"></span>{{ p.type }}</span>
+          <span style="font-size:11px;color:var(--dim);">{{ p.meta }}</span>
+          <span style="font-size:10.5px;letter-spacing:.06em;color:{{ p.flagColor }};white-space:nowrap;text-align:right;">{{ p.flag }}</span>
+        </button>
+      </sc-for>
+      <p style="font-size:11px;color:var(--dim2);margin:14px 0 0;line-height:1.6;">Two kinds: a delivery you hand over, a calendar you keep feeding. Either can ask for review, and either can hold footage the client sends in.</p>
+    </div>
+
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;"><span>SEATS</span><button style="color:var(--ink);">+ INVITE</button></div>
+      <sc-for list="{{ C.seats }}" as="u" hint-placeholder-count="2">
+        <div style="display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);">
+          <span style="width:32px;height:32px;background:var(--s2);display:grid;place-items:center;font-size:10px;">{{ u.initials }}</span>
+          <div style="min-width:0;"><div style="font-size:13px;">{{ u.name }}</div><div style="font-size:11px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ u.email }}</div></div>
+          <span style="font-size:10px;letter-spacing:.06em;color:var(--dim);text-align:right;">{{ u.role }}<br><span style="color:var(--dim2);">{{ u.last }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ TODAY ══ -->
+<sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Today" style="max-width:1100px;margin:0 auto;padding:52px 40px 140px;width:100%;">
+  <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;animation:v3rise .5s var(--eo) both;">{{ TD.date }}</div>
+  <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,72px);line-height:.98;letter-spacing:-.025em;margin:0 0 44px;animation:v3rise .6s var(--eo) .05s both;">{{ TD.headline }}</h1>
+
+  <sc-if value="{{ TD.hasNeeds }}" hint-placeholder-val="{{ true }}">
+  <div style="margin-bottom:64px;">
+    <sc-for list="{{ TD.needs }}" as="n" hint-placeholder-count="4">
+      <div key="{{ n.id }}" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px;align-items:center;padding:18px 0;border-top:1px solid var(--rule);animation:v3rise .5s var(--eo) both;animation-delay:{{ n.delay }};">
+        <span style="width:{{ n.thumbW }};aspect-ratio:{{ n.ratio }};background:{{ n.bg }};display:block;"></span>
+        <span style="min-width:0;">
+          <span style="display:flex;gap:8px;align-items:center;font-size:11px;letter-spacing:.08em;color:{{ n.color }};margin-bottom:6px;"><span style="width:6px;height:6px;background:{{ n.color }};"></span>{{ n.kind }} · {{ n.client }}</span>
+          <span style="display:block;font-family:'Source Serif 4',Georgia,serif;font-size:22px;letter-spacing:-.01em;line-height:1.15;">{{ n.subject }}</span>
+          <sc-if value="{{ n.quote }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:13px;color:var(--body);margin-top:9px;line-height:1.5;max-width:60ch;padding-left:12px;border-left:1px solid var(--rule2);">{{ n.quote }}</span></sc-if>
+          <span style="display:block;font-size:11px;color:var(--dim);margin-top:7px;">{{ n.body }}</span>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:3px;">
+          <button onClick="{{ n.go }}" style="font-size:11px;letter-spacing:.08em;background:var(--ink);color:var(--bg);padding:10px 14px;white-space:nowrap;">{{ n.action }}</button>
+          <button onClick="{{ n.dismiss }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--dim);padding:8px 14px;" style-hover="color:var(--ink);">{{ n.dismissLabel }}</button>
+        </span>
+      </div>
+    </sc-for>
+    <div style="border-top:1px solid var(--rule);"></div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ TD.clear }}" hint-placeholder-val="{{ false }}">
+    <p style="font-size:12px;color:var(--mut);line-height:1.7;max-width:54ch;margin:0 0 64px;">Feedback, footage and failed encodes land here as they happen. Captions waiting on you show up too — a week can't go to Slack until they're approved.</p>
+  </sc-if>
+
+  <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;animation:v3rise .6s var(--eo) .15s both;">
+    <span>RECENT ACTIVITY</span><span>{{ TD.activityCount }}</span>
+  </div>
+  <div style="animation:v3rise .6s var(--eo) .2s both;">
+    <sc-for list="{{ TD.activity }}" as="a" hint-placeholder-count="6">
+      <div style="display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:12px 0;border-top:1px solid var(--rule);font-size:12px;">
+        <span style="font-size:10.5px;color:var(--dim2);letter-spacing:.04em;">{{ a.when }}</span>
+        <span style="min-width:0;"><span style="color:var(--ink);">{{ a.who }}</span> <span style="color:var(--mut);">{{ a.what }}</span></span>
+        <span style="font-size:10.5px;color:var(--dim);">{{ a.client }}</span>
+      </div>
+    </sc-for>
+    <div style="border-top:1px solid var(--rule);"></div>
+  </div>
+
+  <div style="display:flex;gap:28px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.06em;color:var(--dim);margin-top:56px;animation:v3fade .6s var(--eo) .3s both;">
+    <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:var(--ok);"></span>WORKER · {{ TD.queue }} IN QUEUE</span>
+    <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:var(--ok);"></span>SLACK · BJURMEDIA.SLACK.COM</span>
+    <span style="display:inline-flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:{{ TD.syncDot }};"></span>{{ TD.syncStatus }}<sc-if value="{{ TD.syncBroken }}" hint-placeholder-val="{{ false }}"><button onClick="{{ TD.reconnect }}" style="color:var(--warn);letter-spacing:.06em;margin-left:8px;border-bottom:1px solid currentColor;" style-hover="color:var(--ink);">RECONNECT</button></sc-if></span>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ WEEK BOARD ══ -->
+<sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Week board" style="position:relative;width:100%;">
+  <div style="padding:32px 40px 80px;min-width:0;overflow-x:auto;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:8px;flex-wrap:wrap;animation:v3rise .5s var(--eo) both;">
+      <div style="display:flex;align-items:baseline;gap:12px;">
+        <button onClick="{{ BD.prev }}" aria-label="Previous week" style="font-size:16px;color:{{ BD.prevColor }};width:24px;" style-hover="color:var(--ink);">‹</button>
+        <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:40px;letter-spacing:-.025em;margin:0;">{{ BD.weekLabel }}</h1>
+        <button onClick="{{ BD.next }}" aria-label="Next week" style="font-size:16px;color:{{ BD.nextColor }};width:24px;" style-hover="color:var(--ink);">›</button>
+      </div>
+      <div style="display:flex;gap:2px;margin-left:8px;flex-wrap:wrap;">
+        <sc-for list="{{ BD.chips }}" as="ch" hint-placeholder-count="2">
+          <button onClick="{{ ch.set }}" style="padding:6px 10px;border:1px solid {{ ch.border }};color:{{ ch.color }};background:{{ ch.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;" style-hover="border-color:var(--rule3);"><span style="width:6px;height:6px;background:{{ ch.acc }};"></span>{{ ch.label }}</button>
+        </sc-for>
+      </div>
+      <button onClick="{{ BD.post }}" style="margin-left:auto;background:{{ BD.postBg }};color:{{ BD.postColor }};border:1px solid {{ BD.postBorder }};padding:9px 15px;font-size:10.5px;letter-spacing:.08em;white-space:nowrap;">{{ BD.postLabel }}</button>
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:24px;animation:v3fade .6s var(--eo) .1s both;">{{ BD.summary }}</div>
+
+    <div style="display:grid;grid-template-columns:154px repeat(7,minmax(0,1fr));gap:3px;min-width:1040px;animation:v3rise .6s var(--eo) .08s both;">
+      <div onDragOver="{{ BD.allowDrop }}" onDrop="{{ BD.dropTray }}" style="background:var(--s0);border:1px dashed {{ BD.trayBorder }};padding:10px;min-height:560px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s var(--eo);">
+        <span style="font-size:10px;letter-spacing:.1em;color:var(--dim);">NOT SCHEDULED · {{ BD.trayCount }}</span>
+        <sc-if value="{{ BD.trayEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:8px;">Everything is on a day. Drag a card back here to unschedule it.</span></sc-if>
+        <sc-for list="{{ BD.tray }}" as="c" hint-placeholder-count="2">
+          <div key="{{ c.key }}" draggable="{{ true }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ BD.dragEnd }}" onClick="{{ c.select }}" style="cursor:grab;position:relative;overflow:hidden;aspect-ratio:9/16;background:{{ c.bg }};outline:{{ c.outline }};outline-offset:3px;border-left:2px solid {{ c.acc }};opacity:{{ c.opacity }};transition:transform .18s var(--eo),opacity .18s var(--eo);" style-hover="transform:translateY(-2px);" style-active="cursor:grabbing;">
+            <span style="position:absolute;top:7px;left:7px;right:7px;font-size:9.5px;letter-spacing:.06em;color:{{ c.stateColor }};text-shadow:0 1px 2px rgba(0,0,0,.7);">{{ c.capTag }}</span>
+            <span style="position:absolute;left:0;right:0;bottom:0;padding:18px 8px 7px;font-size:10px;color:#fff;background:linear-gradient(to top,rgba(0,0,0,.8),rgba(0,0,0,0));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <sc-for list="{{ BD.days }}" as="d" hint-placeholder-count="7">
+        <div onDragOver="{{ BD.allowDrop }}" onDrop="{{ d.drop }}" style="background:{{ d.colBg }};padding:10px;min-height:560px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 1px {{ d.ring }};transition:box-shadow .15s var(--eo),background .15s var(--eo);">
+          <div style="display:flex;justify-content:space-between;font-size:10px;letter-spacing:.08em;color:{{ d.color }};"><span>{{ d.dow }}</span><span>{{ d.date }}</span></div>
+          <sc-for list="{{ d.cards }}" as="c" hint-placeholder-count="1">
+            <div key="{{ c.key }}" draggable="{{ true }}" onDragStart="{{ c.dragStart }}" onDragEnd="{{ BD.dragEnd }}" onClick="{{ c.select }}" style="cursor:grab;position:relative;overflow:hidden;aspect-ratio:9/16;background:{{ c.bg }};outline:{{ c.outline }};outline-offset:3px;border-left:2px solid {{ c.acc }};opacity:{{ c.opacity }};animation:v3rise .3s var(--eo) both;transition:transform .18s var(--eo),opacity .18s var(--eo);" style-hover="transform:translateY(-2px);" style-active="cursor:grabbing;">
+              <span style="position:absolute;top:7px;left:7px;right:7px;font-size:9.5px;letter-spacing:.06em;color:{{ c.stateColor }};text-shadow:0 1px 2px rgba(0,0,0,.7);display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;background:{{ c.stateColor }};flex:none;"></span>{{ c.state }}</span>
+              <span style="position:absolute;left:0;right:0;bottom:0;padding:24px 8px 8px;background:linear-gradient(to top,rgba(0,0,0,.8),rgba(0,0,0,0));color:#fff;">
+                <span style="display:block;font-family:'Source Serif 4',Georgia,serif;font-size:15px;line-height:1.15;letter-spacing:-.01em;">{{ c.title }}</span>
+                <span style="display:block;font-size:9.5px;color:#f4f2ee;opacity:.8;margin-top:4px;">{{ c.meta }}</span>
+              </span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ d.dropHint }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;letter-spacing:.08em;color:var(--dim);text-align:center;padding:18px 0;border:1px dashed var(--rule2);">DROP · {{ d.dow }}</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{ BD.sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ BD.closeSheet }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);animation:v3fade .3s var(--eo) both;"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:min(400px,100vw);z-index:60;border-left:1px solid var(--rule);background:var(--s0);padding:28px 28px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v3sheet .5s var(--edrawer) both;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+        <span style="font-size:10.5px;letter-spacing:.1em;color:{{ SB.stateColor }};display:inline-flex;align-items:center;gap:7px;"><span style="width:6px;height:6px;background:{{ SB.stateColor }};"></span>{{ SB.state }}</span>
+        <div style="display:flex;gap:14px;align-items:center;font-size:11px;color:var(--dim);"><span style="transition:opacity .3s var(--eo);opacity:{{ SB.savedOpacity }};">Saved</span><button onClick="{{ BD.closeSheet }}" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button></div>
+      </div>
+      <div style="aspect-ratio:16/9;background:{{ SB.bg }};margin-bottom:18px;position:relative;">
+        <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:1px solid rgba(255,255,255,.8);display:grid;place-items:center;color:#fff;font-size:12px;padding-left:2px;">▶</span>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:4px;">{{ SB.name }}</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:22px;">{{ SB.specs }}</div>
+
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">TITLE</label>
+      <input value="{{ SB.title }}" onChange="{{ BD.setTitle }}" placeholder="Untitled reel" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;letter-spacing:-.01em;outline:none;margin-bottom:22px;transition:border-color .15s var(--eo);" style-focus="border-bottom-color:var(--ink);">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:22px;">
+        <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">GOES OUT</span><span style="font-size:12px;">{{ SB.when }}</span></div>
+        <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">CHANNELS</span><span style="font-size:12px;">{{ SB.platforms }}</span></div>
+      </div>
+
+      <label style="display:flex;justify-content:space-between;gap:12px;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;"><span>CAPTION · INSTAGRAM</span><span style="color:{{ SB.capTagColor }};">{{ SB.capTag }}</span></label>
+      <textarea value="{{ SB.caption }}" onChange="{{ BD.setCaption }}" rows="{{ 5 }}" placeholder="Write the caption" style="width:100%;background:var(--s1);border:1px solid var(--rule);padding:12px;font-size:13px;line-height:1.5;resize:vertical;outline:none;margin-bottom:6px;transition:border-color .15s var(--eo);" style-focus="border-color:var(--rule3);"></textarea>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:{{ SB.capLenColor }};margin-bottom:22px;"><span>{{ SB.capLen }} / 2200</span><button onClick="{{ BD.draftCaption }}" style="color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">DRAFT FROM TRANSCRIPT</button></div>
+
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">CAPTION · YOUTUBE</label>
+      <textarea value="{{ SB.captionYT }}" onChange="{{ BD.setCaptionYT }}" rows="{{ 3 }}" placeholder="Optional" style="width:100%;background:var(--s1);border:1px solid var(--rule);padding:12px;font-size:13px;line-height:1.5;resize:vertical;outline:none;margin-bottom:26px;transition:border-color .15s var(--eo);" style-focus="border-color:var(--rule3);"></textarea>
+
+      <sc-if value="{{ SB.showApprove }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ BD.approveCaption }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;">APPROVE CAPTION</button>
+      </sc-if>
+      <sc-if value="{{ SB.showStatus }}" hint-placeholder-val="{{ false }}">
+        <span style="display:flex;align-items:center;gap:8px;padding:13px 15px;border:1px solid var(--rule2);font-size:10.5px;letter-spacing:.08em;color:var(--mut);"><span style="width:6px;height:6px;background:{{ SB.stateColor }};"></span>{{ SB.statusLine }}</span>
+      </sc-if>
+      <div style="margin-top:26px;font-size:11px;color:var(--dim);line-height:1.65;text-wrap:pretty;">{{ SB.footnote }}</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ BD.postOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ BD.closePost }}" style="position:fixed;inset:0;z-index:65;background:rgba(0,0,0,.45);animation:v3fade .3s var(--eo) both;"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);z-index:70;background:var(--s0);border-left:1px solid var(--rule);padding:28px 32px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v3sheet .5s var(--edrawer) both;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
+        <span style="font-size:10.5px;letter-spacing:.1em;color:{{ PW.kickerColor }};">{{ PW.kicker }}</span>
+        <button onClick="{{ BD.closePost }}" style="font-size:11px;color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button>
+      </div>
+      <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">{{ PW.title }}</div>
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 26px;">{{ PW.sub }}</p>
+      <div style="border-top:1px solid var(--rule2);margin-bottom:22px;">
+        <sc-for list="{{ PW.lines }}" as="l" hint-placeholder-count="3">
+          <div style="display:flex;justify-content:space-between;gap:14px;font-size:12px;color:var(--body);padding:11px 0;border-bottom:1px solid var(--rule);line-height:1.5;"><span style="min-width:0;">{{ l.text }}</span><span style="font-size:10px;letter-spacing:.08em;color:{{ l.tagColor }};white-space:nowrap;">{{ l.tag }}</span></div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ PW.notPosted }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ BD.confirmPost }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;">POST TO {{ PW.channel }} →</button>
+        <p style="font-size:10.5px;color:var(--dim);line-height:1.6;margin:12px 0 0;">One message, one line per day, to the client's channel. Posting is one-way: the client approves in Slack, and the portal records only that the week went out.</p>
+      </sc-if>
+      <sc-if value="{{ PW.posted }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.08em;color:var(--ok);padding:13px 15px;border:1px solid var(--rule2);"><span style="width:6px;height:6px;background:var(--ok);"></span>POSTED TO {{ PW.channel }}</div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ══ REPORTS ══ -->
+<sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Reports" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:32px;animation:v3rise .5s var(--eo) both;">
+    <div style="display:flex;gap:2px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.06em;">
+      <sc-for list="{{ RP.tabs }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.set }}" style="padding:6px 10px;border:1px solid {{ t.border }};color:{{ t.color }};background:{{ t.bg }};display:flex;gap:7px;align-items:center;" style-hover="border-color:var(--rule3);"><span style="width:6px;height:6px;background:{{ t.acc }};"></span>{{ t.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:2px;font-size:10.5px;letter-spacing:.06em;align-items:center;">
+      <sc-for list="{{ RP.ranges }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.set }}" style="padding:6px 10px;border:1px solid {{ r.border }};color:{{ r.color }};background:{{ r.bg }};">{{ r.label }}</button></sc-for>
+      <button onClick="{{ RP.print }}" style="margin-left:12px;background:var(--ink);color:var(--bg);padding:7px 14px;font-size:10.5px;letter-spacing:.08em;">SAVE PDF</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ RP.empty }}" hint-placeholder-val="{{ false }}">
+    <div style="border:1px dashed var(--rule2);padding:64px 40px;text-align:center;font-size:12px;color:var(--mut);line-height:1.7;">No Instagram or YouTube account connected for {{ RP.client }}.<br>Views come from the client's own accounts.<button onClick="{{ goIntegrations }}" style="color:var(--ink);letter-spacing:.06em;margin-left:10px;border-bottom:1px solid currentColor;">CONNECT ONE →</button></div>
+  </sc-if>
+
+  <sc-if value="{{ RP.has }}" hint-placeholder-val="{{ true }}">
+  <div style="background:#f6f4f0;color:#17161a;padding:56px 64px;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:v3rise .6s var(--eo) .08s both;">
+    <div style="border-top:3px solid {{ RP.acc }};padding-top:22px;display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:44px;">
+      <div>
+        <div style="font-size:11px;letter-spacing:.14em;color:{{ RP.acc }};margin-bottom:12px;">BJUR MEDIA · DELIVERY &amp; REACH</div>
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:400;font-size:48px;line-height:1;letter-spacing:-.025em;">{{ RP.client }}</div>
+      </div>
+      <div style="font-size:11px;color:#6e6b66;text-align:right;line-height:1.7;">{{ RP.range }}<br>{{ RP.prepared }}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;margin-bottom:44px;">
+      <sc-for list="{{ RP.stats }}" as="s" hint-placeholder-count="5">
+        <div style="background:#eeebe5;padding:18px 16px;"><div style="font-family:'Source Serif 4',Georgia,serif;font-size:34px;letter-spacing:-.02em;line-height:1;">{{ s.v }}</div><div style="font-size:10px;letter-spacing:.1em;color:#6e6b66;margin-top:8px;line-height:1.4;">{{ s.k }}</div></div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;margin-bottom:44px;">
+      <div>
+        <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;"><span>PLATFORM</span><span>POSTS</span><span>VIEWS</span><span>MEDIAN</span></div>
+        <sc-for list="{{ RP.platforms }}" as="p" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #dcd8d1;font-size:12px;"><span>{{ p.name }}</span><span style="color:#6e6b66;">{{ p.posts }}</span><span>{{ p.views }}</span><span style="color:#6e6b66;">{{ p.median }}</span></div>
+        </sc-for>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;">MOST WATCHED</div>
+        <sc-for list="{{ RP.top }}" as="t" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #dcd8d1;font-size:12px;">
+            <span style="width:28px;aspect-ratio:9/16;background:{{ t.bg }};display:block;"></span>
+            <span style="min-width:0;"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.name }}</span><span style="display:block;font-size:10.5px;color:#6e6b66;margin-top:2px;">{{ t.platform }} · {{ t.date }}</span></span>
+            <span style="font-family:'Source Serif 4',Georgia,serif;font-size:18px;">{{ t.views }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:.1em;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #17161a;display:flex;justify-content:space-between;"><span>BY WEEK</span><span style="display:flex;gap:18px;align-items:center;white-space:nowrap;"><span style="display:flex;gap:6px;align-items:center;"><span style="width:8px;height:8px;background:#cfcbc3;"></span>DELIVERED</span><span style="display:flex;gap:6px;align-items:center;"><span style="width:8px;height:8px;background:{{ RP.acc }};"></span>VIEWS</span></span></div>
+    <div style="display:grid;grid-template-columns:repeat({{ RP.weekN }},minmax(0,1fr));gap:6px;align-items:end;height:120px;padding-top:16px;">
+      <sc-for list="{{ RP.weeks }}" as="w" hint-placeholder-count="8">
+        <div style="display:flex;gap:2px;align-items:end;height:100%;">
+          <span title="{{ w.dTitle }}" style="flex:1;height:{{ w.dH }};background:#cfcbc3;"></span>
+          <span title="{{ w.vTitle }}" style="flex:1;height:{{ w.vH }};background:{{ RP.acc }};"></span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat({{ RP.weekN }},minmax(0,1fr));gap:6px;font-size:9.5px;color:#8a877f;padding-top:8px;">
+      <sc-for list="{{ RP.weeks }}" as="w" hint-placeholder-count="8"><span>{{ w.label }}</span></sc-for>
+    </div>
+    <div style="margin-top:44px;padding-top:16px;border-top:1px solid #dcd8d1;font-size:10px;color:#6e6b66;line-height:1.6;">Views are pulled from {{ RP.client }}'s connected Instagram and YouTube accounts and matched to files delivered by Bjur Media. Delivery counts come from the portal. Bjur Media · New York.</div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ══ INTEGRATIONS (all clients) ══ -->
+<sc-if value="{{ isIntegrations }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Integrations" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--rule2);margin-bottom:8px;animation:v3rise .5s var(--eo) both;">
+    <div><div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">SLACK · INSTAGRAM · YOUTUBE · CAPTIONS</div><h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(36px,4.5vw,56px);line-height:.98;letter-spacing:-.025em;margin:0;">Integrations.</h1></div>
+    <div style="font-size:11px;color:var(--dim);display:flex;gap:8px;align-items:center;"><span style="width:6px;height:6px;background:var(--ok);"></span>bjurmedia.slack.com · connected</div>
+  </div>
+  <p style="font-size:12px;color:var(--dim);margin:0 0 36px;line-height:1.6;max-width:60ch;text-wrap:pretty;">Optional per client. A Social calendar project needs a Slack channel; captions and accounts are extras. Nothing here changes what a client sees.</p>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 170px 120px auto;gap:16px;font-size:10px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);"><span>CLIENT</span><span>SLACK</span><span>ACCOUNTS</span><span>AI CAPTIONS</span><span></span></div>
+  <sc-for list="{{ integRows }}" as="r" hint-placeholder-count="4">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 170px 120px auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--rule);animation:v3rise .45s var(--eo) both;animation-delay:{{ r.delay }};">
+      <span style="display:flex;gap:12px;align-items:center;font-size:14px;"><span style="width:8px;height:8px;background:{{ r.acc }};flex:none;"></span>{{ r.name }}</span>
+      <sc-if value="{{ r.hasSlack }}" hint-placeholder-val="{{ true }}"><input value="{{ r.slack }}" onChange="{{ r.setSlack }}" style="width:100%;background:var(--s1);border:1px solid var(--rule);padding:7px 10px;font-size:11.5px;outline:none;" style-focus="border-color:var(--rule3);"></sc-if>
+      <sc-if value="{{ r.noSlack }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.addSlack }}" style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);border:1px dashed var(--rule2);padding:7px 10px;" style-hover="color:var(--ink);border-color:var(--ink);">+ CHANNEL</button></sc-if>
+      <span style="font-size:11px;color:{{ r.acctColor }};">{{ r.accounts }}</span>
+      <button onClick="{{ r.toggleAI }}" aria-pressed="{{ r.ai }}" style="display:inline-flex;gap:10px;align-items:center;font-size:10px;letter-spacing:.06em;color:{{ r.aiColor }};"><span style="width:28px;height:16px;border:1px solid {{ r.aiK.border }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ r.aiK.knobX }};width:10px;height:10px;background:{{ r.aiK.knobBg }};"></span></span>{{ r.aiLabel }}</button>
+      <button onClick="{{ r.open }}" style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);" style-hover="color:var(--ink);">OPEN →</button>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<!-- ══ PROJECT PAGE ══ -->
+<sc-if value="{{ isProjectPage }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Project page" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <button onClick="{{ goClient }}" style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:22px;display:inline-block;" style-hover="color:var(--ink);">← {{ C.upper }}</button>
+  <div style="display:flex;align-items:end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--rule2);margin-bottom:40px;animation:v3rise .5s var(--eo) both;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:10px;letter-spacing:.14em;color:var(--mut);margin-bottom:14px;display:flex;gap:10px;align-items:center;"><span style="width:6px;height:6px;background:{{ P.typeDot }};"></span>{{ P.type }}<span style="color:var(--dim2);">· SET AT CREATION</span></div>
+      <input value="{{ P.title }}" onChange="{{ setTitle }}" onBlur="{{ commitTitle }}" onKeyDown="{{ titleKey }}" size="{{ P.titleSize }}" aria-label="Project title" title="Click to rename" style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0 0 0 -6px;padding:0 6px;background:transparent;border:0;border-bottom:1px solid transparent;outline:none;width:auto;max-width:100%;field-sizing:content;color:var(--ink);" style-hover="border-bottom-color:var(--rule2);" style-focus="border-bottom-color:var(--ink);">
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-bottom:3px;animation:v3rise .5s var(--eo) .05s both;">
+    <div style="background:var(--s1);padding:16px 18px;" style-hover="background:var(--s2);"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">DELIVERED</span><input value="{{ P.delivered }}" onChange="{{ setDelivered }}" onBlur="{{ commitDelivered }}" onKeyDown="{{ dateKey }}" title="Click to edit" style="font-size:13px;width:100%;background:transparent;border:0;border-bottom:1px solid transparent;outline:none;padding:0;color:var(--ink);" style-focus="border-bottom-color:var(--ink);"></div>
+    <div style="background:var(--s1);padding:16px 18px;" style-hover="background:var(--s2);"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">EXPIRES</span><input value="{{ P.expiresRaw }}" onChange="{{ setExpires }}" onBlur="{{ commitExpires }}" onKeyDown="{{ dateKey }}" placeholder="Never" title="Click to edit · blank = never" style="font-size:13px;width:100%;background:transparent;border:0;border-bottom:1px solid transparent;outline:none;padding:0;color:var(--ink);" style-focus="border-bottom-color:var(--ink);"></div>
+    <div style="background:var(--s1);padding:16px 18px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">FILES</span><span style="font-size:13px;">{{ P.files }}<span style="color:var(--dim2);"> · {{ subsReceived }} received</span></span></div>
+    <div style="background:var(--s1);padding:16px 18px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">INBOX</span><span style="font-size:12px;color:var(--body);">{{ P.inbox }}</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px;animation:v3rise .5s var(--eo) .1s both;">
+    <div style="background:var(--s1);padding:22px 24px;">
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:12px;">WHAT THIS PROJECT DOES</div>
+      <sc-for list="{{ P.does }}" as="d" hint-placeholder-count="2">
+        <div style="font-size:12px;color:var(--body);padding:9px 0;border-top:1px solid var(--rule);line-height:1.55;">{{ d }}</div>
+      </sc-for>
+      <sc-if value="{{ P.needsSlack }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);padding:9px 0;border-top:1px solid var(--rule);line-height:1.55;">No Slack channel for {{ C.name }} yet. <button onClick="{{ goIntegrations }}" style="color:var(--ink);letter-spacing:.06em;">ADD ONE →</button></div></sc-if>
+    </div>
+    <div style="background:var(--s1);padding:22px 24px;">
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:12px;display:flex;justify-content:space-between;"><span>PAYMENT</span><span style="color:{{ pay.color }};letter-spacing:.06em;">{{ pay.label }}</span></div>
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 16px;text-wrap:pretty;">{{ pay.hint }}</p>
+      <button onClick="{{ togglePay }}" style="border:1px solid var(--rule2);padding:10px 14px;font-size:10.5px;letter-spacing:.08em;display:inline-block;" style-hover="border-color:var(--ink);">{{ pay.cta }}</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ F.is }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Film cuts" style="margin-top:40px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:40px;animation:v3rise .5s var(--eo) .12s both;">
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;align-items:baseline;"><span>CUTS <span style="color:var(--dim2);">· {{ F.cutsN }}</span></span><a href="Bjur Review v1.dc.html" style="color:var(--ink);text-decoration:none;" style-hover="color:var(--acc);">OPEN REVIEW →</a></div>
+      <sc-if value="{{ F.noCuts }}" hint-placeholder-val="{{ false }}"><p style="font-size:11px;color:var(--dim2);margin:14px 0 0;line-height:1.6;">No cuts yet. The first export you drop in the inbox becomes cut 1, and every reviewer is emailed to watch it.</p></sc-if>
+      <sc-for list="{{ F.cuts }}" as="c" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:4px 16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--rule);">
+          <span style="font-family:'Source Serif 4',Georgia,serif;font-size:22px;letter-spacing:-.01em;color:{{ c.titleColor }};">{{ c.label }}</span>
+          <span style="min-width:0;"><span style="display:block;font-size:12px;color:var(--body);">{{ c.line }}</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:4px;">{{ c.date }}</span></span>
+          <span style="font-size:10px;letter-spacing:.08em;color:{{ c.color }};white-space:nowrap;display:flex;gap:14px;align-items:center;">{{ c.status }}<sc-if value="{{ c.hasCta }}" hint-placeholder-val="{{ false }}"><a href="Bjur Review v1.dc.html" style="background:var(--ink);color:var(--bg);padding:9px 12px;text-decoration:none;letter-spacing:.08em;" style-hover="background:var(--acc);">OPEN →</a></sc-if></span>
+        </div>
+      </sc-for>
+      <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:12px 0 0;text-wrap:pretty;">Drop the next export in the inbox to start a cut. You answer every open note before reviewers are emailed; the answers go in that email.</p>
+    </div>
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;align-items:baseline;"><span>REVIEWERS <span style="color:var(--dim2);">· {{ F.revN }}</span></span><button onClick="{{ F.openAdd }}" style="color:var(--ink);" style-hover="color:var(--acc);">+ ADD</button></div>
+      <sc-for list="{{ F.revs }}" as="r" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:13px 0;border-bottom:1px solid var(--rule);">
+          <span style="font-size:12px;">{{ r.name }}</span>
+          <span style="font-size:9.5px;letter-spacing:.08em;color:{{ r.kindColor }};">{{ r.kind }}</span>
+          <span style="font-size:10.5px;color:var(--dim);">{{ r.role }}</span>
+          <span style="font-size:10.5px;color:{{ r.stColor }};text-align:right;">{{ r.status }}</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ F.addOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:3px;margin-top:3px;animation:v3fade .2s var(--eo) both;">
+          <input value="{{ F.email }}" onChange="{{ F.setEmail }}" onKeyDown="{{ F.addKey }}" placeholder="name@label.com" autoFocus style="flex:1;min-width:0;background:var(--s1);border:0;outline:none;padding:11px 12px;font-size:12px;">
+          <button onClick="{{ F.submitAdd }}" style="background:var(--ink);color:var(--bg);padding:0 14px;font-size:10.5px;letter-spacing:.08em;">INVITE</button>
+        </div>
+      </sc-if>
+      <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:12px 0 0;text-wrap:pretty;">Client seats review automatically. Guests get a link and give their name once; no account, no downloads.</p>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="margin-top:40px;animation:v3rise .5s var(--eo) .15s both;">
+    <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;align-items:baseline;"><span>SENT TO BJUR <span style="color:var(--dim2);">· {{ subsN }}</span></span><button onClick="{{ requestFootage }}" style="color:var(--ink);">+ REQUEST FOOTAGE</button></div>
+    <sc-if value="{{ noSubs }}" hint-placeholder-val="{{ false }}"><p style="font-size:11px;color:var(--dim2);margin:14px 0 0;line-height:1.6;">Nothing requested. A footage request makes a send link and a folder inside this project; the client needs no login.</p></sc-if>
+    <sc-for list="{{ subs }}" as="sb" hint-placeholder-count="1">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;padding:16px 0;border-bottom:1px solid var(--rule);animation:v3fade .3s var(--eo) both;">
+        <span style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;">{{ sb.name }}</span>
+        <span style="font-size:10px;letter-spacing:.08em;color:{{ sb.statusColor }};white-space:nowrap;">{{ sb.status }}</span>
+        <span style="font-size:11px;color:var(--dim);">{{ sb.files }} · {{ sb.opened }} · <span style="color:var(--dim2);">{{ sb.folder }}</span></span>
+        <span style="display:flex;gap:10px;align-items:center;justify-content:flex-end;font-size:10px;letter-spacing:.08em;">
+          <sc-if value="{{ sb.isOpen }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:var(--body);letter-spacing:0;max-width:34ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ sb.link }}</span><button onClick="{{ sb.copy }}" style="border:1px solid var(--rule2);padding:5px 9px;color:var(--mut);" style-hover="color:var(--ink);border-color:var(--ink);">{{ copyLabel }}</button><button onClick="{{ sb.close }}" style="color:var(--dim);" style-hover="color:var(--warn);">CLOSE</button></sc-if>
+          <sc-if value="{{ sb.isClosed }}" hint-placeholder-val="{{ false }}"><button onClick="{{ sb.reopen }}" style="color:var(--dim);" style-hover="color:var(--ink);">REOPEN</button></sc-if>
+        </span>
+      </div>
+    </sc-for>
+    <sc-if value="{{ subOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:3px;align-items:stretch;margin-top:3px;animation:v3fade .2s var(--eo) both;">
+        <div style="flex:1;background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">WHAT ARE THEY SENDING</span><input value="{{ subName }}" onChange="{{ setSubName }}" onKeyDown="{{ subKey }}" placeholder="e.g. Berlin raws" autoFocus style="width:100%;background:transparent;border:0;outline:none;font-size:13px;"></div>
+        <button onClick="{{ submitSub }}" style="background:var(--ink);color:var(--bg);padding:0 18px;font-size:10.5px;letter-spacing:.08em;" style-hover="background:var(--acc);">MAKE LINK →</button>
+        <button onClick="{{ closeSub }}" style="border:1px solid var(--rule2);padding:0 14px;font-size:10.5px;letter-spacing:.08em;color:var(--dim);" style-hover="color:var(--ink);">CANCEL</button>
+      </div>
+      <p style="font-size:10.5px;color:var(--dim2);margin:10px 0 0;line-height:1.6;">Link lives 14 days, closes itself, can be reopened. Files land in their own folder inside this project's inbox and alert you on Today.</p>
+    </sc-if>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:40px;padding-top:14px;border-top:1px solid var(--rule);font-size:10.5px;color:var(--dim2);flex-wrap:wrap;">
+    <span>Type was set at creation. Click the title or a date to change it. Payment and footage requests live above.</span>
+    <sc-if value="{{ P.canDelete }}" hint-placeholder-val="{{ false }}"><button style="letter-spacing:.08em;color:var(--dim);" style-hover="color:var(--warn);">DELETE PROJECT</button></sc-if>
+    <sc-if value="{{ P.cannotDelete }}" hint-placeholder-val="{{ true }}"><span>Holds {{ P.files }} · empty it to delete.</span></sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ CLIENT PROJECT PAGE (D3) ══ -->
+<sc-if value="{{ isCProj }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Client project page" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <span style="font-size:11px;letter-spacing:.1em;color:var(--dim);margin-bottom:22px;display:inline-block;">← PROJECTS</span>
+  <div style="padding-bottom:22px;border-bottom:1px solid var(--rule2);animation:v3rise .5s var(--eo) both;">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">{{ CP.deliveredLine }}</div>
+    <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(38px,4.8vw,60px);line-height:.98;letter-spacing:-.025em;margin:0;">{{ CP.title }}</h1>
+  </div>
+  <sc-if value="{{ CP.held }}" hint-placeholder-val="{{ true }}">
+    <div style="font-size:11.5px;color:var(--mut);line-height:1.6;padding:13px 0;border-bottom:1px solid var(--rule);">Downloads carry a preview mark until the invoice is settled.</div>
+  </sc-if>
+
+  <div style="margin-top:48px;animation:v3rise .5s var(--eo) .05s both;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);">
+      <span>DELIVERED</span><span style="color:var(--dim2);">{{ CP.assetsN }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:3px;margin-top:3px;">
+      <sc-for list="{{ CP.assets }}" as="a" hint-placeholder-count="4">
+        <button onClick="{{ a.open }}" style="background:var(--s1);display:block;text-align:left;animation:v3rise .45s var(--eo) both;animation-delay:{{ a.delay }};" style-hover="background:var(--s2);">
+          <span style="display:block;position:relative;aspect-ratio:16/9;background:var(--s0);border-bottom:1px solid var(--rule);">
+            <sc-if value="{{ CP.markVisible }}" hint-placeholder-val="{{ true }}">
+              <span style="position:absolute;left:9px;top:9px;font-size:10px;letter-spacing:.12em;color:var(--mut);">PREVIEW MARK</span>
+            </sc-if>
+            <span style="position:absolute;right:9px;bottom:9px;font-size:10px;letter-spacing:.06em;color:var(--mut);">{{ a.dur }}</span>
+          </span>
+          <span style="display:block;padding:13px 15px 15px;">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.name }}</span>
+            <span style="display:block;font-size:10.5px;color:var(--dim);margin-top:6px;">{{ a.specs }}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="margin-top:48px;animation:v3rise .5s var(--eo) .1s both;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);">
+      <span>SENT TO BJUR</span><span style="color:var(--dim2);">{{ CP.subsLine }}</span>
+    </div>
+    <sc-if value="{{ CP.noSubs }}" hint-placeholder-val="{{ false }}">
+      <p style="font-size:11px;color:var(--dim2);margin:14px 0 0;line-height:1.6;">Nothing requested on this project.</p>
+    </sc-if>
+    <sc-for list="{{ CP.subs }}" as="sb" hint-placeholder-count="1">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;padding:16px 0;border-bottom:1px solid var(--rule);">
+        <span style="font-family:'Source Serif 4',Georgia,serif;font-size:19px;letter-spacing:-.01em;">{{ sb.name }}</span>
+        <span style="font-size:10px;letter-spacing:.08em;color:{{ sb.statusColor }};white-space:nowrap;text-align:right;">{{ sb.status }}</span>
+        <span style="font-size:11px;color:var(--dim);">{{ sb.files }}</span>
+        <sc-if value="{{ sb.isOpen }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ sb.send }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--mut);justify-self:end;white-space:nowrap;" style-hover="color:var(--ink);">↑ SEND MORE</button>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ VIEWER + DOWNLOAD SHEET (D4) ══ -->
+<sc-if value="{{ isViewer }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Viewer" style="flex:1;display:flex;flex-direction:column;background:#000;min-height:calc(100vh - 34px);animation:v3fade .3s var(--eo) both;">
+  <div style="display:flex;align-items:center;gap:20px;padding:16px 22px;flex-wrap:wrap;flex:none;">
+    <button onClick="{{ closeViewer }}" style="font-size:11px;letter-spacing:.1em;color:var(--dim);" style-hover="color:var(--ink);">← CLOSE</button>
+    <span style="font-size:11.5px;color:var(--body);margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ V.name }}</span>
+    <span style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);white-space:nowrap;">{{ V.index }}</span>
+  </div>
+
+  <div style="flex:1;display:grid;place-items:center;padding:0 22px 8px;min-height:0;">
+    <div style="width:100%;max-width:1000px;aspect-ratio:16/9;background:#0a0a0a;border:1px solid rgba(255,255,255,.08);position:relative;">
+      <sc-if value="{{ V.markVisible }}" hint-placeholder-val="{{ true }}">
+        <span style="position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(16px,2.6vw,30px);letter-spacing:.34em;color:rgba(255,255,255,.07);">BJUR MEDIA</span>
+      </sc-if>
+      <span style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:14px;padding:12px 16px;">
+        <span style="font-size:10.5px;color:var(--mut);">{{ V.tc }}</span>
+        <span style="flex:1;height:2px;background:rgba(255,255,255,.14);position:relative;"><span style="position:absolute;left:0;top:0;bottom:0;width:34%;background:var(--ink);"></span></span>
+        <span style="font-size:10.5px;color:var(--dim);">{{ V.dur }}</span>
+      </span>
+    </div>
+  </div>
+
+  <div style="flex:none;border-top:1px solid rgba(255,255,255,.12);background:var(--bg);">
+    <button onClick="{{ toggleSheet }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:14px;padding:11px 0 7px;">
+      <span style="width:30px;height:1px;background:rgba(255,255,255,.22);"></span>
+      <span style="font-size:10px;letter-spacing:.14em;color:var(--dim);">{{ V.sheetLabel }}</span>
+      <span style="width:30px;height:1px;background:rgba(255,255,255,.22);"></span>
+    </button>
+    <sc-if value="{{ V.sheetOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="max-width:1000px;margin:0 auto;padding:6px 22px 30px;animation:v3rise .3s var(--eo) both;">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:26px;letter-spacing:-.02em;margin-bottom:12px;word-break:break-all;">{{ V.name }}</div>
+        <div style="display:flex;gap:22px;flex-wrap:wrap;font-size:11px;color:var(--dim);padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:16px;">
+          <span>{{ V.res }}</span><span>{{ V.codec }}</span><span>{{ V.size }}</span><span>{{ V.dur }}</span>
+        </div>
+        <sc-if value="{{ V.held }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:11.5px;color:var(--mut);line-height:1.6;margin-bottom:18px;max-width:52ch;text-wrap:pretty;">Downloads carry a preview mark until the invoice is settled.</div>
+        </sc-if>
+        <button onClick="{{ V.download }}" style="width:100%;max-width:340px;border:1px solid var(--ink);padding:14px 16px;font-size:11px;letter-spacing:.08em;text-align:center;color:{{ V.dlColor }};" style-hover="background:var(--inkA);">{{ V.dlLabel }}</button>
+        <div style="width:100%;max-width:340px;height:2px;background:rgba(255,255,255,.12);margin-top:3px;"><div style="height:2px;width:{{ V.dlW }};background:var(--ink);"></div></div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ PUBLIC SEND PAGE (D7) ══ -->
+<sc-if value="{{ isSend }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Send page" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 24px 120px;width:100%;min-height:calc(100vh - 34px);">
+  <div style="width:100%;max-width:560px;">
+    <sc-if value="{{ S.brandSerif }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-bottom:54px;animation:v3rise .5s var(--eo) both;">
+        <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(54px,9vw,86px);line-height:.88;letter-spacing:-.035em;">BJUR</div>
+        <div style="font-size:11px;letter-spacing:.18em;color:var(--dim);margin-top:18px;">{{ S.client }}</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ S.brandCompact }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-bottom:40px;font-size:12px;letter-spacing:.14em;animation:v3rise .5s var(--eo) both;">BJUR<span style="color:var(--dim);"> / {{ S.client }}</span></div>
+    </sc-if>
+
+    <sc-if value="{{ S.closed }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:1px solid var(--rule2);padding-top:24px;animation:v3rise .5s var(--eo) .05s both;">
+        <div style="font-size:15px;color:var(--body);">This link is closed.</div>
+        <div style="font-size:11.5px;color:var(--dim);line-height:1.7;margin-top:12px;">Ask for a new one at <a href="mailto:hello@bjurmedia.nyc" style="color:var(--mut);border-bottom:1px solid var(--rule2);">hello@bjurmedia.nyc</a></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ S.live }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ S.pick }}" style="width:100%;border:1px dashed var(--rule2);padding:62px 24px;display:flex;flex-direction:column;align-items:center;gap:11px;animation:v3rise .5s var(--eo) .05s both;" style-hover="border-color:var(--ink);background:var(--inkA);">
+        <span style="font-size:13px;color:var(--body);">Drop files here</span>
+        <span style="font-size:11px;color:var(--dim);">or choose from your computer</span>
+      </button>
+
+      <sc-if value="{{ S.hasFiles }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:28px;animation:v3fade .3s var(--eo) both;">
+          <sc-for list="{{ S.files }}" as="f" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 16px;padding:13px 0;border-bottom:1px solid var(--rule);">
+              <span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ f.name }}</span>
+              <span style="font-size:10.5px;letter-spacing:.06em;color:{{ f.color }};white-space:nowrap;text-align:right;">{{ f.label }}</span>
+              <span style="font-size:10.5px;color:var(--dim);">{{ f.size }}</span>
+              <span style="grid-column:1 / -1;height:2px;background:rgba(255,255,255,.1);margin-top:4px;"><span style="display:block;height:2px;width:{{ f.w }};background:var(--ink);"></span></span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ S.staged }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ S.askSender }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:26px;animation:v3fade .3s var(--eo) both;">
+            <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">WHO'S SENDING? <span style="color:var(--dim2);">— OPTIONAL</span></label>
+            <input value="{{ S.sender }}" onChange="{{ S.setSender }}" placeholder="Your name" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-size:15px;outline:none;" style-focus="border-bottom-color:var(--ink);">
+          </div>
+        </sc-if>
+        <button onClick="{{ S.send }}" style="width:100%;background:var(--ink);color:var(--bg);padding:15px 16px;font-size:11px;letter-spacing:.08em;margin-top:26px;text-align:center;">{{ S.sendCta }}</button>
+      </sc-if>
+
+      <sc-if value="{{ S.done }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:26px;font-size:13px;color:var(--body);animation:v3fade .4s var(--eo) both;">Bjur has it.{{ S.doneFrom }}</div>
+      </sc-if>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ NEW PROJECT SHEET ══ -->
+<sc-if value="{{ newOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeNew }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);animation:v3fade .3s var(--eo) both;"></div>
+  <div data-screen-label="New project sheet" style="position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:60;background:var(--s0);border-left:1px solid var(--rule);padding:28px 32px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v3sheet .5s var(--edrawer) both;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+      <span style="font-size:10.5px;letter-spacing:.1em;color:var(--dim);">NEW PROJECT</span>
+      <button onClick="{{ closeNew }}" style="font-size:11px;color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button>
+    </div>
+
+    <sc-if value="{{ nf.notDone }}" hint-placeholder-val="{{ true }}">
+    <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">New project.</div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">A gig you hand over, a film you cut with the client, or a calendar you keep feeding. Pick once.</p>
+
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">CLIENT</label>
+    <div style="display:flex;gap:2px;flex-wrap:wrap;margin-bottom:22px;">
+      <sc-for list="{{ nf.clientPicks }}" as="cp" hint-placeholder-count="4">
+        <button onClick="{{ cp.pick }}" style="padding:6px 10px;border:1px solid {{ cp.border }};color:{{ cp.color }};background:{{ cp.bg }};font-size:10.5px;letter-spacing:.06em;display:flex;gap:7px;align-items:center;"><span style="width:6px;height:6px;background:{{ cp.acc }};"></span>{{ cp.label }}</button>
+      </sc-for>
+    </div>
+
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">TYPE</label>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:22px;">
+      <sc-for list="{{ nf.types }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.pick }}" style="background:var(--s1);padding:13px 14px;display:flex;gap:14px;align-items:flex-start;border:1px solid {{ t.border }};" style-hover="border-color:var(--rule3);">
+          <span style="width:12px;height:12px;border:1px solid {{ t.dotBorder }};background:{{ t.dotBg }};flex:none;margin-top:2px;"></span>
+          <span style="min-width:0;flex:1;"><span style="display:flex;justify-content:space-between;gap:10px;"><span style="font-size:12px;">{{ t.label }}</span><span style="font-size:9.5px;letter-spacing:.08em;color:{{ t.tagColor }};">{{ t.tag }}</span></span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.5;">{{ t.hint }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">TITLE</label>
+    <input value="{{ nf.title }}" onChange="{{ nfTitle }}" placeholder="{{ nf.placeholder }}" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:8px;" style-focus="border-bottom-color:var(--ink);">
+    <div style="font-size:10.5px;color:var(--dim2);margin-bottom:22px;">/media/_inbox/{{ nf.slug }}/</div>
+    <sc-if value="{{ nf.isFilm }}" hint-placeholder-val="{{ false }}">
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">REVIEWERS</label>
+    <div style="background:var(--s1);padding:12px 14px;margin-bottom:22px;">
+      <span style="display:block;font-size:11px;color:var(--body);margin-bottom:10px;line-height:1.5;">{{ nf.seatLine }}</span>
+      <input value="{{ nf.guests }}" onChange="{{ nfGuests }}" placeholder="Guests by email · director, label, manager" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);outline:none;font-size:12px;padding:4px 0 8px;" style-focus="border-bottom-color:var(--ink);">
+    </div>
+    </sc-if>
+
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">ADD TO IT</label>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:22px;">
+      <sc-for list="{{ nf.features }}" as="ft" hint-placeholder-count="2">
+        <button onClick="{{ ft.toggle }}" style="background:var(--s1);padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;opacity:{{ ft.dim }};">
+          <span style="min-width:0;"><span style="display:block;font-size:12px;">{{ ft.label }}</span><span style="display:block;font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.5;">{{ ft.hint }}</span></span>
+          <span style="width:28px;height:16px;border:1px solid {{ ft.k.border }};position:relative;flex:none;margin-top:2px;"><span style="position:absolute;top:2px;left:{{ ft.k.knobX }};width:10px;height:10px;background:{{ ft.k.knobBg }};"></span></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="background:var(--s1);padding:12px 14px;margin-bottom:3px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">EXPIRES</span><input value="{{ nf.expires }}" onChange="{{ nfExpires }}" placeholder="Never" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+    <button onClick="{{ nfToggleHold }}" style="width:100%;background:var(--s1);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:22px;"><span><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">PAYMENT</span><span style="font-size:12px;">{{ nf.holdLabel }}</span></span><span style="width:28px;height:16px;border:1px solid {{ nf.holdK.border }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ nf.holdK.knobX }};width:10px;height:10px;background:{{ nf.holdK.knobBg }};"></span></span></button>
+
+    <sc-if value="{{ nf.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ nf.error }}</div></sc-if>
+    <button onClick="{{ submitNew }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">{{ nf.cta }}</button>
+    <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:14px 0 0;text-wrap:pretty;">{{ nf.footnote }}</p>
+    </sc-if>
+
+    <sc-if value="{{ nf.done }}" hint-placeholder-val="{{ false }}">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--ok);margin-bottom:14px;">CREATED · {{ nf.doneType }}</div>
+    <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:24px;">{{ nf.title }}</div>
+    <div style="border-top:1px solid var(--rule2);">
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">CLIENT</span><span>{{ nf.client }}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">INBOX</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">/media/_inbox/{{ nf.slug }}/</span></div>
+      <sc-if value="{{ nf.doneIntake }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:12px;"><span style="color:var(--dim);">SEND LINK</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">bjurmedia.nyc/send/{{ nf.slug }}/footage-k9f2</span></div>
+      </sc-if>
+    </div>
+    <p style="font-size:11px;color:var(--dim);line-height:1.6;margin:18px 0 24px;">{{ nf.doneNote }}</p>
+    <div style="display:flex;gap:3px;"><button onClick="{{ openCreated }}" style="flex:1;background:var(--ink);color:var(--bg);padding:13px 16px;font-size:11px;letter-spacing:.08em;">OPEN PROJECT →</button><button onClick="{{ openNew }}" style="border:1px solid var(--rule2);padding:12px 16px;font-size:11px;letter-spacing:.08em;">+ ANOTHER</button></div>
+    </sc-if>
+  </div>
+</sc-if>
+
+<!-- ══ NEW CLIENT SHEET ══ -->
+<sc-if value="{{ ncOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeNC }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);animation:v3fade .3s var(--eo) both;"></div>
+  <div data-screen-label="New client sheet" style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:60;background:var(--s0);border-left:1px solid var(--rule);padding:28px 32px 60px;overflow:auto;box-shadow:-30px 0 60px rgba(0,0,0,.5);animation:v3sheet .5s var(--edrawer) both;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+      <span style="font-size:10.5px;letter-spacing:.1em;color:var(--dim);">NEW CLIENT</span>
+      <button onClick="{{ closeNC }}" style="font-size:11px;color:var(--dim);letter-spacing:.06em;" style-hover="color:var(--ink);">ESC ✕</button>
+    </div>
+    <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:34px;letter-spacing:-.02em;line-height:1;margin-bottom:8px;">New client.</div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.6;margin:0 0 28px;">Owner gets an onboarding email. Projects come after.</p>
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;">CLIENT NAME</label>
+    <input value="{{ nc.name }}" onChange="{{ ncName }}" placeholder="e.g. Levi's Culture" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-family:'Source Serif 4',Georgia,serif;font-size:24px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:22px;">
+      <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">OWNER NAME</span><input value="{{ nc.owner }}" onChange="{{ ncOwner }}" placeholder="Full name" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+      <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">OWNER EMAIL</span><input value="{{ nc.email }}" onChange="{{ ncEmail }}" placeholder="name@company.com" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+    </div>
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">ACCENT</label>
+    <div style="display:flex;gap:3px;margin-bottom:28px;">
+      <sc-for list="{{ nc.swatches }}" as="sw" hint-placeholder-count="6"><button onClick="{{ sw.pick }}" aria-label="Accent" style="width:28px;height:28px;background:{{ sw.color }};outline:2px solid {{ sw.ring }};outline-offset:2px;"></button></sc-for>
+    </div>
+
+    <button onClick="{{ ncToggleInteg }}" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--rule2);border-bottom:1px solid var(--rule);margin-bottom:{{ nc.integMb }};">
+      <span><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);">INTEGRATIONS</span><span style="display:block;font-size:11px;color:var(--dim2);margin-top:4px;">Optional. Needed only for Social calendar projects.</span></span>
+      <span style="font-size:10.5px;letter-spacing:.06em;color:var(--mut);">{{ nc.integCaret }}</span>
+    </button>
+    <sc-if value="{{ nc.integOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:28px;animation:v3fade .2s var(--eo) both;">
+      <div style="background:var(--s1);padding:12px 14px;"><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">SLACK CHANNEL</span><input value="{{ nc.slack }}" onChange="{{ ncSlack }}" placeholder="#client-content" style="width:100%;background:transparent;border:0;outline:none;font-size:12px;"></div>
+      <div style="background:var(--s1);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;"><span><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">ACCOUNTS</span><span style="font-size:12px;color:var(--dim);">Connect Instagram / YouTube after</span></span><span style="font-size:10px;letter-spacing:.06em;color:var(--dim2);">LATER</span></div>
+      <button onClick="{{ ncToggleAI }}" style="background:var(--s1);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;"><span><span style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px;">AI CAPTIONS</span><span style="font-size:12px;">{{ nc.aiLabel }}</span></span><span style="width:28px;height:16px;border:1px solid {{ nc.aiK.border }};position:relative;flex:none;"><span style="position:absolute;top:2px;left:{{ nc.aiK.knobX }};width:10px;height:10px;background:{{ nc.aiK.knobBg }};"></span></span></button>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ nc.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--warn);margin-bottom:12px;">{{ nc.error }}</div></sc-if>
+    <button onClick="{{ submitNC }}" style="width:100%;background:var(--ink);color:var(--bg);padding:14px 16px;font-size:11px;letter-spacing:.08em;" style-hover="background:var(--acc);">CREATE CLIENT</button>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:28px;z-index:80;background:var(--ink);color:var(--bg);padding:12px 18px;font-size:11.5px;letter-spacing:.04em;animation:v3toast .3s var(--eo) both;white-space:nowrap;display:flex;align-items:center;gap:20px;">{{ toast }}<sc-if value="{{ toastUndo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toastUndo }}" style="font-size:10px;letter-spacing:.1em;border-bottom:1px solid currentColor;opacity:.75;">UNDO</button></sc-if></div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showSenderName&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Send page&quot;,&quot;label&quot;:&quot;Ask \&quot;Who's sending?\&quot;&quot;},&quot;sendBrandScale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;serif&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;serif&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Send page&quot;,&quot;label&quot;:&quot;Brand treatment&quot;},&quot;showPreviewMark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Client view&quot;,&quot;label&quot;:&quot;Show preview mark on held files&quot;}}">
+class Component extends DCLogic {
+  CLIENTS = {
+    "57.NYC": { acc: "oklch(0.6 0.17 145)", since: "2023", files: "412 files · 610 GB", slack: "#57nyc-content", ai: true, accounts: ["@57.nyc · IG", "57 NYC · YT"], seats: [["Dana Okafor", "dana@57.nyc", "OWNER", "2h ago"], ["Rae Tan", "rae@57.nyc", "DOWNLOADER", "3d ago"]],
+      projects: [{ id: "p8", title: "IG Posting", type: "calendar", meta: "Ongoing · 6 reels this week", pay: "clear", delivered: "Jul 13, 2026", expires: null, files: "412 files" }, { id: "p4", title: "Rooftop Session — Masters", type: "delivery", meta: "3 films · 53 GB", pay: "clear", delivered: "Jun 30, 2026", expires: "Sep 30, 2026", files: "3 files" }] },
+    "SSH": { acc: "oklch(0.6 0.16 250)", since: "2025", files: "12 files · 18 GB", slack: null, ai: false, accounts: [], seats: [["Sasha Hale", "sasha@ssh.co", "OWNER", "1d ago"]],
+      projects: [{ id: "s1", title: "PROMO", type: "delivery", meta: "12 files · 18 GB", pay: "clear", delivered: "Jul 23, 2026", expires: null, files: "12 files" }] },
+    "Space Invaders": { acc: "oklch(0.6 0.15 320)", since: "2024", files: "17 files · 30 GB · 41 received", slack: null, ai: false, accounts: [], seats: [["Marcus Lee", "marcus@spaceinvaders.tv", "OWNER", "now"]],
+      projects: [{ id: "si3", title: "Fall Tour — Recap Films", type: "delivery", meta: "New gig · 4 films · 41 files received", pay: "held", delivered: "Sep 19, 2026", expires: null, files: "4 files", subs: [{ id: "sb1", name: "Berlin raws", token: "k9f2", files: 41, size: "62 GB", opened: "Sep 2", status: "open", days: 9, from: "Marcus" }] }, { id: "si1", title: "Summer Reels", type: "delivery", meta: "6 reels · 9 GB", pay: "clear", delivered: "Jul 13, 2026", expires: null, files: "6 files" }, { id: "si0", title: "Warehouse Set", type: "delivery", meta: "7 reels · 11 GB", pay: "clear", delivered: "Mar 2, 2026", expires: null, files: "7 files" }] },
+    "Adam Knights": { acc: "oklch(0.55 0.12 200)", since: "2026", files: "2 files · 21 GB", slack: null, ai: false, accounts: [], seats: [["Adam Knights", "adam@adamknights.com", "OWNER", "5h ago"]],
+      projects: [{ id: "ak1", title: "HURT — Music Video", type: "film", meta: "Cut 3 · 1 note in", pay: "clear", delivered: "Sep 23, 2026", expires: null, files: "3 files",
+        cuts: [{ n: 3, date: "Uploaded Sep 23 · today", notes: 1, from: "Mia" }, { n: 2, date: "Uploaded Sep 12", notes: 3, from: "Adam, Tom", answered: true }, { n: 1, date: "Uploaded Aug 28", notes: 1, from: "Adam", answered: true }],
+        reviewers: [["Adam Knights", "adam@adamknights.com", "Artist · owner", "seat", "Watched · drafting"], ["Tom Reyes", "tom@northfilms.co", "Director", "guest", "Not opened yet"], ["Mia Chen", "mia@heavyrecords.com", "Label", "guest", "Sent 1 note · 4:02 PM"]] }] },
+  };
+  TYPES = {
+    delivery: { label: "Delivery", tag: "A GIG", hint: "You make something and hand it over. Files land, client is emailed, downloads from the gallery.", dot: "var(--dim)", does: ["New files email the client's seats.", "Client views and downloads from the gallery."], placeholder: "e.g. Fall Tour — Recap Films", cta: "CREATE DELIVERY" },
+    film: { label: "Film", tag: "CUTS & NOTES", hint: "One piece, cut by cut. Reviewers leave notes on the timeline; you answer them with the next cut.", dot: "oklch(0.78 0.12 75)", does: ["Each upload is a new cut. Every reviewer is emailed to watch it.", "Reviewers leave timestamped notes and send them in one batch.", "You answer every note before the next cut goes out. The answers are in that email.", "Approval unlocks the master downloads."], placeholder: "e.g. HURT — Music Video", cta: "CREATE FILM" },
+    calendar: { label: "Social calendar", tag: "ONGOING · NEEDS SLACK", hint: "You keep feeding it. Reels go to the week board; you post the week to Slack for approval.", dot: "oklch(0.6 0.17 145)", does: ["New reels appear in the board tray.", "You drag them onto days and post the week to Slack.", "Client approves each post with ✅ in Slack."], placeholder: "e.g. IG Posting", cta: "CREATE CALENDAR" },
+  };
+  SW = ["oklch(0.6 0.17 145)", "oklch(0.6 0.16 250)", "oklch(0.7 0.17 80)", "oklch(0.62 0.19 25)", "oklch(0.6 0.15 320)", "oklch(0.55 0.12 200)"];
+  ASSETS = {
+    si3: [["fall-tour-recap-01.mp4", "3840×2160", "ProRes 422 HQ", "8.2 GB", "2:41"],
+          ["fall-tour-recap-02.mp4", "3840×2160", "ProRes 422 HQ", "7.4 GB", "2:12"],
+          ["fall-tour-bts.mp4", "1920×1080", "H.264", "1.8 GB", "4:06"],
+          ["fall-tour-teaser-vertical.mp4", "1080×1920", "H.264", "420 MB", "0:32"]],
+  };
+  MOCKF = [["berlin-night-a001.braw", "11.4 GB"], ["berlin-night-a002.braw", "9.8 GB"], ["soundcheck-b014.braw", "6.1 GB"]];
+
+  assetsOf(p) {
+    if (this.ASSETS[p.id]) return this.ASSETS[p.id];
+    const n = Math.min(Math.max(1, parseInt(p.files, 10) || 1), 8);
+    return Array.from({ length: n }, (_, i) => [`${this.slug(p.title)}-${String(i + 1).padStart(2, "0")}.mp4`, "1920×1080", "H.264", "1.2 GB", "0:41"]);
+  }
+  startDl() {
+    clearInterval(this._dl);
+    this.setState({ dl: 0, dlState: "run" });
+    this._dl = setInterval(() => this.setState(st => {
+      const v = st.dl + 6 + Math.random() * 8;
+      if (v >= 100) { clearInterval(this._dl); return { dl: 100, dlState: "done" }; }
+      return { dl: v };
+    }), 170);
+  }
+  startUpload() {
+    clearInterval(this._up);
+    this.setState({ up: 0, sending: true, sendDone: false });
+    this._up = setInterval(() => this.setState(st => {
+      const v = st.up + 2.5 + Math.random() * 4;
+      if (v >= 100) { clearInterval(this._up); return { up: 100, sending: false, sendDone: true }; }
+      return { up: v };
+    }), 130);
+  }
+
+  BSTATE = { NONE: "NOT SCHEDULED", DRAFT: "CAPTION TO APPROVE", READY: "READY FOR SLACK", POSTED: "POSTED TO SLACK" };
+  BOARD = {
+    k1: { w: 0, day: 1, client: "57.NYC", project: "IG Posting", title: "Rooftop, golden hour", name: "IG_Sep21_ReelA.mp4", specs: "1080×1920 · ProRes 422 · 1.5 GB · 0:15", time: "10:00", platforms: "IG + YT", caption: "Golden hour on the roof. Full film Friday.", captionYT: "Rooftop session — 57.NYC", capSrc: "HUMAN", state: "READY" },
+    k2: { w: 0, day: 3, client: "57.NYC", project: "IG Posting", title: "Sound check", name: "IG_Sep21_ReelB.mp4", specs: "1080×1920 · ProRes 422 · 1.9 GB · 0:18", time: "12:00", platforms: "IG", caption: "Sound check before doors. The room was already full.", captionYT: "", capSrc: "AI", state: "DRAFT" },
+    k3: { w: 0, day: 5, client: "57.NYC", project: "IG Posting", title: "Fam only", name: "IG_Sep21_ReelC.mp4", specs: "1080×1920 · ProRes 422 · 1.3 GB · 0:12", time: "17:00", platforms: "IG", caption: "Fam only. Saturday, late.", captionYT: "", capSrc: "HUMAN", state: "READY" },
+    k4: { w: null, day: null, client: "57.NYC", project: "IG Posting", title: "", name: "IG_Sep21_ReelD.mp4", specs: "1080×1920 · ProRes 422 · 1.6 GB · 0:16", time: "—", platforms: "—", caption: "Load-in, 6am. Nobody sees this part.", captionYT: "", capSrc: "AI", state: "NONE" },
+    k5: { w: null, day: null, client: "57.NYC", project: "IG Posting", title: "Back room", name: "IG_Sep21_ReelE.mp4", specs: "1080×1920 · ProRes 422 · 1.4 GB · 0:14", time: "—", platforms: "—", caption: "", captionYT: "", capSrc: "HUMAN", state: "NONE" },
+    k6: { w: 1, day: 1, client: "57.NYC", project: "IG Posting", title: "Warehouse walk", name: "IG_Sep14_ReelA.mp4", specs: "1080×1920 · ProRes 422 · 1.7 GB · 0:17", time: "10:00", platforms: "IG", caption: "Walking the warehouse before anyone arrives.", captionYT: "", capSrc: "HUMAN", state: "POSTED" },
+    k7: { w: 1, day: 3, client: "57.NYC", project: "IG Posting", title: "Sunset run", name: "IG_Sep14_ReelB.mp4", specs: "1080×1920 · ProRes 422 · 1.5 GB · 0:15", time: "12:00", platforms: "IG", caption: "Sunset run through the block.", captionYT: "", capSrc: "HUMAN", state: "POSTED" },
+    k8: { w: 1, day: 5, client: "57.NYC", project: "IG Posting", title: "Doors at nine", name: "IG_Sep14_ReelC.mp4", specs: "1080×1920 · ProRes 422 · 1.8 GB · 0:19", time: "17:00", platforms: "IG + YT", caption: "Doors at nine. Bring nothing.", captionYT: "Doors at nine — 57.NYC", capSrc: "HUMAN", state: "POSTED" },
+  };
+  NEEDS = [
+    { id: "n1", kind: "NOTES IN", client: "Adam Knights", subject: "HURT — Music Video · cut 3", quote: "Use the white label logo on the dark shots.", body: "Mia Chen · label · 4:02 PM · Adam and Tom still reviewing", action: "OPEN PROJECT", dismissLabel: "HANDLED", seed: "ak-color-v2.mp4", ratio: "16/9", thumbW: "72px", color: "var(--warn)", target: "project:Adam Knights:ak1" },
+    { id: "n2", kind: "UPLOAD LANDED", client: "Space Invaders", subject: "Berlin raws · 41 files · 62 GB", body: "from Marcus · finished 06:40 · submissions/berlin-raws/", action: "OPEN PROJECT", dismissLabel: "PULLED", seed: "berlin-night-a001.braw", ratio: "16/9", thumbW: "72px", color: "var(--ok)", target: "project:Space Invaders:si3" },
+    { id: "n3", kind: "CAPTION TO APPROVE", client: "57.NYC", subject: "Sound check · AI draft", body: "IG Posting · Thu Sep 24 · the week can't go to Slack until it's approved", action: "OPEN BOARD", dismissLabel: "LATER", seed: "IG_Sep21_ReelB.mp4", ratio: "9/16", thumbW: "40px", color: "var(--ink)", target: "board:k2" },
+    { id: "n4", kind: "ENCODE FAILED", client: "SSH", subject: "promo-detail-cut.mp4", body: "ffmpeg exit 1 · unsupported pixel format · queued 04:12", action: "RETRY", dismissLabel: "IGNORE", seed: "promo-detail-cut.mp4", ratio: "9/16", thumbW: "40px", color: "var(--warn)", target: "retry" },
+  ];
+  ACTIVITY = [
+    ["TODAY 16:02", "Mia Chen", "sent 1 note on HURT cut 3", "Adam Knights"],
+    ["TODAY 08:40", "Mail", "HURT cut 3 sent to 3 reviewers · 3 notes answered", "Adam Knights"],
+    ["TODAY 06:40", "Berlin raws", "41 files landed from Marcus", "Space Invaders"],
+    ["TODAY 06:05", "Worker", "12 proxies ready", "Space Invaders"],
+    ["SUN 21:40", "You", "held Fall Tour — Recap Films for payment", "Space Invaders"],
+    ["SUN 18:12", "Captions", "drafted 2 captions from transcript", "57.NYC"],
+    ["FRI 17:00", "You", "posted Week of Sep 14 to #57nyc-content", "57.NYC"],
+    ["FRI 11:20", "Dana Okafor", "downloaded Rooftop Session — Masters · 53 GB", "57.NYC"],
+  ];
+  REP = {
+    "57.NYC": { films: 2, stills: 9,
+      del: [3, 4, 2, 5, 3, 4, 3, 4, 2, 3, 4, 3, 5], vw: [19, 26, 14, 33, 22, 29, 18, 52, 24, 31, 28, 35, 41],
+      top: [["IG_Aug17_ReelA.mp4", "Instagram", "Aug 17", "52k", 5], ["Rooftop Session — full film", "YouTube", "Sep 2", "31k", 3], ["IG_Sep07_ReelC.mp4", "Instagram", "Sep 7", "28k", 2], ["IG_Aug31_ReelB.mp4", "Instagram", "Aug 31", "24k", 3], ["IG_Sep14_ReelA.mp4", "Instagram", "Sep 14", "22k", 1], ["IG_Jul27_ReelB.mp4", "Instagram", "Jul 27", "18k", 8]] },
+  };
+  MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  state = { screen: "today", client: "Space Invaders", project: "si3", accents: {}, accentOpen: false, slack: {}, ai: {}, pay: {}, subs: {}, extra: {}, subOpen: false, subName: "", extraClients: {}, toast: null, toastUndo: null, copied: false,
+    week: 0, chip: "ALL", dragId: null, selId: null, saved: false, dismissed: {}, boardPatch: {}, postOpen: false, repClient: "57.NYC", repRange: "8W", syncFixed: false,
+    newOpen: false, revs: {}, revAdd: false, revEmail: "", nf: { client: "Space Invaders", type: "delivery", title: "", expires: "", guests: "", startSub: false, hold: false, done: false, error: null },
+    ncOpen: false, nc: { name: "", owner: "", email: "", accent: "oklch(0.62 0.19 25)", integOpen: false, slack: "", ai: false, error: null },
+    asset: 0, sheetOpen: true, dl: 0, dlState: "idle",
+    sendFiles: [], sender: "", up: 0, sending: false, sendDone: false,
+    draft: {} };
+
+  componentDidMount() { this._k = (e) => { if (e.key === "Escape") this.setState({ newOpen: false, ncOpen: false, accentOpen: false, subOpen: false, selId: null, postOpen: false }); }; window.addEventListener("keydown", this._k); }
+  componentWillUnmount() { window.removeEventListener("keydown", this._k); clearInterval(this._dl); clearInterval(this._up); clearTimeout(this._t); clearTimeout(this._saveT); }
+  toast(t, undo) { clearTimeout(this._t);
+    this.setState({ toast: t, toastUndo: undo ? () => { clearTimeout(this._t); this.setState({ toast: null, toastUndo: null }); undo(); } : null });
+    this._t = setTimeout(() => this.setState({ toast: null, toastUndo: null }), undo ? 3600 : 2600); }
+  bg(seed) { let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const hue = h % 360; return `linear-gradient(160deg, oklch(0.42 0.06 ${hue}), oklch(0.22 0.04 ${(hue + 40) % 360}))`; }
+  markSaved() { clearTimeout(this._saveT); this.setState({ saved: true }); this._saveT = setTimeout(() => this.setState({ saved: false }), 1500); }
+  patchB(id, patch) { this.setState(st => ({ boardPatch: { ...st.boardPatch, [id]: { ...(st.boardPatch[id] ?? {}), ...patch } } })); }
+  slug(s) { return (s || "untitled").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+  knob(on) { return { border: on ? "var(--ink)" : "var(--rule2)", knobX: on ? "15px" : "2px", knobBg: on ? "var(--ink)" : "var(--dim)" }; }
+  seg(on) { return { border: on ? "var(--ink)" : "var(--rule2)", color: on ? "var(--bg)" : "var(--dim)", bg: on ? "var(--ink)" : "transparent" }; }
+  radio(on) { return { border: on ? "var(--ink)" : "transparent", dotBorder: on ? "var(--ink)" : "var(--rule2)", dotBg: on ? "var(--ink)" : "transparent" }; }
+  all() { return { ...this.CLIENTS, ...this.state.extraClients }; }
+  allProjects(name) { return [...(this.state.extra[name] ?? []), ...(this.all()[name].projects ?? [])]; }
+  slackOf(name) { return name in this.state.slack ? this.state.slack[name] : this.all()[name].slack; }
+  aiOf(name) { return this.state.ai[name] ?? this.all()[name].ai; }
+
+  renderVals() {
+    const s = this.state, ALL = this.all(), name = s.client, cl = ALL[name];
+    const acc = s.accents[name] ?? cl.acc;
+    const projects = this.allProjects(name);
+    const proj = projects.find(p => p.id === s.project) ?? projects[0];
+    const T = this.TYPES[proj.type];
+    const held = (s.pay[proj.id] ?? proj.pay) === "held";
+    const subsOf = (p) => s.subs[p.id] ?? p.subs ?? [];
+    const subs = subsOf(proj), openSubs = subs.filter(x => x.status === "open");
+    const names = Object.keys(ALL);
+    const nf = s.nf, NT = this.TYPES[nf.type];
+    const nc = s.nc;
+    const d = s.draft;
+    const field = (k, cur) => k in d ? d[k] : cur;
+    const commit = (k, cur, label) => () => { if (!(k in d) || d[k] === cur) return this.setState({ draft: {} }); const v = d[k].trim(); const upd = (p) => p.id === proj.id ? { ...p, [k]: k === "expires" ? (v || null) : (v || p[k]) } : p;
+      if (cl.projects) cl.projects = cl.projects.map(upd); this.setState(st => ({ extra: { ...st.extra, [name]: (st.extra[name] ?? []).map(upd) }, draft: {} })); this.toast(label); };
+    const blurOnKey = (e) => { if (e.key === "Enter") e.target.blur(); if (e.key === "Escape") { this.setState({ draft: {} }); e.target.blur(); } };
+    const typeLabel = (t) => this.TYPES[t].label.toUpperCase();
+    const badge = (p) => typeLabel(p.type);
+    const doesOf = (p) => this.TYPES[p.type].does;
+    const isFilm = proj.type === "film", cutsP = proj.cuts ?? [], revsP = s.revs[proj.id] ?? proj.reviewers ?? [];
+    const slack = this.slackOf(name), accts = cl.accounts ?? [];
+    const integParts = [slack ? `SLACK ${slack.toUpperCase()}` : null, accts.length ? `${accts.length} ACCOUNT${accts.length > 1 ? "S" : ""}` : null, this.aiOf(name) ? "AI CAPTIONS" : null].filter(Boolean);
+    const navc = (id) => ({ color: s.screen === id ? "var(--ink)" : "var(--dim)", rule: s.screen === id ? "var(--ink)" : "transparent" });
+    const assets = this.assetsOf(proj);
+    const ai = Math.min(s.asset, assets.length - 1), A = assets[ai] ?? ["—", "—", "—", "—", "—"];
+    const mark = this.props.showPreviewMark ?? true;
+    const brand = this.props.sendBrandScale ?? "serif";
+
+    // ── today
+    const needs = this.NEEDS.filter(n => !s.dismissed[n.id]).map((n, i) => ({ ...n, delay: `${i * 60}ms`, bg: this.bg(n.seed),
+      go: () => { const [kind, a, b] = n.target.split(":");
+        if (kind === "project") return this.setState({ client: a, project: b, screen: "project" });
+        if (kind === "board") return this.setState({ screen: "board", week: 0, chip: "ALL", selId: a });
+        this.setState(st => ({ dismissed: { ...st.dismissed, [n.id]: true } })); this.toast(`Re-queued · ${n.subject}`); },
+      dismiss: () => { this.setState(st => ({ dismissed: { ...st.dismissed, [n.id]: true } }));
+        this.toast(`${n.subject} · ${n.dismissLabel.toLowerCase()}`, () => this.setState(st => ({ dismissed: { ...st.dismissed, [n.id]: false } }))); } }));
+
+    // ── board
+    const BS = (id) => ({ id, ...this.BOARD[id], ...(s.boardPatch[id] ?? {}) });
+    const bAll = Object.keys(this.BOARD).map(BS);
+    const bProjects = [...new Set(bAll.map(b => `${b.client} / ${b.project}`))];
+    const inChip = (b) => s.chip === "ALL" || `${b.client} / ${b.project}` === s.chip;
+    const dows = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+    const wkStart = [21, 14][s.week], wkLabel = ["Week of Sep 21", "Week of Sep 14"][s.week];
+    const dragging = !!s.dragId;
+    const bcard = (b) => ({ key: b.id, bg: this.bg(b.name), acc: s.accents[b.client] ?? (ALL[b.client]?.acc ?? "var(--dim)"),
+      title: b.title || b.name, meta: `${b.client} · ${b.time} · ${b.platforms}`, state: this.BSTATE[b.state],
+      capTag: b.caption.trim() ? (b.capSrc === "AI" ? "AI DRAFT" : "CAPTION READY") : "NO CAPTION",
+      stateColor: b.state === "DRAFT" ? "#ffa08a" : b.state === "POSTED" ? "#7fe0a6" : b.state === "READY" ? "#f4f2ee" : "rgba(244,242,238,.65)",
+      outline: s.selId === b.id ? "2px solid var(--ink)" : "2px solid transparent", opacity: s.dragId === b.id ? .4 : 1,
+      dragStart: () => this.setState({ dragId: b.id }), select: () => this.setState({ selId: b.id }) });
+    const scheduled = bAll.filter(b => b.day != null && b.w === s.week && inChip(b));
+    const trayCards = bAll.filter(b => b.day == null && inChip(b));
+    const days = dows.map((dow, i) => ({ dow, date: `SEP ${wkStart + i}`, color: s.week === 0 && i === 0 ? "var(--ink)" : "var(--dim)",
+      colBg: dragging ? "var(--s2)" : i >= 5 ? "var(--s0)" : "var(--s1)", ring: dragging ? "var(--rule2)" : "transparent", dropHint: dragging,
+      cards: scheduled.filter(b => b.day === i).map(bcard),
+      drop: () => { const id = s.dragId; if (!id) return; const b = BS(id); const prev = { w: b.w, day: b.day, state: b.state, time: b.time, platforms: b.platforms };
+        this.patchB(id, { w: s.week, day: i, time: b.time === "—" ? "10:00" : b.time, platforms: b.platforms === "—" ? "IG" : b.platforms,
+          state: b.state === "NONE" ? (b.caption.trim() && b.capSrc === "HUMAN" ? "READY" : "DRAFT") : b.state });
+        this.setState({ dragId: null, selId: b.day == null ? id : s.selId });
+        this.toast(`${b.title || b.name} → ${dow} Sep ${wkStart + i}`, () => this.patchB(id, prev)); } }));
+    const postScope = s.chip === "ALL" ? bProjects[0] : s.chip;
+    const [pClient, pProject] = postScope.split(" / ");
+    const postCards = bAll.filter(b => b.day != null && b.w === s.week && b.client === pClient && b.project === pProject).sort((a, b) => a.day - b.day);
+    const unapproved = postCards.filter(b => b.state === "DRAFT").length;
+    const chan = this.slackOf(pClient), channel = (chan ?? "no channel yet").toUpperCase();
+    const posted = postCards.length > 0 && postCards.every(b => b.state === "POSTED");
+    const selB = s.selId ? BS(s.selId) : null;
+    const hasCap = !!(selB && selB.caption.trim());
+    const canApprove = !!(selB && hasCap && (selB.state === "DRAFT" || (selB.state === "NONE" && selB.capSrc === "AI")));
+    const SB = selB ? { bg: this.bg(selB.name), name: `${selB.name} · ${selB.client} · ${selB.project}`, specs: selB.specs,
+      state: this.BSTATE[selB.state], stateColor: selB.state === "DRAFT" ? "var(--warn)" : selB.state === "POSTED" ? "var(--ok)" : selB.state === "READY" ? "var(--ink)" : "var(--dim)",
+      title: selB.title, caption: selB.caption, captionYT: selB.captionYT, capLen: selB.caption.length,
+      capLenColor: selB.caption.length > 2200 ? "var(--warn)" : "var(--dim)",
+      capTag: hasCap ? (selB.capSrc === "AI" ? "AI DRAFT · NOT APPROVED" : "") : "EMPTY", capTagColor: "var(--warn)",
+      when: selB.day == null ? "Not scheduled" : `${dows[selB.day]} SEP ${(selB.w === 1 ? 14 : 21) + selB.day} · ${selB.time}`,
+      platforms: selB.platforms === "—" ? "Set on a day" : selB.platforms,
+      showApprove: canApprove, showStatus: !canApprove,
+      statusLine: !hasCap ? "ADD A CAPTION, THEN A DAY" : selB.state === "READY" ? "READY · GOES IN THE WEEK POST" : selB.state === "POSTED" ? "POSTED · APPROVALS HAPPEN IN SLACK" : "CAPTION READY · DRAG ONTO A DAY",
+      footnote: selB.state === "POSTED" ? "Already in Slack. Posting is one-way — the client's ✅ lives in the channel, not in here." : selB.capSrc === "AI" && hasCap ? "AI draft. Read it, edit if you want, then approve — an unapproved caption holds the whole week back." : selB.day == null ? "Drag it onto a day to put it in this week's Slack post." : "Approved captions go out in the week post you send from this board.",
+      savedOpacity: s.saved ? 1 : 0 } : { savedOpacity: 0 };
+    const PW = { title: `${pProject} · ${wkLabel}`, channel, kicker: posted ? "POSTED" : `TO ${channel}`, kickerColor: posted ? "var(--ok)" : "var(--dim)",
+      sub: posted ? "That week has already been posted." : `${postCards.length} line${postCards.length === 1 ? "" : "s"} in one message to ${pClient}'s channel. You send it; nothing goes out on a timer.`,
+      lines: postCards.map(b => ({ text: `${dows[b.day][0]}${dows[b.day].slice(1, 3).toLowerCase()} Sep ${wkStart + b.day} · ${b.time} — ${b.title || b.name} · ${b.platforms}`,
+        tag: b.state === "DRAFT" ? "NOT APPROVED" : b.state === "POSTED" ? "POSTED" : "READY",
+        tagColor: b.state === "DRAFT" ? "var(--warn)" : b.state === "POSTED" ? "var(--ok)" : "var(--dim)" })),
+      notPosted: !posted, posted };
+
+    // ── reports
+    const rc = s.repClient, rcl = ALL[rc], rAccts = rcl?.accounts ?? [];
+    const wkN = { "4W": 4, "8W": 8, "13W": 13 }[s.repRange];
+    const RD = this.REP[rc];
+    const del = (RD?.del ?? []).slice(-wkN), vw = (RD?.vw ?? []).slice(-wkN);
+    const maxD = Math.max(1, ...del), maxV = Math.max(1, ...vw);
+    const totalD = del.reduce((a, b) => a + b, 0), totalV = vw.reduce((a, b) => a + b, 0);
+    const postedN = Math.max(0, totalD - 3), igN = Math.round(postedN * .78), ytN = postedN - igN;
+    const igV = Math.round(totalV * .74), ytV = totalV - igV;
+    const med = (v, n) => `${(Math.round(v / Math.max(1, n) * 8.5) / 10).toFixed(1)}k`;
+    const rWeek = (i) => { const d = new Date(2026, 8, 21 - 7 * (wkN - 1 - i)); return `${this.MONTHS[d.getMonth()].toUpperCase()} ${d.getDate()}`; };
+    const rFirst = new Date(2026, 8, 21 - 7 * (wkN - 1));
+    const plural = (n, one, many) => n === 1 ? one : many;
+    const rFilms = Math.max(0, Math.round((RD?.films ?? 0) * wkN / 13)), rStills = Math.max(0, Math.round((RD?.stills ?? 0) * wkN / 13));
+
+    return {
+      acc, isClientPage: s.screen === "client", isProjectPage: s.screen === "project", isIntegrations: s.screen === "integrations",
+      isToday: s.screen === "today", isBoard: s.screen === "board", isReports: s.screen === "reports",
+      navClients: navc(s.screen === "project" ? "project" : "client"), navInteg: navc("integrations"),
+      navToday: navc("today"), navBoard: navc("board"), navReports: navc("reports"),
+      isAdmin: ["today", "board", "reports", "client", "project", "integrations"].includes(s.screen), isCProj: s.screen === "cproj", isViewer: s.screen === "viewer", isSend: s.screen === "send" || s.screen === "sendClosed",
+      nav: [["today", "TODAY"], ["board", "BOARD"], ["client", "CLIENT"], ["project", "PROJECT"], ["integrations", "INTEGRATIONS"], ["reports", "REPORTS"], ["cproj", "CLIENT VIEW"], ["viewer", "VIEWER"], ["send", "SEND"], ["sendClosed", "SEND · CLOSED"]].map(([id, label]) => ({ label, go: () => this.setState({ screen: id }), ...this.seg(s.screen === id) })),
+      goClient: () => this.setState({ screen: "client" }), goIntegrations: () => this.setState({ screen: "integrations" }),
+      goToday: () => this.setState({ screen: "today" }), goBoard: () => this.setState({ screen: "board" }), goReports: () => this.setState({ screen: "reports" }),
+
+      TD: { date: "MON SEP 21, 2026", needs, hasNeeds: needs.length > 0, clear: needs.length === 0,
+        headline: needs.length ? `${needs.length} thing${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you.` : "Nothing needs you.",
+        activity: this.ACTIVITY.map(([when, who, what, client]) => ({ when, who, what, client })), activityCount: `${this.ACTIVITY.length} · 7 DAYS`, queue: 2,
+        syncDot: s.syncFixed ? "var(--ok)" : "var(--warn)", syncBroken: !s.syncFixed,
+        syncStatus: s.syncFixed ? "ACCOUNTS · 3 SYNCED" : "ACCOUNTS · @57.NYC TOKEN EXPIRED",
+        reconnect: () => { this.setState({ syncFixed: true }); this.toast("@57.nyc reconnected"); } },
+
+      BD: { weekLabel: wkLabel, days, tray: trayCards.map(bcard), trayCount: trayCards.length, trayEmpty: trayCards.length === 0,
+        trayBorder: dragging ? "var(--rule3)" : "var(--rule2)",
+        prev: () => this.setState({ week: 1, selId: null }), next: () => this.setState({ week: 0, selId: null }),
+        prevColor: s.week === 0 ? "var(--dim)" : "var(--dim2)", nextColor: s.week === 1 ? "var(--dim)" : "var(--dim2)",
+        chips: ["ALL", ...bProjects].map(c => ({ label: c === "ALL" ? "ALL" : c.toUpperCase(), acc: c === "ALL" ? "var(--dim)" : (ALL[c.split(" / ")[0]]?.acc ?? "var(--dim)"), set: () => this.setState({ chip: c, selId: null }), ...this.seg(s.chip === c) })),
+        summary: `${scheduled.length} on the week · ${trayCards.length} not scheduled · ${pProject} posts to ${chan ?? "no channel yet"}`,
+        postLabel: posted ? `POSTED TO ${channel}` : unapproved ? `${unapproved} CAPTION${unapproved > 1 ? "S" : ""} TO APPROVE` : "POST WEEK TO SLACK →",
+        postBg: posted || unapproved ? "transparent" : "var(--ink)", postColor: posted ? "var(--dim)" : unapproved ? "var(--warn)" : "var(--bg)",
+        postBorder: posted ? "var(--rule2)" : unapproved ? "var(--warn)" : "var(--ink)",
+        post: () => { if (!postCards.length) return this.toast("Nothing scheduled this week");
+          if (!chan) return this.toast(`Add a Slack channel for ${pClient} under Integrations first`);
+          if (unapproved && !posted) { const f = postCards.find(b => b.state === "DRAFT"); this.setState({ selId: f.id }); return this.toast(`${unapproved} caption${unapproved > 1 ? "s" : ""} still waiting on you`); }
+          this.setState({ postOpen: true }); },
+        postOpen: s.postOpen, closePost: () => this.setState({ postOpen: false }),
+        confirmPost: () => { postCards.forEach(b => { if (b.state === "READY") this.patchB(b.id, { state: "POSTED" }); }); this.toast(`Posted to ${chan}`); },
+        allowDrop: (e) => e.preventDefault(), dragEnd: () => this.setState({ dragId: null }),
+        dropTray: () => { const id = s.dragId; if (!id) return; const b = BS(id); const prev = { w: b.w, day: b.day, state: b.state };
+          this.patchB(id, { w: null, day: null, state: "NONE" }); this.setState({ dragId: null });
+          this.toast(`${b.title || b.name} unscheduled`, () => this.patchB(id, prev)); },
+        sheetOpen: !!selB, closeSheet: () => this.setState({ selId: null }),
+        setTitle: (e) => { this.patchB(s.selId, { title: e.target.value }); this.markSaved(); },
+        setCaption: (e) => { this.patchB(s.selId, { caption: e.target.value, capSrc: "HUMAN" }); this.markSaved(); },
+        setCaptionYT: (e) => { this.patchB(s.selId, { captionYT: e.target.value }); this.markSaved(); },
+        draftCaption: () => { if (!selB) return; this.patchB(s.selId, { caption: `${selB.title || "Untitled"} — drafted from the transcript. Read it before it goes out.`, capSrc: "AI", state: selB.day == null ? "NONE" : "DRAFT" }); this.toast("Caption drafted · marked AI until you approve it"); },
+        approveCaption: () => { if (!selB) return; const prev = { state: selB.state, capSrc: selB.capSrc };
+          this.patchB(s.selId, { capSrc: "HUMAN", state: selB.day == null ? "NONE" : "READY" });
+          this.toast("Caption approved", () => this.patchB(s.selId, prev)); } },
+      SB, PW,
+
+      RP: { client: rc, acc: s.accents[rc] ?? (rcl?.acc ?? "var(--dim)"), has: !!RD && rAccts.length > 0, empty: !RD || rAccts.length === 0,
+        tabs: names.map(n => ({ label: n.toUpperCase(), acc: s.accents[n] ?? ALL[n].acc, set: () => this.setState({ repClient: n }), ...this.seg(n === rc) })),
+        ranges: ["4W", "8W", "13W"].map(r => ({ label: r, set: () => this.setState({ repRange: r }), ...this.seg(s.repRange === r) })),
+        range: `${this.MONTHS[rFirst.getMonth()]} ${rFirst.getDate()} – Sep 27, 2026`, prepared: "Prepared Sep 21, 2026",
+        stats: [{ v: totalD, k: plural(totalD, "REEL", "REELS") + " DELIVERED" }, { v: rFilms, k: plural(rFilms, "FILM", "FILMS") }, { v: rStills, k: plural(rStills, "STILL", "STILLS") }, { v: postedN, k: plural(postedN, "POST", "POSTS") + " PUBLISHED" }, { v: `${totalV}k`, k: "VIEWS" }],
+        platforms: [rAccts.some(a => a.endsWith("IG")) ? { name: "Instagram", posts: igN, views: `${igV}k`, median: med(igV, igN) } : null,
+          rAccts.some(a => a.endsWith("YT")) ? { name: "YouTube", posts: ytN, views: `${ytV}k`, median: med(ytV, ytN) } : null].filter(Boolean),
+        top: (RD?.top ?? []).filter(t => t[4] < wkN).sort((a, b) => parseInt(b[3], 10) - parseInt(a[3], 10)).slice(0, 4).map(([name, platform, date, views]) => ({ name, platform, date, views, bg: this.bg(name) })),
+        weekN: wkN, weeks: del.map((d, i) => ({ label: rWeek(i), dH: `${Math.round(d / maxD * 100)}%`, vH: `${Math.round(vw[i] / maxV * 100)}%`, dTitle: `${d} delivered`, vTitle: `${vw[i]}k views` })),
+        print: () => this.toast("Opens the print view · save as PDF") },
+      toastUndo: s.toastUndo,
+      clientTabs: names.map(n => ({ label: n.toUpperCase(), acc: s.accents[n] ?? ALL[n].acc, set: () => this.setState({ client: n, project: this.allProjects(n)[0]?.id, screen: "client" }), ...this.seg(n === name) })),
+      C: { name, upper: name.toUpperCase(), since: cl.since, projectsN: projects.length, files: cl.files, owner: (cl.seats[0]?.[0] ?? "").toUpperCase() + " · OWNER",
+        integLine: integParts.length ? integParts.join(" · ") : "NO INTEGRATIONS", integDot: integParts.length ? "var(--ok)" : "var(--rule2)", integCta: integParts.length ? "MANAGE →" : "ADD →",
+        seats: cl.seats.map(([nm, email, role, last]) => ({ name: nm, email, role, last, initials: nm.split(" ").map(x => x[0]).join("").slice(0, 2) })),
+        projects: projects.map((p, i) => { const ps = s.pay[p.id] ?? p.pay; const io = subsOf(p).some(x => x.status === "open"); return { title: p.title, meta: p.meta, delay: `${i * 40}ms`, type: badge(p), typeDot: this.TYPES[p.type].dot,
+          flag: ps === "held" ? "HELD FOR PAYMENT" : io ? "AWAITING FOOTAGE" : (p.expires ? "EXPIRES " + p.expires.toUpperCase() : (p.delivered === "—" ? "EMPTY" : p.delivered.toUpperCase())), flagColor: ps === "held" ? "var(--warn)" : io ? "var(--ok)" : "var(--dim2)",
+          open: () => this.setState({ screen: "project", project: p.id }) }; }) },
+      accentOpen: s.accentOpen, toggleAccent: () => this.setState(st => ({ accentOpen: !st.accentOpen })),
+      swatches: this.SW.map(c => ({ color: c, ring: c === acc ? "var(--ink)" : "transparent", pick: () => this.setState(st => ({ accents: { ...st.accents, [name]: c }, accentOpen: false })) })),
+
+      integRows: names.map((n, i) => { const c = ALL[n], sl = this.slackOf(n), ai = this.aiOf(n), ac = c.accounts ?? []; return { name: n, acc: s.accents[n] ?? c.acc, delay: `${i * 40}ms`, hasSlack: sl !== null && sl !== undefined, noSlack: sl === null || sl === undefined, slack: sl ?? "",
+        setSlack: (e) => this.setState(st => ({ slack: { ...st.slack, [n]: e.target.value } })), addSlack: () => this.setState(st => ({ slack: { ...st.slack, [n]: "#" + this.slug(n).replace(/-/g, "") + "-content" } })),
+        accounts: ac.length ? ac.join(" · ") : "+ Connect", acctColor: ac.length ? "var(--body)" : "var(--dim)",
+        ai, aiK: this.knob(ai), aiLabel: ai ? "ON" : "OFF", aiColor: ai ? "var(--mut)" : "var(--dim2)", toggleAI: () => this.setState(st => ({ ai: { ...st.ai, [n]: !ai } })),
+        open: () => this.setState({ client: n, project: this.allProjects(n)[0]?.id, screen: "client" }) }; }),
+
+      P: { title: field("title", proj.title), titleSize: Math.max(4, field("title", proj.title).length), type: badge(proj), typeDot: T.dot, delivered: field("delivered", proj.delivered), expiresRaw: field("expires", proj.expires ?? ""), expires: proj.expires ?? "Never", files: proj.files, inbox: "/media/_inbox/" + this.slug(proj.title) + "/", slug: this.slug(proj.title), does: doesOf(proj), canDelete: proj.files === "0 files", cannotDelete: proj.files !== "0 files", needsSlack: proj.type === "calendar" && !slack },
+      F: { is: isFilm, cutsN: cutsP.length, noCuts: !cutsP.length, revN: revsP.length,
+        cuts: cutsP.map((c, i) => { const top = i === 0; return { label: `Cut ${c.n}`, date: c.date, titleColor: top ? "var(--ink)" : "var(--mut)",
+          line: c.notes ? `${c.notes} note${c.notes === 1 ? "" : "s"} from ${c.from}` : "No notes yet",
+          status: c.approved ? "APPROVED" : top ? (c.notes ? `${c.notes} IN · REVIEWING` : "WAITING ON NOTES") : `ANSWERED IN CUT ${c.n + 1}`,
+          color: c.approved ? "var(--ok)" : top ? "var(--warn)" : "var(--dim2)", hasCta: top }; }),
+        revs: revsP.map(([nm, email, role, kind, st]) => ({ name: nm, role: role || email, kind: kind === "seat" ? "SEAT" : "GUEST LINK", kindColor: kind === "seat" ? "var(--mut)" : "var(--dim)",
+          status: st || "Invited", stColor: /^Sent/.test(st || "") ? "var(--ok)" : "var(--dim)" })),
+        addOpen: s.revAdd, email: s.revEmail, openAdd: () => this.setState({ revAdd: true, revEmail: "" }),
+        setEmail: (e) => this.setState({ revEmail: e.target.value }),
+        addKey: (e) => { if (e.key === "Enter") this.renderVals().F.submitAdd(); if (e.key === "Escape") this.setState({ revAdd: false }); },
+        submitAdd: () => { const em = s.revEmail.trim(); if (!em.includes("@")) return this.toast("Enter an email");
+          this.setState(st => ({ revs: { ...st.revs, [proj.id]: [...revsP, [em.split("@")[0], em, em, "guest", "Invited · link sent"]] }, revAdd: false })); this.toast(`${em} invited · review link sent`); } },
+      pay: held ? { label: "HELD", color: "var(--warn)", hint: "Every download the client makes carries a BJUR MEDIA mark until you release it.", cta: "RELEASE · PAID" } : { label: "CLEAR", color: "var(--ok)", hint: "Downloads are clean. Hold if an invoice is outstanding; nothing is hidden, only marked.", cta: "HOLD FOR PAYMENT" },
+      togglePay: () => { this.setState(st => ({ pay: { ...st.pay, [proj.id]: held ? "clear" : "held" } })); this.toast(held ? "Released · clean downloads · owners emailed" : "Held · downloads watermarked"); },
+      copyLabel: s.copied ? "COPIED" : "COPY",
+      subs: subs.map(x => ({ name: x.name, files: x.files === 0 ? "No files yet" : `${x.files} files · ${x.size}${x.from ? " · from " + x.from : ""}`, opened: "OPENED " + x.opened.toUpperCase(), link: `bjurmedia.nyc/send/${this.slug(proj.title)}/${this.slug(x.name)}-${x.token}`, folder: `submissions/${this.slug(x.name)}/`, isOpen: x.status === "open", isClosed: x.status !== "open",
+        status: x.status === "open" ? `LINK LIVE · ${x.days} DAYS` : "CLOSED", statusColor: x.status === "open" ? "var(--ok)" : "var(--dim2)",
+        copy: () => { this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 1600); },
+        close: () => { this.setState(st => ({ subs: { ...st.subs, [proj.id]: subsOf(proj).map(y => y.id === x.id ? { ...y, status: "closed" } : y) } })); this.toast(`${x.name} · link closed`); },
+        reopen: () => { this.setState(st => ({ subs: { ...st.subs, [proj.id]: subsOf(proj).map(y => y.id === x.id ? { ...y, status: "open", days: 14 } : y) } })); this.toast(`${x.name} · link reopened for 14 days`); } })),
+      hasSubs: subs.length > 0, noSubs: subs.length === 0, subsN: subs.length, subsReceived: subs.reduce((n, x) => n + x.files, 0),
+      subOpen: s.subOpen, subName: s.subName, setSubName: (e) => this.setState({ subName: e.target.value }),
+      requestFootage: () => this.setState({ subOpen: true, subName: "" }), closeSub: () => this.setState({ subOpen: false }),
+      subKey: (e) => { if (e.key === "Enter") this.renderVals().submitSub(); },
+      submitSub: () => { const nm = s.subName.trim() || "Footage"; const x = { id: "sb-" + Date.now(), name: nm, token: Math.random().toString(36).slice(2, 6), files: 0, size: "—", opened: "Today", status: "open", days: 14 };
+        this.setState(st => ({ subs: { ...st.subs, [proj.id]: [...subsOf(proj), x] }, subOpen: false })); this.toast(`${nm} · send link created`); },
+
+      newOpen: s.newOpen, openNew: () => this.setState({ newOpen: true, ncOpen: false, nf: { client: name, type: "delivery", title: "", expires: "", guests: "", startSub: false, hold: false, done: false, error: null } }), closeNew: () => this.setState({ newOpen: false }),
+      nf: { notDone: !nf.done, done: nf.done, isFilm: nf.type === "film", guests: nf.guests,
+        seatLine: `${ALL[nf.client].seats.map(x => x[0]).join(", ")} ${ALL[nf.client].seats.length === 1 ? "reviews" : "review"} as ${ALL[nf.client].seats.length === 1 ? "a seat" : "seats"}. Add anyone else below; they get a link, no account.`,
+        title: nf.title, expires: nf.expires, client: nf.client, slug: this.slug(nf.title), placeholder: NT.placeholder, cta: NT.cta, error: nf.error,
+        clientPicks: names.map(n => ({ label: n.toUpperCase(), acc: s.accents[n] ?? ALL[n].acc, pick: () => this.setState(st => ({ nf: { ...st.nf, client: n } })), ...this.seg(n === nf.client) })),
+        types: Object.keys(this.TYPES).map(t => { const needs = t === "calendar" && !this.slackOf(nf.client); return { label: this.TYPES[t].label, tag: needs ? "NO SLACK CHANNEL YET" : this.TYPES[t].tag, tagColor: needs ? "var(--warn)" : "var(--dim2)", hint: this.TYPES[t].hint, pick: () => this.setState(st => ({ nf: { ...st.nf, type: t } })), ...this.radio(nf.type === t) }; }),
+        features: [{ label: "Start with a footage request", hint: "Creates the first send link so the client can push raw footage in before anything is delivered.", k: this.knob(nf.startSub), dim: 1, toggle: () => this.setState(st => ({ nf: { ...st.nf, startSub: !st.nf.startSub } })) }],
+        holdLabel: nf.hold ? "Hold · watermark until paid" : "Clear · downloads clean", holdK: this.knob(nf.hold),
+        footnote: nf.type === "calendar" ? "Ongoing. Weekly reels pile up here and go to the board. Type is fixed after this." : nf.type === "film" ? "Type is fixed after this. Reviewers, title, payment and footage requests can change any time." : "Type is fixed after this. Title, dates, payment and footage requests can change any time.",
+        doneType: badge(nf), doneIntake: nf.startSub, doneNote: nf.startSub ? "Email the send link to the client. Files alert you on Today as they land." : nf.type === "film" ? "Drop the first export in the inbox. It becomes cut 1 and every reviewer is emailed to watch it." : nf.type === "calendar" ? "Drop reels in the inbox. They appear in the board tray." : nf.hold ? "Held. Every client download is watermarked until you release it on the project page." : "Drop exports in the inbox; the client is emailed when they land." },
+      nfTitle: (e) => this.setState(st => ({ nf: { ...st.nf, title: e.target.value, error: null } })), nfExpires: (e) => this.setState(st => ({ nf: { ...st.nf, expires: e.target.value } })), nfGuests: (e) => this.setState(st => ({ nf: { ...st.nf, guests: e.target.value } })),
+      nfToggleHold: () => this.setState(st => ({ nf: { ...st.nf, hold: !st.nf.hold } })),
+      submitNew: () => { if (!nf.title.trim()) return this.setState(st => ({ nf: { ...st.nf, error: "Give the project a title." } }));
+        if (nf.type === "calendar" && !this.slackOf(nf.client)) return this.setState(st => ({ nf: { ...st.nf, error: `Add a Slack channel for ${nf.client} under Integrations first.` } }));
+        const id = "x-" + this.slug(nf.title) + "-" + Date.now(); const p = { id, title: nf.title.trim(), type: nf.type, meta: "Just created", ...(nf.type === "film" ? { cuts: [], reviewers: [...ALL[nf.client].seats.map(([n, e]) => [n, e, "Client seat", "seat", "Waiting for cut 1"]), ...nf.guests.split(/[,\s]+/).filter(x => x.includes("@")).map(e => [e.split("@")[0], e, e, "guest", "Link sent with cut 1"])] } : {}), pay: nf.hold ? "held" : "clear", delivered: "—", expires: nf.expires || null, files: "0 files", subs: nf.startSub ? [{ id: "sb-" + Date.now(), name: "Footage", token: "k9f2", files: 0, size: "—", opened: "Today", status: "open", days: 14 }] : [] };
+        this.setState(st => ({ extra: { ...st.extra, [nf.client]: [p, ...(st.extra[nf.client] ?? [])] }, nf: { ...st.nf, done: true }, client: nf.client, project: id })); this.toast(`${nf.title.trim()} created`); },
+      openCreated: () => this.setState({ newOpen: false, screen: "project" }),
+
+      ncOpen: s.ncOpen, openNewClient: () => this.setState({ ncOpen: true, newOpen: false, nc: { name: "", owner: "", email: "", accent: "oklch(0.62 0.19 25)", integOpen: false, slack: "", ai: false, error: null } }), closeNC: () => this.setState({ ncOpen: false }),
+      nc: { name: nc.name, owner: nc.owner, email: nc.email, error: nc.error, integOpen: nc.integOpen, integCaret: nc.integOpen ? "HIDE" : "ADD", integMb: nc.integOpen ? "3px" : "28px", slack: nc.slack, aiLabel: nc.ai ? "Draft from each reel" : "Off", aiK: this.knob(nc.ai),
+        swatches: this.SW.map(c => ({ color: c, ring: c === nc.accent ? "var(--ink)" : "transparent", pick: () => this.setState(st => ({ nc: { ...st.nc, accent: c } })) })) },
+      ncName: (e) => this.setState(st => ({ nc: { ...st.nc, name: e.target.value, error: null } })), ncOwner: (e) => this.setState(st => ({ nc: { ...st.nc, owner: e.target.value } })), ncEmail: (e) => this.setState(st => ({ nc: { ...st.nc, email: e.target.value } })),
+      ncSlack: (e) => this.setState(st => ({ nc: { ...st.nc, slack: e.target.value } })), ncToggleAI: () => this.setState(st => ({ nc: { ...st.nc, ai: !st.nc.ai } })), ncToggleInteg: () => this.setState(st => ({ nc: { ...st.nc, integOpen: !st.nc.integOpen } })),
+      submitNC: () => { if (!nc.name.trim() || !nc.email.includes("@")) return this.setState(st => ({ nc: { ...st.nc, error: "Client name and a valid owner email are required." } }));
+        const n = nc.name.trim(); const c = { acc: nc.accent, since: "2026", files: "0 files", slack: nc.slack.trim() || null, ai: nc.ai, accounts: [], seats: [[nc.owner.trim() || "Owner", nc.email.trim(), "OWNER", "invited"]], projects: [] };
+        this.setState(st => ({ extraClients: { ...st.extraClients, [n]: c }, extra: { ...st.extra, [n]: [] }, ncOpen: false, client: n, project: undefined, screen: "client" })); this.toast(`${n} created · invite sent`); },
+
+      setTitle: (ev) => this.setState(st => ({ draft: { ...st.draft, title: ev.target.value } })), commitTitle: commit("title", proj.title, "Renamed"), titleKey: blurOnKey,
+      setDelivered: (ev) => this.setState(st => ({ draft: { ...st.draft, delivered: ev.target.value } })), commitDelivered: commit("delivered", proj.delivered, "Delivered date saved"),
+      setExpires: (ev) => this.setState(st => ({ draft: { ...st.draft, expires: ev.target.value } })), commitExpires: commit("expires", proj.expires ?? "", "Expiry saved"), dateKey: blurOnKey,
+      CP: { title: proj.title, deliveredLine: proj.delivered === "—" ? "NOT YET DELIVERED" : "DELIVERED " + proj.delivered.toUpperCase(), held,
+        markVisible: held && mark, assetsN: `${assets.length} ${assets.length === 1 ? "file" : "files"}`,
+        assets: assets.map(([nm, res, codec, size, dur], i) => ({ name: nm, specs: `${res} · ${codec} · ${size}`, dur, delay: `${i * 40}ms`, open: () => this.setState({ screen: "viewer", asset: i, sheetOpen: true, dl: 0, dlState: "idle" }) })),
+        noSubs: subs.length === 0, subsLine: subs.length ? `${subs.reduce((n, x) => n + x.files, 0)} files received` : "",
+        subs: subs.map(x => ({ name: x.name, files: x.files === 0 ? "Nothing sent yet" : `${x.files} files · ${x.size}`, isOpen: x.status === "open",
+          status: x.status === "open" ? "OPEN" : "CLOSED", statusColor: x.status === "open" ? "var(--ok)" : "var(--dim2)",
+          send: () => this.setState({ screen: "send", sendFiles: [], sender: "", up: 0, sending: false, sendDone: false }) })) },
+
+      V: { name: A[0], res: A[1], codec: A[2], size: A[3], dur: A[4], tc: "0:54", index: `${ai + 1} / ${assets.length}`, held, markVisible: held && mark,
+        sheetOpen: s.sheetOpen, sheetLabel: s.sheetOpen ? "DOWNLOAD ▾" : "DOWNLOAD ▴",
+        dlLabel: s.dlState === "run" ? `DOWNLOADING ${Math.round(s.dl)}%` : s.dlState === "done" ? "DOWNLOADED" : "DOWNLOAD",
+        dlColor: s.dlState === "done" ? "var(--dim)" : "var(--ink)", dlW: `${s.dlState === "idle" ? 0 : s.dl}%`,
+        download: () => { if (s.dlState !== "run") this.startDl(); } },
+      toggleSheet: () => this.setState(st => ({ sheetOpen: !st.sheetOpen })),
+      closeViewer: () => this.setState({ screen: "cproj" }),
+
+      S: { client: name.toUpperCase(), closed: s.screen === "sendClosed", live: s.screen === "send",
+        brandSerif: brand === "serif", brandCompact: brand === "compact",
+        hasFiles: s.sendFiles.length > 0, staged: s.sendFiles.length > 0 && !s.sending && !s.sendDone,
+        sending: s.sending, done: s.sendDone, askSender: (this.props.showSenderName ?? true),
+        sender: s.sender, setSender: (e) => this.setState({ sender: e.target.value }),
+        doneFrom: s.sender.trim() ? ` Sent as ${s.sender.trim()}.` : "",
+        sendCta: `SEND ${s.sendFiles.length} ${s.sendFiles.length === 1 ? "FILE" : "FILES"} →`,
+        files: s.sendFiles.map((f, i) => { const band = 100 / s.sendFiles.length, pct = Math.max(0, Math.min(100, (s.up - i * band) / band * 100));
+          const idle = !s.sending && !s.sendDone;
+          return { name: f[0], size: f[1], w: `${idle ? 0 : pct}%`,
+            label: idle ? "READY" : pct >= 100 ? "✓ SENT" : pct <= 0 ? "QUEUED" : `${Math.round(pct)}%`,
+            color: idle ? "var(--dim2)" : pct >= 100 ? "var(--ok)" : "var(--mut)" }; }),
+        pick: () => this.setState(st => st.sendDone
+          ? { sendFiles: this.MOCKF.slice(0, 2), up: 0, sending: false, sendDone: false }
+          : { sendFiles: st.sendFiles.length ? [...st.sendFiles, [`clip-${String(st.sendFiles.length + 1).padStart(3, "0")}.braw`, "4.3 GB"]] : this.MOCKF.slice() }),
+        send: () => this.startUpload() },
+
+      toast: s.toast,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
