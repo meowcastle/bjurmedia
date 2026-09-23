@@ -122,7 +122,19 @@ async function generateThumb(
 
 async function generateVideoProxy(srcPath: string, outPath: string, format: string, style: MarkStyle) {
   const { w, h } = proxyDims(format);
-  const scale = `scale=${w}:${h}:flags=lanczos`;
+  // in_range=auto:out_range=tv normalises levels instead of passing them through.
+  //
+  // Some masters arrive full-range (yuvj420p / "pc") — 54 of 391 proxies on the NAS were,
+  // almost all of 57's Weekly Reels. Copying that through produces a correctly-tagged
+  // full-range H.264, which is legal and which players disagree about: the ones that
+  // ignore the VUI flag render it as limited and crush the blacks. Converting to limited
+  // here means every proxy is the one combination that is boring everywhere.
+  //
+  // auto, never a forced in_range: forcing pc would wreck the 337 proxies whose sources
+  // are already limited. Measured both ways — a full-range source moves mean luma 103.3
+  // to 104.8 (the 16 + Y*219/255 the conversion predicts), and an already-limited one
+  // does not move at all.
+  const scale = `scale=${w}:${h}:flags=lanczos:in_range=auto:out_range=tv`;
   const hasFont = existsSync(WATERMARK_FONT);
 
   const mark = markFilter(style, hasFont);
@@ -140,6 +152,11 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
     "medium",
     "-profile:v",
     "high",
+    // Pin the format as well as the range: without it a full-range source keeps the
+    // deprecated yuvj420p all the way to the muxer, which is where the "pc" tag comes
+    // from in the first place.
+    "-pix_fmt",
+    "yuv420p",
     // CRF 21 was delivered-master quality, not preview quality — this is a
     // scrolling mobile proxy, not something anyone licenses. -maxrate/-bufsize
     // (VBV-constrained CRF) cap worst-case spikes on high-motion content
@@ -158,6 +175,10 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
     "bt709",
     "-colorspace",
     "bt709",
+    // The fourth tag. Three of the four were already here, which is how a full-range
+    // file could carry bt709 primaries and still be mis-read.
+    "-color_range",
+    "tv",
     "-c:a",
     "aac",
     "-b:a",
