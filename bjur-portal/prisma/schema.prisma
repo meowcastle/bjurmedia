@@ -37,6 +37,7 @@ model Client {
 enum ProjectType {
   DELIVERY // a gallery of finished work
   CALENDAR // scheduled social posts, approved in Slack
+  FILM // one piece, cut by cut, with timestamped notes from every reviewer
 }
 
 enum ClientStatus {
@@ -65,7 +66,7 @@ model User {
   submissions        Submission[]
   uploadBatches      UploadBatch[]
   approvedAssets     Asset[]         @relation("AssetApprovals")
-  reviews            Review[]
+  reviewerSeats      Reviewer[]
   clientMemberships  ClientMember[]
 
   @@index([clientId])
@@ -114,10 +115,12 @@ model Project {
    * What this project is, fixed at creation. Replaced a row of independent booleans that
    * could each be flipped forever: a project that changed shape after files had landed
    * left assets behind that were ingested under the old rules, and no screen could say
-   * which. Type and review are write-once — PATCH rejects changes to either.
+   * which. Type is write-once — PATCH rejects a change to it.
+   * Review used to be a separate boolean any project could carry. It is the FILM type now:
+   * timestamped notes only make sense for one piece going through numbered cuts, and a
+   * Delivery gallery of 60 clips had no coherent way to be "reviewed" at all.
    */
-  type   ProjectType @default(DELIVERY)
-  review Boolean     @default(false) // each new asset asks the client to approve or send notes
+  type ProjectType @default(DELIVERY)
 
   /**
    * Payment hold — the only switch that still flips after creation, because it describes
@@ -149,6 +152,7 @@ model Project {
   submissions           Submission[]
   uploadBatches         UploadBatch[]
   submissionRequests    SubmissionRequest[]
+  reviewers             Reviewer[]
   // Which reminder threshold has already gone out (14 or 3). Null = none yet, and it
   // resets whenever expiresAt moves, so extending a gallery re-arms both.
   expiryReminderSentFor Int?
@@ -292,10 +296,10 @@ model Asset {
   masterCodec String? // "ProRes 422 HQ · 12.4 GB", "BRAW · 47.2 GB"
 
   // proxy / thumbnail pipeline
-  proxyStatus  ProxyStatus @default(PENDING)
-  proxyRelPath String? // generated H.264 proxy
-  thumbRelPath String? // generated poster/thumbnail
-  proxyRes     String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
+  proxyStatus   ProxyStatus @default(PENDING)
+  proxyRelPath  String? // generated H.264 proxy
+  thumbRelPath  String? // generated poster/thumbnail
+  proxyRes      String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
   // 0-100 while an encode runs, null otherwise. Written from ffmpeg's own -progress
   // stream, so it is the encoder's position in the timeline rather than a guess from
   // output file size. A 22 GB ProRes master takes a quarter of an hour on this box, and
@@ -413,21 +417,39 @@ enum MarkStatus {
  * note left on the previous one — "what did they say about v1" has to survive v2
  * landing.
  */
+/**
+ * One row = one cut.
+ * A cut is created unsent when its export lands, and nobody is emailed until the studio
+ * has answered every note on the cut before it. That gap is the whole point of sentAt:
+ * the old model mailed the client the moment a file appeared, so notes could arrive
+ * against a cut the studio had not finished responding to.
+ */
 model Review {
-  id          String      @id @default(cuid())
-  assetId     String
-  asset       Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  version     Int         @default(1)
+  id           String       @id @default(cuid())
+  assetId      String
+  asset        Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  version      Int          @default(1)
   /**
    * The studio's note to the client, shown beside the cut.
    */
-  note        String?
-  state       ReviewState @default(PENDING)
-  feedback    String?
-  userId      String?
-  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  respondedAt DateTime?
-  createdAt   DateTime    @default(now())
+  note         String?
+  state        ReviewState  @default(PENDING)
+  /**
+   * null = uploaded but not yet released to reviewers. At most one sent PENDING cut.
+   */
+  sentAt       DateTime?
+  /**
+   * The owner seat who approved. A Reviewer, not a User: guests can never approve.
+   */
+  approvedById String?
+  approvedBy   Reviewer?    @relation("ApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt   DateTime?
+  /**
+   * Set when the next cut is sent.
+   */
+  supersededAt DateTime?
+  createdAt    DateTime     @default(now())
+  notes        ReviewNote[]
 
   @@index([assetId])
   @@index([state])
@@ -436,7 +458,96 @@ model Review {
 enum ReviewState {
   PENDING
   APPROVED
-  FEEDBACK
+  SUPERSEDED
+}
+
+/**
+ * Someone entitled to watch the cuts and leave notes.
+ * Seats are mirrored from ClientMember — every role, not just owners, because a producer
+ * who can only view files still has notes worth hearing. Guests are the reason this model
+ * exists at all: a director or a label gets a link, gives a name once, and never has an
+ * account or a way to download anything.
+ */
+model Reviewer {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind         ReviewerKind
+  /**
+   * SEAT only: the client seat this mirrors. SetNull so deleting a user keeps the notes.
+   */
+  userId       String?
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email        String
+  /**
+   * Guests are asked once on first visit; seats carry the user's name.
+   */
+  name         String
+  /**
+   * Free label shown beside the name: "Director", "Label".
+   */
+  role         String?
+  /**
+   * GUEST only: 32 url-safe bytes behind /r/<token>. Hex, not base64url — a hyphen in a
+   * token broke the send-link URL split once already.
+   */
+  token        String?      @unique
+  lastOpenedAt DateTime?
+  /**
+   * Revoked guests 404; deactivated seats are revoked rather than deleted.
+   */
+  revokedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  notes        ReviewNote[]
+  approved     Review[]     @relation("ApprovedBy")
+
+  @@unique([projectId, email])
+  @@index([projectId])
+}
+
+enum ReviewerKind {
+  SEAT
+  GUEST
+}
+
+/**
+ * One note, pinned to a moment in a cut.
+ * Drafts are server-side so they survive a reload or a move between devices, and they are
+ * private until their author sends a batch. The privacy rule is load-bearing: no admin
+ * query may ever return a note with sentAt = null. Studio surfaces may count a reviewer's
+ * drafts to show "watched · drafting", never read them.
+ */
+model ReviewNote {
+  id         String       @id @default(cuid())
+  reviewId   String
+  review     Review       @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   Reviewer     @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  /**
+   * video.currentTime when the composer was focused. null = a general note, no marker.
+   */
+  timeSec    Float?
+  body       String
+  /**
+   * null = draft, visible to its author alone. Sent notes are immutable.
+   */
+  sentAt     DateTime?
+  outcome    NoteOutcome?
+  /**
+   * The studio's one line, which reviewers read in the next cut's email.
+   */
+  response   String?
+  answeredAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([reviewId])
+  @@index([reviewerId])
+}
+
+enum NoteOutcome {
+  CHANGED
+  KEPT
 }
 
 model Favorite {
