@@ -446,13 +446,16 @@ export function AdminProjectDetailClient({
             style={{ gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))" }}
           >
             {assets.map((a) => (
+              // Every tile opens, whatever state it is in. Gating this on READY put the
+              // one Retry button in the app — the viewer's — behind a click that was
+              // disabled for exactly the assets needing it, so a failed encode was a dead
+              // end you could only leave by editing the database. The viewer already
+              // renders the failed and still-encoding states; it just never got reached.
               <button
                 key={a.id}
-                onClick={() => a.proxyStatus === "READY" && setOpenFileId(a.id)}
+                onClick={() => setOpenFileId(a.id)}
                 data-testid={`file-${a.id}`}
-                className={`bg-s1 text-left ${
-                  a.proxyStatus === "READY" ? "cursor-pointer hover:bg-s2" : "cursor-default"
-                }`}
+                className="bg-s1 text-left cursor-pointer hover:bg-s2"
               >
                 <span className="block relative aspect-video bg-s0 overflow-hidden">
                   {a.thumbReady ? (
