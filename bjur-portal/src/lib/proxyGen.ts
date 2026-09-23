@@ -1,4 +1,4 @@
-import { execFile } from "child_process";
+import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
@@ -70,8 +70,75 @@ async function runFfmpeg(args: string[]) {
   });
 }
 
+/**
+ * ffmpeg writes "out_time=HH:MM:SS.uuuuuu" to the -progress stream as it goes. Against a
+ * known duration that is the encoder's real position in the timeline — not a guess from
+ * how big the output file has got, which says nothing on a variable-bitrate encode.
+ *
+ * Same timeout and SIGKILL behaviour as runFfmpeg; spawn rather than execFile only
+ * because the progress stream has to be read while the process is alive.
+ */
+async function runFfmpegWithProgress(
+  args: string[],
+  durationSec: number | null,
+  onProgress: (pct: number) => void
+) {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(
+      "ffmpeg",
+      ["-y", "-hide_banner", "-loglevel", "error", "-progress", "pipe:1", "-nostats", ...args],
+      { stdio: ["ignore", "pipe", "pipe"] }
+    );
+
+    // Keep the tail of stderr: when an encode fails this is the actual reason, and the
+    // command we already know we sent is not.
+    let errTail = "";
+    child.stderr.on("data", (d: Buffer) => {
+      errTail = (errTail + d.toString()).slice(-2000);
+    });
+
+    let carry = "";
+    child.stdout.on("data", (d: Buffer) => {
+      carry += d.toString();
+      const lines = carry.split("\n");
+      carry = lines.pop() ?? "";
+      for (const line of lines) {
+        const m = /^out_time=(\d+):(\d\d):(\d\d(?:\.\d+)?)/.exec(line.trim());
+        if (!m || !durationSec) continue;
+        const secs = Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+        // Clamp: a slightly-long encode must not report 103%.
+        onProgress(Math.max(0, Math.min(99, Math.round((secs / durationSec) * 100))));
+      }
+    });
+
+    const timer = setTimeout(() => child.kill("SIGKILL"), FFMPEG_TIMEOUT_MS);
+    child.on("error", (e) => { clearTimeout(timer); reject(e); });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new Error(errTail.trim().split("\n").slice(-4).join(" | ") || `ffmpeg exited ${code}`));
+    });
+  });
+}
+
 function proxyDims(format: string) {
   return format === "Reel" ? { w: 1080, h: 1920 } : { w: 1920, h: 1080 };
+}
+
+/** The encode's actual geometry. Assuming the target box lies for anamorphic sources. */
+async function probeDims(filePath: string): Promise<{ w: number; h: number } | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      "ffprobe",
+      ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+       "-of", "csv=p=0", filePath],
+      { encoding: "utf-8", timeout: 30_000, killSignal: "SIGKILL" }
+    );
+    const [w, h] = stdout.trim().split(",").map(Number);
+    return Number.isFinite(w) && Number.isFinite(h) ? { w, h } : null;
+  } catch {
+    return null;
+  }
 }
 
 async function probeDuration(filePath: string): Promise<number | null> {
@@ -120,7 +187,13 @@ async function generateThumb(
   }
 }
 
-async function generateVideoProxy(srcPath: string, outPath: string, format: string, style: MarkStyle) {
+async function generateVideoProxy(
+  srcPath: string,
+  outPath: string,
+  format: string,
+  style: MarkStyle,
+  progress?: { durationSec: number | null; onPct: (pct: number) => void }
+) {
   const { w, h } = proxyDims(format);
   // in_range=auto:out_range=tv normalises levels instead of passing them through.
   //
@@ -134,7 +207,16 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
   // are already limited. Measured both ways — a full-range source moves mean luma 103.3
   // to 104.8 (the 16 + Y*219/255 the conversion predicts), and an already-limited one
   // does not move at all.
-  const scale = `scale=${w}:${h}:flags=lanczos:in_range=auto:out_range=tv`;
+  // Fit inside the target box instead of stretching to fill it. proxyDims is a bound now,
+  // not a shape: 16:9 and vertical sources land on exactly the dimensions they always did,
+  // while a 2.39:1 anamorphic master comes out 1920x804 with square pixels rather than
+  // squeezed into 1920x1080 and un-squeezed again by the player's pixel aspect ratio.
+  // That was never visibly wrong — ffmpeg wrote a compensating SAR — but it spent 1080
+  // lines on 803 lines of picture and cost horizontal sharpness for nothing.
+  // force_divisible_by=2 because yuv420p cannot have an odd dimension.
+  const scale =
+    `scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2` +
+    `:flags=lanczos:in_range=auto:out_range=tv`;
   const hasFont = existsSync(WATERMARK_FONT);
 
   const mark = markFilter(style, hasFont);
@@ -190,14 +272,17 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
     outPath,
   ];
 
+  const run = (a: string[]) =>
+    progress ? runFfmpegWithProgress(a, progress.durationSec, progress.onPct) : runFfmpeg(a);
+
   try {
-    await runFfmpeg(args);
+    await run(args);
   } catch (err) {
     if (mark && style === "preview") {
       // Retry without the text overlay so a font/filter issue doesn't fail the whole
       // encode. Only ever for "preview": dropping the mark from a payment-hold rendition
       // would quietly release the work.
-      await runFfmpeg([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
+      await run([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
     } else {
       throw err;
     }
@@ -210,7 +295,10 @@ async function generateVideoProxy(srcPath: string, outPath: string, format: stri
  * gracefully with an explanatory Activity log — see ENCODING.md's BRAW note.
  */
 export async function generateProxy(asset: AssetRow) {
-  await db.asset.update({ where: { id: asset.id }, data: { proxyStatus: "GENERATING" } });
+  await db.asset.update({
+    where: { id: asset.id },
+    data: { proxyStatus: "GENERATING", proxyProgress: 0 },
+  });
 
   try {
     const srcPath = await resolveMediaPath(asset.relPath);
@@ -234,7 +322,23 @@ export async function generateProxy(asset: AssetRow) {
       // lives on its own renditions so lifting the hold needs no re-encode.
       proxyRelPath = `${asset.id}/proxy.mp4`;
       const outPath = path.join(DERIVED_ROOT, proxyRelPath);
-      await generateVideoProxy(srcPath, outPath, asset.format, "none");
+      // Throttled: ffmpeg emits progress roughly every half second, and a DB write per
+      // tick on a fifteen-minute encode is a thousand pointless writes to a SQLite file
+      // the web container is reading from.
+      let lastWrite = 0;
+      let lastPct = -1;
+      await generateVideoProxy(srcPath, outPath, asset.format, "none", {
+        durationSec: asset.durationSec,
+        onPct: (pct) => {
+          const now = Date.now();
+          if (pct === lastPct || now - lastWrite < 3000) return;
+          lastPct = pct;
+          lastWrite = now;
+          void db.asset
+            .update({ where: { id: asset.id }, data: { proxyProgress: pct } })
+            .catch(() => {});
+        },
+      });
 
       // A source file can have a corrupted packet partway through (valid header/
       // duration metadata, broken bitstream data after some point) that ffmpeg just
@@ -252,13 +356,16 @@ export async function generateProxy(asset: AssetRow) {
         }
       }
 
-      const { w, h } = proxyDims(asset.format);
-      proxyRes = asset.format === "Reel" ? `${w}×${h} H.264` : `${h}p H.264`;
+      // From the file, not from proxyDims: an anamorphic master no longer lands on the
+      // box dimensions, and "1080p" on a 1920x804 proxy would be a plain lie.
+      const actual = await probeDims(outPath);
+      const { w, h } = actual ?? proxyDims(asset.format);
+      proxyRes = h === 1080 && w === 1920 ? "1080p H.264" : `${w}×${h} H.264`;
     }
 
     await db.asset.update({
       where: { id: asset.id },
-      data: { proxyStatus: "READY", thumbRelPath, proxyRelPath, proxyRes },
+      data: { proxyStatus: "READY", thumbRelPath, proxyRelPath, proxyRes, proxyProgress: null },
     });
 
     // A file that lands in a project already on a payment hold needs its marked
@@ -288,11 +395,18 @@ export async function generateProxy(asset: AssetRow) {
       data: { actor: "Worker", action: `finished proxy for "${asset.name}"` },
     });
   } catch (err) {
-    await db.asset.update({ where: { id: asset.id }, data: { proxyStatus: "FAILED" } });
+    await db.asset.update({
+      where: { id: asset.id },
+      data: { proxyStatus: "FAILED", proxyProgress: null },
+    });
     await db.activity.create({
       data: {
         actor: "Worker",
-        action: `Proxy generation failed for "${asset.name}": ${(err as Error).message.slice(0, 200)}`,
+        // The message now carries ffmpeg's own stderr tail rather than the command we
+        // already know we sent — the 200-char budget used to be spent entirely on the
+        // command line, so the actual reason ("high profile doesn't support 4:2:2") was
+        // cut off and a failure arrived with no diagnosis.
+        action: `Proxy generation failed for "${asset.name}": ${(err as Error).message.slice(0, 300)}`,
       },
     });
   }

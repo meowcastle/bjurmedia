@@ -72,6 +72,7 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
         proxyRes: a.proxyRes,
         relPath: a.relPath,
         proxyStatus: a.proxyStatus,
+        proxyProgress: a.proxyProgress,
         internal: a.internal,
         weekOf: a.weekOf?.toISOString() ?? null,
         thumbReady: a.thumbRelPath != null,

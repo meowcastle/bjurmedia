@@ -24,6 +24,7 @@ type Asset = {
   /** Decimal string — sizeBytes is a BigInt server-side. */
   sizeBytes: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
+  proxyProgress: number | null;
   thumbReady: boolean;
   transcriptStatus:
     "NONE" | "PENDING" | "RUNNING" | "DONE" | "NO_SPEECH" | "FAILED";
@@ -1207,7 +1208,7 @@ export function AdminMediaClient({
                                   ? "Show client"
                                   : "Hide from client"}
                               </RowMenuItem>
-                              {a.proxyStatus !== "GENERATING" && (
+                              {a.proxyStatus !== "GENERATING" && a.proxyStatus !== "PENDING" && (
                                 <RowMenuItem
                                   onClick={() => {
                                     retry(a);

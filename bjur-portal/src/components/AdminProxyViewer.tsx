@@ -16,6 +16,8 @@ export type ProxyViewerAsset = {
   proxyRes: string | null;
   relPath: string;
   proxyStatus: "PENDING" | "GENERATING" | "READY" | "FAILED";
+  /** 0-100 while the encode runs, null otherwise. */
+  proxyProgress: number | null;
   internal: boolean;
   weekOf: string | null;
 };
@@ -102,6 +104,9 @@ export function AdminProxyViewer({
 
   const src = asset.kind === "VIDEO" ? `/api/assets/${asset.id}/proxy` : `/api/assets/${asset.id}/thumb`;
   const hasPlayableProxy = asset.kind === "VIDEO" && asset.proxyStatus === "READY";
+  // Queued counts as in-flight. Pressing Retry on a PENDING asset re-queues work the
+  // worker is about to take, or has already taken and had overwritten underneath it.
+  const inFlight = asset.proxyStatus === "PENDING" || asset.proxyStatus === "GENERATING";
 
   return (
     <Portal>
@@ -192,6 +197,8 @@ export function AdminProxyViewer({
                   (asset.proxyRes ?? "Ready")
                 ) : asset.kind === "PHOTO" ? (
                   "Stills have no proxy"
+                ) : asset.proxyStatus === "GENERATING" && asset.proxyProgress !== null ? (
+                  `Encoding ${asset.proxyProgress}%`
                 ) : (
                   asset.proxyStatus.charAt(0) + asset.proxyStatus.slice(1).toLowerCase()
                 )
@@ -214,7 +221,24 @@ export function AdminProxyViewer({
             >
               {asset.internal ? "Show to client" : "Hide from client"}
             </button>
-            {asset.proxyStatus !== "GENERATING" && (
+            {inFlight ? (
+              <div
+                data-testid="encode-progress"
+                className="text-[12px] font-semibold text-muted border border-line2 px-3 py-2 text-center"
+              >
+                {asset.proxyStatus === "GENERATING" && asset.proxyProgress !== null
+                  ? `Encoding ${asset.proxyProgress}%`
+                  : "Queued for encoding"}
+                {asset.proxyStatus === "GENERATING" && asset.proxyProgress !== null && (
+                  <span className="block h-[2px] bg-white/12 mt-2">
+                    <span
+                      className="block h-full bg-white/70 transition-[width] duration-500"
+                      style={{ width: `${asset.proxyProgress}%` }}
+                    />
+                  </span>
+                )}
+              </div>
+            ) : (
               <button
                 onClick={() => onRegenerate(asset)}
                 className="cursor-pointer text-[12px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"

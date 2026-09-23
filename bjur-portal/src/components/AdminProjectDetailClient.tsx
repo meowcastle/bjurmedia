@@ -489,7 +489,9 @@ export function AdminProjectDetailClient({
                       : a.proxyStatus === "FAILED"
                         ? "Proxy failed"
                         : a.proxyStatus === "GENERATING"
-                          ? "Encoding now"
+                          ? a.proxyProgress !== null
+                            ? `Encoding ${a.proxyProgress}%`
+                            : "Encoding now"
                           : "Waiting to encode"}
                   </span>
                 </span>

@@ -296,6 +296,12 @@ model Asset {
   proxyRelPath String? // generated H.264 proxy
   thumbRelPath String? // generated poster/thumbnail
   proxyRes     String? // "1080p H.264", "1080×1920 H.264", "watermarked 1080p"
+  // 0-100 while an encode runs, null otherwise. Written from ffmpeg's own -progress
+  // stream, so it is the encoder's position in the timeline rather than a guess from
+  // output file size. A 22 GB ProRes master takes a quarter of an hour on this box, and
+  // without this the only way to tell "working" from "hung" was to watch a file grow
+  // over SSH.
+  proxyProgress Int?
 
   // Watermarked renditions, generated only while the owning project sits on a payment
   // hold (Project.paymentHold). Kept *alongside* the clean ones rather than replacing

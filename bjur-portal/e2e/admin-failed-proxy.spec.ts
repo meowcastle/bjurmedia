@@ -47,3 +47,35 @@ test("a failed proxy can still be opened and retried", async ({ page }) => {
     sql(`UPDATE Asset SET proxyStatus='${before}' WHERE id='${id}';`);
   }
 });
+
+/**
+ * Retry must refuse to re-arm work that is already queued or running.
+ *
+ * The button used to disable only on GENERATING. A press writes PENDING, so the moment
+ * you clicked it the button re-enabled itself over a job the worker had already claimed —
+ * and on a 22 GB ProRes master that reads as "nothing is happening", which invites more
+ * pressing. The rail now shows the encoder's real position instead.
+ */
+test("an encode in flight shows progress instead of a Retry button", async ({ page }) => {
+  const id = sql("SELECT id FROM Asset WHERE projectId='p1' AND kind='VIDEO' LIMIT 1;");
+  const before = sql(`SELECT proxyStatus FROM Asset WHERE id='${id}';`);
+
+  try {
+    sql(`UPDATE Asset SET proxyStatus='GENERATING', proxyProgress=42 WHERE id='${id}';`);
+    await page.goto("/admin/projects/p1");
+    await page.getByTestId(`file-${id}`).click();
+
+    const viewer = page.getByTestId("admin-proxy-viewer");
+    await expect(viewer.getByTestId("encode-progress")).toContainText("Encoding 42%");
+    await expect(viewer.getByRole("button", { name: /Retry proxy|Regenerate proxy/ })).toHaveCount(0);
+
+    // Queued counts too — that is the state a stray press leaves behind.
+    sql(`UPDATE Asset SET proxyStatus='PENDING', proxyProgress=NULL WHERE id='${id}';`);
+    await page.reload();
+    await page.getByTestId(`file-${id}`).click();
+    await expect(viewer.getByTestId("encode-progress")).toContainText("Queued for encoding");
+    await expect(viewer.getByRole("button", { name: /Retry proxy|Regenerate proxy/ })).toHaveCount(0);
+  } finally {
+    sql(`UPDATE Asset SET proxyStatus='${before}', proxyProgress=NULL WHERE id='${id}';`);
+  }
+});
