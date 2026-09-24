@@ -36,5 +36,22 @@ export default async function ClientReviewPage({
   const data = await loadReviewScreen(projectId, reviewer.id);
   if (!data) notFound();
 
+  if (data.empty) {
+    return (
+      <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
+        <div className="max-w-sm text-center">
+          <div className="bj-serif text-[26px]">{data.projectTitle}</div>
+          <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-2">
+            {data.clientName}
+          </div>
+          <p className="text-[13px] leading-relaxed text-white/60 mt-5">
+            No cut yet. When Bjur puts one up you&apos;ll get an email, and it will play here
+            with room to leave notes.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return <ReviewScreenClient mode="client" {...data} />;
 }
