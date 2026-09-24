@@ -16,14 +16,6 @@ import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
 import { IconPlay, IconHeart } from "@/components/ui/Icon";
 
-type RequestRow = {
-  id: string;
-  name: string;
-  open: boolean;
-  fileCount: number;
-  totalBytes: string;
-  sendPath: string;
-};
 
 type Asset = TileAsset & {
   weekOf: string | null;
@@ -146,7 +138,6 @@ function bucketByWeek(items: Asset[], folderBase: string): Group[] {
 export function ProjectDetailClient({
   project,
   assets,
-  requests,
   initialFavorites,
   role,
   totalViews,
@@ -164,7 +155,6 @@ export function ProjectDetailClient({
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
-  requests: RequestRow[];
   initialFavorites: string[];
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
   totalViews: number;
@@ -757,9 +747,9 @@ export function ProjectDetailClient({
           </div>
         </div>
 
-        {/* The page is two halves now: what we delivered, and what they sent us. On a
-            real job those are the same conversation, and the client had nowhere to see
-            the second one. */}
+        {/* Just what we delivered. What the client sent us moved to its own tab: footage
+            belongs to the client, not to whichever project happened to exist when it was
+            sent, and showing it here implied a link that was never real. */}
         <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2 mb-3">
           <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Delivered</span>
           <span className="text-[11px] text-dim2">
@@ -864,48 +854,6 @@ export function ProjectDetailClient({
         </div>
       )}
 
-      {/* Their side of the project. Only rendered when something has been asked for —
-          a client who was never asked for footage should not be shown an empty shelf. */}
-      {requests.length > 0 && (
-        <div className="mt-12" data-testid="sent-to-bjur">
-          <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2">
-            <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent to Bjur</span>
-            <span className="text-[11px] text-dim2">
-              {requests.reduce((n, r) => n + r.fileCount, 0)} files received
-            </span>
-          </div>
-
-          {requests.map((r) => (
-            <div
-              key={r.id}
-              data-testid={`client-request-${r.id}`}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-1.5 py-4 border-b border-line"
-            >
-              <span className="bj-serif text-[19px] tracking-[-.01em]">{r.name}</span>
-              <span
-                className={`text-[10px] font-semibold uppercase tracking-[.08em] whitespace-nowrap ${
-                  r.open ? "text-success" : "text-dim2"
-                }`}
-              >
-                {r.open ? "Open" : "Closed"}
-              </span>
-              <span className="text-[11px] text-muted">
-                {r.fileCount > 0
-                  ? `${r.fileCount} file${r.fileCount === 1 ? "" : "s"} · ${formatBytes(Number(r.totalBytes))}`
-                  : "Nothing sent yet"}
-              </span>
-              {r.open && (
-                <Link
-                  href={r.sendPath}
-                  className="inline-flex items-center min-h-[32px] py-2 text-[10.5px] font-semibold uppercase tracking-[.08em] text-muted hover:text-text justify-self-end"
-                >
-                  ↑ Send more
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

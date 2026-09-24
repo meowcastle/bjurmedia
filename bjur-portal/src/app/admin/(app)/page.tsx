@@ -174,7 +174,7 @@ export default async function AdminDashboardPage() {
     take: 6,
     include: {
       request: { select: { name: true } },
-      project: { select: { id: true, title: true, client: { select: { name: true } } } },
+      client: { select: { id: true, name: true } },
       submissions: { where: { status: "COMPLETE" }, select: { sizeBytes: true } },
     },
   });
@@ -222,12 +222,14 @@ export default async function AdminDashboardPage() {
       return {
         id: `landed-${b.id}`,
         kind: "landed" as const,
-        subject: `Upload landed · ${b.request?.name ?? b.label}${from}`,
-        body: `${b.project.client.name} · ${b.project.title} — ${b.submissions.length} file${
+        subject: `Footage in · ${b.name}${from}`,
+        // The client, not a project. A batch does not know what it will be cut into, and
+        // pretending otherwise is what sent a fortnight of rushes into a review job.
+        body: `${b.client.name} — ${b.submissions.length} file${
           b.submissions.length === 1 ? "" : "s"
         } · ${formatBytes(bytes)}`,
-        href: `/admin/projects/${b.project.id}`,
-        action: "Open",
+        href: `/admin/clients/${b.client.id}`,
+        action: "Open client",
       };
     }),
     ...soonExpiring.map((p) => ({

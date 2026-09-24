@@ -15,7 +15,7 @@ import crypto from "crypto";
  */
 test.use({ storageState: "e2e/.auth/sasha.json" });
 
-const UPLOAD = "/p/p1/upload";
+const UPLOAD = "/send";
 // Big enough to span several 16MB chunks, so there is a real middle to pause in.
 const SIZE = 40 * 1024 * 1024;
 
@@ -73,7 +73,7 @@ test("pausing and resuming continues one upload instead of starting a second", a
   expect(created.length, `created ${created.length} submissions for one file`).toBe(1);
 
   // And the server holds the whole file, not a restarted fragment.
-  const list = await page.request.get("/api/projects/p1/submissions");
+  const list = await page.request.get("/api/intake/submissions");
   const body = await list.json();
   const mine = (body.submissions ?? []).filter(
     (s: { relativePath: string }) => s.relativePath === name,

@@ -30,16 +30,25 @@ function fmtEta(secs: number) {
 }
 
 export function SubmissionUploadClient({
-  project,
+  heading,
+  backHref,
+  backLabel,
   expired,
   apiBase,
 }: {
-  project: { id: string; title: string };
+  /** What this drop zone is for, in the sender's words. */
+  heading: string;
+  backHref?: string;
+  backLabel?: string;
   expired: boolean;
-  /** `/api/projects/<id>` for a seat. The send page passes `/api/send/<token>`. */
+  /** `/api/intake` for a seat. The send page passes `/api/send/<token>`. */
   apiBase?: string;
 }) {
-  const base = apiBase ?? `/api/projects/${project.id}`;
+  const base = apiBase ?? "/api/intake";
+  // What the sender says they are sending. It names the batch and its folder on disk —
+  // they know what is in it, which is more than we ever did guessing from the date and
+  // whoever happened to be logged in.
+  const [batchName, setBatchName] = useState("");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [resumable, setResumable] = useState<Resumable[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -96,6 +105,8 @@ export function SubmissionUploadClient({
     }
     const res = await fetch(`${base}/upload-batches`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: batchName.trim() || null }),
     });
     if (!res.ok)
       throw new Error(`Couldn't start an upload session (${res.status})`);
@@ -269,10 +280,10 @@ export function SubmissionUploadClient({
   return (
     <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[720px] mx-auto bjfade">
       <Link
-        href={`/p/${project.id}`}
+        href={backHref ?? "/"}
         className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
       >
-        ← {project.title}
+        ← {backLabel ?? "Back"}
       </Link>
 
       <div className="border-b-2 border-line2 pb-6 mb-6">
@@ -280,7 +291,7 @@ export function SubmissionUploadClient({
           Send us footage
         </div>
         <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3">
-          Upload to &ldquo;{project.title}&rdquo;
+          {heading}
         </h1>
         <div className="text-[13px] text-muted">
           Camera originals, audio, a project file — drag in whole folders and
@@ -312,6 +323,32 @@ export function SubmissionUploadClient({
           ))}
         </div>
       )}
+
+      {/* Above the drop zone, because it names the folder everything below lands in —
+          asking afterwards would mean renaming a folder that already has bytes in it.
+          Optional: blank becomes the date-and-name shape it always used. */}
+      <div className="mb-4">
+        <label
+          htmlFor="batch-name"
+          className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-2"
+        >
+          What are you sending?
+        </label>
+        <input
+          id="batch-name"
+          value={batchName}
+          onChange={(e) => setBatchName(e.target.value)}
+          disabled={batchId !== null}
+          placeholder="e.g. Xavier, Hurt footage and project files"
+          data-testid="batch-name"
+          className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2.5 text-[14px] disabled:opacity-60"
+        />
+        {batchId !== null && (
+          <p className="text-[11px] text-dim2 mt-1.5">
+            Named once this batch started. Anything more goes in a new one.
+          </p>
+        )}
+      </div>
 
       <label
         htmlFor="submission-dropzone-input"
@@ -418,7 +455,7 @@ export function SubmissionUploadClient({
             </Button>
           ) : (
             <Link
-              href={`/p/${project.id}`}
+              href={backHref ?? "/"}
               className="inline-block bg-text hover:bg-accent text-bg text-[11px] uppercase font-bold px-4 py-2.5"
             >
               Back to project

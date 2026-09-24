@@ -3,6 +3,11 @@ import { test, expect, request as pwRequest } from "@playwright/test";
 /**
  * Re-dropping a folder must never destroy what is already in it.
  *
+ * The match is on batch + path + size. Scoped to the batch rather than the client because
+ * across a client the same path and size is a real thing — two shoots with the same card
+ * layout — and calling the second one "already here" would silently drop it. Within a
+ * batch it is the same file, which is exactly the case a re-drop produces.
+ *
  * The upload page tells you to re-drop the same folder to resume, and until this guard
  * that was a trap: the finished files beside the unfinished one had no resume record, so
  * they were queued as new, landed at the same on-disk paths inside the adopted batch, and
@@ -16,7 +21,7 @@ test("a file the project already holds is reported, not re-sent or truncated", a
   const made = await api.post("/api/admin/projects", {
     data: { clientId: "c1", title: `Resend Spec ${Date.now()}`, type: "DELIVERY", startRequest: "Rushes" },
   });
-  const { project, sendPath } = await made.json();
+  const { sendPath } = await made.json();
   const token = sendPath.slice(sendPath.lastIndexOf("-") + 1);
 
   const anon = await pwRequest.newContext({ baseURL: baseURL! });
@@ -44,7 +49,7 @@ test("a file the project already holds is reported, not re-sent or truncated", a
   expect(second.id).toBe(firstId);
 
   // The original row is untouched — still complete, still the full size.
-  const listed = await api.get(`/api/admin/projects/${project.id}/upload-batches`);
+  const listed = await api.get("/api/admin/clients/c1/upload-batches");
   const text = JSON.stringify(await listed.json());
   expect(text).toContain("A001.R3D");
   // And no second row was created for it.

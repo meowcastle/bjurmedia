@@ -6,8 +6,7 @@ import crypto from "crypto";
 // Pre-authenticated as the client (not admin) — client submissions are the only
 // surface that uses the chunked resume protocol.
 test.use({ storageState: "e2e/.auth/sasha.json" });
-
-const PROJECT_ID = "p1"; // Spring Campaign 2026, owned by client "ssh"
+ // Spring Campaign 2026, owned by client "ssh"
 const SUBMISSIONS_ROOT = path.resolve(__dirname, "..", "media-e2e", "_submissions");
 
 /**
@@ -33,22 +32,22 @@ test("resumes correctly when disk is ahead of receivedBytes (crash between write
   const source = crypto.randomBytes(HALF * 2);
   const total = source.length;
 
-  const batchRes = await request.post(`/api/projects/${PROJECT_ID}/upload-batches`);
+  const batchRes = await request.post(`/api/intake/upload-batches`);
   expect(batchRes.ok()).toBeTruthy();
-  const batch = (await batchRes.json()) as { id: string; label: string };
+  const batch = (await batchRes.json()) as { id: string; name: string };
 
   const filename = `torn-write-${Date.now()}.bin`;
-  const createRes = await request.post(`/api/projects/${PROJECT_ID}/submissions`, {
+  const createRes = await request.post(`/api/intake/submissions`, {
     data: { batchId: batch.id, relativePath: filename, sizeBytes: total },
   });
   expect(createRes.ok()).toBeTruthy();
   const { id: submissionId } = (await createRes.json()) as { id: string };
 
-  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", PROJECT_ID, batch.label, filename);
+  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", batch.name, filename);
 
   // Chunk 1 lands normally: disk and DB both reach HALF.
   const first = await request.put(
-    `/api/projects/${PROJECT_ID}/submissions/${submissionId}/chunk`,
+    `/api/intake/submissions/${submissionId}/chunk`,
     {
       headers: { "Content-Range": `bytes 0-${HALF - 1}/${total}` },
       data: source.subarray(0, HALF),
@@ -67,7 +66,7 @@ test("resumes correctly when disk is ahead of receivedBytes (crash between write
   // must reconcile rather than blindly append: before the fix this produced a
   // total + HALF byte file and complete:false forever.
   const second = await request.put(
-    `/api/projects/${PROJECT_ID}/submissions/${submissionId}/chunk`,
+    `/api/intake/submissions/${submissionId}/chunk`,
     {
       headers: { "Content-Range": `bytes ${HALF}-${total - 1}/${total}` },
       data: source.subarray(HALF),
@@ -88,17 +87,17 @@ test("a re-sent chunk is rejected with the real offset instead of being appended
   const source = crypto.randomBytes(CHUNK * 2);
   const total = source.length;
 
-  const batchRes = await request.post(`/api/projects/${PROJECT_ID}/upload-batches`);
-  const batch = (await batchRes.json()) as { id: string; label: string };
+  const batchRes = await request.post(`/api/intake/upload-batches`);
+  const batch = (await batchRes.json()) as { id: string; name: string };
 
   const filename = `replay-${Date.now()}.bin`;
-  const createRes = await request.post(`/api/projects/${PROJECT_ID}/submissions`, {
+  const createRes = await request.post(`/api/intake/submissions`, {
     data: { batchId: batch.id, relativePath: filename, sizeBytes: total },
   });
   const { id: submissionId } = (await createRes.json()) as { id: string };
-  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", PROJECT_ID, batch.label, filename);
+  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", batch.name, filename);
 
-  const url = `/api/projects/${PROJECT_ID}/submissions/${submissionId}/chunk`;
+  const url = `/api/intake/submissions/${submissionId}/chunk`;
   const range = { "Content-Range": `bytes 0-${CHUNK - 1}/${total}` };
 
   const first = await request.put(url, { headers: range, data: source.subarray(0, CHUNK) });

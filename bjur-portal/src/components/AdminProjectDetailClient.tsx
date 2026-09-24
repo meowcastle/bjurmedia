@@ -6,24 +6,12 @@ import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
 import { AdminFilmBlock, type CutRow, type ReviewerRow } from "@/components/AdminFilmBlock";
 import { AdminProxyViewer, type ProxyViewerAsset } from "@/components/AdminProxyViewer";
-import { formatBytes } from "@/lib/format";
-
-type RequestState = "open" | "closed" | "expired";
 
 type FileRow = ProxyViewerAsset & {
   thumbReady: boolean;
   markStatus: "NONE" | "PENDING" | "GENERATING" | "READY" | "FAILED";
 };
 
-type RequestRow = {
-  id: string;
-  name: string;
-  state: RequestState;
-  sendPath: string;
-  folder: string;
-  createdAt: string;
-  expiresAt: string;
-};
 
 type ProjectRow = {
   id: string;
@@ -35,28 +23,13 @@ type ProjectRow = {
   inboxPath: string;
   slug: string;
   fileCount: number;
-  submissionCount: number;
-  receivedBytes: string;
   isEmpty: boolean;
   hasSlackChannel: boolean;
 };
 
-function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 function toDateInput(iso: string | null) {
   return iso ? iso.slice(0, 10) : "";
-}
-
-function daysLeft(iso: string) {
-  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
 }
 
 const Kicker = ({ children }: { children: React.ReactNode }) => (
@@ -79,17 +52,13 @@ export function AdminProjectDetailClient({
   film,
   project,
   client,
-  requests: initialRequests,
   assets,
-  ttlDays,
 }: {
   /** Null on anything that is not a Film project. */
   film: { cuts: CutRow[]; reviewers: ReviewerRow[] } | null;
   project: ProjectRow;
   client: { id: string; name: string };
-  requests: RequestRow[];
   assets: FileRow[];
-  ttlDays: number;
 }) {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
@@ -97,7 +66,6 @@ export function AdminProjectDetailClient({
   // the first render, so after router.refresh() re-ran the server component the list
   // would still be the one this page loaded with — a request you just asked for would
   // never appear. The server is the source; refresh is what updates it.
-  const requests = initialRequests;
   const [held, setHeld] = useState(project.paymentHold);
   const [busy, setBusy] = useState(false);
 
@@ -116,9 +84,6 @@ export function AdminProjectDetailClient({
   const [expires, setExpires] = useState(toDateInput(project.expiresAt));
 
   const [openFileId, setOpenFileId] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [askName, setAskName] = useState("");
-  const [copied, setCopied] = useState<string | null>(null);
 
   async function patch(data: Record<string, unknown>, note: string) {
     const res = await fetch(`/api/admin/projects/${project.id}`, {
@@ -159,50 +124,6 @@ export function AdminProjectDetailClient({
           : "Released · clean downloads"
     );
     router.refresh();
-  }
-
-  async function askForFootage() {
-    const name = askName.trim();
-    if (!name) return;
-    setBusy(true);
-    const res = await fetch(`/api/admin/projects/${project.id}/requests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setToast("Could not make that link.");
-      return;
-    }
-    setAsking(false);
-    setAskName("");
-    setToast(`${name} · link live for ${ttlDays} days`);
-    router.refresh();
-  }
-
-  async function setRequestOpen(r: RequestRow, open: boolean) {
-    setBusy(true);
-    const res = await fetch(`/api/admin/requests/${r.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ open }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setToast("Could not save that.");
-      return;
-    }
-    setToast(open ? `${r.name} · link reopened for ${ttlDays} days` : `${r.name} · link closed`);
-    router.refresh();
-  }
-
-  async function copyLink(r: RequestRow) {
-    await navigator.clipboard
-      .writeText(`${window.location.origin}${r.sendPath}`)
-      .catch(() => setToast("Could not copy that."));
-    setCopied(r.id);
-    setTimeout(() => setCopied(null), 1600);
   }
 
   async function deleteProject() {
@@ -249,7 +170,6 @@ export function AdminProjectDetailClient({
     (a) => !a.internal && a.markStatus !== "READY" && a.proxyStatus === "READY"
   ).length;
 
-  const received = Number(project.receivedBytes);
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade">
@@ -363,14 +283,7 @@ export function AdminProjectDetailClient({
         </div>
         <div className="bg-s1 px-[18px] py-4">
           <Kicker>Files</Kicker>
-          <span className="text-[13px]">
-            {project.fileCount}
-            <span className="text-dim2">
-              {" · "}
-              {project.submissionCount} received
-              {received > 0 ? ` · ${formatBytes(received)}` : ""}
-            </span>
-          </span>
+          <span className="text-[13px]">{project.fileCount}</span>
         </div>
         <div className="bg-s1 px-[18px] py-4 min-w-0">
           <Kicker>Inbox</Kicker>
@@ -519,113 +432,6 @@ export function AdminProjectDetailClient({
         />
       )}
 
-      <div className="mt-10">
-        <div className="text-[11px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2 flex justify-between items-baseline">
-          <span>
-            Sent to Bjur <span className="text-dim2">· {requests.length}</span>
-          </span>
-          <button
-            onClick={() => {
-              setAsking(true);
-              setAskName("");
-            }}
-            data-testid="request-footage"
-            className="cursor-pointer text-text hover:text-accent"
-          >
-            + Request footage
-          </button>
-        </div>
-
-        {asking && (
-          <div className="flex items-center gap-2 py-3.5 border-b border-line">
-            <input
-              autoFocus
-              value={askName}
-              onChange={(e) => setAskName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") askForFootage();
-                if (e.key === "Escape") setAsking(false);
-              }}
-              placeholder="What are they sending?"
-              aria-label="What are they sending?"
-              data-testid="request-name"
-              className="flex-1 bg-bg border border-line2 focus:border-accent text-[13px] px-3 py-2 outline-none"
-            />
-            <button
-              onClick={askForFootage}
-              disabled={busy || !askName.trim()}
-              className="cursor-pointer bg-text text-bg hover:bg-accent px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[.08em] disabled:opacity-50"
-            >
-              Make link
-            </button>
-            <button
-              onClick={() => setAsking(false)}
-              className="cursor-pointer text-[11px] text-muted hover:text-text px-2"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {requests.length === 0 && !asking && (
-          <p className="text-[11px] text-dim2 mt-3.5 leading-relaxed">
-            Nothing requested. A footage request makes a send link and a folder inside this
-            project; the client needs no login.
-          </p>
-        )}
-
-        {requests.map((r) => (
-          <div
-            key={r.id}
-            data-testid={`sent-request-${r.id}`}
-            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-1.5 py-4 border-b border-line"
-          >
-            <span className="bj-serif text-xl">{r.name}</span>
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-[.08em] whitespace-nowrap ${
-                r.state === "open" ? "text-ok" : "text-dim2"
-              }`}
-            >
-              {r.state === "open"
-                ? `Link live · ${daysLeft(r.expiresAt)} days`
-                : r.state === "expired"
-                  ? "Expired"
-                  : "Closed"}
-            </span>
-            <span className="text-[11px] text-dim min-w-0 truncate">
-              Opened {fmtDate(r.createdAt)} · <span className="text-dim2">{r.folder}</span>
-            </span>
-            <span className="flex gap-2.5 items-center justify-end text-[10px] font-semibold uppercase tracking-[.08em]">
-              {r.state === "open" ? (
-                <>
-                  <button
-                    onClick={() => copyLink(r)}
-                    className="cursor-pointer border border-line2 hover:border-text text-muted hover:text-text px-2.5 py-1.5"
-                  >
-                    {copied === r.id ? "Copied" : "Copy"}
-                  </button>
-                  <button
-                    onClick={() => setRequestOpen(r, false)}
-                    disabled={busy}
-                    className="cursor-pointer text-dim hover:text-accentb disabled:opacity-50"
-                  >
-                    Close
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setRequestOpen(r, true)}
-                  disabled={busy}
-                  className="cursor-pointer text-dim hover:text-text disabled:opacity-50"
-                >
-                  Reopen
-                </button>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-
       <div className="mt-12 pt-5 border-t border-line">
         {project.isEmpty ? (
           <button
@@ -637,10 +443,12 @@ export function AdminProjectDetailClient({
             Delete this project
           </button>
         ) : (
+          // Only delivered work stands in the way now. Footage used to as well, which is
+          // how a review project became undeletable because somebody else's rushes had
+          // been filed under it.
           <span className="text-[11px] text-dim2">
-            Holds {project.fileCount} file{project.fileCount === 1 ? "" : "s"}
-            {project.submissionCount > 0 ? ` and ${project.submissionCount} received` : ""} · empty
-            it to delete.
+            Holds {project.fileCount} file{project.fileCount === 1 ? "" : "s"} · empty it to
+            delete.
           </span>
         )}
       </div>

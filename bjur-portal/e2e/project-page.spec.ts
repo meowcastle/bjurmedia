@@ -71,30 +71,6 @@ test("payment holds and releases from the page", async ({ page, request }) => {
   await request.delete(`/api/admin/projects/${project.id}`);
 });
 
-test("a footage request can be asked for, closed and reopened", async ({ page, request }) => {
-  const project = await makeProject(request);
-  await page.goto(`/admin/projects/${project.id}`);
-
-  await expect(page.getByText(/Nothing requested/i)).toBeVisible();
-
-  await page.getByTestId("request-footage").click();
-  await page.getByTestId("request-name").fill("Berlin raws");
-  await page.getByRole("button", { name: "Make link" }).click();
-
-  // Scoped to the row: the toast says much the same thing at the same moment.
-  const row = page.locator('[data-testid^="sent-request-"]');
-  await expect(row).toContainText("Berlin raws");
-  await expect(row).toContainText(/link live · \d+ days/i);
-
-  await row.getByRole("button", { name: "Close" }).click();
-  await expect(row).toContainText("Closed");
-
-  await row.getByRole("button", { name: "Reopen" }).click();
-  await expect(row).toContainText(/link live · \d+ days/i);
-
-  await request.delete(`/api/admin/projects/${project.id}`);
-});
-
 test("a project holding files says so instead of offering delete", async ({ page, request }) => {
   const project = await makeProject(request);
 

@@ -13,6 +13,9 @@ test("a batch sent through a link shows up on Today, named", async ({ page, base
   const api = await pwRequest.newContext({ baseURL: baseURL!, storageState: "e2e/.auth/admin.json" });
   // A name of its own: other specs also send footage, and Today lists every batch.
   const requestName = `Rushes ${Date.now()}`;
+  // A sender of its own. Today lists every batch and other specs also send as "Marcus",
+  // so a shared name matches several rows and the filter stops meaning anything.
+  const sender = `Marcus ${Date.now()}`;
   const created = await api.post("/api/admin/projects", {
     data: { clientId: "c1", title: `Today Spec ${Date.now()}`, type: "DELIVERY", startRequest: requestName },
   });
@@ -22,7 +25,7 @@ test("a batch sent through a link shows up on Today, named", async ({ page, base
   // Send a file the way a stranger would — no session on this context.
   const anon = await pwRequest.newContext({ baseURL: baseURL! });
   const batch = await anon.post(`/api/send/${token}/upload-batches`, {
-    data: { senderName: "Marcus" },
+    data: { senderName: sender },
   });
   const batchId = (await batch.json()).id as string;
 
@@ -40,8 +43,10 @@ test("a batch sent through a link shows up on Today, named", async ({ page, base
   expect((await put.json()).complete).toBe(true);
 
   await page.goto("/admin");
-  const row = page.getByTestId("attention-landed").filter({ hasText: requestName });
-  await expect(row).toContainText(`Upload landed · ${requestName} · from Marcus`);
+  // The row names the batch and who sent it, not the link it came through. A send link is
+  // how footage got here; it is not what the footage is.
+  const row = page.getByTestId("attention-landed").filter({ hasText: `from ${sender}` });
+  await expect(row).toContainText("Footage in");
   await expect(row).toContainText("1 file");
 
   await api.delete(`/api/admin/projects/${project.id}`);

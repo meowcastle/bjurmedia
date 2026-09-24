@@ -40,6 +40,9 @@ export function SendPageClient({
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [sender, setSender] = useState("");
+  // What they are sending, in their words — it names the folder it lands in. Asked above
+  // the drop zone, unlike the name, because it is about the work rather than the person.
+  const [what, setWhat] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [sentAs, setSentAs] = useState<string | null>(null);
@@ -85,7 +88,7 @@ export function SendPageClient({
       const res = await fetch(`${base}/upload-batches`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senderName: sender.trim() || null }),
+        body: JSON.stringify({ senderName: sender.trim() || null, name: what.trim() || null }),
       });
       if (!res.ok) {
         setError(
@@ -180,6 +183,23 @@ export function SendPageClient({
 
         {/* Present in every live state, including after a successful send — the page
             never stops accepting files. */}
+        {/* Above the drop zone: it names the folder everything below lands in, and
+            asking afterwards would mean renaming a folder with bytes already in it. */}
+        <div className="mb-[22px]">
+          <label htmlFor="what" className="block text-[10px] tracking-[.1em] uppercase text-dim">
+            What are you sending?
+          </label>
+          <input
+            id="what"
+            value={what}
+            onChange={(e) => setWhat(e.target.value)}
+            disabled={sending || done}
+            placeholder="e.g. Xavier, Hurt footage and project files"
+            data-testid="send-what"
+            className="w-full bg-transparent border-b border-line2 focus:border-text text-[15px] pt-1.5 pb-2.5 outline-none disabled:opacity-60"
+          />
+        </div>
+
         <button
           type="button"
           onClick={() => inputRef.current?.click()}

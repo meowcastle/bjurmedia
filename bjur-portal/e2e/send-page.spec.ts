@@ -22,12 +22,12 @@ async function makeLink(api: APIRequestContext, name = "Berlin raws") {
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
-  return { sendPath: body.sendPath as string, projectId: body.project.id as string };
+  return { sendPath: body.sendPath as string, projectId: body.project.id as string, clientId: "c1" };
 }
 
 test("a live link takes files with no login at all", async ({ page, baseURL }) => {
   const api = await adminApi(baseURL!);
-  const { sendPath, projectId } = await makeLink(api);
+  const { sendPath, projectId, clientId } = await makeLink(api);
 
   await page.goto(sendPath);
   await expect(page.getByText("BJUR", { exact: true })).toBeVisible();
@@ -51,7 +51,7 @@ test("a live link takes files with no login at all", async ({ page, baseURL }) =
   await expect(page.getByTestId("send-dropzone")).toBeVisible();
 
   // And it really landed, attributed to the name they gave.
-  const batches = await api.get(`/api/admin/projects/${projectId}/upload-batches`);
+  const batches = await api.get(`/api/admin/clients/${clientId}/upload-batches`);
   const data = await batches.json();
   expect(JSON.stringify(data)).toContain("Marcus");
 
@@ -61,13 +61,13 @@ test("a live link takes files with no login at all", async ({ page, baseURL }) =
 
 test("a closed link says so rather than 404ing at whoever was sent it", async ({ page, baseURL }) => {
   const api = await adminApi(baseURL!);
-  const { sendPath, projectId } = await makeLink(api);
+  const { sendPath, projectId, clientId } = await makeLink(api);
   const token = sendPath.slice(sendPath.lastIndexOf("-") + 1);
 
   await page.goto(sendPath);
   await expect(page.getByTestId("send-dropzone")).toBeVisible();
 
-  const listed = await api.get(`/api/admin/projects/${projectId}/requests`);
+  const listed = await api.get(`/api/admin/clients/${clientId}/requests`);
   const requestId = (await listed.json()).requests[0].id as string;
   await api.patch(`/api/admin/requests/${requestId}`, { data: { open: false } });
 

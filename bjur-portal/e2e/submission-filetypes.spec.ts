@@ -36,11 +36,11 @@ async function upload(
   relativePath: string,
   bytes: Buffer
 ) {
-  const batch = (await (await request.post(`/api/projects/${PROJECT_ID}/upload-batches`)).json()) as {
+  const batch = (await (await request.post(`/api/intake/upload-batches`)).json()) as {
     id: string;
-    label: string;
+    name: string;
   };
-  const created = await request.post(`/api/projects/${PROJECT_ID}/submissions`, {
+  const created = await request.post(`/api/intake/submissions`, {
     data: { batchId: batch.id, relativePath, sizeBytes: bytes.length },
   });
   expect(created.ok(), await created.text()).toBeTruthy();
@@ -49,7 +49,7 @@ async function upload(
   let offset = 0;
   while (offset < bytes.length) {
     const end = Math.min(offset + CHUNK_SIZE, bytes.length);
-    const res = await request.put(`/api/projects/${PROJECT_ID}/submissions/${id}/chunk`, {
+    const res = await request.put(`/api/intake/submissions/${id}/chunk`, {
       headers: { "Content-Range": `bytes ${offset}-${end - 1}/${bytes.length}` },
       data: bytes.subarray(offset, end),
     });
@@ -57,7 +57,7 @@ async function upload(
     offset = ((await res.json()) as { receivedBytes: number }).receivedBytes;
   }
 
-  return path.join(SUBMISSIONS_ROOT, "ssh", PROJECT_ID, batch.label, relativePath);
+  return path.join(SUBMISSIONS_ROOT, "ssh", batch.name, relativePath);
 }
 
 test("an Adobe project file lands byte-identical", async ({ request }) => {

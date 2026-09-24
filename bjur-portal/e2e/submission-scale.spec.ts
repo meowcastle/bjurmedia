@@ -4,8 +4,7 @@ import path from "path";
 import crypto from "crypto";
 
 test.use({ storageState: "e2e/.auth/sasha.json" });
-
-const PROJECT_ID = "p1"; // Spring Campaign 2026, owned by client "ssh"
+ // Spring Campaign 2026, owned by client "ssh"
 const SUBMISSIONS_ROOT = path.resolve(__dirname, "..", "media-e2e", "_submissions");
 
 // The real client chunk size, so this drives the same boundaries production does.
@@ -50,19 +49,19 @@ test("multi-chunk upload survives a mid-transfer crash and lands byte-identical"
   const source = crypto.randomBytes(TOTAL_BYTES);
   const sourceHash = crypto.createHash("sha256").update(source).digest("hex");
 
-  const batchRes = await request.post(`/api/projects/${PROJECT_ID}/upload-batches`);
+  const batchRes = await request.post(`/api/intake/upload-batches`);
   expect(batchRes.ok()).toBeTruthy();
-  const batch = (await batchRes.json()) as { id: string; label: string };
+  const batch = (await batchRes.json()) as { id: string; name: string };
 
   const filename = `scale-${Date.now()}.bin`;
-  const createRes = await request.post(`/api/projects/${PROJECT_ID}/submissions`, {
+  const createRes = await request.post(`/api/intake/submissions`, {
     data: { batchId: batch.id, relativePath: filename, sizeBytes: TOTAL_BYTES },
   });
   expect(createRes.ok()).toBeTruthy();
   const { id: submissionId } = (await createRes.json()) as { id: string };
 
-  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", PROJECT_ID, batch.label, filename);
-  const url = `/api/projects/${PROJECT_ID}/submissions/${submissionId}/chunk`;
+  const onDisk = path.join(SUBMISSIONS_ROOT, "ssh", batch.name, filename);
+  const url = `/api/intake/submissions/${submissionId}/chunk`;
 
   // Inject the crash deep enough in that plenty of chunks have already committed.
   const CRASH_AFTER_CHUNK = 6;
@@ -107,7 +106,7 @@ test("multi-chunk upload survives a mid-transfer crash and lands byte-identical"
   expect(await sha256File(onDisk)).toBe(sourceHash);
 
   // And the submission must actually be marked finished, not stuck UPLOADING.
-  const listRes = await request.get(`/api/projects/${PROJECT_ID}/submissions`);
+  const listRes = await request.get(`/api/intake/submissions`);
   const { submissions } = (await listRes.json()) as {
     submissions: { id: string }[];
   };

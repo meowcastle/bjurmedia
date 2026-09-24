@@ -3,7 +3,6 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectDetailClient } from "@/components/ProjectDetailClient";
 import { getProjectAccess } from "@/lib/projectAccess";
-import { slugify, stateOf } from "@/lib/submissionRequests";
 
 export default async function ProjectDetailPage({
   params,
@@ -24,14 +23,6 @@ export default async function ProjectDetailPage({
         orderBy: { createdAt: "asc" },
         include: { socialPosts: { select: { viewCount: true } } },
       },
-      // What the client has sent *us*. Shown beside what we delivered, because on a real
-      // job the two halves are the same conversation.
-      submissionRequests: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          batches: { include: { submissions: { select: { sizeBytes: true, status: true } } } },
-        },
-      },
     },
   });
 
@@ -40,7 +31,6 @@ export default async function ProjectDetailPage({
   const access = await getProjectAccess(session, project);
   if (!access.allowed) notFound();
 
-  const now = new Date();
   const allSocialPosts = project.assets.flatMap((a) => a.socialPosts);
   const totalViews = allSocialPosts.reduce((sum, p) => sum + p.viewCount, 0);
   const totalPosts = allSocialPosts.length;
@@ -62,19 +52,6 @@ export default async function ProjectDetailPage({
         paymentHold: project.paymentHold,
         folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
-      requests={project.submissionRequests.map((r) => {
-        // stateOf takes `now` so the clock is read once per request, above the render.
-        const files = r.batches.flatMap((b) => b.submissions).filter((s) => s.status === "COMPLETE");
-        return {
-          id: r.id,
-          name: r.name,
-          open: stateOf(r, now) === "open",
-          fileCount: files.length,
-          // Serialised: BigInt does not survive the RSC boundary.
-          totalBytes: String(files.reduce((n, f) => n + f.sizeBytes, BigInt(0))),
-          sendPath: `/send/${slugify(project.title)}/${slugify(r.name)}-${r.token}`,
-        };
-      })}
       totalViews={totalViews}
       totalSocialPosts={totalPosts}
       assets={project.assets.map((a) => ({

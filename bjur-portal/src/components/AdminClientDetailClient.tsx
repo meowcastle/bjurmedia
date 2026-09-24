@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AdminIntakeBlock, type IntakeBatch, type IntakeLink } from "@/components/AdminIntakeBlock";
 import { Button } from "@/components/ui/Button";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
@@ -30,9 +31,7 @@ type ProjectRow = {
   expiresAt: string | null;
   type: "DELIVERY" | "CALENDAR" | "FILM";
   paymentHold: boolean;
-  openRequests: number;
   assetCount: number;
-  submissionCount: number;
   inboxPath: string;
 };
 type ClientInfo = {
@@ -81,12 +80,14 @@ export function AdminClientDetailClient({
   postsSyncedAt,
   seats,
   projects,
+  intake,
 }: {
   client: ClientInfo;
   topPosts: TopPost[];
   postsSyncedAt: string | null;
   seats: Seat[];
   projects: ProjectRow[];
+  intake: { batches: IntakeBatch[]; links: IntakeLink[] };
 }) {
   const router = useRouter();
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
@@ -516,10 +517,6 @@ export function AdminClientDetailClient({
                 <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]">
                   Held for payment
                 </span>
-              ) : p.openRequests > 0 ? (
-                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-success border border-success/40 px-[7px] py-[3px]">
-                  Awaiting footage
-                </span>
               ) : null}
               <span className="text-muted md:text-right">
                 <span className="md:hidden text-dim">Expires · </span>
@@ -542,6 +539,15 @@ export function AdminClientDetailClient({
           </div>
         )}
       </div>
+
+      {/* What they have sent us, under what we are making for them. Both belong to the
+          client; neither belongs to the other. */}
+      <AdminIntakeBlock
+        clientId={client.id}
+        batches={intake.batches}
+        links={intake.links}
+        onChanged={() => router.refresh()}
+      />
 
       {seatDialogOpen && (
         <AddSeatDialog

@@ -69,19 +69,20 @@ test("a calendar is allowed once the client has a channel", async ({ request }) 
   await cleanUp(request, body.project?.id);
 });
 
-test("type and review are refused after creation, not silently ignored", async ({ request }) => {
+test("type is refused after creation, not silently ignored", async ({ request }) => {
   const { body } = await create(request, { clientId: CLIENT_WITH_SLACK, type: "DELIVERY" });
   const id = body.project.id as string;
 
-  for (const field of [{ type: "CALENDAR" }, { review: true }]) {
+  for (const field of [{ type: "CALENDAR" }, { type: "FILM" }]) {
     const res = await request.patch(`/api/admin/projects/${id}`, { data: field });
     expect(res.status(), JSON.stringify(field)).toBe(400);
     expect((await res.json()).error).toMatch(/set at creation/i);
   }
 
-  // The refusals changed nothing.
-  const after = await request.get(`/api/admin/projects/${id}/upload-batches`);
-  expect(after.ok()).toBeTruthy();
+  // The refusals changed nothing: the project is still there and still editable in the
+  // ways it is meant to be.
+  const after = await request.patch(`/api/admin/projects/${id}`, { data: { title: "Still here" } });
+  expect(after.ok(), await after.text()).toBeTruthy();
   await cleanUp(request, id);
 });
 

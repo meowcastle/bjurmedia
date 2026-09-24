@@ -7,7 +7,7 @@ import crypto from "crypto";
 // The client-facing upload page, not the admin dialog.
 test.use({ storageState: "e2e/.auth/sasha.json" });
 
-const UPLOAD = "/p/p1/upload";
+const UPLOAD = "/send";
 
 let tmpDir: string;
 test.beforeAll(() => {

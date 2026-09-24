@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { initials } from "@/lib/initials";
 import { IconMore } from "@/components/ui/Icon";
 import { ClientSwitcher } from "@/components/ClientSwitcher";
@@ -21,6 +21,7 @@ export function ClientHeader({
   activeClientId?: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
 
@@ -59,6 +60,31 @@ export function ClientHeader({
           MEDIA
         </span>
       </Link>
+
+      {/* Two places to be: what we made for them, and what they are sending us. The
+          second used to live inside a project, which meant it only existed if somebody
+          had remembered to ask for footage on the right one. */}
+      <nav className="flex items-center gap-1 ml-2">
+        <Link
+          href="/"
+          className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+            pathname === "/" ? "text-text border-b-2 border-accent" : "text-muted hover:text-text"
+          }`}
+        >
+          Projects
+        </Link>
+        <Link
+          href="/send"
+          data-testid="nav-send"
+          className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+            pathname.startsWith("/send")
+              ? "text-text border-b-2 border-accent"
+              : "text-muted hover:text-text"
+          }`}
+        >
+          Send to Bjur
+        </Link>
+      </nav>
 
       {/* Desktop/tablet: full inline actions */}
       <div className="ml-auto hidden sm:flex items-center gap-4">
