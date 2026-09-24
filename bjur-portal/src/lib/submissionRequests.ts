@@ -58,7 +58,7 @@ export function stateOf(
 export async function resolveOpenRequest(token: string) {
   const request = await db.submissionRequest.findUnique({
     where: { token },
-    include: { project: { include: { client: { select: { name: true, username: true } } } } },
+    include: { client: { select: { name: true, username: true } } },
   });
   if (!request) return null;
   if (stateOf(request) !== "open") return null;

@@ -8,11 +8,15 @@ import { SendPageClient } from "@/components/SendPageClient";
  * The token is the whole credential, so it is the last path segment after the request's
  * name — `berlin-raws-<token>` — which reads as a thing rather than a key while still
  * being unguessable.
+ *
+ * The first segment is the client now rather than a project, but nothing resolves on it:
+ * it is decoration for the URL bar. That is what keeps links already in people's inboxes
+ * working after the change — Xavier's has been live for weeks, and it still lands here.
  */
 export default async function SendPage({
   params,
 }: {
-  params: Promise<{ projectSlug: string; nameToken: string }>;
+  params: Promise<{ clientSlug: string; nameToken: string }>;
 }) {
   const { nameToken } = await params;
   // Everything before the last hyphen is the human half of the slug; the token follows.
@@ -21,7 +25,7 @@ export default async function SendPage({
   const request = token
     ? await db.submissionRequest.findUnique({
         where: { token },
-        include: { project: { include: { client: { select: { name: true } } } } },
+        include: { client: { select: { name: true } } },
       })
     : null;
 
@@ -37,7 +41,7 @@ export default async function SendPage({
   return (
     <SendPageClient
       state={state === "open" ? "open" : "closed"}
-      clientName={request.project.client.name}
+      clientName={request.client.name}
       token={request.token}
     />
   );

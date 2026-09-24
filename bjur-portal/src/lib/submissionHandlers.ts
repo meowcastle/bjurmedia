@@ -26,22 +26,22 @@ function formatBytes(n: number) {
  */
 
 /** Opens a new batch: one on-disk folder everything dropped this visit shares. */
-export async function startBatch(access: OkAccess, label: string) {
+export async function startBatch(access: OkAccess, name: string) {
   const batch = await db.uploadBatch.create({
     data: {
-      projectId: access.project.id,
+      clientId: access.client.id,
       userId: access.userId,
       requestId: access.requestId,
       senderName: access.senderName,
-      label,
+      name,
     },
   });
-  return NextResponse.json({ id: batch.id, label: batch.label });
+  return NextResponse.json({ id: batch.id, name: batch.name });
 }
 
 /** Starts one file — the row, and an empty file to append chunks to. */
 export async function createSubmission(access: OkAccess, req: NextRequest) {
-  const projectId = access.project.id;
+  const clientId = access.client.id;
   const body = await req.json().catch(() => null);
   const batchId = typeof body?.batchId === "string" ? body.batchId : null;
   const sizeBytes = typeof body?.sizeBytes === "number" ? body.sizeBytes : null;
@@ -54,7 +54,7 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
   }
 
   const batch = await db.uploadBatch.findUnique({ where: { id: batchId } });
-  if (!batch || batch.projectId !== projectId || !scopeMatches(access, batch)) {
+  if (!batch || batch.clientId !== clientId || !scopeMatches(access, batch)) {
     return NextResponse.json({ error: "Unknown upload batch." }, { status: 404 });
   }
 
@@ -62,7 +62,7 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
   const filename = segments[segments.length - 1];
 
   /**
-   * A file this project already has, at the same path and the same size, is not sent
+   * A file this client has already sent, at the same path and the same size, is not sent
    * again — it is reported as already there.
    *
    * Without this, re-dropping a folder to resume one unfinished file re-queued every
@@ -76,7 +76,10 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
    * different file at the same name has a different size and still uploads.
    */
   const alreadyHave = await db.submission.findFirst({
-    where: { projectId, relativePath, sizeBytes, status: "COMPLETE" },
+    // Scoped to the batch, not the client. Across a client the same path and size is a
+    // real possibility — two shoots with the same card layout — and treating the second
+    // as already-here would silently drop it.
+    where: { batchId, relativePath, sizeBytes, status: "COMPLETE" },
     select: { id: true },
   });
   if (alreadyHave) {
@@ -85,7 +88,7 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
 
   const submission = await db.submission.create({
     data: {
-      projectId,
+      clientId,
       userId: access.userId,
       batchId,
       relativePath,
@@ -95,7 +98,7 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
     },
   });
 
-  const relPath = submissionRelPath(access.project.client.username, projectId, batch.label, segments);
+  const relPath = submissionRelPath(access.client.username, batch.name, segments);
   const absPath = await resolveSubmissionPath(relPath);
   await mkdir(path.dirname(absPath), { recursive: true });
   await writeFile(absPath, Buffer.alloc(0));
@@ -109,8 +112,8 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
 export async function listResumable(access: OkAccess) {
   const batches = await db.uploadBatch.findMany({
     where: access.userId
-      ? { projectId: access.project.id, userId: access.userId }
-      : { projectId: access.project.id, requestId: access.requestId },
+      ? { clientId: access.client.id, userId: access.userId }
+      : { clientId: access.client.id, requestId: access.requestId },
     select: { id: true },
   });
 
@@ -141,9 +144,9 @@ export async function listResumable(access: OkAccess) {
 export async function appendChunk(access: OkAccess, req: NextRequest, submissionId: string) {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
-    include: { batch: { select: { userId: true, requestId: true } } },
+    include: { batch: { select: { userId: true, requestId: true, name: true } } },
   });
-  if (!submission || submission.projectId !== access.project.id || !scopeMatches(access, submission.batch)) {
+  if (!submission || submission.clientId !== access.client.id || !scopeMatches(access, submission.batch)) {
     return new NextResponse(null, { status: 404 });
   }
   if (submission.status !== "UPLOADING") {
@@ -212,19 +215,19 @@ export async function appendChunk(access: OkAccess, req: NextRequest, submission
     const from = access.senderName ? ` from ${access.senderName}` : "";
     await db.activity.create({
       data: {
-        actor: access.project.client.name,
-        action: `uploaded "${submission.filename}" (${size}) to ${access.project.title}${from}`,
+        actor: access.client.name,
+        action: `sent "${submission.filename}" (${size}) in ${submission.batch.name}${from}`,
       },
     });
     await postSlackEvent({
-      clientId: access.project.clientId,
+      clientId: access.client.id,
       toggle: "autoSubmission",
       blocks: [
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:inbox_tray: *Client upload — ${access.project.client.name}*\n*${access.project.title}*\n${submission.filename} · ${size}${from}`,
+            text: `:inbox_tray: *Footage in — ${access.client.name}*\n*${submission.batch.name}*\n${submission.filename} · ${size}${from}`,
           },
         },
       ],

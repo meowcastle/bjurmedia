@@ -101,14 +101,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const project = await db.project.findUnique({
     where: { id },
-    include: { client: true, _count: { select: { assets: true, submissions: true } } },
+    include: { client: true, _count: { select: { assets: true } } },
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Only ever delete a project that holds nothing. Delivered assets need handling
-  // deliberately rather than being wiped by a stray click, and footage a client sent is
-  // worse still — it is the only copy, and nobody here put it there.
-  if (project._count.assets > 0 || project._count.submissions > 0) {
+  // Only ever delete a project that holds no delivered work. Those need handling
+  // deliberately rather than being wiped by a stray click.
+  //
+  // Footage is no longer part of this question. It belongs to the client now, so deleting
+  // a project cannot reach it — which is the point of the change: a review project used to
+  // be undeletable because somebody else's rushes happened to be filed under it.
+  if (project._count.assets > 0) {
     return NextResponse.json(
       { error: "This project holds files — empty it before deleting the project." },
       { status: 400 }

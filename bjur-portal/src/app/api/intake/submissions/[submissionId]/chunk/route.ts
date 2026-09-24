@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { assertProjectUploadAccess } from "@/lib/submissions";
+import { assertClientUploadAccess } from "@/lib/submissions";
 import { appendChunk } from "@/lib/submissionHandlers";
 
 export const runtime = "nodejs";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; submissionId: string }> }
+  { params }: { params: Promise<{ submissionId: string }> }
 ) {
-  const { id: projectId, submissionId } = await params;
-  const access = await assertProjectUploadAccess(await getSessionUser(), projectId);
+  const { submissionId } = await params;
+  const access = await assertClientUploadAccess(await getSessionUser());
   if (!access.ok) return new NextResponse(null, { status: access.status });
   return appendChunk(access, req, submissionId);
 }

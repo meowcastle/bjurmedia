@@ -458,8 +458,17 @@ async function seedSubmissions() {
   });
   if (!uploader) return;
 
+  const sshClient = await db.client.findFirstOrThrow({
+    where: { username: "ssh" },
+    select: { id: true },
+  });
+
   const batch = await db.uploadBatch.create({
-    data: { projectId: "p1", userId: uploader.id, label: "2026-09-09 - Sasha Hale" },
+    data: {
+      clientId: sshClient.id,
+      userId: uploader.id,
+      name: "Hurt — mirror shot rushes",
+    },
   });
 
   const folder = "Hurt Project Files/Mirror Shot";
@@ -467,12 +476,12 @@ async function seedSubmissions() {
     const relativePath = `${folder}/A116_C00${n}_0714XY.mov`;
     await db.submission.create({
       data: {
-        projectId: "p1",
+        clientId: sshClient.id,
         userId: uploader.id,
         batchId: batch.id,
         relativePath,
         filename: relativePath.split("/").pop()!,
-        relPath: `ssh/p1/${batch.label}/${relativePath}`,
+        relPath: `ssh/${batch.name}/${relativePath}`,
         sizeBytes: BigInt(1_940_000_000 + n),
         receivedBytes: BigInt(1_940_000_000 + n),
         status: "COMPLETE",
@@ -484,12 +493,12 @@ async function seedSubmissions() {
   // One that stopped partway, so the Stalled state has something to render.
   await db.submission.create({
     data: {
-      projectId: "p1",
+      clientId: sshClient.id,
       userId: uploader.id,
       batchId: batch.id,
       relativePath: `${folder}/A116_C004_0714XY.mov`,
       filename: "A116_C004_0714XY.mov",
-      relPath: `ssh/p1/${batch.label}/${folder}/A116_C004_0714XY.mov`,
+      relPath: `ssh/${batch.name}/${folder}/A116_C004_0714XY.mov`,
       sizeBytes: BigInt(1_940_000_000),
       receivedBytes: BigInt(820_000_000),
       status: "UPLOADING",
@@ -751,11 +760,12 @@ async function main() {
     });
   }
 
-  // Footage comes in through a named request now, not a per-project switch. p1 carries
-  // the open one the submission specs upload into; it is the folder their files land in.
+  // A send link belongs to the client. What arrives through it is footage for SSH, not
+  // footage for a particular job — which job it serves is decided later, or never.
+  const sshForLink = await db.client.findFirstOrThrow({ where: { username: "ssh" }, select: { id: true } });
   await db.submissionRequest.create({
     data: {
-      projectId: "p1",
+      clientId: sshForLink.id,
       name: "Camera originals",
       token: "seedtoken00000000000000000000001",
       expiresAt: new Date(Date.now() + 14 * 86_400_000),

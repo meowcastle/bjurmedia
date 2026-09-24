@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
     const name = startRequest.trim();
     const token = newRequestToken();
     await db.submissionRequest.create({
-      data: { projectId: project.id, name, token, expiresAt: ttlFromNow() },
+      data: { clientId, name, token, expiresAt: ttlFromNow() },
     });
-    sendPath = `/send/${slugify(project.title)}/${slugify(name)}-${token}`;
+    sendPath = `/send/${slugify(client.username)}/${slugify(name)}-${token}`;
   }
 
   await db.activity.create({

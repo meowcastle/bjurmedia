@@ -9,29 +9,34 @@ generator client {
 
 // ── Orgs & users ───────────────────────────────────────────
 model Client {
-  id             String          @id @default(cuid())
-  name           String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
-  username       String          @unique // login handle for the org
-  status         ClientStatus    @default(ACTIVE)
-  accentColor    String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
-  logoUrl        String? // brand logo, admin-set — null = initials fallback
+  id                 String              @id @default(cuid())
+  name               String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username           String              @unique // login handle for the org
+  status             ClientStatus        @default(ACTIVE)
+  accentColor        String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  logoUrl            String? // brand logo, admin-set — null = initials fallback
   // approval policy. Required by default: publishing to a client's own channels
   // without their sign-off is the failure nobody forgives.
   // Draft captions from the audio. Off by default: this sends the client's audio to a
   // third party, which is a decision to make per client rather than a default.
-  autoCaption    Boolean         @default(false)
+  autoCaption        Boolean             @default(false)
   /**
    * This client's house style, in their own words — structure, tone, sign-off, hashtag
    * habits. Fed to the drafter as instructions. Without it the model writes generic
    * social copy that reads like nobody in particular.
    */
-  captionStyle   String?
-  createdAt      DateTime        @default(now())
-  users          User[]
-  projects       Project[]
-  channel        ClientChannel?
-  socialAccounts SocialAccount[]
-  members        ClientMember[]
+  captionStyle       String?
+  createdAt          DateTime            @default(now())
+  users              User[]
+  projects           Project[]
+  // Intake hangs here now, not off a project: footage arrives for a client, and what it
+  // is eventually cut into is a separate question the sender never has to answer.
+  submissionRequests SubmissionRequest[]
+  uploadBatches      UploadBatch[]
+  submissions        Submission[]
+  channel            ClientChannel?
+  socialAccounts     SocialAccount[]
+  members            ClientMember[]
 }
 
 enum ProjectType {
@@ -145,13 +150,10 @@ model Project {
   deliveryPendingAt    DateTime?
   deliveryNotifiedAt   DateTime?
 
-  createdAt             DateTime            @default(now())
+  createdAt             DateTime        @default(now())
   assets                Asset[]
   members               ProjectMember[]
   folders               Folder[]
-  submissions           Submission[]
-  uploadBatches         UploadBatch[]
-  submissionRequests    SubmissionRequest[]
   reviewers             Reviewer[]
   // Which reminder threshold has already gone out (14 or 3). Null = none yet, and it
   // resets whenever expiresAt moves, so extending a gallery re-arms both.
@@ -202,25 +204,35 @@ model Folder {
  * handing them a seat. A request names what is wanted ("Berlin raws"), becomes the folder
  * the files land in, and can be closed once it has served its purpose.
  */
+/**
+ * A link somebody can send footage through, without an account.
+ * Belongs to the client, not a project. Rushes arrive for weeks before anyone knows what
+ * the cuts will be, and tying intake to a project meant one project held a fortnight of
+ * footage *and* was supposed to be the thing a client opened for feedback — two jobs with
+ * different lifecycles that could not be retired separately.
+ */
 model SubmissionRequest {
   id        String    @id @default(cuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name      String // "Berlin raws" — also the on-disk folder name
-  token     String    @unique // URL token for /send/<projectSlug>/<name>-<token>
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /**
+   * Who the link is for. Admin-only label — the sender never sees it.
+   */
+  name      String
+  token     String    @unique // URL token for /send/<clientSlug>/<name>-<token>
   expiresAt DateTime // default now + SUBMISSION_REQUEST_TTL_DAYS
   closedAt  DateTime?
   createdAt DateTime  @default(now())
 
   batches UploadBatch[]
 
-  @@index([projectId])
+  @@index([clientId])
 }
 
 model UploadBatch {
-  id        String  @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   // Null for anyone who arrived through a send link. They have no account and never get
   // one — the point of a request is that a DP can send rushes without being given a seat.
@@ -235,11 +247,20 @@ model UploadBatch {
    */
   senderName String?
 
-  label       String
-  createdAt   DateTime     @default(now())
-  submissions Submission[]
+  /**
+   * What the sender said they were sending: "Xavier, Hurt footage and project files".
+   * Was `label`, assigned by us from the request name — this is typed by the person
+   * actually sending, who knows what is in it. Blank becomes "Untitled".
+   */
+  name           String
+  /**
+   * Set when the bytes are removed from disk. The row stays as a record of what arrived.
+   */
+  filesDeletedAt DateTime?
+  createdAt      DateTime     @default(now())
+  submissions    Submission[]
 
-  @@index([projectId])
+  @@index([clientId])
   @@index([requestId])
 }
 
@@ -250,8 +271,8 @@ model UploadBatch {
 // by an admin. relPath is under SUBMISSIONS_ROOT, not MEDIA_ROOT.
 model Submission {
   id            String           @id @default(cuid())
-  projectId     String
-  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   // Null for anything sent through a send link, for the same reason UploadBatch.userId
   // is: the sender has no account and never gets one. The batch carries the request it
   // arrived through, and that is what scopes it instead.
@@ -269,7 +290,7 @@ model Submission {
   updatedAt     DateTime         @updatedAt
   completedAt   DateTime?
 
-  @@index([projectId])
+  @@index([clientId])
   @@index([userId])
   @@index([batchId])
 }

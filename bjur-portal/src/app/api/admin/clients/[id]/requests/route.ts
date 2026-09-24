@@ -3,53 +3,53 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { newRequestToken, slugify, stateOf, ttlFromNow } from "@/lib/submissionRequests";
 
-/** "+ Request footage" — names what you want, and hands back the link to send. */
+/** "+ New link" — names who it is for, and hands back the URL to send them. */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getSessionUser();
   if (!session?.isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const project = await db.project.findUnique({ where: { id }, select: { id: true, title: true } });
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const client = await db.client.findUnique({ where: { id }, select: { id: true, name: true, username: true } });
+  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { name } = await req.json();
   if (typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Say what they are sending." }, { status: 400 });
+    return NextResponse.json({ error: "Say who the link is for." }, { status: 400 });
   }
 
   const token = newRequestToken();
   const request = await db.submissionRequest.create({
-    data: { projectId: id, name: name.trim(), token, expiresAt: ttlFromNow() },
+    data: { clientId: id, name: name.trim(), token, expiresAt: ttlFromNow() },
   });
 
   await db.activity.create({
-    data: { actor: "You", action: `asked for "${request.name}" on ${project.title}` },
+    data: { actor: "You", action: `made a send link for "${request.name}" on ${client.name}` },
   });
 
   return NextResponse.json({
     request,
-    sendPath: `/send/${slugify(project.title)}/${slugify(request.name)}-${token}`,
+    sendPath: `/send/${slugify(client.username)}/${slugify(request.name)}-${token}`,
   });
 }
 
-/** Every request on this project, newest first, with the link each one resolves to. */
+/** Every send link for this client, newest first, with the URL each resolves to. */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getSessionUser();
   if (!session?.isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const project = await db.project.findUnique({
+  const client = await db.client.findUnique({
     where: { id },
-    select: { title: true, submissionRequests: { orderBy: { createdAt: "desc" } } },
+    select: { username: true, submissionRequests: { orderBy: { createdAt: "desc" } } },
   });
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({
-    requests: project.submissionRequests.map((r) => ({
+    requests: client.submissionRequests.map((r) => ({
       id: r.id,
       name: r.name,
       state: stateOf(r),
-      sendPath: `/send/${slugify(project.title)}/${slugify(r.name)}-${r.token}`,
+      sendPath: `/send/${slugify(client.username)}/${slugify(r.name)}-${r.token}`,
     })),
   });
 }

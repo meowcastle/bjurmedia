@@ -1,7 +1,6 @@
 import path from "path";
 import type { SessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getProjectAccess } from "@/lib/projectAccess";
 import { sanitizeFilename } from "@/lib/uploads";
 
 export type SubmissionAccess =
@@ -17,7 +16,12 @@ export type SubmissionAccess =
       userName: string;
       requestId: string | null;
       senderName: string | null;
-      project: { id: string; title: string; clientId: string; client: { username: string; name: string } };
+      /**
+       * Intake is scoped to the client, not a project. Footage arrives long before anyone
+       * knows what it will be cut into, and a sender should never have to answer that
+       * question to send a file.
+       */
+      client: { id: string; username: string; name: string };
     }
   | { ok: false; status: number };
 
@@ -29,46 +33,30 @@ export function scopeMatches(access: OkAccess, batch: { userId: string | null; r
 }
 
 /**
- * Gate for the client-facing submission routes: session -> same-client/per-project
- * access (any role — uploading source material isn't tied to download/purchase
- * permissions) -> project not expired. Unlike asset access, there's no DRAFT check
- * here on purpose: a client may need to send raw footage before the studio has
- * delivered anything back, i.e. before the project has ever gone LIVE.
+ * A signed-in seat sending footage for their own client.
+ *
+ * No open request needed and no project involved. The old gate required an open
+ * SubmissionRequest on a specific project, which locked a client out of sending anything
+ * the moment nobody had remembered to make one — and it cost Xavier two weeks once. A
+ * seat sending to their own client is self-evidently allowed; the request exists to let
+ * people *without* a seat send, which is a different question.
  */
-export async function assertProjectUploadAccess(
-  session: SessionUser | null,
-  projectId: string
+export async function assertClientUploadAccess(
+  session: SessionUser | null
 ): Promise<SubmissionAccess> {
   if (!session?.clientId) return { ok: false, status: 401 };
 
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    include: { client: true },
-  });
-  if (!project) return { ok: false, status: 404 };
+  const client = await db.client.findUnique({ where: { id: session.clientId } });
+  if (!client || client.status !== "ACTIVE") return { ok: false, status: 404 };
 
-  const access = await getProjectAccess(session, project);
-  if (!access.allowed) return { ok: false, status: 404 };
-
-  // A project accepts footage only while it has an open request. Replaced the old
-  // clientUploads boolean: intake is now a thing you ask for by name and close when it
-  // has served its purpose, rather than a switch left on and forgotten. Enforced here
-  // rather than by hiding the button, because every upload route funnels through this
-  // one function — a hand-rolled POST is refused the same way a click would be. 403
-  // rather than 404: the project exists and they can see it, they just cannot send to it.
-  const openRequest = await db.submissionRequest.findFirst({
-    where: { projectId: project.id, closedAt: null, expiresAt: { gt: new Date() } },
-    select: { id: true },
-  });
-  if (!openRequest) {
-    return { ok: false, status: 403 };
-  }
-
-  if (project.expiresAt && project.expiresAt.getTime() < Date.now()) {
-    return { ok: false, status: 410 };
-  }
-
-  return { ok: true, userId: session.id, userName: session.name, requestId: null, senderName: null, project };
+  return {
+    ok: true,
+    userId: session.id,
+    userName: session.name,
+    requestId: null,
+    senderName: null,
+    client: { id: client.id, username: client.username, name: client.name },
+  };
 }
 
 const MAX_PATH_SEGMENTS = 12;
@@ -94,14 +82,18 @@ export function validateRelativePath(relativePath: string): string[] | null {
   return segments.map((s) => sanitizeFilename(s));
 }
 
-/** Relative to SUBMISSIONS_ROOT — resolve with resolveSubmissionPath() before use. */
+/**
+ * Relative to SUBMISSIONS_ROOT — resolve with resolveSubmissionPath() before use.
+ *
+ * Client, then batch. The project id used to sit in the middle, which is how 302 GB of
+ * rushes ended up filed under a project that was really a review job.
+ */
 export function submissionRelPath(
   clientUsername: string,
-  projectId: string,
-  batchLabel: string,
+  batchName: string,
   relativePathSegments: string[]
 ) {
-  return path.join(clientUsername, projectId, batchLabel, ...relativePathSegments);
+  return path.join(clientUsername, batchName, ...relativePathSegments);
 }
 
 function todayLabel() {
@@ -117,15 +109,22 @@ function todayLabel() {
  * a batch across page visits, since re-associating with an existing batch only
  * happens deliberately via a resumed submission's own batchId (see the chunk route).
  */
-export async function generateBatchLabel(projectId: string, uploaderName: string) {
-  const base = sanitizeFilename(`${todayLabel()} - ${uploaderName}`);
+export async function generateBatchName(
+  clientId: string,
+  uploaderName: string,
+  typed?: string | null
+) {
+  // What the sender typed wins. They know what is in it; we only ever guessed from who
+  // was sending and when. Blank falls back to the old shape, which still reads naturally
+  // over SMB.
+  const base = sanitizeFilename(typed?.trim() || `${todayLabel()} - ${uploaderName}`);
   const existing = await db.uploadBatch.findMany({
-    where: { projectId, label: { startsWith: base } },
-    select: { label: true },
+    where: { clientId, name: { startsWith: base } },
+    select: { name: true },
   });
-  if (!existing.some((b) => b.label === base)) return base;
+  if (!existing.some((b) => b.name === base)) return base;
   let n = 2;
-  while (existing.some((b) => b.label === `${base} (${n})`)) n++;
+  while (existing.some((b) => b.name === `${base} (${n})`)) n++;
   return `${base} (${n})`;
 }
 
@@ -143,13 +142,10 @@ export async function assertRequestUploadAccess(
 ): Promise<SubmissionAccess> {
   const request = await db.submissionRequest.findUnique({
     where: { token },
-    include: { project: { include: { client: true } } },
+    include: { client: true },
   });
   if (!request) return { ok: false, status: 404 };
   if (request.closedAt || request.expiresAt.getTime() <= Date.now()) {
-    return { ok: false, status: 410 };
-  }
-  if (request.project.expiresAt && request.project.expiresAt.getTime() < Date.now()) {
     return { ok: false, status: 410 };
   }
 
@@ -159,6 +155,10 @@ export async function assertRequestUploadAccess(
     userName: senderName?.trim() || request.name,
     requestId: request.id,
     senderName: senderName?.trim() || null,
-    project: request.project,
+    client: {
+      id: request.client.id,
+      username: request.client.username,
+      name: request.client.name,
+    },
   };
 }

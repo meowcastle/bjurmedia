@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const existing = await db.submissionRequest.findUnique({
     where: { id },
-    include: { project: { select: { title: true } } },
+    include: { client: { select: { name: true } } },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await db.activity.create({
     data: {
       actor: "You",
-      action: `${open ? "reopened" : "closed"} "${request.name}" on ${existing.project.title}`,
+      action: `${open ? "reopened" : "closed"} the send link for "${request.name}" on ${existing.client.name}`,
     },
   });
 

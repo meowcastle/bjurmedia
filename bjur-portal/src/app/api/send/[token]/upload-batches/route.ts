@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertRequestUploadAccess } from "@/lib/submissions";
 import { startBatch } from "@/lib/submissionHandlers";
-import { generateBatchLabel } from "@/lib/submissions";
+import { generateBatchName } from "@/lib/submissions";
 
 export const runtime = "nodejs";
 
@@ -13,9 +13,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const { token } = await params;
   const body = await req.json().catch(() => null);
   const senderName = typeof body?.senderName === "string" ? body.senderName : null;
+  const typed = typeof body?.name === "string" ? body.name : null;
 
   const access = await assertRequestUploadAccess(token, senderName);
   if (!access.ok) return new NextResponse(null, { status: access.status });
 
-  return startBatch(access, await generateBatchLabel(access.project.id, access.userName));
+  return startBatch(access, await generateBatchName(access.client.id, access.userName, typed));
 }

@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return new Response(Readable.toWeb(archive as unknown as Readable) as ReadableStream, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${batch.label}.zip"`,
+      "Content-Disposition": `attachment; filename="${batch.name}.zip"`,
       "Cache-Control": "no-store",
     },
   });
