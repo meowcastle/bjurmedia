@@ -6,10 +6,11 @@ import { IconCheck } from "@/components/ui/Icon";
 
 export type ClientOption = { id: string; name: string; hasSlackChannel: boolean };
 
-type ProjectType = "DELIVERY" | "CALENDAR";
+type ProjectType = "DELIVERY" | "CALENDAR" | "FILM";
 
 const TYPES: { id: ProjectType; label: string; blurb: string }[] = [
   { id: "DELIVERY", label: "Delivery", blurb: "A gig you hand over. Files land, the client takes them." },
+  { id: "FILM", label: "Film", blurb: "Cuts & notes. One piece, reviewed cut by cut." },
   { id: "CALENDAR", label: "Social calendar", blurb: "Ongoing. Reels go on the board and post to Slack." },
 ];
 
@@ -76,7 +77,7 @@ export function NewProjectDialog({
 }) {
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [type, setType] = useState<ProjectType>("DELIVERY");
-  const [review, setReview] = useState(false);
+  const [guests, setGuests] = useState("");
   const [withRequest, setWithRequest] = useState(false);
   const [requestName, setRequestName] = useState("");
   const [title, setTitle] = useState("");
@@ -98,9 +99,12 @@ export function NewProjectDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, result]);
 
-  // Calendar posts are approved in Slack. Picking it puts review out of reach rather than
-  // letting the server refuse a combination the sheet appeared to offer.
-  const effectiveReview = type === "CALENDAR" ? false : review;
+  // Comma, space or newline — people paste addresses out of a mail client and the
+  // separator is whatever that client used.
+  const guestEmails = guests
+    .split(/[,\s]+/)
+    .map((e) => e.trim())
+    .filter((e) => e.includes("@"));
 
   async function submit() {
     if (!title.trim() || !clientId) {
@@ -117,7 +121,7 @@ export function NewProjectDialog({
         clientId,
         title: title.trim(),
         type,
-        review: effectiveReview,
+        guests: type === "FILM" ? guestEmails.map((email) => ({ email })) : undefined,
         startRequest: withRequest && requestName.trim() ? requestName.trim() : null,
         expiresAt: expiresAt || null,
         paymentHold: hold,
@@ -156,7 +160,8 @@ export function NewProjectDialog({
             <>
               <div className="text-[22px] font-black tracking-tight mb-1.5">New project</div>
               <div className="text-[13px] text-muted mb-6">
-                Type and review are set here and cannot be changed later.
+                Type is set here and cannot be changed later. Reviewers, title, payment and
+                footage requests can change any time.
               </div>
 
               <div className="flex flex-col gap-5">
@@ -213,23 +218,36 @@ export function NewProjectDialog({
                   )}
                 </div>
 
+                {type === "FILM" && (
+                  <div data-testid="reviewers-block">
+                    <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-2">
+                      Reviewers
+                    </span>
+                    <p className="text-[11.5px] text-muted leading-relaxed mb-2">
+                      {client?.name ?? "The client"}&apos;s seats review automatically. Add anyone
+                      else below — they get a link, no account.
+                    </p>
+                    <input
+                      value={guests}
+                      onChange={(e) => setGuests(e.target.value)}
+                      placeholder="director@studio.com, label@records.com"
+                      data-testid="guest-emails"
+                      className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2 text-[13px]"
+                    />
+                    {guestEmails.length > 0 && (
+                      <div className="text-[11px] text-muted mt-1.5">
+                        {guestEmails.length} guest{guestEmails.length === 1 ? "" : "s"} · they give
+                        a name once and can never download anything.
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-2">
                     Add to it
                   </span>
                   <div className="flex flex-col gap-1.5">
-                    <Toggle
-                      testId="add-review"
-                      on={effectiveReview}
-                      disabled={type === "CALENDAR"}
-                      onChange={() => setReview((r) => !r)}
-                      label="Review"
-                      hint={
-                        type === "CALENDAR"
-                          ? "Calendar posts are approved in Slack."
-                          : "Every new cut asks the client to approve it or send notes."
-                      }
-                    />
                     <Toggle
                       testId="add-request"
                       on={withRequest}

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
+import { AdminFilmBlock, type CutRow, type ReviewerRow } from "@/components/AdminFilmBlock";
 import { AdminProxyViewer, type ProxyViewerAsset } from "@/components/AdminProxyViewer";
 import { formatBytes } from "@/lib/format";
 
@@ -75,12 +76,15 @@ const Kicker = ({ children }: { children: React.ReactNode }) => (
  * reason.
  */
 export function AdminProjectDetailClient({
+  film,
   project,
   client,
   requests: initialRequests,
   assets,
   ttlDays,
 }: {
+  /** Null on anything that is not a Film project. */
+  film: { cuts: CutRow[]; reviewers: ReviewerRow[] } | null;
   project: ProjectRow;
   client: { id: string; name: string };
   requests: RequestRow[];
@@ -504,6 +508,10 @@ export function AdminProjectDetailClient({
             ))}
           </div>
         </div>
+      )}
+
+      {film && (
+        <AdminFilmBlock projectId={project.id} cuts={film.cuts} reviewers={film.reviewers} />
       )}
 
       <div className="mt-10">

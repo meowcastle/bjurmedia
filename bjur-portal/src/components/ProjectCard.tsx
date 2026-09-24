@@ -20,6 +20,8 @@ export function ProjectCard({
   coverAssetId,
   newCount,
   totalBytes,
+  isFilm,
+  reviewPending,
 }: {
   id: string;
   title: string;
@@ -31,14 +33,23 @@ export function ProjectCard({
   /** Files delivered this week. 0 hides the badge. */
   newCount: number;
   totalBytes: number;
+  /** A Film project opens on its cut, not on a gallery of one file. */
+  isFilm?: boolean;
+  /** True while the latest cut is still awaiting an answer — worth saying on the card. */
+  reviewPending?: boolean;
 }) {
   const parts: string[] = [];
-  if (videoCount) parts.push(`${videoCount} video${videoCount > 1 ? "s" : ""}`);
-  if (photoCount) parts.push(`${photoCount} photo${photoCount > 1 ? "s" : ""}`);
+  if (isFilm) parts.push(reviewPending ? "Cut awaiting your notes" : "Cuts & notes");
+  else {
+    if (videoCount) parts.push(`${videoCount} video${videoCount > 1 ? "s" : ""}`);
+    if (photoCount) parts.push(`${photoCount} photo${photoCount > 1 ? "s" : ""}`);
+  }
 
   return (
     <Link
-      href={`/p/${id}`}
+      // A Film project's front door is the cut under review. Sending it to the gallery
+      // first would show a client one file and no way to say anything about it.
+      href={isFilm ? `/p/${id}/review` : `/p/${id}`}
       className="block bg-s1 border border-line hover:border-line2 bjfade"
     >
       <div
