@@ -511,7 +511,12 @@ export function AdminProjectDetailClient({
       )}
 
       {film && (
-        <AdminFilmBlock projectId={project.id} cuts={film.cuts} reviewers={film.reviewers} />
+        <AdminFilmBlock
+          projectId={project.id}
+          cuts={film.cuts}
+          reviewers={film.reviewers}
+          hiddenCount={internalCount}
+        />
       )}
 
       <div className="mt-10">

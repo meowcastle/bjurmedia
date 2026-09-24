@@ -40,10 +40,13 @@ export function AdminFilmBlock({
   projectId,
   cuts,
   reviewers,
+  hiddenCount,
 }: {
   projectId: string;
   cuts: CutRow[];
   reviewers: ReviewerRow[];
+  /** Files in the project that are internal, so they never became cuts. */
+  hiddenCount: number;
 }) {
   const active = reviewers.filter((r) => !r.revoked);
 
@@ -67,10 +70,22 @@ export function AdminFilmBlock({
         </div>
 
         {cuts.length === 0 ? (
-          <p className="text-[12px] text-muted leading-relaxed mt-3">
-            No cuts yet. The first export you drop in the inbox becomes cut 1, and every
-            reviewer is emailed to watch it.
-          </p>
+          // "No cuts yet" on a project that visibly holds a file reads as broken. An
+          // internal asset is skipped on purpose — masters and working files are not
+          // things anyone is asked to sign off on — but that rule is invisible from here,
+          // so say it rather than let the page imply the project is empty.
+          hiddenCount > 0 ? (
+            <p className="text-[12px] text-muted leading-relaxed mt-3" data-testid="hidden-not-cut">
+              No cuts yet. {hiddenCount} file{hiddenCount === 1 ? " is" : "s are"} hidden from
+              the client, and hidden files never become cuts — show{" "}
+              {hiddenCount === 1 ? "it" : "one"} in Files above to make it cut 1.
+            </p>
+          ) : (
+            <p className="text-[12px] text-muted leading-relaxed mt-3">
+              No cuts yet. The first export you drop in the inbox becomes cut 1, and every
+              reviewer is emailed to watch it.
+            </p>
+          )
         ) : (
           <div className="divide-y divide-line">
             {[...cuts].reverse().map((c, i) => {

@@ -108,3 +108,30 @@ test("a delivery project has no film block", async ({ page }) => {
   await page.goto("/admin/projects/p1");
   await expect(page.getByTestId("film-block")).toHaveCount(0);
 });
+
+test("a hidden file says why it is not a cut", async ({ page, request }) => {
+  // Its own project, not the shared seed. The first version of this test reached into p2
+  // and deleted its notes to force the empty state, which broke four unrelated specs —
+  // a fixture that edits data other tests depend on is worse than no fixture.
+  const clientId = sql("SELECT id FROM Client WHERE username='ssh';");
+  const res = await request.post("/api/admin/projects", {
+    data: { clientId, type: "FILM", title: `Hidden ${Date.now()}` },
+  });
+  const id = (await res.json()).project.id;
+
+  try {
+    // One file, internal — exactly the shape MV - Hurt was in, where openReview skips it
+    // and the block used to say "no cuts yet" as if the project were empty.
+    sql(
+      `INSERT INTO Asset (id, projectId, kind, format, orientation, name, relPath, sizeBytes, internal, proxyStatus, createdAt, updatedAt)
+       VALUES ('zzhidden','${id}','VIDEO','Film','landscape','master.mov','x/master.mov',1,1,'READY',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);`
+    );
+
+    await page.goto(`/admin/projects/${id}`);
+    await expect(page.getByTestId("hidden-not-cut")).toContainText(/hidden from the client/);
+    await expect(page.getByTestId("hidden-not-cut")).toContainText(/make it cut 1/);
+  } finally {
+    sql("DELETE FROM Asset WHERE id='zzhidden';");
+    await request.delete(`/api/admin/projects/${id}`);
+  }
+});
