@@ -28,8 +28,7 @@ type ProjectRow = {
   status: string;
   deliveredAt: string | null;
   expiresAt: string | null;
-  type: "DELIVERY" | "CALENDAR";
-  review: boolean;
+  type: "DELIVERY" | "CALENDAR" | "FILM";
   paymentHold: boolean;
   openRequests: number;
   assetCount: number;
@@ -507,13 +506,8 @@ export function AdminClientDetailClient({
               {/* What each project is, visible from the list rather than only by
                   opening it. Set at creation and never changes. */}
               <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
-                {p.type === "CALENDAR" ? "Calendar" : "Delivery"}
+                {p.type === "CALENDAR" ? "Calendar" : p.type === "FILM" ? "Film" : "Delivery"}
               </span>
-              {p.review && (
-                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
-                  Review
-                </span>
-              )}
               {/* One flag per project, in the order that decides what to do about it:
                   money owed first, then footage you are waiting on, then the date it
                   closes. Draft/Live is gone from here — it is automatic and says nothing

@@ -102,7 +102,6 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         deliveredAt: p.deliveredAt?.toISOString() ?? null,
         expiresAt: p.expiresAt?.toISOString() ?? null,
         type: p.type,
-        review: p.review,
         paymentHold: p.paymentHold,
         openRequests: p.submissionRequests.length,
         assetCount: p.assets.filter((a) => !a.internal).length,

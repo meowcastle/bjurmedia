@@ -57,12 +57,6 @@ export function AdminHeader({ userName }: { userName: string }) {
     };
   }, []);
 
-  // The menu holds links now, so it has to close when one is followed. Without this it
-  // stays open over the page it just navigated to.
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/admin/login");
@@ -125,6 +119,10 @@ export function AdminHeader({ userName }: { userName: string }) {
                   key={item.href}
                   role="menuitem"
                   href={item.href}
+                  // Closed here rather than in an effect on pathname: setState inside an
+                  // effect is a cascading render, and the click is the actual event — the
+                  // route changing is just its consequence.
+                  onClick={() => setMenuOpen(false)}
                   className="block px-4 py-3 border-b border-line hover:bg-s3 group"
                 >
                   <span className="block text-[13px] font-semibold text-muted group-hover:text-text">

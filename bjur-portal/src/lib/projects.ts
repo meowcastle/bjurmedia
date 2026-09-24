@@ -37,9 +37,10 @@ export async function createProject(opts: {
   clientId: string;
   title: string;
   expiresAt?: Date | null;
-  /** Two-way from the start. Off unless staff asked for it. */
-  type?: "DELIVERY" | "CALENDAR";
-  review?: boolean;
+  /** Fixed at creation. FILM carries the cut-and-notes loop that `review` used to. */
+  type?: "DELIVERY" | "CALENDAR" | "FILM";
+  /** FILM only: people with no seat who still review. They get a link, not an account. */
+  guests?: { email: string; name?: string; role?: string }[];
 }) {
   const client = await db.client.findUniqueOrThrow({ where: { id: opts.clientId } });
   const slug = slugify(opts.title);
@@ -54,7 +55,6 @@ export async function createProject(opts: {
   const project = await db.project.create({
     data: {
       type: opts.type ?? "DELIVERY",
-      review: opts.review === true,
       clientId: opts.clientId,
       title: opts.title,
       path: path_,

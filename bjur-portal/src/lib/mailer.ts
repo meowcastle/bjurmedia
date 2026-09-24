@@ -5,14 +5,8 @@ import { renderDeliveryEmailHtml, type DeliveryEmailProps } from "@/emails/deliv
 import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/staffAlert";
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
-import {
-  renderReviewRequestEmailHtml,
-  type ReviewRequestEmailProps,
-} from "@/emails/reviewRequest";
-import {
-  renderFeedbackReceivedEmailHtml,
-  type FeedbackReceivedEmailProps,
-} from "@/emails/feedbackReceived";
+import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutReady";
+import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
 
 function mailFrom() {
   return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? "Bjur Media <hello@bjur.media>";
@@ -111,19 +105,19 @@ export async function sendDeliveryEmail(to: string, props: DeliveryEmailProps) {
   return sendMail({ to, subject, html });
 }
 
-export async function sendReviewRequestEmail(to: string, props: ReviewRequestEmailProps) {
+export async function sendCutReadyEmail(to: string, props: CutReadyEmailProps) {
   return sendMail({
     to,
-    subject: `${props.title} · ${props.versionLabel.toLowerCase()} is ready`,
-    html: renderReviewRequestEmailHtml(props),
+    subject: `${props.title} · cut ${props.version} is ready`,
+    html: renderCutReadyEmailHtml(props),
   });
 }
 
-export async function sendFeedbackReceivedEmail(to: string, props: FeedbackReceivedEmailProps) {
+export async function sendNotesInEmail(to: string, props: NotesInEmailProps) {
   const what = props.approved
-    ? `${props.responderName} approved ${props.title}`
-    : `${props.responderName} left notes on ${props.title} · ${props.versionLabel.toLowerCase()}`;
-  return sendMail({ to, subject: `[Bjur] ${what}`, html: renderFeedbackReceivedEmailHtml(props) });
+    ? `${props.reviewerName} approved ${props.title} · cut ${props.version}`
+    : `${props.reviewerName} sent ${props.notes.length} note${props.notes.length === 1 ? "" : "s"} on ${props.title} · cut ${props.version}`;
+  return sendMail({ to, subject: `[Bjur] ${what}`, html: renderNotesInEmailHtml(props) });
 }
 
 export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProps) {

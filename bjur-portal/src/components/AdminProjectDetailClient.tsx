@@ -27,8 +27,7 @@ type RequestRow = {
 type ProjectRow = {
   id: string;
   title: string;
-  type: "DELIVERY" | "CALENDAR";
-  review: boolean;
+  type: "DELIVERY" | "CALENDAR" | "FILM";
   paymentHold: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
@@ -215,8 +214,8 @@ export function AdminProjectDetailClient({
   }
 
   // What this project does, in its own words. Derived rather than stored: these are the
-  // consequences of the type and the review flag, and a client of this page should not
-  // have to know how to read a pair of enum values.
+  // consequences of the type, and a client of this page should not have to know how to
+  // read an enum.
   const does =
     project.type === "CALENDAR"
       ? [
@@ -224,12 +223,17 @@ export function AdminProjectDetailClient({
           "You drag them onto a day, approve the caption, and post the week to Slack.",
           "The client approves in Slack with a reaction. Nothing posts on its own.",
         ]
-      : [
-          "Finished files land in the inbox and appear in the client's gallery.",
-          project.review
-            ? "Every new cut asks the client to approve it or send notes."
-            : "The client can stream and download everything as it arrives.",
-        ];
+      : project.type === "FILM"
+        ? [
+            "Each export you drop in the inbox becomes the next cut.",
+            "Reviewers leave timestamped notes and send them in one batch.",
+            "You answer every note before the next cut goes out — your answers travel in that email.",
+            "An owner approves the final cut, and that unlocks the master.",
+          ]
+        : [
+            "Finished files land in the inbox and appear in the client's gallery.",
+            "The client can stream and download everything as it arrives.",
+          ];
 
   const internalCount = assets.filter((a) => a.internal).length;
   const ready = assets.filter((a) => a.proxyStatus === "READY").length;
@@ -282,11 +286,12 @@ export function AdminProjectDetailClient({
         />
         <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-extrabold uppercase tracking-[.06em]">
           <span className="text-muted border border-line2 px-[7px] py-[3px]" data-testid="project-type">
-            {project.type === "CALENDAR" ? "Social calendar" : "Delivery"}
+            {project.type === "CALENDAR"
+              ? "Social calendar"
+              : project.type === "FILM"
+                ? "Film"
+                : "Delivery"}
           </span>
-          {project.review && (
-            <span className="text-muted border border-line2 px-[7px] py-[3px]">Review</span>
-          )}
           {held && (
             <span className="text-accentb border border-accentb px-[7px] py-[3px]">Held for payment</span>
           )}

@@ -10,21 +10,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { clientId, title, expiresAt, type, review, startRequest, paymentHold } = await req.json();
+  const { clientId, title, expiresAt, type, guests, startRequest, paymentHold } = await req.json();
   if (typeof clientId !== "string" || typeof title !== "string" || !title.trim()) {
     return NextResponse.json({ error: "Client and title are required." }, { status: 400 });
   }
 
-  const projectType = type === "CALENDAR" ? "CALENDAR" : "DELIVERY";
-  const wantsReview = review === true;
+  const projectType =
+    type === "CALENDAR" ? "CALENDAR" : type === "FILM" ? "FILM" : "DELIVERY";
 
-  // Calendar posts are approved in Slack, by reaction. A review loop on top of that would
-  // ask the same person for the same yes in two places, so the create sheet disables it
-  // and this refuses it — the shape is fixed at creation, so there is no later screen
-  // where someone could talk themselves into the combination.
-  if (projectType === "CALENDAR" && wantsReview) {
-    return NextResponse.json({ error: "Calendar posts are approved in Slack" }, { status: 400 });
-  }
+  // The Calendar+Review 400 is gone with the boolean: the combination it forbade cannot
+  // be expressed any more, because a project is one type and Film is the one that reviews.
 
   const client = await db.client.findUnique({ where: { id: clientId } });
   if (!client) {
@@ -46,7 +41,7 @@ export async function POST(req: NextRequest) {
     clientId,
     title: title.trim(),
     type: projectType,
-    review: wantsReview,
+    guests: projectType === "FILM" && Array.isArray(guests) ? guests : undefined,
     expiresAt: expiresAt ? new Date(expiresAt) : null,
   });
 

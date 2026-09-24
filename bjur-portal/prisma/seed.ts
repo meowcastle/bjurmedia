@@ -499,7 +499,7 @@ async function seedSubmissions() {
 }
 
 async function seedReviews() {
-  await db.project.update({ where: { id: "p2" }, data: { review: true } });
+  await db.project.update({ where: { id: "p2" }, data: { type: "FILM" } });
   // p8 (57.NYC IG Posting) is the board project — the weekly-reel workflow the
   // calendar and the Slack push were built for.
   await db.project.update({ where: { id: "p8" }, data: { type: "CALENDAR" } });
@@ -533,31 +533,103 @@ async function seedReviews() {
   });
   if (cuts.length === 0) return;
 
-  const sasha = await db.user.findFirst({ where: { email: "sasha@ssh.studio" }, select: { id: true } });
-
-  await db.review.create({
-    data: {
-      assetId: cuts[0].id,
-      version: 2,
-      note: "Tightened the intro and swapped the last shot. Let me know either way.",
-      state: "PENDING",
+  // Reviewers: the client's own seats, plus a guest who has no account at all. The guest
+  // is the case worth seeding — every access rule in the review screen is really a rule
+  // about them, and a seed with only seats would let a broken guest route look fine.
+  const members = await db.clientMember.findMany({
+    where: { client: { projects: { some: { id: "p2" } } } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+  for (const m of members) {
+    await db.reviewer.upsert({
+      where: { projectId_email: { projectId: "p2", email: m.user.email } },
+      update: {},
+      create: {
+        projectId: "p2",
+        kind: "SEAT",
+        userId: m.user.id,
+        email: m.user.email,
+        name: m.user.name,
+      },
+    });
+  }
+  const guest = await db.reviewer.upsert({
+    where: { projectId_email: { projectId: "p2", email: "tom@reyes.film" } },
+    update: {},
+    create: {
+      projectId: "p2",
+      kind: "GUEST",
+      email: "tom@reyes.film",
+      name: "Tom Reyes",
+      role: "Director",
+      token: "seedguesttoken0000000000000000000000000000000000000000000000000f",
     },
   });
 
-  if (cuts[1] && sasha) {
-    await db.review.create({
+  const seat = await db.reviewer.findFirst({ where: { projectId: "p2", kind: "SEAT" } });
+
+  // Cut 1: sent, answered, superseded. Cut 2: sent and current, with a live draft on it.
+  const cut1 = await db.review.create({
+    data: {
+      assetId: cuts[0].id,
+      version: 1,
+      note: "First pass on the product cut.",
+      state: "SUPERSEDED",
+      sentAt: new Date(Date.now() - 3 * 86_400_000),
+      supersededAt: new Date(Date.now() - 86_400_000),
+    },
+  });
+  if (seat) {
+    await db.reviewNote.createMany({
+      data: [
+        {
+          reviewId: cut1.id,
+          reviewerId: seat.id,
+          timeSec: 74.2,
+          body: "Can we hold the logo a beat longer at the end?",
+          sentAt: new Date(Date.now() - 3 * 86_400_000),
+          outcome: "CHANGED",
+          response: "Held it for another 18 frames.",
+          answeredAt: new Date(Date.now() - 2 * 86_400_000),
+        },
+        {
+          reviewId: cut1.id,
+          reviewerId: guest.id,
+          timeSec: 12.6,
+          body: "The cut on the drum hit feels a frame early.",
+          sentAt: new Date(Date.now() - 3 * 86_400_000),
+          outcome: "KEPT",
+          response: "It lands with the snare in the mix we were given.",
+          answeredAt: new Date(Date.now() - 2 * 86_400_000),
+        },
+      ],
+    });
+  }
+
+  const cut2 = await db.review.create({
+    data: {
+      assetId: cuts[0].id,
+      version: 2,
+      note: "Tightened the intro and swapped the last shot.",
+      state: "PENDING",
+      sentAt: new Date(Date.now() - 86_400_000),
+    },
+  });
+
+  // An unsent draft, so the privacy rule has something to be tested against: this body
+  // must never appear on any admin surface.
+  if (seat) {
+    await db.reviewNote.create({
       data: {
-        assetId: cuts[1].id,
-        version: 1,
-        note: "First pass on the product cut.",
-        state: "FEEDBACK",
-        feedback: "Great — can we hold the logo a beat longer at the end?",
-        userId: sasha.id,
-        respondedAt: new Date(),
+        reviewId: cut2.id,
+        reviewerId: seat.id,
+        timeSec: 45.0,
+        body: "Draft only — nobody but its author should ever see this line.",
       },
     });
   }
 }
+
 
 async function main() {
   console.log("Seeding…");

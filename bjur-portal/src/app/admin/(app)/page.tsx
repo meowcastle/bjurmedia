@@ -82,26 +82,83 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
-  // Client answers on review cuts. These reach the studio by email too, but email is
-  // where things get read once and lost — a note asking for a change should still be
-  // visible tomorrow morning. Newest first, since a second round supersedes the first.
-  const answeredReviews = await db.review.findMany({
-    where: { state: { in: ["FEEDBACK", "APPROVED"] } },
-    orderBy: { respondedAt: "desc" },
-    take: 8,
-    include: {
-      user: { select: { name: true, email: true } },
-      asset: {
-        select: {
-          id: true,
-          name: true,
-          contentTitle: true,
-          projectId: true,
-          project: { select: { title: true, client: { select: { name: true } } } },
+  // The cut loop, as three things that might need you.
+  //
+  // "feedback" is gone with the old model. A note is no longer an answer to a cut — it is
+  // one of several a reviewer sends in a batch, and what the studio owes back is the next
+  // cut with every note answered. So: a cut sitting unsent, batches that have arrived,
+  // and an approval that frees the master.
+  const [unsentCuts, approvedCuts, sentNotes] = await Promise.all([
+    db.review.findMany({
+      where: { sentAt: null, asset: { project: { type: "FILM" } } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      include: {
+        asset: {
+          select: {
+            name: true,
+            contentTitle: true,
+            projectId: true,
+            project: { select: { title: true, client: { select: { name: true } } } },
+          },
         },
       },
-    },
-  });
+    }),
+    db.review.findMany({
+      where: { state: "APPROVED" },
+      orderBy: { approvedAt: "desc" },
+      take: 4,
+      include: {
+        approvedBy: { select: { name: true } },
+        asset: {
+          select: {
+            name: true,
+            contentTitle: true,
+            projectId: true,
+            project: { select: { title: true, client: { select: { name: true } } } },
+          },
+        },
+      },
+    }),
+    // Sent notes only, ever. A draft is private to its author and must not reach a staff
+    // surface even as a count on a feed.
+    db.reviewNote.findMany({
+      where: { sentAt: { not: null } },
+      orderBy: { sentAt: "desc" },
+      take: 30,
+      include: {
+        reviewer: { select: { id: true, name: true, role: true } },
+        review: {
+          select: {
+            id: true,
+            version: true,
+            asset: {
+              select: {
+                name: true,
+                contentTitle: true,
+                projectId: true,
+                project: { select: { title: true, client: { select: { name: true } } } },
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  // One row per batch, not per note: a reviewer who sent five notes at once is one thing
+  // to deal with, and five identical cards is how a feed stops being read.
+  const noteBatches = [...
+    sentNotes
+      .reduce((acc, n) => {
+        const key = `${n.reviewId}:${n.reviewerId}`;
+        const at = acc.get(key);
+        if (at) at.notes.push(n);
+        else acc.set(key, { first: n, notes: [n] });
+        return acc;
+      }, new Map<string, { first: typeof sentNotes[number]; notes: typeof sentNotes }>())
+      .values(),
+  ].slice(0, 6);
 
   // Footage that arrived through a send link. It reaches Slack as it lands, file by
   // file, which is the wrong shape for "what needs me" — a 40-clip drop is 40 pings and
@@ -133,29 +190,32 @@ export default async function AdminDashboardPage() {
   );
 
   const attention = [
-    ...answeredReviews.map((r) => {
-      const who = r.user?.name || r.user?.email || "The client";
-      const what = r.asset.contentTitle?.trim() || r.asset.name;
-      return r.state === "FEEDBACK"
-        ? {
-            id: `feedback-${r.id}`,
-            kind: "feedback" as const,
-            subject: `${who} left notes on ${what}`,
-            body: r.feedback?.trim()
-              ? `“${r.feedback.trim()}”`
-              : `${r.asset.project.client.name} · ${r.asset.project.title}`,
-            href: `/admin/media?project=${r.asset.projectId}`,
-            action: "Open reel",
-          }
-        : {
-            id: `approved-${r.id}`,
-            kind: "approved" as const,
-            subject: `${what} approved`,
-            body: `${who} · ${r.asset.project.client.name} — cut ${r.version} cleared`,
-            href: `/admin/media?project=${r.asset.projectId}`,
-            action: "Open",
-          };
-    }),
+    ...unsentCuts.map((r) => ({
+      id: `cut-ready-${r.id}`,
+      kind: "cut-ready" as const,
+      subject: `${r.asset.project.title} · cut ${r.version} is up`,
+      body: `${r.asset.project.client.name} — answer the notes on cut ${r.version - 1}, then send`,
+      href: `/admin/projects/${r.asset.projectId}/review`,
+      action: "Answer notes",
+    })),
+    ...noteBatches.map(({ first, notes }) => ({
+      id: `notes-in-${first.reviewId}-${first.reviewerId}`,
+      kind: "notes-in" as const,
+      subject: `${first.review.asset.project.title} · cut ${first.review.version}`,
+      body: `${first.reviewer.name}${first.reviewer.role ? ` · ${first.reviewer.role}` : ""} sent ${
+        notes.length
+      } note${notes.length === 1 ? "" : "s"} — “${notes[notes.length - 1].body}”`,
+      href: `/admin/projects/${first.review.asset.projectId}/review`,
+      action: "Open review",
+    })),
+    ...approvedCuts.map((r) => ({
+      id: `approved-${r.id}`,
+      kind: "approved" as const,
+      subject: `${r.approvedBy?.name ?? "A reviewer"} approved cut ${r.version}`,
+      body: `${r.asset.project.client.name} · ${r.asset.project.title} — deliver the master`,
+      href: `/admin/projects/${r.asset.projectId}`,
+      action: "Open project",
+    })),
     ...landedBatches.map((b) => {
       const bytes = b.submissions.reduce((n, x) => n + Number(x.sizeBytes), 0);
       const from = b.senderName ? ` · from ${b.senderName}` : "";
