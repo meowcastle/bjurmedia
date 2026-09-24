@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Portal } from "@/components/ui/Portal";
 import { IconCheck } from "@/components/ui/Icon";
-import { formatBytes } from "@/lib/format";
 
 type QueueItem = {
   file: File;
@@ -80,36 +79,19 @@ function fmtDetected(iso: string) {
   });
 }
 
-/**
- * What this dialog can carry before the trip stops being sensible.
- *
- * It streams a file in one POST, so the whole thing has to survive the browser, the
- * reverse proxy and the container without anything timing out or refusing the body. A
- * 22 GB ProRes master does not, and the way it fails is a dead progress bar and the word
- * "Network error", which tells you nothing about what to do instead.
- *
- * The inbox has never had that problem: it is a folder on the NAS, and dropping a master
- * into it over SMB is both reliable and much faster than pushing it through HTTP.
- */
-const TOO_BIG_FOR_HTTP = 8 * 1024 * 1024 * 1024;
-
 export function UploadDialog({
   projectId,
   projectTitle,
-  inboxPath,
   folders = [],
   onClose,
   onUploaded,
 }: {
   projectId: string;
   projectTitle: string;
-  /** Where to send someone whose file is too big to push through the browser. */
-  inboxPath?: string;
   folders?: { id: string; name: string }[];
   onClose: () => void;
   onUploaded: () => void;
 }) {
-  const [oversize, setOversize] = useState<{ name: string; bytes: number } | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
@@ -124,19 +106,8 @@ export function UploadDialog({
       const existing = new Set(
         q.map((item) => `${item.file.name}:${item.file.size}`),
       );
-      const picked = Array.from(files).filter(
-        (file) => !existing.has(`${file.name}:${file.size}`)
-      );
-      // Say so before the upload starts, not after a dead progress bar. The biggest one
-      // wins the message — if you dropped a master and three reels, the master is the
-      // reason nothing is going to work.
-      const biggest = picked
-        .filter((f) => f.size > TOO_BIG_FOR_HTTP)
-        .sort((a, b) => b.size - a.size)[0];
-      setOversize(biggest ? { name: biggest.name, bytes: biggest.size } : null);
-
-      const additions = picked
-        .filter((file) => file.size <= TOO_BIG_FOR_HTTP)
+      const additions = Array.from(files)
+        .filter((file) => !existing.has(`${file.name}:${file.size}`))
         .map((file) => ({ file, progress: 0, status: "pending" as const }));
       setJustAdded(additions.length);
       return [...q, ...additions];
@@ -269,24 +240,6 @@ export function UploadDialog({
           >
             Drop files here or click to browse
           </label>
-          {oversize && (
-            <div
-              data-testid="upload-too-big"
-              className="text-[12px] leading-relaxed text-text border border-accentb/50 px-3.5 py-3 mb-4"
-            >
-              <strong>{oversize.name}</strong> is {formatBytes(oversize.bytes)} — too big to
-              push through the browser in one go, and it would fail partway with nothing
-              useful to tell you.
-              <br />
-              Drop it straight into the inbox instead. It gets ingested exactly the same way,
-              and it will be quicker:
-              {inboxPath && (
-                <span className="block font-mono text-[11px] text-muted mt-1.5 break-all">
-                  smb://mainsqueeze/{inboxPath.replace(/^\/media\//, "")}
-                </span>
-              )}
-            </div>
-          )}
           {queue.length > 0 && (
             <div className="text-xs text-muted mb-3">
               <span className="font-bold text-text">{queue.length}</span> file
