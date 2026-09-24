@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0d;}
+*{box-sizing:border-box;}
+:root{--eo:cubic-bezier(.22,1,.36,1);}
+a{color:inherit;text-decoration:none;}a:hover{color:inherit;}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left;}
+button:active{transform:scale(.985);}
+button:focus-visible{outline:2px solid currentColor;outline-offset:3px;}
+input{font:inherit;color:inherit;}
+@keyframes v3rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes v3fade{from{opacity:0}to{opacity:1}}
+@keyframes v3sheet{from{transform:translateX(100%)}to{transform:none}}
+@keyframes v3toast{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important}}
+</style>
+</helmet>
+
+<div style="font-family:'Fragment Mono',ui-monospace,monospace;min-height:100vh;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;--bg:#0c0c0d;--bgA:rgba(12,12,13,.86);--s0:#101012;--s1:#151517;--s2:#1c1c1f;--ink:#f2efe9;--body:#c9c5bd;--mut:#a8a49c;--dim:#8a877f;--dim2:#6f6c66;--rule:rgba(255,255,255,.1);--rule2:rgba(255,255,255,.2);--inkA:rgba(255,255,255,.03);--ok:#2ec36b;--warn:#ff9d85;--acc:oklch(0.62 0.12 200);background:var(--bg);color:var(--ink);">
+
+<div style="display:flex;align-items:center;gap:4px;padding:7px 16px;color:#8a877f;font-size:10.5px;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;">
+  <span style="color:#5e5b55;margin-right:10px;">INTAKE v2 · NO PROJECTS</span>
+  <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+    <button onClick="{{ n.go }}" style="padding:5px 10px;border:1px solid {{ n.border }};color:{{ n.color }};background:{{ n.bg }};font-size:10.5px;letter-spacing:.06em;">{{ n.label }}</button>
+  </sc-for>
+  <span style="margin-left:auto;color:#5e5b55;max-width:60ch;text-wrap:pretty;">{{ note }}</span>
+</div>
+
+<!-- ══ SUMMARY ══ -->
+<sc-if value="{{ isSummary }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Summary" style="max-width:900px;margin:0 auto;padding:52px 40px 140px;width:100%;">
+  <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">INTAKE · SEP 24, 2026</div>
+  <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0 0 20px;max-width:18ch;">Footage comes in on the client. Projects are yours.</h1>
+  <p style="font-size:12.5px;color:var(--body);line-height:1.7;max-width:62ch;margin:0 0 44px;text-wrap:pretty;">Editors, shooters and clients send raw files (video, audio, XML, project files) so you can edit or color from the server. That intake belongs to the client and has nothing to do with the projects you create and share.</p>
+  <div style="border-top:1px solid var(--rule2);">
+    <sc-for list="{{ points }}" as="q" hint-placeholder-count="5">
+      <div style="display:grid;grid-template-columns:48px minmax(0,180px) minmax(0,1fr) auto;gap:8px 24px;padding:20px 0;border-bottom:1px solid var(--rule);align-items:baseline;">
+        <span style="font-family:'Source Serif 4',Georgia,serif;font-size:22px;color:var(--dim);">{{ q.n }}</span>
+        <span style="font-size:11px;letter-spacing:.08em;color:var(--mut);">{{ q.q }}</span>
+        <span style="font-size:12.5px;color:var(--body);line-height:1.7;text-wrap:pretty;">{{ q.a }}</span>
+        <button onClick="{{ q.go }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--ink);white-space:nowrap;" style-hover="color:var(--acc);">{{ q.cta }}</button>
+      </div>
+    </sc-for>
+  </div>
+  <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);margin-top:48px;">SCHEMA CHANGE</div>
+  <sc-for list="{{ schema }}" as="r" hint-placeholder-count="3">
+    <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;padding:11px 0;border-bottom:1px solid var(--rule);font-size:11.5px;">
+      <span>{{ r.f }}</span><span style="color:var(--dim);">{{ r.d }}</span>
+    </div>
+  </sc-for>
+  <p style="font-size:11px;color:var(--dim2);line-height:1.7;margin:14px 0 0;max-width:62ch;text-wrap:pretty;">Backfill clientId from each row's current project, then drop projectId. Upload and ingest code stay as built; the send link resolves by token to a client instead of a project.</p>
+</div>
+</sc-if>
+
+<!-- ══ ADMIN · CLIENT INTAKE ══ -->
+<sc-if value="{{ isIntake }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:baseline;gap:32px;padding:18px 40px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px);z-index:20;flex-wrap:wrap;">
+  <span style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / ADMIN</span></span>
+  <div style="display:flex;gap:22px;font-size:11px;letter-spacing:.06em;">
+    <span style="color:var(--dim);">TODAY</span><span style="color:var(--dim);">BOARD</span>
+    <span style="color:var(--ink);padding-bottom:3px;border-bottom:1px solid var(--ink);">CLIENTS</span>
+    <span style="color:var(--dim);">INTEGRATIONS</span><span style="color:var(--dim);">REPORTS</span>
+  </div>
+</div>
+<div data-screen-label="Client intake" style="max-width:1100px;margin:0 auto;padding:44px 40px 140px;width:100%;">
+  <div style="display:flex;align-items:end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--rule2);margin-bottom:12px;">
+    <div>
+      <div style="font-size:11px;letter-spacing:.14em;color:var(--dim);margin-bottom:14px;">SINCE 2026</div>
+      <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(40px,5vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;display:flex;align-items:center;gap:20px;"><span style="width:18px;height:18px;background:var(--acc);flex:none;"></span>Adam Knight</h1>
+    </div>
+    <div style="font-size:11px;color:var(--dim);">{{ diskLine }}</div>
+  </div>
+  <div style="font-size:10.5px;letter-spacing:.06em;color:var(--dim);padding:10px 0;border-bottom:1px solid var(--rule);margin-bottom:44px;">{{ intakeLine }}</div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:48px;align-items:start;">
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;"><span>SENT TO BJUR <span style="color:var(--dim2);">· {{ batchN }}</span></span><span style="color:var(--dim2);">NEWEST FIRST</span></div>
+      <sc-if value="{{ noBatches }}" hint-placeholder-val="{{ false }}"><p style="font-size:11px;color:var(--dim2);margin:14px 0 0;line-height:1.6;">Nothing sent yet.</p></sc-if>
+      <sc-for list="{{ rows }}" as="b" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--rule);animation:v3fade .3s var(--eo) both;">
+          <span style="font-family:'Source Serif 4',Georgia,serif;font-size:20px;letter-spacing:-.01em;color:{{ b.titleColor }};">{{ b.title }}</span>
+          <span style="font-size:10px;letter-spacing:.08em;color:{{ b.stColor }};white-space:nowrap;text-align:right;">{{ b.st }}</span>
+          <span style="font-size:11px;color:var(--dim);">{{ b.meta }}</span>
+          <span style="display:flex;gap:14px;align-items:center;justify-content:flex-end;font-size:10px;letter-spacing:.08em;">
+            <sc-if value="{{ b.live }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ b.copy }}" title="{{ b.path }}" style="border:1px solid var(--rule2);padding:5px 9px;color:var(--mut);" style-hover="color:var(--ink);border-color:var(--ink);">COPY PATH</button>
+            </sc-if>
+            <sc-if value="{{ b.canDelete }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ b.del }}" style="color:var(--dim);" style-hover="color:var(--warn);">DELETE FILES</button>
+            </sc-if>
+          </span>
+          <span style="grid-column:1 / -1;font-size:10.5px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ b.path }}</span>
+          <sc-if value="{{ b.isRecv }}" hint-placeholder-val="{{ false }}">
+            <span style="grid-column:1 / -1;height:2px;background:rgba(255,255,255,.1);margin-top:4px;"><span style="display:block;height:2px;width:{{ b.pct }};background:var(--acc);transition:width .6s var(--eo);"></span></span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div>
+      <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);display:flex;justify-content:space-between;align-items:baseline;"><span style="white-space:nowrap;">SEND LINKS <span style="color:var(--dim2);">· {{ linkN }}</span></span><button onClick="{{ openSheet }}" style="color:var(--ink);" style-hover="color:var(--acc);">+ NEW LINK</button></div>
+      <sc-for list="{{ linkRows }}" as="l" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 14px;padding:14px 0;border-bottom:1px solid var(--rule);animation:v3fade .3s var(--eo) both;">
+          <span style="font-family:'Source Serif 4',Georgia,serif;font-size:17px;color:{{ l.titleColor }};">{{ l.name }}</span>
+          <span style="font-size:10px;letter-spacing:.08em;color:{{ l.stColor }};text-align:right;">{{ l.st }}</span>
+          <span style="font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ l.url }}</span>
+          <span style="display:flex;gap:12px;font-size:10px;letter-spacing:.08em;justify-content:flex-end;">
+            <button onClick="{{ l.view }}" style="color:var(--mut);" style-hover="color:var(--ink);">VIEW</button>
+            <button onClick="{{ l.toggle }}" style="color:var(--dim);" style-hover="color:var(--ink);">{{ l.toggleLabel }}</button>
+          </span>
+        </div>
+      </sc-for>
+      <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:12px 0 0;text-wrap:pretty;">For editors and shooters with no account. Client seats upload from their portal and don't need a link.</p>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ PUBLIC SEND PAGE ══ -->
+<sc-if value="{{ isSend }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--s0);border-bottom:1px solid var(--rule);font-size:11px;color:var(--dim);flex-wrap:wrap;">
+  <span style="color:var(--dim2);">URL</span><span style="color:var(--body);">{{ S.url }}</span>
+</div>
+<div data-screen-label="Send page" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 24px 120px;width:100%;">
+  <div style="width:100%;max-width:560px;">
+    <div style="margin-bottom:48px;">
+      <div style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(54px,9vw,86px);line-height:.88;letter-spacing:-.035em;">BJUR</div>
+      <div style="font-size:11px;letter-spacing:.18em;color:var(--dim);margin-top:18px;">ADAM KNIGHT</div>
+    </div>
+    <sc-if value="{{ S.closed }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:1px solid var(--rule2);padding-top:24px;">
+        <div style="font-size:15px;color:var(--body);">This link is closed.</div>
+        <div style="font-size:11.5px;color:var(--dim);line-height:1.7;margin-top:12px;">Ask for a new one at <a href="mailto:hello@bjurmedia.nyc" style="color:var(--mut);border-bottom:1px solid var(--rule2);">hello@bjurmedia.nyc</a></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ S.live }}" hint-placeholder-val="{{ true }}">
+      <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">WHAT ARE YOU SENDING?</label>
+      <input value="{{ sName }}" onChange="{{ setSName }}" placeholder="e.g. Xavier, Hurt footage and project files" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-size:15px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+      <div style="width:100%;border:1px dashed var(--rule2);padding:62px 24px;display:flex;flex-direction:column;align-items:center;gap:11px;">
+        <span style="font-size:13px;color:var(--body);">Drop files here</span>
+        <span style="font-size:11px;color:var(--dim);">or choose from your computer</span>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ══ CLIENT PORTAL · SEND ══ -->
+<sc-if value="{{ isPortal }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:baseline;gap:32px;padding:18px 40px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--bgA);backdrop-filter:blur(12px);z-index:20;flex-wrap:wrap;">
+  <span style="font-size:12px;letter-spacing:.14em;">BJUR<span style="color:var(--dim);"> / ADAM KNIGHT</span></span>
+  <div style="display:flex;gap:22px;font-size:11px;letter-spacing:.06em;">
+    <span style="color:var(--dim);">PROJECTS</span>
+    <span style="color:var(--ink);padding-bottom:3px;border-bottom:1px solid var(--ink);">SEND TO BJUR</span>
+    <span style="color:var(--dim);">SETTINGS</span>
+  </div>
+  <span style="margin-left:auto;font-size:10.5px;letter-spacing:.06em;color:var(--dim);">ADAM KNIGHT · OWNER</span>
+</div>
+<div data-screen-label="Client portal · Send" style="max-width:760px;margin:0 auto;padding:52px 40px 140px;width:100%;">
+  <h1 style="font-family:'Source Serif 4',Georgia,serif;font-weight:300;font-size:clamp(38px,4.8vw,60px);line-height:.98;letter-spacing:-.025em;margin:0 0 12px;">Send to Bjur</h1>
+  <p style="font-size:12px;color:var(--dim);line-height:1.7;margin:0 0 32px;max-width:52ch;text-wrap:pretty;">Footage, audio, project files. Anything Bjur needs to work from.</p>
+  <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">WHAT ARE YOU SENDING?</label>
+      <input value="{{ pName }}" onChange="{{ setPName }}" placeholder="e.g. Rehearsal audio" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-size:15px;outline:none;margin-bottom:22px;" style-focus="border-bottom-color:var(--ink);">
+      <button onClick="{{ portalDrop }}" style="width:100%;border:1px dashed var(--rule2);padding:62px 24px;display:flex;flex-direction:column;align-items:center;gap:11px;" style-hover="border-color:var(--ink);background:var(--inkA);">
+    <span style="font-size:13px;color:var(--body);">Drop files here</span>
+    <span style="font-size:11px;color:var(--dim);">or choose from your computer</span>
+  </button>
+  <sc-if value="{{ showHistory }}" hint-placeholder-val="{{ true }}">
+    <div style="font-size:11px;letter-spacing:.1em;color:var(--dim);padding-bottom:10px;border-bottom:1px solid var(--rule2);margin-top:48px;">SENT</div>
+    <sc-for list="{{ portalRows }}" as="r" hint-placeholder-count="3">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 20px;padding:14px 0;border-bottom:1px solid var(--rule);">
+        <span style="font-size:12.5px;">{{ r.title }}</span>
+        <span style="font-size:10px;letter-spacing:.08em;color:{{ r.stColor }};text-align:right;">{{ r.st }}</span>
+        <span style="grid-column:1 / -1;font-size:10.5px;color:var(--dim);">{{ r.meta }}</span>
+      </div>
+    </sc-for>
+    <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:14px 0 0;text-wrap:pretty;">A record of what you sent. Files can't be opened or downloaded from here.</p>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ══ NEW LINK SHEET ══ -->
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);animation:v3fade .3s var(--eo) both;"></div>
+  <div data-screen-label="New link sheet" style="position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:60;background:var(--s0);border-left:1px solid var(--rule);padding:28px 32px 60px;overflow-y:auto;animation:v3sheet .45s var(--eo) both;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+      <span style="font-size:10.5px;letter-spacing:.1em;color:var(--dim);">NEW SEND LINK · ADAM KNIGHT</span>
+      <button onClick="{{ closeSheet }}" style="font-size:10.5px;letter-spacing:.08em;color:var(--dim);" style-hover="color:var(--ink);">ESC</button>
+    </div>
+    <label style="display:block;font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;">WHO IS IT FOR <span style="color:var(--dim2);">— FOR YOUR LIST ONLY</span></label>
+    <input value="{{ lfName }}" onChange="{{ setLfName }}" placeholder="e.g. Xavier Ruiz" autoFocus style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule2);padding:6px 0 10px;font-size:15px;outline:none;margin-bottom:26px;" style-focus="border-bottom-color:var(--ink);">
+    <div style="font-size:10.5px;color:var(--dim);padding:12px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-bottom:22px;">{{ lfUrl }}</div>
+    <button onClick="{{ makeLink }}" style="width:100%;background:var(--ink);color:var(--bg);padding:15px 16px;font-size:11px;letter-spacing:.08em;text-align:center;" style-hover="background:var(--acc);">MAKE LINK →</button>
+    <p style="font-size:10.5px;color:var(--dim2);line-height:1.6;margin:12px 0 0;">Link lives 14 days, closes itself, can be reopened.</p>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:28px;z-index:80;background:var(--ink);color:var(--bg);padding:12px 18px;font-size:11.5px;letter-spacing:.04em;animation:v3toast .3s var(--eo) both;white-space:nowrap;display:flex;gap:18px;align-items:center;transform:translateX(-50%);">
+    <span>{{ toast }}</span>
+    <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ undo }}" style="letter-spacing:.08em;border-bottom:1px solid currentColor;">UNDO</button></sc-if>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;clientSeesHistory&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Client portal&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: "summary", pName: "", sName: "", sheetOpen: false, lfName: "", toast: null, undoFn: null, sendLink: "l1",
+    links: [
+      { id: "l1", name: "Xavier Ruiz", token: "x7k2q9", open: true },
+      { id: "l2", name: "Mira Chen", token: "m3p8d1", open: true },
+      { id: "l3", name: "Colorist handoff", token: "c4j6n0", open: false }
+    ],
+    batches: [
+      { id: "b6", name: "BTS phone clips", who: "Mira Chen", via: "link", files: 18, of: 40, gb: 6.2, date: "Sep 24", folder: "2026-09-24_bts-phone-clips", state: "recv", kinds: "MOV" },
+      { id: "b5", name: "Rehearsal audio + phone video", who: "Adam Knight", via: "portal", files: 12, gb: 9, date: "Sep 22", folder: "2026-09-22_rehearsal-audio-phone-video", state: "in", kinds: "WAV, MOV" },
+      { id: "b3", name: "Hurt pickups + XML", who: "Xavier Ruiz", via: "link", files: 23, gb: 15, date: "Sep 20", folder: "2026-09-20_hurt-pickups-xml", state: "in", kinds: "BRAW, XML" },
+      { id: "b2", name: "Hurt footage day 2", who: "Xavier Ruiz", via: "link", files: 131, gb: 139, date: "Sep 12–16", folder: "2026-09-12_hurt-footage-day-2", state: "in", kinds: "BRAW, WAV" },
+      { id: "b1", name: "Hurt footage day 1 + project files", who: "Xavier Ruiz", via: "link", files: 142, gb: 148, date: "Sep 8–10", folder: "2026-09-08_hurt-footage-day-1-project-files", state: "in", kinds: "BRAW, WAV" }
+    ]
+  };
+  componentDidMount() {
+    this._k = (e) => { if (e.key === "Escape") this.setState({ sheetOpen: false }); };
+    window.addEventListener("keydown", this._k);
+    this._up = setInterval(() => {
+      const b = this.state.batches.find(x => x.state === "recv"); if (!b) return;
+      const files = Math.min(b.of, b.files + 2);
+      this.patch(b.id, files >= b.of ? { files, gb: +(b.gb + 0.4).toFixed(1), state: "in" } : { files, gb: +(b.gb + 0.35).toFixed(1) });
+      if (files >= b.of) this.toast(`${b.name} · ${b.of} files in`);
+    }, 1400);
+  }
+  componentWillUnmount() { window.removeEventListener("keydown", this._k); clearInterval(this._up); clearTimeout(this._t); }
+  patch(id, p) { this.setState(s => ({ batches: s.batches.map(b => b.id === id ? { ...b, ...p } : b) })); }
+  toast(t, undo) { clearTimeout(this._t); this.setState({ toast: t, undoFn: undo || null });
+    this._t = setTimeout(() => this.setState({ toast: null, undoFn: null }), undo ? 3800 : 2800); }
+  seg(on) { return on ? { border: "#f2efe9", color: "#f2efe9", bg: "#1c1c1f" } : { border: "rgba(255,255,255,.1)", color: "#8a877f", bg: "transparent" }; }
+  gbs(n) { return n >= 100 ? `${Math.round(n)} GB` : `${n} GB`; }
+  path(b) { return `smb://mainsqueeze/_submissions/adam-knight/${b.folder}/`; }
+
+  renderVals() {
+    const s = this.state, go = (screen) => () => this.setState({ screen });
+    const showHistory = this.props.clientSeesHistory ?? true;
+    const live = s.batches.filter(b => b.state !== "deleted");
+    const recv = s.batches.filter(b => b.state === "recv");
+    const rows = s.batches.map(b => {
+      const gone = b.state === "deleted", isRecv = b.state === "recv", prev = { ...b };
+      return { key: b.id, title: b.name, titleColor: gone ? "var(--dim)" : "var(--ink)",
+        st: isRecv ? "RECEIVING" : gone ? "FILES DELETED" : "ON SERVER", stColor: isRecv ? "var(--acc)" : gone ? "var(--dim2)" : "var(--ok)",
+        meta: `${b.who} · ${b.via === "portal" ? "portal" : "send link"} · ${b.files}${isRecv ? " of " + b.of : ""} files · ${this.gbs(b.gb)} · ${b.kinds} · ${b.date}`,
+        path: gone ? "" : this.path(b), live: !gone, isRecv, canDelete: b.state === "in",
+        pct: `${Math.round(b.files / (b.of || b.files) * 100)}%`,
+        copy: () => { const p = this.path(b); try { navigator.clipboard.writeText(p); } catch (e) {} this.toast(`Copied · ${p}`); },
+        del: () => { this.patch(b.id, { state: "deleted" }); this.toast(`${this.gbs(b.gb)} deleted from mainsqueeze`, () => this.patch(b.id, prev)); } };
+    });
+    const lu = (l) => `bjurmedia.nyc/send/adam-knight/${l.token}`;
+    const sl = s.links.find(l => l.id === s.sendLink), newTok = "r5t8v2";
+    const notes = {
+      summary: "The simpler model: intake on the client, no projects anywhere in it.",
+      intake: "Your view. Everything sent in for Adam Knight, one list. Copy a path, open it over SMB.",
+      send: "What a shooter or editor sees from a send link. New: the client URL and a name field for the upload.",
+      portal: "What a client seat sees. Upload anytime; afterwards it's a record only."
+    };
+    return {
+      nav: [["summary", "SUMMARY"], ["intake", "CLIENT · INTAKE"], ["send", "SEND LINK PAGE"], ["portal", "CLIENT PORTAL"]].map(([k, label]) => ({ label, go: go(k), ...this.seg(s.screen === k) })),
+      note: notes[s.screen],
+      isSummary: s.screen === "summary", isIntake: s.screen === "intake", isSend: s.screen === "send", isPortal: s.screen === "portal",
+      points: [
+        ["01", "ONE LIST PER CLIENT", "Everything sent in for a client, by send link or portal upload, newest first. The sender names each upload (e.g. Xavier, Hurt footage and project files); the name titles the row and the folder. No filing, no projects.", "intake", "SEE →"],
+        ["02", "EDIT IN PLACE", "Each batch shows its folder on mainsqueeze with a Copy path button, for opening over SMB.", "intake", "SEE →"],
+        ["03", "SEND LINKS", "Made on the client for people without an account: /send/[client]/[token]. The sender sees today's page plus one field to name what they're sending.", "send", "SEE →"],
+        ["04", "CLIENT UPLOAD", "Client seats get a Send to Bjur tab in the portal. After upload it's a record only; nothing can be opened or downloaded.", "portal", "SEE →"],
+        ["05", "PROJECTS", "You create and share projects however you want. Intake never touches them, so a project can be deleted without touching footage. Footage is removed with Delete files on the batch.", "intake", "SEE →"]
+      ].map(([n, q, a, k, cta]) => ({ n, q, a, cta, go: go(k) })),
+      schema: [["SubmissionRequest.clientId → Client", "replaces projectId"], ["UploadBatch.clientId → Client", "replaces projectId"], ["Submission.clientId → Client", "replaces projectId"]].map(([f, d]) => ({ f, d })),
+      diskLine: `${this.gbs(Math.round(live.reduce((a, b) => a + b.gb, 0)))} on mainsqueeze`,
+      intakeLine: `${recv.length} receiving · ${live.length - recv.length} on server · ${s.links.filter(l => l.open).length} open links`,
+      rows, batchN: s.batches.length, noBatches: !s.batches.length,
+      linkN: s.links.length,
+      linkRows: s.links.map(l => ({ key: l.id, name: l.name, url: lu(l), titleColor: l.open ? "var(--ink)" : "var(--dim)",
+        st: l.open ? "OPEN" : "CLOSED", stColor: l.open ? "var(--ok)" : "var(--dim2)",
+        view: () => this.setState({ screen: "send", sendLink: l.id }), toggleLabel: l.open ? "CLOSE" : "REOPEN",
+        toggle: () => this.setState(st => ({ links: st.links.map(x => x.id === l.id ? { ...x, open: !x.open } : x) })) })),
+      sheetOpen: s.sheetOpen, openSheet: () => this.setState({ sheetOpen: true, lfName: "" }), closeSheet: () => this.setState({ sheetOpen: false }),
+      lfName: s.lfName, setLfName: (e) => this.setState({ lfName: e.target.value }),
+      lfUrl: `bjurmedia.nyc/send/adam-knight/${newTok}`,
+      makeLink: () => { const name = s.lfName.trim() || "Anyone with the link";
+        this.setState(st => ({ sheetOpen: false, links: [{ id: "l" + Date.now(), name, token: newTok, open: true }, ...st.links] })); this.toast(`Link copied · ${name}`); },
+      S: { url: sl ? lu(sl) : "", closed: sl ? !sl.open : false, live: sl ? sl.open : true },
+      showHistory,
+      portalRows: s.batches.filter(b => b.via === "portal").map(b => ({ key: b.id, title: b.name,
+        st: b.state === "recv" ? "UPLOADING" : "RECEIVED", stColor: b.state === "recv" ? "var(--acc)" : "var(--ok)", meta: `${b.files}${b.state === "recv" ? " of " + b.of : ""} files · ${this.gbs(b.gb)} · ${b.kinds} · ${b.date}` })),
+      portalDrop: () => { if (s.batches.some(b => b.id === "bp")) return;
+        this.setState(st => ({ batches: [{ id: "bp", name: s.pName.trim() || "Untitled", who: "Adam Knight", via: "portal", files: 2, of: 14, gb: 0.8, date: "Sep 24", folder: "2026-09-24_" + ((s.pName.trim() || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")), state: "recv", kinds: "MOV, WAV" }, ...st.batches] }));
+        this.setState({ pName: "" }); this.toast("Uploading 14 files"); },
+      pName: s.pName, setPName: (e) => this.setState({ pName: e.target.value }),
+      sName: s.sName, setSName: (e) => this.setState({ sName: e.target.value }),
+      toast: s.toast, hasUndo: !!s.undoFn, undo: () => { const f = s.undoFn; clearTimeout(this._t); this.setState({ toast: null, undoFn: null }); f && f(); }
+    };
+  }
+}
+</script>
+</body>
+</html>
