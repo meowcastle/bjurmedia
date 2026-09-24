@@ -46,27 +46,8 @@ export default async function ProjectDetailPage({
   const totalPosts = allSocialPosts.length;
 
   const assetIds = project.assets.map((a) => a.id);
-  const [favorites, reviews] = await Promise.all([
+  const [favorites] = await Promise.all([
     db.favorite.findMany({ where: { userId: session.id, assetId: { in: assetIds } } }),
-    // Newest cut first: a client with several rounds open cares about the one that just
-    // landed. Answered rounds stay on the page so the reply they sent is still there.
-    db.review.findMany({
-      where: { assetId: { in: assetIds } },
-      orderBy: [{ createdAt: "desc" }],
-      include: {
-        user: { select: { name: true, email: true } },
-        asset: {
-          select: {
-            id: true,
-            name: true,
-            contentTitle: true,
-            kind: true,
-            durationSec: true,
-            thumbRelPath: true,
-          },
-        },
-      },
-    }),
   ]);
 
   return (
@@ -120,21 +101,6 @@ export default async function ProjectDetailPage({
         viewCount: a.socialPosts.length
           ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
           : null,
-      }))}
-      reviews={reviews.map((r) => ({
-        id: r.id,
-        assetId: r.assetId,
-        version: r.version,
-        note: r.note,
-        state: r.state,
-        feedback: r.feedback,
-        respondedAt: r.respondedAt?.toISOString() ?? null,
-        respondedBy: r.userId === session.id ? "You" : (r.user?.name ?? r.user?.email ?? null),
-        assetName: r.asset.name,
-        contentTitle: r.asset.contentTitle,
-        kind: r.asset.kind,
-        thumbReady: r.asset.thumbRelPath != null,
-        durationSec: r.asset.durationSec,
       }))}
       initialFavorites={favorites.map((f) => f.assetId)}
       role={access.role}

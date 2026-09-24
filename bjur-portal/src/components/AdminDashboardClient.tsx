@@ -25,7 +25,7 @@ type TopSocialPostRow = { id: string; assetName: string; clientName: string; pro
 
 type AttentionRow = {
   id: string;
-  kind: "expiry" | "unscheduled" | "feedback" | "approved" | "landed";
+  kind: "expiry" | "unscheduled" | "cut-ready" | "notes-in" | "approved" | "landed";
   subject: string;
   body: string;
   href: string;
@@ -33,7 +33,8 @@ type AttentionRow = {
 };
 
 const ATTENTION_DOT: Record<AttentionRow["kind"], string> = {
-  feedback: "var(--accentb)",
+  "cut-ready": "var(--warn)",
+  "notes-in": "var(--accentb)",
   approved: "var(--success)",
   expiry: "var(--accentb)",
   unscheduled: "var(--muted)",
@@ -138,7 +139,7 @@ export function AdminDashboardClient({
                       Everything else is a one-line summary and still truncates. */}
                   <span
                     className={`block text-[11px] text-muted ${
-                      a.kind === "feedback" ? "leading-relaxed" : "truncate"
+                      a.kind === "notes-in" ? "leading-relaxed" : "truncate"
                     }`}
                   >
                     {a.body}

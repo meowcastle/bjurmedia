@@ -26,15 +26,73 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
     db.submission.aggregate({ where: { projectId: id }, _sum: { sizeBytes: true } }),
   ]);
 
+  // Film only. A delivery has neither, and querying for them on every project page would
+  // be two round trips to learn nothing.
+  const filmCuts =
+    project.type === "FILM"
+      ? await db.review.findMany({
+          where: { asset: { projectId: id } },
+          orderBy: { version: "asc" },
+          include: {
+            approvedBy: { select: { name: true } },
+            notes: {
+              where: { sentAt: { not: null } },
+              select: { outcome: true, reviewerId: true, reviewer: { select: { name: true } } },
+            },
+          },
+        })
+      : [];
+  const filmReviewers =
+    project.type === "FILM"
+      ? await db.reviewer.findMany({
+          where: { projectId: id },
+          orderBy: { createdAt: "asc" },
+          include: {
+            notes: {
+              // Drafts are counted, never read. The admin surface says "drafting", and the
+              // body of that draft never leaves the author's own screen.
+              select: { sentAt: true, reviewId: true },
+            },
+          },
+        })
+      : [];
+  const latestCutId = filmCuts.filter((c) => c.sentAt).slice(-1)[0]?.id ?? null;
+
   const channel = await db.clientChannel.findUnique({ where: { clientId: project.clientId } });
 
   return (
     <AdminProjectDetailClient
+      film={
+        project.type === "FILM"
+          ? {
+              cuts: filmCuts.map((c) => ({
+                id: c.id,
+                version: c.version,
+                sentAt: c.sentAt?.toISOString() ?? null,
+                approvedAt: c.approvedAt?.toISOString() ?? null,
+                approvedByName: c.approvedBy?.name ?? null,
+                noteCount: c.notes.length,
+                unanswered: c.notes.filter((n) => !n.outcome).length,
+                authors: [...new Set(c.notes.map((n) => n.reviewer.name))].filter(Boolean),
+              })),
+              reviewers: filmReviewers.map((r) => ({
+                id: r.id,
+                name: r.name,
+                email: r.email,
+                kind: r.kind,
+                role: r.role,
+                sentOnLatest: r.notes.filter((n) => n.sentAt && n.reviewId === latestCutId).length,
+                draftingOnLatest: r.notes.some((n) => !n.sentAt && n.reviewId === latestCutId),
+                lastOpenedAt: r.lastOpenedAt?.toISOString() ?? null,
+                revoked: r.revokedAt !== null,
+              })),
+            }
+          : null
+      }
       project={{
         id: project.id,
         title: project.title,
         type: project.type,
-        review: project.review,
         paymentHold: project.paymentHold,
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,

@@ -62,6 +62,22 @@ export default async function ProjectListPage() {
     perProjectTotals.set(a.projectId, totals);
   }
 
+  // Which Film projects have a released cut still waiting on someone. Sent and PENDING is
+  // the whole condition — an unsent cut is not the client's business yet, and an approved
+  // one is not waiting on anybody.
+  const pendingCutProjects = new Set(
+    (
+      await db.review.findMany({
+        where: {
+          state: "PENDING",
+          sentAt: { not: null },
+          asset: { projectId: { in: projects.map((p) => p.id) } },
+        },
+        select: { asset: { select: { projectId: true } } },
+      })
+    ).map((r) => r.asset.projectId)
+  );
+
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
@@ -90,6 +106,8 @@ export default async function ProjectListPage() {
           newCount: Object.values(perProjectTotals.get(p.id) ?? {}).reduce((a, b) => a + b, 0),
           // BigInt cannot cross the RSC boundary; summed here and serialised.
           totalBytes: String(p.assets.reduce((n, a) => n + Number(a.sizeBytes), 0)),
+          isFilm: p.type === "FILM",
+          reviewPending: pendingCutProjects.has(p.id),
         }))}
       />
     </div>

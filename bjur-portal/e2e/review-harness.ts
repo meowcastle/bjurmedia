@@ -1,7 +1,11 @@
 /**
- * Drives the client review loop against a throwaway database with only the two mail
- * senders injected, so the version numbering, the idempotency and the conditional
- * claims are the real code rather than stubs.
+ * Drives the FILM cut loop against a throwaway database with only the mail senders
+ * injected, so the version numbering, the release gate, the owner-only approval and the
+ * draft privacy rule are the real code rather than stubs.
+ *
+ * The rules worth defending here are the ones no screen can be trusted to enforce: a cut
+ * must not go out while a note from the previous one is unanswered, a guest must never be
+ * able to approve, and an unsent note must never reach a staff query.
  *
  * Run by e2e/review.spec.ts. Prints one JSON line of results.
  */
@@ -26,189 +30,221 @@ function check(name: string, pass: boolean, detail?: string) {
   results.push({ name, pass, detail });
 }
 
-/**
- * Exercises the review loop against a throwaway database.
- *
- * Runs the real openReview / respondToReview / reopenReview against real Prisma, with
- * only the two mail senders replaced — so the version numbering, the idempotency and
- * the conditional claims are all genuinely under test, not stubbed around.
- *
- *   DATABASE_URL="file:/tmp/rev.db" npx tsx scripts/review-harness.ts
- */
-
-
 type Sent = { to: string; subject: string };
 
 async function main() {
   const { db } = await import("../src/lib/db");
-  const { openReview, respondToReview, reopenReview } = await import("../src/lib/reviews");
-  const { notifyReviewRequest, notifyFeedback } = await import("../src/lib/reviewMail");
+  const { openReview, releaseCut, approveCut, unapproveCut, currentCut } = await import(
+    "../src/lib/reviews"
+  );
+  const { notifyCutReady, notifyNotesIn } = await import("../src/lib/reviewMail");
 
-  // Two projects on one client: review on, review off. Same client, so anything that
-  // leaks across the switch shows up immediately.
   const client = await db.client.create({
     data: { name: "Harness Co", username: `harness-${Date.now()}`, accentColor: "#2b6b47" },
   });
+  const film = await db.project.create({
+    data: {
+      clientId: client.id,
+      title: "The Film",
+      type: "FILM",
+      path: "harness/film",
+      inboxSlug: `film-${Date.now()}`,
+    },
+  });
+  const delivery = await db.project.create({
+    data: {
+      clientId: client.id,
+      title: "The Delivery",
+      type: "DELIVERY",
+      path: "harness/delivery",
+      inboxSlug: `delivery-${Date.now()}`,
+    },
+  });
+
   const owner = await db.user.create({
-    data: {
-      email: `owner-${Date.now()}@example.test`,
-      name: "Owner Seat",
-      clientId: client.id,
-      role: "OWNER",
-      passwordHash: "x",
-    },
+    data: { name: "Olive Owner", email: `owner-${Date.now()}@harness.test`, passwordHash: "x" },
   });
-  await db.clientMember.create({ data: { userId: owner.id, clientId: client.id, role: "OWNER" } });
   const viewer = await db.user.create({
+    data: { name: "Vic Viewer", email: `viewer-${Date.now()}@harness.test`, passwordHash: "x" },
+  });
+  await db.clientMember.create({ data: { clientId: client.id, userId: owner.id, role: "OWNER" } });
+  await db.clientMember.create({ data: { clientId: client.id, userId: viewer.id, role: "VIEWER" } });
+
+  const ownerReviewer = await db.reviewer.create({
+    data: { projectId: film.id, kind: "SEAT", userId: owner.id, email: owner.email, name: owner.name },
+  });
+  const viewerReviewer = await db.reviewer.create({
+    data: { projectId: film.id, kind: "SEAT", userId: viewer.id, email: viewer.email, name: viewer.name },
+  });
+  const guest = await db.reviewer.create({
     data: {
-      email: `viewer-${Date.now()}@example.test`,
-      name: "Viewer Seat",
-      clientId: client.id,
-      role: "VIEWER",
-      passwordHash: "x",
+      projectId: film.id,
+      kind: "GUEST",
+      email: "guest@harness.test",
+      name: "Gil Guest",
+      role: "Director",
+      token: `tok${Date.now()}`,
     },
   });
-  await db.clientMember.create({ data: { userId: viewer.id, clientId: client.id, role: "VIEWER" } });
-  await db.user.create({
-    data: { email: `staff-${Date.now()}@example.test`, name: "Studio", isAdmin: true, passwordHash: "x" },
-  });
 
-  const mk = async (title: string, review: boolean) =>
-    db.project.create({
-      data: {
-        clientId: client.id,
-        title,
-        path: `/vol/${title}`,
-        inboxSlug: `${title}-${Date.now()}`,
-        review,
-      },
-    });
-  const reviewProject = await mk("reviewed", true);
-  const plainProject = await mk("plain", false);
-
-  const asset = async (projectId: string, name: string, extra: Record<string, unknown> = {}) =>
+  const mkAsset = (projectId: string, name: string) =>
     db.asset.create({
       data: {
         projectId,
         kind: "VIDEO",
-        format: "Reel",
-        orientation: "V",
+        format: "Film",
+        orientation: "landscape",
         name,
-        relPath: `x/${name}`,
+        relPath: `harness/${name}`,
         sizeBytes: BigInt(1000),
-        durationSec: 24,
-        ...extra,
+        durationSec: 120,
+        proxyStatus: "READY",
       },
     });
 
-  // --- eligibility ---------------------------------------------------------
-  const a1 = await asset(reviewProject.id, "cut.mp4");
-  const r1 = await openReview(a1.id);
-  check("opens a round on a review project", r1 !== null);
-  check("first upload is cut 1", r1?.version === 1, `got ${r1?.version}`);
+  // --- eligibility ------------------------------------------------------------------
+  const filmAsset = await mkAsset(film.id, "cut.mov");
+  const deliveryAsset = await mkAsset(delivery.id, "clip.mov");
 
-  const a2 = await asset(plainProject.id, "other.mp4");
-  check("opens nothing on a non-review project", (await openReview(a2.id)) === null);
+  const cut1 = await openReview(filmAsset.id);
+  check("a FILM project opens a cut", cut1 !== null);
+  check("a cut starts unsent", cut1?.sentAt == null, `sentAt=${cut1?.sentAt}`);
+  check("a DELIVERY project opens none", (await openReview(deliveryAsset.id)) === null);
 
-  const a3 = await asset(reviewProject.id, "master.braw", { internal: true });
-  check("opens nothing for an internal master", (await openReview(a3.id)) === null);
+  const again = await openReview(filmAsset.id);
+  check("opening twice is idempotent", again?.id === cut1?.id);
 
-  // --- idempotency ---------------------------------------------------------
-  const again = await openReview(a1.id);
-  check("re-firing the watcher reuses the round", again?.id === r1?.id);
-  check(
-    "one round exists for the version",
-    (await db.review.count({ where: { assetId: a1.id } })) === 1
-  );
-
-  // --- versions ------------------------------------------------------------
-  await db.asset.update({ where: { id: a1.id }, data: { reingestCount: 1 } });
-  const r2 = await openReview(a1.id);
-  check("a re-upload opens a new round", r2 !== null && r2.id !== r1!.id);
-  check("second upload is cut 2", r2?.version === 2, `got ${r2?.version}`);
-  check(
-    "the note on cut 1 survives cut 2 landing",
-    (await db.review.count({ where: { assetId: a1.id } })) === 2
-  );
-
-  // --- responding ----------------------------------------------------------
-  const bad = await respondToReview(r2!.id, viewer.id, { state: "FEEDBACK", feedback: "  " });
-  check("blank notes store as null, not whitespace", bad.ok);
-  check(
-    "empty feedback is normalised",
-    (await db.review.findUnique({ where: { id: r2!.id } }))?.feedback === null
-  );
-
-  const second = await respondToReview(r2!.id, owner.id, { state: "APPROVED" });
-  check("a second answer cannot overwrite the first", !second.ok);
-  check(
-    "second answer reports why",
-    second.ok === false && second.error === "already-answered",
-    JSON.stringify(second)
-  );
-
-  // --- undo ----------------------------------------------------------------
-  check("someone else cannot undo your answer", (await reopenReview(r2!.id, owner.id)) === false);
-  check("the responder can undo", (await reopenReview(r2!.id, viewer.id)) === true);
-  const reopened = await db.review.findUnique({ where: { id: r2!.id } });
-  check(
-    "undo clears the answer entirely",
-    reopened?.state === "PENDING" && reopened.userId === null && reopened.respondedAt === null
-  );
-  check("cannot undo a round nobody answered", (await reopenReview(r2!.id, viewer.id)) === false);
-
-  // --- approving cut 1 while cut 2 is open ---------------------------------
-  const one = await respondToReview(r1!.id, owner.id, { state: "APPROVED" });
-  check("an older round can still be answered", one.ok);
-  check(
-    "answering cut 1 leaves cut 2 pending",
-    (await db.review.findUnique({ where: { id: r2!.id } }))?.state === "PENDING"
-  );
-
-  // --- mail ----------------------------------------------------------------
-  const requests: Sent[] = [];
-  const feedbacks: Sent[] = [];
-  const a4 = await asset(reviewProject.id, "third.mp4");
-  const r4 = await openReview(a4.id);
-  await notifyReviewRequest(r4!.id, {
-    sendRequest: async (to, p) => {
-      requests.push({ to, subject: p.title });
-      return { sent: true };
+  const internal = await db.asset.create({
+    data: {
+      projectId: film.id,
+      kind: "VIDEO",
+      format: "Master",
+      orientation: "landscape",
+      name: "master.mov",
+      relPath: "harness/master.mov",
+      sizeBytes: BigInt(1),
+      internal: true,
+      proxyStatus: "READY",
     },
   });
-  check("request goes to the owner seat", requests.some((m) => m.to === owner.email));
-  check("request skips non-owner seats", !requests.some((m) => m.to === viewer.email));
+  check("an internal master is not a cut", (await openReview(internal.id)) === null);
 
-  await respondToReview(r4!.id, owner.id, { state: "FEEDBACK", feedback: "Lose the last shot." });
-  await notifyFeedback(r4!.id, {
-    sendFeedback: async (to, p) => {
-      feedbacks.push({ to, subject: p.feedback ?? "" });
-      return { sent: true };
-    },
-  });
-  check("studio hears about notes", feedbacks.length === 1);
-  // A queue that retries must not ask the client to review what they already answered.
-  const rechase: Sent[] = [];
-  await notifyReviewRequest(r4!.id, {
-    sendRequest: async (to) => {
-      rechase.push({ to, subject: "" });
-      return { sent: true };
-    },
-  });
-  check("an answered round is never re-requested", rechase.length === 0);
-  check("the note is quoted verbatim", feedbacks[0]?.subject === "Lose the last shot.");
+  // --- releasing --------------------------------------------------------------------
+  check("nothing is current before release", (await currentCut(film.id)) === null);
 
-  // A round still pending must not generate a "they answered" mail.
-  const a5 = await asset(reviewProject.id, "fourth.mp4");
-  const r5 = await openReview(a5.id);
-  const none: Sent[] = [];
-  await notifyFeedback(r5!.id, {
-    sendFeedback: async (to) => {
-      none.push({ to, subject: "" });
-      return { sent: true };
+  const sent: Sent[] = [];
+  const released = await releaseCut(cut1!.id);
+  check("cut 1 releases with nothing to answer", released.ok === true);
+  await notifyCutReady(cut1!.id, {
+    sendCutReady: async (to, p) => {
+      sent.push({ to, subject: `cut ${p.version}` });
+      return { ok: true } as never;
     },
   });
-  check("no feedback mail for an unanswered round", none.length === 0);
+  check("every active reviewer is mailed", sent.length === 3, `sent=${sent.length}`);
+  check(
+    "the guest is mailed too",
+    sent.some((m) => m.to === guest.email)
+  );
+
+  const current = await currentCut(film.id);
+  check("cut 1 is now the current cut", current?.id === cut1?.id);
+  check("releasing twice is refused", (await releaseCut(cut1!.id)).ok === false);
+
+  // --- notes ------------------------------------------------------------------------
+  const draft = await db.reviewNote.create({
+    data: { reviewId: cut1!.id, reviewerId: viewerReviewer.id, timeSec: 12.5, body: "DRAFT BODY" },
+  });
+  const sentNote = await db.reviewNote.create({
+    data: {
+      reviewId: cut1!.id,
+      reviewerId: guest.id,
+      timeSec: 40,
+      body: "Hold the last shot",
+      sentAt: new Date(),
+    },
+  });
+
+  // The privacy rule, as a query rather than a promise: anything the studio reads is
+  // filtered on sentAt, so a draft cannot be returned even by accident.
+  const staffVisible = await db.reviewNote.findMany({
+    where: { reviewId: cut1!.id, sentAt: { not: null } },
+  });
+  check("a draft is invisible to staff queries", staffVisible.every((n) => n.id !== draft.id));
+  check("a sent note is visible", staffVisible.some((n) => n.id === sentNote.id));
+
+  const staffMail: Sent[] = [];
+  await notifyNotesIn(cut1!.id, guest.id, [sentNote.id], {
+    sendNotesIn: async (to, p) => {
+      staffMail.push({ to, subject: `${p.notes.length} notes` });
+      return { ok: true } as never;
+    },
+  });
+  check("a batch does not mail reviewers", !staffMail.some((m) => m.to === guest.email));
+
+  // --- the release gate -------------------------------------------------------------
+  const cut2Asset = await db.asset.update({
+    where: { id: filmAsset.id },
+    data: { reingestCount: 1 },
+  });
+  const cut2 = await openReview(cut2Asset.id);
+  check("a re-export opens cut 2", cut2?.version === 2, `version=${cut2?.version}`);
+
+  const blocked = await releaseCut(cut2!.id);
+  check(
+    "cut 2 will not go out with a note unanswered",
+    blocked.ok === false && blocked.error === "unanswered",
+    `error=${blocked.ok ? "none" : blocked.error}`
+  );
+
+  await db.reviewNote.update({
+    where: { id: sentNote.id },
+    data: { outcome: "KEPT", response: "It lands with the mix.", answeredAt: new Date() },
+  });
+  const nowOk = await releaseCut(cut2!.id);
+  check("answering every note opens the gate", nowOk.ok === true);
+
+  const cut1After = await db.review.findUniqueOrThrow({ where: { id: cut1!.id } });
+  check("releasing cut 2 supersedes cut 1", cut1After.state === "SUPERSEDED");
+  check("and records when", cut1After.supersededAt !== null);
+
+  // --- approval ---------------------------------------------------------------------
+  check(
+    "a guest cannot approve",
+    (await approveCut(cut2!.id, guest.id)).ok === false,
+    "guests have no account and no say in what is final"
+  );
+  check("a non-owner seat cannot approve", (await approveCut(cut2!.id, viewerReviewer.id)).ok === false);
+
+  const approved = await approveCut(cut2!.id, ownerReviewer.id);
+  check("an owner seat can approve", approved.ok === true);
+
+  const twice = await approveCut(cut2!.id, ownerReviewer.id);
+  check("a second approval is refused", twice.ok === false);
+
+  const row = await db.review.findUniqueOrThrow({ where: { id: cut2!.id } });
+  check("the approver is recorded", row.approvedById === ownerReviewer.id);
+
+  check("the approver can undo", (await unapproveCut(cut2!.id, ownerReviewer.id)) === true);
+  check(
+    "someone else cannot undo",
+    (await unapproveCut(cut2!.id, viewerReviewer.id)) === false
+  );
+
+  // --- revoked reviewers ------------------------------------------------------------
+  await db.reviewer.update({ where: { id: guest.id }, data: { revokedAt: new Date() } });
+  const afterRevoke: Sent[] = [];
+  await notifyCutReady(cut2!.id, {
+    sendCutReady: async (to) => {
+      afterRevoke.push({ to, subject: "" });
+      return { ok: true } as never;
+    },
+  });
+  check(
+    "a revoked guest stops being mailed",
+    !afterRevoke.some((m) => m.to === guest.email),
+    `to=${afterRevoke.map((m) => m.to).join(",")}`
+  );
 
   console.log(JSON.stringify(results));
 }

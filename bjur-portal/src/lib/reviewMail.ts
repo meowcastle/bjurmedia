@@ -1,15 +1,18 @@
 import { db } from "@/lib/db";
-import { sendReviewRequestEmail, sendFeedbackReceivedEmail } from "@/lib/mailer";
+import { sendCutReadyEmail, sendNotesInEmail } from "@/lib/mailer";
+import type { CutReadyNote } from "@/emails/cutReady";
 
 /**
- * Mail for the review loop: the request out to the client, the answer back to us.
+ * Mail for the cut loop: a released cut out to every reviewer, a sent batch back to us.
  *
- * Recipients come from ClientMember, not User.clientId. Since one person can hold seats
- * on several clients, User.clientId is only ever *one* of them — an owner of a second
- * client is invisible to a query on that column. ClientMember is the complete list.
+ * Recipients come from Reviewer, not ClientMember. A guest director has no account and no
+ * membership row; asking the seat tables who to email would silently drop exactly the
+ * people the guest link exists for. Reviewer is the complete list, seats and guests both,
+ * and it is per project — someone reviewing one film for a client is not thereby reviewing
+ * another.
  *
- * Neither function throws. A cut that is up but unannounced can be chased; a state
- * change rolled back because a mail server was down cannot be explained.
+ * Neither function throws. A cut that is up but unannounced can be chased; a state change
+ * rolled back because a mail server was down cannot be explained.
  */
 
 function portalUrl() {
@@ -20,124 +23,152 @@ function clock(d: Date) {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
-function durationLabel(sec: number | null) {
-  if (!sec) return null;
+/** "1:14". A note with no time is one migrated from the old whole-cut feedback. */
+export function timeLabel(sec: number | null) {
+  if (sec == null) return "—";
   const m = Math.floor(sec / 60);
-  return `${m}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+  return `${m}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 }
 
 export type ReviewMailDeps = {
-  sendRequest: typeof sendReviewRequestEmail;
-  sendFeedback: typeof sendFeedbackReceivedEmail;
+  sendCutReady: typeof sendCutReadyEmail;
+  sendNotesIn: typeof sendNotesInEmail;
 };
 
-/** Owner seats on a client, via the membership table. */
-async function ownerSeats(clientId: string) {
-  const members = await db.clientMember.findMany({
-    where: { clientId, role: "OWNER", user: { deactivatedAt: null, isAdmin: false } },
-    select: { user: { select: { email: true, name: true } } },
-  });
-  return members.map((m) => m.user);
+/**
+ * Where a given reviewer watches. Seats go through the portal with their session; a guest
+ * has only their token, and that link is the entire extent of their access.
+ */
+function watchUrl(
+  projectId: string,
+  reviewer: { kind: string; token: string | null }
+) {
+  return reviewer.kind === "GUEST" && reviewer.token
+    ? `${portalUrl()}/r/${reviewer.token}`
+    : `${portalUrl()}/p/${projectId}/review`;
 }
 
-/** "Go watch this" — sent when a round opens. */
-export async function notifyReviewRequest(reviewId: string, deps: Partial<ReviewMailDeps> = {}) {
-  const send = deps.sendRequest ?? sendReviewRequestEmail;
+/** Everyone still entitled to watch: seats and guests, minus anyone revoked. */
+async function activeReviewers(projectId: string) {
+  return db.reviewer.findMany({
+    where: { projectId, revokedAt: null },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/**
+ * "Cut n is ready" — one mail per active reviewer, each with their own link.
+ *
+ * Carries every sent note from the previous cut with what was done about it. Those
+ * answers exist nowhere else in the client's world, so this send is the only time they
+ * travel; a failure here is worth chasing rather than shrugging at.
+ */
+export async function notifyCutReady(reviewId: string, deps: Partial<ReviewMailDeps> = {}) {
+  const send = deps.sendCutReady ?? sendCutReadyEmail;
   try {
-    const review = await db.review.findUnique({
+    const cut = await db.review.findUnique({
       where: { id: reviewId },
       select: {
         id: true,
         version: true,
         note: true,
-        state: true,
         asset: {
           select: {
-            id: true,
             name: true,
             contentTitle: true,
-            format: true,
-            durationSec: true,
+            projectId: true,
             project: {
-              select: {
-                id: true,
-                title: true,
-                clientId: true,
-                client: { select: { name: true, accentColor: true } },
-              },
+              select: { id: true, title: true, client: { select: { name: true, accentColor: true } } },
             },
           },
         },
       },
     });
-    if (!review) return { sent: 0 };
-    // Don't chase a round somebody already answered — a slow queue shouldn't ask a
-    // client to review something they've already signed off.
-    if (review.state !== "PENDING") return { sent: 0 };
+    if (!cut) return { sent: 0 };
 
-    const owners = await ownerSeats(review.asset.project.clientId);
-    if (owners.length === 0) {
-      console.warn(
-        `[review-mail] ${review.asset.project.client.name} has no active owner seat to ask`
-      );
+    const projectId = cut.asset.projectId;
+
+    // The previous cut's answered notes. Drafts are excluded here as everywhere: an
+    // unsent note is not part of the record and must never appear in anyone's mail.
+    const previous = await db.review.findFirst({
+      where: { asset: { projectId }, version: cut.version - 1 },
+      select: { id: true },
+    });
+    const notes: CutReadyNote[] = previous
+      ? (
+          await db.reviewNote.findMany({
+            where: { reviewId: previous.id, sentAt: { not: null } },
+            orderBy: [{ timeSec: "asc" }, { createdAt: "asc" }],
+            include: { reviewer: { select: { name: true } } },
+          })
+        ).map((n) => ({
+          time: timeLabel(n.timeSec),
+          body: n.body,
+          author: n.reviewer.name,
+          outcome: n.outcome,
+          response: n.response,
+        }))
+      : [];
+
+    const reviewers = await activeReviewers(projectId);
+    if (reviewers.length === 0) {
+      console.warn(`[review-mail] ${cut.asset.project.title} has no active reviewer to tell`);
       return { sent: 0 };
     }
 
-    const dur = durationLabel(review.asset.durationSec);
-    const meta = [review.asset.format, "in the portal, no download needed", dur]
-      .filter(Boolean)
-      .join(" · ");
-
     let sent = 0;
-    for (const owner of owners) {
-      await send(owner.email, {
-        clientName: review.asset.project.client.name,
-        versionLabel: `Cut ${review.version}`,
-        title: review.asset.contentTitle || review.asset.name,
-        projectTitle: review.asset.project.title,
-        note: review.note,
-        meta,
-        projectUrl: `${portalUrl()}/p/${review.asset.project.id}`,
-        accent: review.asset.project.client.accentColor ?? undefined,
+    for (const reviewer of reviewers) {
+      await send(reviewer.email, {
+        clientName: cut.asset.project.client.name,
+        version: cut.version,
+        title: cut.asset.contentTitle || cut.asset.name,
+        projectTitle: cut.asset.project.title,
+        note: cut.note,
+        notes,
+        reviewUrl: watchUrl(projectId, reviewer),
+        accent: cut.asset.project.client.accentColor ?? undefined,
       });
       sent += 1;
     }
-    return { sent };
+    return { sent, notes: notes.length };
   } catch (err) {
-    console.error("[review-mail] request failed:", (err as Error).message);
+    console.error("[review-mail] cut-ready failed:", (err as Error).message);
     return { sent: 0 };
   }
 }
 
-/** The answer coming back to the studio — notes, or a one-line approval. */
-export async function notifyFeedback(reviewId: string, deps: Partial<ReviewMailDeps> = {}) {
-  const send = deps.sendFeedback ?? sendFeedbackReceivedEmail;
+/**
+ * A batch of notes arriving, or an approval. To staff.
+ *
+ * Takes the note ids rather than reading whatever is sent on the cut, because a reviewer
+ * may send twice: the second mail must contain the second batch, not both.
+ */
+export async function notifyNotesIn(
+  reviewId: string,
+  reviewerId: string,
+  noteIds: string[],
+  deps: Partial<ReviewMailDeps> = {}
+) {
+  const send = deps.sendNotesIn ?? sendNotesInEmail;
   try {
-    const review = await db.review.findUnique({
+    const cut = await db.review.findUnique({
       where: { id: reviewId },
       select: {
         version: true,
-        state: true,
-        feedback: true,
-        respondedAt: true,
-        user: { select: { name: true, email: true } },
         asset: {
           select: {
-            id: true,
             name: true,
             contentTitle: true,
+            projectId: true,
             project: {
-              select: {
-                id: true,
-                title: true,
-                client: { select: { name: true, accentColor: true } },
-              },
+              select: { id: true, title: true, client: { select: { name: true, accentColor: true } } },
             },
           },
         },
       },
     });
-    if (!review || review.state === "PENDING") return { sent: 0 };
+    const reviewer = await db.reviewer.findUnique({ where: { id: reviewerId } });
+    if (!cut || !reviewer) return { sent: 0 };
 
     const staff = await db.user.findMany({
       where: { isAdmin: true, deactivatedAt: null },
@@ -145,17 +176,27 @@ export async function notifyFeedback(reviewId: string, deps: Partial<ReviewMailD
     });
     if (staff.length === 0) return { sent: 0 };
 
+    const notes = noteIds.length
+      ? (
+          await db.reviewNote.findMany({
+            where: { id: { in: noteIds }, sentAt: { not: null } },
+            orderBy: [{ timeSec: "asc" }, { createdAt: "asc" }],
+          })
+        ).map((n) => ({ time: timeLabel(n.timeSec), body: n.body }))
+      : [];
+
     const props = {
-      clientName: review.asset.project.client.name,
-      responderName: review.user?.name || review.user?.email || "A client seat",
-      title: review.asset.contentTitle || review.asset.name,
-      projectTitle: review.asset.project.title,
-      versionLabel: `Cut ${review.version}`,
-      approved: review.state === "APPROVED",
-      feedback: review.feedback,
-      timeLabel: clock(review.respondedAt ?? new Date()),
-      assetUrl: `${portalUrl()}/p/${review.asset.project.id}`,
-      accent: review.asset.project.client.accentColor ?? undefined,
+      clientName: cut.asset.project.client.name,
+      reviewerName: reviewer.name,
+      reviewerRole: reviewer.role,
+      version: cut.version,
+      title: cut.asset.contentTitle || cut.asset.name,
+      projectTitle: cut.asset.project.title,
+      notes,
+      approved: noteIds.length === 0,
+      timeLabel: clock(new Date()),
+      reviewUrl: `${portalUrl()}/admin/projects/${cut.asset.projectId}/review`,
+      accent: cut.asset.project.client.accentColor ?? undefined,
     };
 
     let sent = 0;
@@ -165,7 +206,16 @@ export async function notifyFeedback(reviewId: string, deps: Partial<ReviewMailD
     }
     return { sent };
   } catch (err) {
-    console.error("[review-mail] feedback failed:", (err as Error).message);
+    console.error("[review-mail] notes-in failed:", (err as Error).message);
     return { sent: 0 };
   }
+}
+
+/** An owner approved. Same template, different headline — it is still "news from a reviewer". */
+export async function notifyApproved(
+  reviewId: string,
+  reviewerId: string,
+  deps: Partial<ReviewMailDeps> = {}
+) {
+  return notifyNotesIn(reviewId, reviewerId, [], deps);
 }

@@ -24,7 +24,20 @@ async function cleanUp(request: APIRequestContext, id: string | undefined) {
   if (id) await request.delete(`/api/admin/projects/${id}`);
 }
 
-test("a delivery can run a review loop", async ({ request }) => {
+test("film is a type of its own, not a flag on a delivery", async ({ request }) => {
+  const { status, body } = await create(request, {
+    clientId: CLIENT_WITH_SLACK,
+    type: "FILM",
+  });
+  expect(status, JSON.stringify(body)).toBe(200);
+  expect(body.project.type).toBe("FILM");
+  await cleanUp(request, body.project?.id);
+});
+
+test("a review flag is no longer a thing a delivery can carry", async ({ request }) => {
+  // The old shape let any project run a review loop, and the create API had to refuse
+  // Calendar+Review with a 400. Review is the FILM type now, so the combination cannot be
+  // expressed — a stray `review: true` is simply ignored rather than rejected.
   const { status, body } = await create(request, {
     clientId: CLIENT_WITH_SLACK,
     type: "DELIVERY",
@@ -32,18 +45,8 @@ test("a delivery can run a review loop", async ({ request }) => {
   });
   expect(status, JSON.stringify(body)).toBe(200);
   expect(body.project.type).toBe("DELIVERY");
-  expect(body.project.review).toBe(true);
+  expect(body.project.review).toBeUndefined();
   await cleanUp(request, body.project?.id);
-});
-
-test("a calendar cannot, because Slack is where those are approved", async ({ request }) => {
-  const { status, body } = await create(request, {
-    clientId: CLIENT_WITH_SLACK,
-    type: "CALENDAR",
-    review: true,
-  });
-  expect(status).toBe(400);
-  expect(body.error).toMatch(/approved in Slack/i);
 });
 
 test("a calendar needs somewhere to post", async ({ request }) => {

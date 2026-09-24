@@ -18,6 +18,19 @@ const MONO = "'SF Mono',Menlo,Consolas,monospace";
 
 export type PaperCta = { label: string; url: string };
 
+/**
+ * One note in a list of them. `left` is the timestamp column ("1:14", or "—" for a note
+ * with no time), `tag` the studio's outcome. Rows exist because the cut-ready email is
+ * mostly a list: every note from the previous cut, and what was done about each. That is
+ * the promise the review loop makes to reviewers, so it has to survive the email.
+ */
+export type PaperRow = {
+  left: string;
+  body: string;
+  meta?: string;
+  tag?: { label: string; tone: "ok" | "mut" };
+};
+
 export type PaperOptions = {
   preheader: string;
   kicker: string;
@@ -30,6 +43,9 @@ export type PaperOptions = {
   /** Primary, then optional secondary. */
   cta?: PaperCta;
   cta2?: PaperCta;
+  /** Optional heading above the rows, e.g. "3 notes on cut 1". */
+  rowsTitle?: string;
+  rows?: PaperRow[];
   footnote?: string;
 };
 
@@ -49,6 +65,8 @@ export function renderPaper({
   quote,
   cta,
   cta2,
+  rowsTitle,
+  rows,
   footnote,
 }: PaperOptions): string {
   return `<!DOCTYPE html>
@@ -88,6 +106,31 @@ export function renderPaper({
                <div style="font-family:${MONO};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6e6b66;margin-bottom:7px">${esc(quote.title)}</div>
                <div style="font-family:${SERIF};font-size:16px;line-height:1.55;color:#17161a">${esc(quote.text)}</div>
              </div>
+           </div>`
+        : ""
+    }
+
+    ${
+      rows && rows.length
+        ? `<div class="pad" style="padding:24px 40px 0">
+             ${rowsTitle ? `<div style="font-family:${MONO};font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8a877f;padding-bottom:10px;border-bottom:1px solid #dcd8d1">${esc(rowsTitle)}</div>` : ""}
+             ${rows
+               .map(
+                 (r) => `<div style="padding:13px 0;border-bottom:1px solid #e6e2db">
+                   <div style="font-family:${MONO};font-size:11px;color:#8a877f">${esc(r.left)}</div>
+                   <div style="font-size:13px;line-height:1.55;color:#17161a;margin-top:3px">${esc(r.body)}</div>
+                   ${
+                     r.tag || r.meta
+                       ? `<div style="margin-top:6px;font-family:${MONO};font-size:10.5px;color:#8a877f">${
+                           r.tag
+                             ? `<span style="letter-spacing:.06em;text-transform:uppercase;color:${r.tag.tone === "ok" ? "#2f6f4f" : "#8a877f"}">${esc(r.tag.label)}</span>${r.meta ? " · " : ""}`
+                             : ""
+                         }${r.meta ? esc(r.meta) : ""}</div>`
+                       : ""
+                   }
+                 </div>`
+               )
+               .join("")}
            </div>`
         : ""
     }
