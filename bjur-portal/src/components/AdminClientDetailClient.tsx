@@ -594,6 +594,7 @@ export function AdminClientDetailClient({
         <UploadDialog
           projectId={uploadingTo.id}
           projectTitle={uploadingTo.title}
+          inboxPath={uploadingTo.inboxPath}
           onClose={() => setUploadingTo(null)}
           onUploaded={() => router.refresh()}
         />

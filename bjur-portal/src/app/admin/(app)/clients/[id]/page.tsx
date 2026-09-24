@@ -2,6 +2,16 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { inboxDirFor } from "@/lib/projects";
 import { slugify, stateOf } from "@/lib/submissionRequests";
+
+/**
+ * How long an upload can sit still before it stops counting as in progress.
+ *
+ * Six hours rather than minutes: a real transfer of 2 GB rushes over a domestic uplink
+ * pauses for all sorts of reasons — a laptop lid, a dropped connection the sender will
+ * come back to. A day-old silence is a different thing, and five of Adam Knight's batches
+ * had been showing a live progress bar for up to a fortnight.
+ */
+const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 import { AdminClientDetailClient } from "@/components/AdminClientDetailClient";
 
 export default async function AdminClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +42,13 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
           user: { select: { name: true } },
           request: { select: { name: true } },
           submissions: {
-            select: { sizeBytes: true, receivedBytes: true, status: true, filename: true },
+            select: {
+              sizeBytes: true,
+              receivedBytes: true,
+              status: true,
+              filename: true,
+              updatedAt: true,
+            },
           },
         },
       },
@@ -42,6 +58,9 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
 
 
   const since = new Date(new Date().getTime() - 30 * 86_400_000);
+  // One reading of the clock for the whole page. Per-row would let rows disagree about
+  // "now" partway down a long list.
+  const nowMs = since.getTime() + 30 * 86_400_000;
 
   const [socialAccounts, topPosts, channel] = await Promise.all([
     db.socialAccount.findMany({
@@ -119,6 +138,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
           .filter((b) => b.submissions.length > 0)
           .map((b) => {
             const complete = b.submissions.filter((s) => s.status === "COMPLETE").length;
+            // When a byte last actually landed. An upload nobody has touched in days is
+            // abandoned, not in progress — showing it a live progress bar says something
+            // is happening when the sender closed their laptop a week ago.
+            const lastByte = b.submissions.reduce(
+              (t, s) => Math.max(t, s.updatedAt.getTime()),
+              0
+            );
+            const stale = nowMs - lastByte > STALE_AFTER_MS;
             return {
               id: b.id,
               name: b.name,
@@ -136,9 +163,12 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
               ].slice(0, 4),
               status: b.filesDeletedAt
                 ? ("FILES_DELETED" as const)
-                : complete < b.submissions.length
-                  ? ("RECEIVING" as const)
-                  : ("ON_SERVER" as const),
+                : complete === b.submissions.length
+                  ? ("ON_SERVER" as const)
+                  : stale
+                    ? ("STALLED" as const)
+                    : ("RECEIVING" as const),
+              lastByteAt: lastByte ? new Date(lastByte).toISOString() : null,
               // What somebody pastes into Finder. The container sees /media/_submissions;
               // a person needs the share it is mounted as.
               smbPath: `smb://mainsqueeze/_submissions/${client.username}/${b.name}/`,

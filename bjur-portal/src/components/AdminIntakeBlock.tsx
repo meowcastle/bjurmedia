@@ -21,7 +21,9 @@ export type IntakeBatch = {
   completeCount: number;
   receivedBytes: string;
   kinds: string[];
-  status: "RECEIVING" | "ON_SERVER" | "FILES_DELETED";
+  status: "RECEIVING" | "STALLED" | "ON_SERVER" | "FILES_DELETED";
+  /** When a byte last landed. Null if nothing ever did. */
+  lastByteAt: string | null;
   smbPath: string;
   createdAt: string;
 };
@@ -54,6 +56,7 @@ export function AdminIntakeBlock({
   const [linkName, setLinkName] = useState("");
 
   const receiving = batches.filter((b) => b.status === "RECEIVING").length;
+  const stalled = batches.filter((b) => b.status === "STALLED").length;
   const onServer = batches.filter((b) => b.status === "ON_SERVER").length;
   const openLinks = links.filter((l) => l.state === "open").length;
 
@@ -103,8 +106,15 @@ export function AdminIntakeBlock({
       <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2">
         <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent to Bjur</span>
         <span className="text-[11px] text-dim2">
-          {receiving} receiving · {onServer} on server · {openLinks} open link
-          {openLinks === 1 ? "" : "s"}
+          {receiving} receiving
+          {stalled > 0 ? ` · ${stalled} stalled` : ""} · {onServer} on server ·{" "}
+          {openLinks === 0 ? (
+            // Worth saying plainly: with no open link nobody can send anything, which is
+            // a different situation from having nothing to show.
+            <span style={{ color: "var(--accentb)" }}>no open links</span>
+          ) : (
+            `${openLinks} open link${openLinks === 1 ? "" : "s"}`
+          )}
         </span>
       </div>
 
@@ -125,6 +135,8 @@ export function AdminIntakeBlock({
                     <span className="text-[10px] font-extrabold uppercase tracking-[.06em] whitespace-nowrap">
                       {b.status === "RECEIVING" ? (
                         <span style={{ color: "var(--accentb)" }}>Receiving</span>
+                      ) : b.status === "STALLED" ? (
+                        <span className="text-dim2">Stalled</span>
                       ) : b.status === "FILES_DELETED" ? (
                         <span className="text-dim2">Files deleted</span>
                       ) : (
@@ -135,12 +147,25 @@ export function AdminIntakeBlock({
 
                   <div className="text-[11px] text-muted mt-1">
                     {b.uploaderName} · {b.via} ·{" "}
-                    {b.status === "RECEIVING"
+                    {b.status === "RECEIVING" || b.status === "STALLED"
                       ? `${b.completeCount} of ${b.fileCount} files`
                       : `${b.fileCount} file${b.fileCount === 1 ? "" : "s"}`}{" "}
                     · {formatBytes(Number(b.receivedBytes))}
                     {b.kinds.length ? ` · ${b.kinds.join(" · ")}` : ""} · {when(b.createdAt)}
                   </div>
+
+                  {b.status === "STALLED" && b.lastByteAt && (
+                    <div className="text-[11px] text-dim2 mt-1">
+                      Nothing since {new Date(b.lastByteAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "2-digit",
+                      })}
+                      {" — "}
+                      {b.fileCount - b.completeCount} file
+                      {b.fileCount - b.completeCount === 1 ? "" : "s"} never finished. The rest
+                      arrived.
+                    </div>
+                  )}
 
                   {b.status === "RECEIVING" && (
                     <span className="block h-[2px] bg-white/10 mt-2">
@@ -167,7 +192,7 @@ export function AdminIntakeBlock({
                       >
                         Copy path
                       </button>
-                      {b.status === "ON_SERVER" && (
+                      {(b.status === "ON_SERVER" || b.status === "STALLED") && (
                         <button
                           type="button"
                           onClick={() => void deleteFiles(b)}
