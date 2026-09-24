@@ -121,9 +121,9 @@ export function renderPaper({
                    <div style="font-size:13px;line-height:1.55;color:#17161a;margin-top:3px">${esc(r.body)}</div>
                    ${
                      r.tag || r.meta
-                       ? `<div style="margin-top:6px;font-family:${MONO};font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#8a877f">${
+                       ? `<div style="margin-top:6px;font-family:${MONO};font-size:10.5px;color:#8a877f">${
                            r.tag
-                             ? `<span style="color:${r.tag.tone === "ok" ? "#2f6f4f" : "#8a877f"}">${esc(r.tag.label)}</span>${r.meta ? " · " : ""}`
+                             ? `<span style="letter-spacing:.06em;text-transform:uppercase;color:${r.tag.tone === "ok" ? "#2f6f4f" : "#8a877f"}">${esc(r.tag.label)}</span>${r.meta ? " · " : ""}`
                              : ""
                          }${r.meta ? esc(r.meta) : ""}</div>`
                        : ""

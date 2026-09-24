@@ -386,9 +386,11 @@ export async function generateProxy(asset: AssetRow) {
     // feature or falls outside it is ever picked up.
     await queueForCaptioning(asset.id).catch(() => {});
 
-    // Open the client's review round for the same reason, and at the same moment: the
-    // request email says "watch this", so it must not go out before there is something
-    // to watch. openReview decides eligibility, so a non-review project is unaffected.
+    // Open the cut at the same moment, and for a related reason: there is nothing to
+    // review until something plays. It is created unsent and mails nobody — reviewers
+    // hear about a cut when the studio releases it, after answering the round before.
+    // openReview decides its own eligibility, so anything that is not a FILM project is
+    // unaffected.
     await openReview(asset.id).catch(() => {});
 
     await db.activity.create({
