@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
@@ -61,6 +61,24 @@ export function AdminProjectDetailClient({
   assets: FileRow[];
 }) {
   const router = useRouter();
+
+  // Refresh while anything is mid-encode, and only then.
+  //
+  // The percentage is written by the worker every few seconds, but the page is a server
+  // component — without this it shows whatever was true when you opened it, so a 20 GB
+  // master sat at "Encoding 2%" for a quarter of an hour while the database said 15%. A
+  // progress number that does not progress is worse than none: it is the exact shape of
+  // "is this thing stuck?".
+  //
+  // Stops dead once everything is READY, so a settled page costs nothing.
+  const anyEncoding = assets.some(
+    (a) => a.proxyStatus === "PENDING" || a.proxyStatus === "GENERATING"
+  );
+  useEffect(() => {
+    if (!anyEncoding) return;
+    const t = setInterval(() => router.refresh(), 4000);
+    return () => clearInterval(t);
+  }, [anyEncoding, router]);
   const [toast, setToast] = useState<string | null>(null);
   // Deliberately not held in state. useState(initialRequests) only reads its argument on
   // the first render, so after router.refresh() re-ran the server component the list
