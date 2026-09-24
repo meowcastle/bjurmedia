@@ -125,6 +125,32 @@ function proxyDims(format: string) {
   return format === "Reel" ? { w: 1080, h: 1920 } : { w: 1920, h: 1080 };
 }
 
+/**
+ * How hard to work on a proxy, by what the footage is for.
+ *
+ * A reel is scrolled past on a phone and CRF 26 has always been right for it. A film is
+ * watched to judge a grade, and CRF 26 is actively wrong: on a music video that sits 97%
+ * below luma 64, rate control decided the shadows were cheap detail and quantised them
+ * away — beards melted into waxy blobs, shadow falloff terminated in flat black with
+ * macroblock edges, and the average came out at 1.4 Mb/s against its own 4 Mb/s ceiling.
+ * The ceiling was never the constraint; CRF was.
+ *
+ * So film gets CRF 18 with a VBV cap high enough to be irrelevant most of the time, plus
+ * aq-mode 3, which biases bit allocation toward dark regions specifically — the failure
+ * was entirely in the shadows, not the highlights.
+ *
+ * Measured on the NAS: CRF 20 at 1080p ran 43s per 20s of footage, so a five-minute cut
+ * is roughly a quarter of an hour. 10-bit HEVC was the other candidate and is not viable
+ * on this box — the same clip took 374s, nearly nine times as long, on a four-core
+ * embedded Ryzen with no hardware encoder.
+ */
+function encodeTier(format: string) {
+  const film = format === "Film" || format === "Master";
+  return film
+    ? { crf: "18", maxrate: "20000k", bufsize: "40000k", aq: "aq-mode=3:aq-strength=1.1" }
+    : { crf: "26", maxrate: "4000k", bufsize: "8000k", aq: null };
+}
+
 /** The encode's actual geometry. Assuming the target box lies for anamorphic sources. */
 async function probeDims(filePath: string): Promise<{ w: number; h: number } | null> {
   try {
@@ -195,6 +221,7 @@ async function generateVideoProxy(
   progress?: { durationSec: number | null; onPct: (pct: number) => void }
 ) {
   const { w, h } = proxyDims(format);
+  const tier = encodeTier(format);
   // in_range=auto:out_range=tv normalises levels instead of passing them through.
   //
   // Some masters arrive full-range (yuvj420p / "pc") — 54 of 391 proxies on the NAS were,
@@ -239,18 +266,17 @@ async function generateVideoProxy(
     // from in the first place.
     "-pix_fmt",
     "yuv420p",
-    // CRF 21 was delivered-master quality, not preview quality — this is a
-    // scrolling mobile proxy, not something anyone licenses. -maxrate/-bufsize
-    // (VBV-constrained CRF) cap worst-case spikes on high-motion content
-    // (concert/event reels especially) rather than just lowering the average —
-    // spikes are usually what cause a visible stall mid-swipe on a real
-    // network, not the average bitrate.
+    // -maxrate/-bufsize (VBV-constrained CRF) cap worst-case spikes on high-motion
+    // content rather than lowering the average — a spike is usually what stalls a swipe
+    // on a real network. On the film tier the cap is deliberately loose: it is there to
+    // stop a pathological burst, not to shape the encode.
     "-crf",
-    "26",
+    tier.crf,
     "-maxrate",
-    "4000k",
+    tier.maxrate,
     "-bufsize",
-    "8000k",
+    tier.bufsize,
+    ...(tier.aq ? ["-x264-params", tier.aq] : []),
     "-color_primaries",
     "bt709",
     "-color_trc",
