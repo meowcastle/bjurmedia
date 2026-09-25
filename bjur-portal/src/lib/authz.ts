@@ -39,8 +39,27 @@ export async function authorizeAssetAccess(
 
   const access = await getProjectAccess(session, asset.project);
 
+  // Being on a film's review cycle is a grant in its own right, and the only one a
+  // reviewer is given — no ProjectMember row comes with it. Without this, fixing the
+  // review page only moved the failure one layer down: the screen rendered and the
+  // <video> underneath it 404'd, which reads as "the video is broken" and sent us
+  // looking at bitrates.
+  //
+  // Watching only. Someone is put on a review cycle to watch a cut, not to take delivery
+  // of it, so `download` is deliberately excluded and stays on the delivery rules.
+  const reviewing =
+    session.isAdmin ||
+    access.allowed ||
+    kind === "download" ||
+    session.clientId !== asset.project.clientId
+      ? null
+      : await db.reviewer.findFirst({
+          where: { projectId: asset.projectId, userId: session.id, revokedAt: null },
+          select: { id: true },
+        });
+
   if (!session.isAdmin) {
-    if (!access.allowed) return { ok: false, status: 404 };
+    if (!access.allowed && !reviewing) return { ok: false, status: 404 };
     if (asset.internal) return { ok: false, status: 404 };
     if (asset.project.expiresAt && asset.project.expiresAt.getTime() < Date.now()) {
       return { ok: false, status: 410, reason: "expired" };
