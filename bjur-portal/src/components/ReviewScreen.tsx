@@ -115,6 +115,7 @@ export function ReviewScreen({
   markerExportHref,
 }: ReviewScreenProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playerRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLInputElement | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -123,6 +124,7 @@ export function ReviewScreen({
    *  the video drifted to while you were typing. */
   const [lockedAt, setLockedAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [isFull, setIsFull] = useState(false);
   const [sentBanner, setSentBanner] = useState<string | null>(null);
 
   const cut = cuts.find((c) => c.id === activeCutId) ?? cuts[cuts.length - 1];
@@ -148,6 +150,31 @@ export function ReviewScreen({
       [...notes].sort((a, b) => (a.timeSec ?? -1) - (b.timeSec ?? -1) || a.id.localeCompare(b.id)),
     [notes]
   );
+
+  /**
+   * Fullscreen the player, not the page.
+   *
+   * On the element rather than document.body so the notes panel and transport go away —
+   * a reviewer watching a grade wants the frame and nothing else. iOS Safari has no
+   * element fullscreen, so it falls back to the video's own native player, which is the
+   * behaviour people expect there anyway.
+   */
+  const toggleFullscreen = useCallback(() => {
+    const box = playerRef.current;
+    const vid = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+    if (box?.requestFullscreen) void box.requestFullscreen().catch(() => {});
+    else vid?.webkitEnterFullscreen?.();
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   const seek = useCallback((t: number) => {
     const v = videoRef.current;
@@ -196,6 +223,9 @@ export function ReviewScreen({
       } else if (e.key === "n" || e.key === "N") {
         e.preventDefault();
         composerRef.current?.focus();
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         const next = visible.find((n) => n.timeSec != null && n.timeSec > v.currentTime + 0.05);
@@ -204,7 +234,7 @@ export function ReviewScreen({
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [toggle, seek, visible]);
+  }, [toggle, seek, visible, toggleFullscreen]);
 
   function focusComposer() {
     const v = videoRef.current;
@@ -300,6 +330,7 @@ export function ReviewScreen({
             row layout, where flex-1 is the right answer. */}
         <div className="shrink-0 lg:flex-1 lg:min-h-0 flex flex-col">
           <div
+            ref={playerRef}
             data-testid="player-area"
             className="relative h-[42vh] lg:h-auto lg:flex-1 lg:min-h-0 grid place-items-center bg-black p-2 lg:p-3"
           >
@@ -330,6 +361,15 @@ export function ReviewScreen({
                 data-testid="review-video"
               />
             )}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={isFull ? "Exit fullscreen" : "Fullscreen"}
+              data-testid="fullscreen"
+              className={`absolute ${mode === "studio" ? "top-12" : "top-4"} right-4 z-10 w-9 h-9 grid place-items-center border border-white/25 hover:border-white bg-black/50 text-white/80 hover:text-white cursor-pointer text-[13px]`}
+            >
+              {isFull ? "⤡" : "⤢"}
+            </button>
             {overlay && (
               <div
                 data-testid="frame-note"
