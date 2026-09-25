@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -40,6 +41,8 @@ export type ScreenCut = {
   approvedAt: string | null;
   approvedByName: string | null;
   assetId: string;
+  /** The file this cut is, named. Per cut: the header follows the tab you are on. */
+  title: string;
   durationSec: number | null;
   width: number | null;
   height: number | null;
@@ -52,6 +55,8 @@ export type ReviewScreenProps = {
   clientName: string;
   projectTitle: string;
   assetTitle: string;
+  /** Where the wordmark goes. Omitted for a guest, who has no portal to go back to. */
+  backHref?: string;
   /** Newest last. Studio sees an unsent cut; clients never do. */
   cuts: ScreenCut[];
   activeCutId: string;
@@ -99,6 +104,7 @@ export function ReviewScreen({
   clientName,
   projectTitle,
   assetTitle,
+  backHref,
   cuts,
   activeCutId,
   onSelectCut,
@@ -159,21 +165,38 @@ export function ReviewScreen({
    * element fullscreen, so it falls back to the video's own native player, which is the
    * behaviour people expect there anyway.
    */
+  // Safari is the reason this is three branches rather than one. The unprefixed element
+  // API only landed in Safari 16.4, iOS has never had it for anything but a <video>, and
+  // the prefixed spelling is still what an older Mac answers to. Falling straight through
+  // to the video is the last resort because it loses the note overlay with the chrome.
   const toggleFullscreen = useCallback(() => {
-    const box = playerRef.current;
+    const box = playerRef.current as
+      | (HTMLDivElement & { webkitRequestFullscreen?: () => void })
+      | null;
     const vid = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
-    if (document.fullscreenElement) {
-      void document.exitFullscreen();
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => void;
+    };
+    if (document.fullscreenElement || doc.webkitFullscreenElement) {
+      if (document.exitFullscreen) void document.exitFullscreen();
+      else doc.webkitExitFullscreen?.();
       return;
     }
     if (box?.requestFullscreen) void box.requestFullscreen().catch(() => {});
+    else if (box?.webkitRequestFullscreen) box.webkitRequestFullscreen();
     else vid?.webkitEnterFullscreen?.();
   }, []);
 
   useEffect(() => {
-    const onChange = () => setIsFull(!!document.fullscreenElement);
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    const onChange = () => setIsFull(!!(document.fullscreenElement || doc.webkitFullscreenElement));
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
   }, []);
 
   const seek = useCallback((t: number) => {
@@ -284,9 +307,24 @@ export function ReviewScreen({
     >
       {/* Header */}
       <div className="flex items-center gap-3 lg:gap-4 px-4 lg:px-5 py-2.5 lg:py-3 border-b border-white/12 flex-wrap shrink-0">
-        <span className="bj-serif text-[19px] leading-none">Bjur</span>
+        {backHref ? (
+          // The only way off this screen. It is a fixed-inset overlay with no portal nav
+          // behind it, so without this the back button is the browser's and nothing else.
+          <Link
+            href={backHref}
+            data-testid="review-back"
+            className="bj-serif text-[19px] leading-none text-white/80 hover:text-white"
+            title="Back to the project"
+          >
+            Bjur
+          </Link>
+        ) : (
+          <span className="bj-serif text-[19px] leading-none">Bjur</span>
+        )}
         <div className="min-w-0">
-          <div className="text-[12px] font-mono truncate">{assetTitle}</div>
+          <div className="text-[12px] font-mono truncate" data-testid="asset-title">
+            {cut?.title ?? assetTitle}
+          </div>
           <div className="text-[10.5px] font-mono text-white/45 truncate">
             {clientName} · {projectTitle}
           </div>

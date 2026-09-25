@@ -58,5 +58,5 @@ export default async function ClientReviewPage({
     );
   }
 
-  return <ReviewScreenClient mode="client" {...data} />;
+  return <ReviewScreenClient mode="client" backHref="/" {...data} />;
 }

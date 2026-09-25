@@ -34,5 +34,5 @@ export default async function StudioReviewPage({ params }: { params: Promise<{ i
     );
   }
 
-  return <StudioReviewClient mode="studio" {...data} />;
+  return <StudioReviewClient mode="studio" backHref={`/admin/projects/${id}`} {...data} />;
 }
