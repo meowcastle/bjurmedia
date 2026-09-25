@@ -253,7 +253,7 @@ export function ReviewScreen({
       style={{ colorScheme: "dark" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-4 px-5 py-3 border-b border-white/12 flex-wrap">
+      <div className="flex items-center gap-3 lg:gap-4 px-4 lg:px-5 py-2.5 lg:py-3 border-b border-white/12 flex-wrap shrink-0">
         <span className="bj-serif text-[19px] leading-none">Bjur</span>
         <div className="min-w-0">
           <div className="text-[12px] font-mono truncate">{assetTitle}</div>
@@ -293,9 +293,16 @@ export function ReviewScreen({
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        {/* Player */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="relative flex-1 min-h-0 grid place-items-center bg-black p-3">
+        {/* Player.
+            On a phone this is a fixed slice of the viewport rather than flex-1. Sharing
+            the column with the notes list meant the list won and the video collapsed to
+            300x150 — a review screen whose one job is watching the cut. Desktop keeps the
+            row layout, where flex-1 is the right answer. */}
+        <div className="shrink-0 lg:flex-1 lg:min-h-0 flex flex-col">
+          <div
+            data-testid="player-area"
+            className="relative h-[42vh] lg:h-auto lg:flex-1 lg:min-h-0 grid place-items-center bg-black p-2 lg:p-3"
+          >
             <span className="absolute top-4 left-5 text-[10.5px] font-mono uppercase tracking-[.1em] text-white/55 z-10">
               Cut {cut?.version}
             </span>
@@ -335,7 +342,7 @@ export function ReviewScreen({
           </div>
 
           {/* Transport */}
-          <div className="px-5 py-3 border-t border-white/12 flex items-center gap-4">
+          <div className="px-4 lg:px-5 py-2.5 lg:py-3 border-t border-b lg:border-b-0 border-white/12 flex items-center gap-3 lg:gap-4 shrink-0">
             <button
               type="button"
               onClick={toggle}
@@ -407,7 +414,7 @@ export function ReviewScreen({
         </div>
 
         {/* Notes */}
-        <div className="w-full lg:w-[380px] lg:min-w-[340px] border-t lg:border-t-0 lg:border-l border-white/12 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 lg:flex-none w-full lg:w-[380px] lg:min-w-[340px] lg:border-l border-white/12 flex flex-col">
           <div className="px-5 pt-4 pb-3 border-b border-white/12">
             <div className="bj-serif text-[19px] leading-none">Notes</div>
             <div className="text-[10.5px] font-mono uppercase tracking-[.1em] text-white/45 mt-1.5">
@@ -506,7 +513,7 @@ export function ReviewScreen({
           {/* Composer / footer */}
           <div className="border-t border-white/12 px-5 py-4">
             {mode === "client" && viewer && isLatest && !approved && (
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap sm:flex-nowrap">
                 <span
                   data-testid="stamp"
                   className="text-[11px] font-mono px-2 py-1.5 border"
@@ -534,7 +541,7 @@ export function ReviewScreen({
                   }}
                   placeholder="What needs changing?"
                   data-testid="composer"
-                  className="flex-1 bg-transparent border border-white/20 focus:border-white/60 outline-none px-3 py-1.5 text-[13px]"
+                  className="flex-1 min-w-[140px] bg-transparent border border-white/20 focus:border-white/60 outline-none px-3 py-2 text-[16px] sm:text-[13px]"
                 />
                 <button
                   type="button"
