@@ -135,9 +135,19 @@ function proxyDims(format: string) {
  * macroblock edges, and the average came out at 1.4 Mb/s against its own 4 Mb/s ceiling.
  * The ceiling was never the constraint; CRF was.
  *
- * So film gets CRF 18 with a VBV cap high enough to be irrelevant most of the time, plus
- * aq-mode 3, which biases bit allocation toward dark regions specifically — the failure
- * was entirely in the shadows, not the highlights.
+ * So film gets aq-mode 3, which biases bit allocation toward dark regions specifically —
+ * the failure was entirely in the shadows, not the highlights.
+ *
+ * The cap is the delivery target, and it is set where YouTube itself lands: their 1080p
+ * H.264 stream runs about 4.5-5 Mb/s, well under the 8 Mb/s they ask you to *upload*.
+ * Matching the stream rather than the upload spec is the point — this is a colour review,
+ * and what it has to predict is what the audience will actually be served.
+ *
+ * The first attempt at "as close to the master as possible" was CRF 18 with a 20 Mb/s
+ * cap, which produced an 18.3 Mb/s file. It was flawless on the studio LAN and stopped
+ * every few seconds for the reviewer it was made for — every viewer pulls it through one
+ * uplink, and two at once halves what each of them gets. A proxy nobody can watch to the
+ * end has no fidelity at all.
  *
  * Measured on the NAS: CRF 20 at 1080p ran 43s per 20s of footage, so a five-minute cut
  * is roughly a quarter of an hour. 10-bit HEVC was the other candidate and is not viable
@@ -147,7 +157,7 @@ function proxyDims(format: string) {
 function encodeTier(format: string) {
   const film = format === "Film" || format === "Master";
   return film
-    ? { crf: "18", maxrate: "20000k", bufsize: "40000k", aq: "aq-mode=3:aq-strength=1.1" }
+    ? { crf: "22", maxrate: "5000k", bufsize: "10000k", aq: "aq-mode=3:aq-strength=1.1" }
     : { crf: "26", maxrate: "4000k", bufsize: "8000k", aq: null };
 }
 
@@ -268,8 +278,9 @@ async function generateVideoProxy(
     "yuv420p",
     // -maxrate/-bufsize (VBV-constrained CRF) cap worst-case spikes on high-motion
     // content rather than lowering the average — a spike is usually what stalls a swipe
-    // on a real network. On the film tier the cap is deliberately loose: it is there to
-    // stop a pathological burst, not to shape the encode.
+    // on a real network. On the film tier the cap now shapes the encode rather than
+    // merely catching bursts: it is the delivery rate, and the delivery rate is the
+    // thing being reviewed.
     "-crf",
     tier.crf,
     "-maxrate",
@@ -277,6 +288,11 @@ async function generateVideoProxy(
     "-bufsize",
     tier.bufsize,
     ...(tier.aq ? ["-x264-params", tier.aq] : []),
+    // A keyframe every two seconds, which is what YouTube encodes to and what makes
+    // scrubbing land: x264's default of 250 means jumping to a note's timecode can decode
+    // ten seconds of frames first, and this player exists to be scrubbed.
+    "-g",
+    "48",
     "-color_primaries",
     "bt709",
     "-color_trc",
