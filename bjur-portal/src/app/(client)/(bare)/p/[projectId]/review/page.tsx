@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getProjectAccess } from "@/lib/projectAccess";
 import { loadReviewScreen } from "@/lib/reviewScreenData";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
 
@@ -23,14 +22,20 @@ export default async function ClientReviewPage({
   const project = await db.project.findUnique({ where: { id: projectId } });
   if (!project || project.type !== "FILM") notFound();
 
-  const access = await getProjectAccess(session, project);
-  if (!access.allowed) notFound();
+  if (session.clientId !== project.clientId) notFound();
 
   const reviewer = await db.reviewer.findFirst({
     where: { projectId, userId: session.id, revokedAt: null },
   });
   // A seat on the client who was never added as a reviewer, or was revoked. Not a 403:
   // they simply have no business on this screen, and 404 says less about who else does.
+  //
+  // This row is the whole credential, and deliberately not getProjectAccess(). That gate
+  // reads any ProjectMember row as "this login sees only the projects it is listed on",
+  // which is right for browsing deliveries and wrong here: a reviewer restricted to one
+  // delivery was mailed a link to a cut and then 404'd on it, because being added to the
+  // review cycle grants no ProjectMember row. Two credentials for one screen, and the
+  // one the studio actually manages was not the one being checked.
   if (!reviewer) notFound();
 
   const data = await loadReviewScreen(projectId, reviewer.id);

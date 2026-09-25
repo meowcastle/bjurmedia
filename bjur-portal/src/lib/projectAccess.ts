@@ -18,7 +18,17 @@ export async function getAccessibleProjectIds(session: SessionUser): Promise<str
   });
   if (memberships.length === 0) return null;
 
-  return memberships.map((m) => m.projectId);
+  // Being put on a film's review cycle is a grant in its own right, and it is the only
+  // one the studio issues for a Film project — there is no ProjectMember row to go with
+  // it. Without this, a reviewer who is restricted to one delivery cannot see the film
+  // they are reviewing anywhere in the portal, and the cut-ready email is their only way
+  // in. Revoked reviewers are excluded, so taking somebody off the cycle still hides it.
+  const reviewing = await db.reviewer.findMany({
+    where: { userId: session.id, revokedAt: null },
+    select: { projectId: true },
+  });
+
+  return [...new Set([...memberships, ...reviewing].map((m) => m.projectId))];
 }
 
 /**
