@@ -29,6 +29,18 @@ model Client {
   createdAt          DateTime            @default(now())
   users              User[]
   projects           Project[]
+  /**
+   * Whether this client's seats can upload footage from the portal.
+   *
+   * Off unless switched on, per client. Moving intake to the client accidentally handed
+   * every seat an upload page — a door the studio never opened, on every account. A send
+   * link is a deliberate act and this should be too.
+   *
+   * Independent of send links: revoking this does not close a link somebody already has,
+   * and having no link does not stop a seat the studio has trusted.
+   */
+  footageUploads Boolean @default(false)
+
   // Intake hangs here now, not off a project: footage arrives for a client, and what it
   // is eventually cut into is a separate question the sender never has to answer.
   submissionRequests SubmissionRequest[]

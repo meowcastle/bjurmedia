@@ -288,7 +288,7 @@ export function SubmissionUploadClient({
 
       <div className="border-b-2 border-line2 pb-6 mb-6">
         <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
-          Send us footage
+          Upload footage
         </div>
         <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3">
           {heading}

@@ -11,11 +11,14 @@ import type { ClientMembership } from "@/lib/auth";
 
 export function ClientHeader({
   clientName,
+  footageUploads = false,
   userName,
   memberships = [],
   activeClientId = null,
 }: {
   clientName: string;
+  /** The studio switches footage uploads on per client; off, the tab does not exist. */
+  footageUploads?: boolean;
   userName: string;
   memberships?: ClientMembership[];
   activeClientId?: string | null;
@@ -61,9 +64,9 @@ export function ClientHeader({
         </span>
       </Link>
 
-      {/* Two places to be: what we made for them, and what they are sending us. The
-          second used to live inside a project, which meant it only existed if somebody
-          had remembered to ask for footage on the right one. */}
+      {/* Projects always; uploading only where the studio has opened that door. Off, the
+          tab is absent rather than present-and-refusing — a client should not be shown a
+          way to send us things we are not expecting. */}
       <nav className="flex items-center gap-1 ml-2">
         <Link
           href="/"
@@ -73,17 +76,19 @@ export function ClientHeader({
         >
           Projects
         </Link>
-        <Link
-          href="/send"
-          data-testid="nav-send"
-          className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-            pathname.startsWith("/send")
-              ? "text-text border-b-2 border-accent"
-              : "text-muted hover:text-text"
-          }`}
-        >
-          Send to Bjur
-        </Link>
+        {footageUploads && (
+          <Link
+            href="/send"
+            data-testid="nav-send"
+            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+              pathname.startsWith("/send")
+                ? "text-text border-b-2 border-accent"
+                : "text-muted hover:text-text"
+            }`}
+          >
+            Upload footage
+          </Link>
+        )}
       </nav>
 
       {/* Desktop/tablet: full inline actions */}

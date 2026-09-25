@@ -42,6 +42,7 @@ export default async function ClientAppLayout({
       <script dangerouslySetInnerHTML={{ __html: themeScript("client") }} />
       <ClientHeader
         clientName={client.name}
+        footageUploads={client.footageUploads}
         userName={session.name}
         memberships={session.memberships}
         activeClientId={session.clientId}

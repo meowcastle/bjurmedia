@@ -463,6 +463,11 @@ async function seedSubmissions() {
     select: { id: true },
   });
 
+  // Portal uploads are off unless the studio opens them, per client. SSH is the one the
+  // upload specs drive, so it starts open — every other seeded client stays shut, which
+  // is also what the default should look like in dev.
+  await db.client.update({ where: { id: sshClient.id }, data: { footageUploads: true } });
+
   const batch = await db.uploadBatch.create({
     data: {
       clientId: sshClient.id,

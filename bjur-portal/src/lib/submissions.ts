@@ -49,6 +49,11 @@ export async function assertClientUploadAccess(
   const client = await db.client.findUnique({ where: { id: session.clientId } });
   if (!client || client.status !== "ACTIVE") return { ok: false, status: 404 };
 
+  // The switch, checked here rather than by hiding the tab, because every upload route
+  // funnels through this one function — a hand-rolled POST is refused the same way a
+  // click would be. Send links are unaffected: they are their own permission.
+  if (!client.footageUploads) return { ok: false, status: 403 };
+
   return {
     ok: true,
     userId: session.id,

@@ -95,6 +95,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         slackChannel: channel?.channel ?? null,
         accountCount: socialAccounts.filter((a) => a.handle).length,
         autoCaption: client.autoCaption,
+        footageUploads: client.footageUploads,
       }}
       topPosts={topPosts.map((p) => ({
         id: p.id,

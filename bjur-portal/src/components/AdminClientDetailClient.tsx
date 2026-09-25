@@ -44,6 +44,7 @@ type ClientInfo = {
   slackChannel: string | null;
   accountCount: number;
   autoCaption: boolean;
+  footageUploads: boolean;
   logoUrl: string | null;
 };
 
@@ -544,6 +545,8 @@ export function AdminClientDetailClient({
           client; neither belongs to the other. */}
       <AdminIntakeBlock
         clientId={client.id}
+        clientName={client.name}
+        footageUploads={client.footageUploads}
         batches={intake.batches}
         links={intake.links}
         onChanged={() => router.refresh()}

@@ -41,11 +41,16 @@ function when(iso: string) {
 
 export function AdminIntakeBlock({
   clientId,
+  clientName,
+  footageUploads,
   batches,
   links,
   onChanged,
 }: {
   clientId: string;
+  clientName: string;
+  /** Whether this client's seats can upload from the portal at all. */
+  footageUploads: boolean;
   batches: IntakeBatch[];
   links: IntakeLink[];
   onChanged: () => void;
@@ -70,6 +75,22 @@ export function AdminIntakeBlock({
       return;
     }
     setToast(`Freed ${formatBytes(Number(data.freedBytes))} — the record is kept.`);
+    onChanged();
+  }
+
+  async function togglePortalUploads() {
+    setBusy("portal");
+    await fetch(`/api/admin/clients/${clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ footageUploads: !footageUploads }),
+    });
+    setBusy(null);
+    setToast(
+      footageUploads
+        ? `${clientName} can no longer upload from the portal.`
+        : `${clientName} can upload footage from the portal.`
+    );
     onChanged();
   }
 
@@ -214,6 +235,33 @@ export function AdminIntakeBlock({
 
         {/* The doors */}
         <div className="bg-s1 p-5">
+          {/* Two independent doors. A link is for people with no account; this switch is
+              for the client's own seats. Neither implies the other. */}
+          <div className="flex items-baseline justify-between gap-3 pb-3 mb-3 border-b border-line">
+            <div className="min-w-0">
+              <div className="text-[11px] tracking-[0.1em] uppercase text-dim">Portal uploads</div>
+              <div className="text-[11px] text-muted mt-1 leading-relaxed">
+                {footageUploads
+                  ? `${clientName}'s seats can upload footage from the portal.`
+                  : "Their seats have no way to send us anything."}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void togglePortalUploads()}
+              disabled={busy === "portal"}
+              data-testid="toggle-portal-uploads"
+              className="text-[10.5px] font-semibold uppercase tracking-[.06em] border px-2.5 py-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+              style={
+                footageUploads
+                  ? { borderColor: "var(--success)", color: "var(--success)" }
+                  : { borderColor: "var(--line2)", color: "var(--muted)" }
+              }
+            >
+              {footageUploads ? "On" : "Off"}
+            </button>
+          </div>
+
           <div className="flex items-baseline justify-between gap-3 pb-2 border-b border-line">
             <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Send links</span>
             <button

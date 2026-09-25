@@ -53,6 +53,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ client });
   }
 
+  if ("footageUploads" in body) {
+    const { footageUploads } = body as { footageUploads?: boolean };
+    if (typeof footageUploads !== "boolean") {
+      return NextResponse.json({ error: "footageUploads must be true or false." }, { status: 400 });
+    }
+    const client = await db.client.update({ where: { id }, data: { footageUploads } });
+    await db.activity.create({
+      data: {
+        actor: "You",
+        action: `${footageUploads ? "opened" : "closed"} portal footage uploads for ${client.name}`,
+      },
+    });
+    return NextResponse.json({ client });
+  }
+
   if ("autoCaption" in body) {
     const { autoCaption } = body as { autoCaption?: boolean };
     if (typeof autoCaption !== "boolean") {

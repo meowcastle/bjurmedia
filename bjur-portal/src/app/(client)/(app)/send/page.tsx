@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SubmissionUploadClient } from "@/components/SubmissionUploadClient";
@@ -16,6 +16,14 @@ export default async function ClientSendPage() {
   const session = await getSessionUser();
   if (!session?.clientId) redirect("/login");
 
+  const client = await db.client.findUnique({
+    where: { id: session.clientId },
+    select: { name: true, footageUploads: true },
+  });
+  // 404 rather than a refusal page: with the switch off this address is not a thing that
+  // exists for them, and the nav does not offer it either.
+  if (!client?.footageUploads) notFound();
+
   const batches = await db.uploadBatch.findMany({
     where: { clientId: session.clientId },
     orderBy: { createdAt: "desc" },
@@ -28,7 +36,7 @@ export default async function ClientSendPage() {
 
   return (
     <>
-      <SubmissionUploadClient heading="Send us footage" expired={false} />
+      <SubmissionUploadClient heading={`Upload footage for ${client.name}`} expired={false} />
       <ClientSentList
         batches={batches.map((b) => ({
           id: b.id,
