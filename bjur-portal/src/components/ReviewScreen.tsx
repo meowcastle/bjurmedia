@@ -183,7 +183,19 @@ export function ReviewScreen({
       else doc.webkitExitFullscreen?.();
       return;
     }
-    if (box?.requestFullscreen) void box.requestFullscreen().catch(() => {});
+    // iPhone first, because it is the case that silently does nothing otherwise. iOS has
+    // no element fullscreen at all — only the <video> can go fullscreen — and it reports
+    // that honestly through fullscreenEnabled, so ask before trying. Calling
+    // requestFullscreen there returns a promise that rejects into the void, which is
+    // exactly what "there is no option" looks like from the outside.
+    const canElement =
+      document.fullscreenEnabled ||
+      (document as Document & { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled;
+    if (!canElement) {
+      vid?.webkitEnterFullscreen?.();
+      return;
+    }
+    if (box?.requestFullscreen) void box.requestFullscreen().catch(() => vid?.webkitEnterFullscreen?.());
     else if (box?.webkitRequestFullscreen) box.webkitRequestFullscreen();
     else vid?.webkitEnterFullscreen?.();
   }, []);
@@ -404,7 +416,7 @@ export function ReviewScreen({
               onClick={toggleFullscreen}
               aria-label={isFull ? "Exit fullscreen" : "Fullscreen"}
               data-testid="fullscreen"
-              className={`absolute ${mode === "studio" ? "top-12" : "top-4"} right-4 z-10 w-9 h-9 grid place-items-center border border-white/25 hover:border-white bg-black/50 text-white/80 hover:text-white cursor-pointer text-[13px]`}
+              className={`absolute ${mode === "studio" ? "top-12" : "top-4"} right-4 z-10 w-11 h-11 lg:w-9 lg:h-9 grid place-items-center border border-white/40 lg:border-white/25 hover:border-white bg-black/70 lg:bg-black/50 text-white hover:text-white cursor-pointer text-[15px] lg:text-[13px]`}
             >
               {isFull ? "⤡" : "⤢"}
             </button>
