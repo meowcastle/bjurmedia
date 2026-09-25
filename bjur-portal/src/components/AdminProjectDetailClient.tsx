@@ -486,6 +486,21 @@ export function AdminProjectDetailClient({
             setToast(`Re-encoding ${a.name}`);
             router.refresh();
           }}
+          onDelete={async (a) => {
+            // Move the viewer off the row before the refresh drops it: leaving activeId
+            // pointing at a deleted asset renders the viewer with nothing in it.
+            const i = assets.findIndex((x) => x.id === a.id);
+            setOpenFileId(assets[i + 1]?.id ?? assets[i - 1]?.id ?? null);
+            const res = await fetch(`/api/admin/assets/${a.id}`, { method: "DELETE" });
+            if (!res.ok) {
+              const body = (await res.json().catch(() => ({}))) as { error?: string };
+              setToast(body.error ?? "Could not delete that.");
+              setOpenFileId(a.id);
+              return;
+            }
+            setToast(`Deleted ${a.name}`);
+            router.refresh();
+          }}
           onToggleInternal={async (a) => {
             await fetch(`/api/admin/assets/${a.id}`, {
               method: "PATCH",

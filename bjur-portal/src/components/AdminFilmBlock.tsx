@@ -53,7 +53,7 @@ export function AdminFilmBlock({
   return (
     <div className="mt-10 grid md:grid-cols-2 gap-px bg-line2 border border-line2" data-testid="film-block">
       {/* Cuts */}
-      <div className="bg-s1 p-5">
+      <div className="bg-s1 p-5" data-testid="film-cuts">
         <div className="flex justify-between items-baseline pb-2.5 border-b border-line2">
           <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
             Cuts <span className="text-dim2">· {cuts.length}</span>

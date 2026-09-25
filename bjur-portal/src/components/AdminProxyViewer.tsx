@@ -51,6 +51,7 @@ export function AdminProxyViewer({
   onNavigate,
   onClose,
   onRegenerate,
+  onDelete,
   onToggleInternal,
 }: {
   assets: ProxyViewerAsset[];
@@ -58,6 +59,8 @@ export function AdminProxyViewer({
   onNavigate: (id: string) => void;
   onClose: () => void;
   onRegenerate: (a: ProxyViewerAsset) => void;
+  /** Optional: only surfaces a delete control where the caller can handle it. */
+  onDelete?: (a: ProxyViewerAsset) => void;
   onToggleInternal: (a: ProxyViewerAsset) => void;
 }) {
   const index = assets.findIndex((a) => a.id === activeId);
@@ -67,6 +70,9 @@ export function AdminProxyViewer({
   const [elapsed, setElapsed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
+  // Which file has delete armed, rather than a bare boolean: arming one and arrowing to
+  // the next would otherwise carry the arm with it, and derived state needs no effect.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -244,6 +250,26 @@ export function AdminProxyViewer({
                 className="cursor-pointer text-[12px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
               >
                 {asset.proxyStatus === "READY" ? "Regenerate proxy" : "Retry proxy"}
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => {
+                  // Two steps, no dialog. The file leaves the NAS and the row goes with
+                  // it — that is not something to do on one stray click, and a confirm
+                  // people click through without reading is not a safeguard.
+                  if (confirmingId === asset.id) onDelete(asset);
+                  else setConfirmingId(asset.id);
+                }}
+                data-testid="delete-asset"
+                className="cursor-pointer text-[12px] font-semibold px-3 py-2 border"
+                style={
+                  confirmingId === asset.id
+                    ? { borderColor: "var(--accentb)", color: "var(--accentb)" }
+                    : { borderColor: "var(--line2)", color: "var(--muted)" }
+                }
+              >
+                {confirmingId === asset.id ? "Delete for good — click again" : "Delete file"}
               </button>
             )}
             <a

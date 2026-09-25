@@ -19,9 +19,34 @@ import { db } from "@/lib/db";
  * acts on it.
  */
 
-/** Version currently on disk for an asset. First upload is cut 1. */
-function versionOf(reingestCount: number) {
-  return reingestCount + 1;
+/**
+ * The next cut number for a project.
+ *
+ * Counted across the project, not per asset. reingestCount only advances when the *same
+ * filename* is dropped again, so exporting "v4.mov" then "v5.mov" produced two assets
+ * that were each cut 1 — which is how a real edit actually gets delivered, and the page
+ * showed "Cut 1" twice.
+ */
+async function nextVersion(projectId: string) {
+  const latest = await db.review.findFirst({
+    where: { asset: { projectId } },
+    orderBy: { version: "desc" },
+    select: { version: true },
+  });
+  return (latest?.version ?? 0) + 1;
+}
+
+/**
+ * Retire an asset's cut when it stops being something a client can see.
+ *
+ * Hiding a file from the client but leaving its cut standing means the review screen
+ * offers a tab for something nobody can watch. Only ever drops an *unsent* cut: once
+ * reviewers have been emailed about it, it is part of the record and the notes hang off
+ * it, so hiding the file afterwards is a different decision entirely.
+ */
+export async function retireUnsentCut(assetId: string) {
+  const { count } = await db.review.deleteMany({ where: { assetId, sentAt: null } });
+  return count;
 }
 
 /** Hex, not base64url: a hyphen inside a token broke a URL split once already. */
@@ -49,6 +74,7 @@ export async function openReview(assetId: string) {
     select: {
       id: true,
       internal: true,
+      projectId: true,
       reingestCount: true,
       project: { select: { type: true } },
     },
@@ -58,13 +84,20 @@ export async function openReview(assetId: string) {
   // Masters and working files are not cuts anyone is asked to sign off on.
   if (asset.internal) return null;
 
-  const version = versionOf(asset.reingestCount);
-
-  const existing = await db.review.findFirst({ where: { assetId, version } });
+  // One cut per generation of the file: a re-encode of the same bytes, or the watcher
+  // firing twice, must not mint a second — but dropping the same filename again is a
+  // new export, and that is exactly what the next cut is.
+  const existing = await db.review.findFirst({
+    where: { assetId, sourceGen: asset.reingestCount },
+  });
   if (existing) return existing;
 
+  const version = await nextVersion(asset.projectId);
+
   // No mail here, on purpose. Reviewers hear about a cut when the studio releases it.
-  return db.review.create({ data: { assetId, version, state: "PENDING" } });
+  return db.review.create({
+    data: { assetId, version, sourceGen: asset.reingestCount, state: "PENDING" },
+  });
 }
 
 /**
@@ -85,10 +118,15 @@ export async function currentCut(projectId: string) {
   });
 }
 
-/** A cut that has landed but has not gone out yet — what the studio owes an answer on. */
+/**
+ * A cut that has landed but has not gone out yet — what the studio owes an answer on.
+ *
+ * Hidden files are excluded: sending a cut the client cannot open is the one outcome
+ * this whole surface exists to prevent.
+ */
 export async function unsentCut(projectId: string) {
   return db.review.findFirst({
-    where: { asset: { projectId }, sentAt: null },
+    where: { asset: { projectId, internal: false }, sentAt: null },
     orderBy: { version: "desc" },
     include: { asset: true },
   });

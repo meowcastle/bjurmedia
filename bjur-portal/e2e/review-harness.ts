@@ -246,6 +246,50 @@ async function main() {
     `to=${afterRevoke.map((m) => m.to).join(",")}`
   );
 
+  // --- cut numbers belong to the project ---------------------------------------------
+  // A real edit arrives as "v4.mov" then "v5.mov": two assets, each on its first ingest.
+  // Numbering per asset made both of them cut 1.
+  const { retireUnsentCut, unsentCut } = await import("../src/lib/reviews");
+
+  const v5 = await mkAsset(film.id, "v5.mov");
+  const cut3 = await openReview(v5.id);
+  check(
+    "a differently named export continues the count",
+    cut3?.version === 3,
+    `version=${cut3?.version}`
+  );
+  check("the same file re-encoded does not mint another", (await openReview(v5.id))?.id === cut3?.id);
+
+  await db.asset.update({ where: { id: v5.id }, data: { reingestCount: 1 } });
+  const cut4 = await openReview(v5.id);
+  check("re-dropping the same filename does", cut4?.version === 4 && cut4?.id !== cut3?.id,
+    `version=${cut4?.version}`);
+
+  // --- hiding a file retires its cut --------------------------------------------------
+  const hidden = await mkAsset(film.id, "wip.mov");
+  const wipCut = await openReview(hidden.id);
+  check("a visible file opens a cut", wipCut !== null);
+  await db.asset.update({ where: { id: hidden.id }, data: { internal: true } });
+  check("hiding it retires the unsent cut", (await retireUnsentCut(hidden.id)) === 1);
+  check(
+    "and nothing unsent is left pointing at it",
+    (await db.review.findFirst({ where: { assetId: hidden.id } })) === null
+  );
+
+  await db.asset.update({ where: { id: hidden.id }, data: { internal: false } });
+  const reopened = await openReview(hidden.id);
+  check("showing it again opens a fresh cut", reopened !== null);
+
+  // A cut reviewers have already been mailed about is history: hiding the file does not
+  // unmake the notes hanging off it.
+  await db.review.update({ where: { id: reopened!.id }, data: { sentAt: new Date() } });
+  await db.asset.update({ where: { id: hidden.id }, data: { internal: true } });
+  check("a sent cut survives hiding", (await retireUnsentCut(hidden.id)) === 0);
+  check(
+    "but it is no longer what the studio owes",
+    (await unsentCut(film.id))?.assetId !== hidden.id
+  );
+
   console.log(JSON.stringify(results));
 }
 

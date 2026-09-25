@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { openReview, retireUnsentCut } from "@/lib/reviews";
 
 const INGEST_PORT = process.env.INGEST_PORT ?? "3100";
 
@@ -55,6 +56,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   await db.asset.update({ where: { id }, data });
+
+  // Hiding a file from the client retires its unsent cut: a cut nobody can watch is a
+  // tab on the review screen that leads nowhere. Showing it again re-opens one, so the
+  // switch works in both directions.
+  if (data.internal === true) await retireUnsentCut(id);
+  if (data.internal === false) await openReview(id).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

@@ -27,7 +27,13 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
   const filmCuts =
     project.type === "FILM"
       ? await db.review.findMany({
-          where: { asset: { projectId: id } },
+          // The cut list is what the client can watch, not what is on disk. A file hidden
+          // from the client is not a cut — but one already sent stays, because the notes
+          // reviewers left on it are history and hiding the file does not unmake them.
+          where: {
+            asset: { projectId: id },
+            OR: [{ sentAt: { not: null } }, { asset: { internal: false } }],
+          },
           orderBy: { version: "asc" },
           include: {
             approvedBy: { select: { name: true } },
