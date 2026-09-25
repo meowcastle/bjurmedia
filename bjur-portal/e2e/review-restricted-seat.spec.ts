@@ -59,6 +59,24 @@ test("a reviewer restricted to another project can still open the cut", async ({
   }
 });
 
+test("the gallery URL sends a reviewer to the cut instead of a 404", async ({ page }) => {
+  // Where a bookmark, browser history or an autocompleted URL drops somebody who was
+  // only ever given the review link. The gallery is genuinely not theirs; the cut is.
+  const userId = sql("SELECT userId FROM Reviewer WHERE projectId='p2' AND email='sasha@ssh.studio';");
+  const pmId = `zz-pm-${Date.now()}`;
+  sql(
+    `INSERT INTO ProjectMember (id, projectId, userId, role, createdAt) VALUES ('${pmId}','p1','${userId}','DOWNLOADER',CURRENT_TIMESTAMP);`
+  );
+
+  try {
+    await page.goto("/p/p2");
+    await expect(page).toHaveURL(/\/p\/p2\/review$/);
+    await expect(page.getByTestId("review-screen")).toBeVisible();
+  } finally {
+    sql(`DELETE FROM ProjectMember WHERE id='${pmId}';`);
+  }
+});
+
 test("a restricted login with no reviewer row still gets nothing", async ({ page }) => {
   // The restriction still means something: the Reviewer row is what opens this screen,
   // so revoking it closes the door again even while the ProjectMember row stands.

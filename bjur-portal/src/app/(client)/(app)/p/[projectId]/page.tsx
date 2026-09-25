@@ -29,7 +29,22 @@ export default async function ProjectDetailPage({
   if (!project || project.status !== "LIVE") notFound();
 
   const access = await getProjectAccess(session, project);
-  if (!access.allowed) notFound();
+  if (!access.allowed) {
+    // A reviewer's only grant is the review cycle — no ProjectMember row comes with it —
+    // so a restricted login that is on a film's cycle lands here with no delivery access
+    // and used to get a 404. The gallery genuinely is not theirs; the cut is. Send them
+    // to it rather than to a dead end, which is where a bookmark or an autocompleted URL
+    // drops somebody who was only ever given the review link.
+    const reviewing =
+      session.clientId === project.clientId
+        ? await db.reviewer.findFirst({
+            where: { projectId, userId: session.id, revokedAt: null },
+            select: { id: true },
+          })
+        : null;
+    if (!reviewing || project.type !== "FILM") notFound();
+    redirect(`/p/${projectId}/review`);
+  }
 
   const allSocialPosts = project.assets.flatMap((a) => a.socialPosts);
   const totalViews = allSocialPosts.reduce((sum, p) => sum + p.viewCount, 0);
