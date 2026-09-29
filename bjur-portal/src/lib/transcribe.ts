@@ -77,7 +77,9 @@ export const deepgramTranscriber: Transcriber = async (audioPath) => {
 
   const body = await readFile(audioPath);
   const params = new URLSearchParams({
-    model: process.env.DEEPGRAM_MODEL ?? "nova-3",
+    // `||`, not `??`: docker-compose passes an unset DEEPGRAM_MODEL through as "", and
+    // Deepgram answers `model=` with a 403 that reads like a billing problem.
+    model: process.env.DEEPGRAM_MODEL || "nova-3",
     smart_format: "true",
     punctuate: "true",
     detect_language: "true",

@@ -25,6 +25,15 @@ const MONTH_ABBR: Record<string, number> = {
  * casing, ordinal suffix optional) into a Date. Returns null for anything that
  * isn't shaped like one of these folder names — e.g. a plain filename or "WIPS".
  */
+/** Today's calendar date in New York, as UTC midnight — the same shape parseDateFolder returns. */
+function todayInNewYork(): Date {
+  const [y, m, d] = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" })
+    .format(new Date())
+    .split("-")
+    .map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
 function parseDateFolder(name: string): Date | null {
   const match = name.trim().match(/^([A-Za-z]{3,})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
   if (!match) return null;
@@ -229,7 +238,7 @@ export async function ingestFile(absPath: string) {
   // file is moved — capture it here so the client gallery's week view has something
   // to group on.
   const inboxSegments = path.relative(INBOX_ROOT, absPath).split(path.sep);
-  const weekOf = inboxSegments[2] ? parseDateFolder(inboxSegments[2]) : null;
+  const datedFolder = inboxSegments[2] ? parseDateFolder(inboxSegments[2]) : null;
 
   await moveFile(absPath, destAbsPath);
 
@@ -246,6 +255,11 @@ export async function ingestFile(absPath: string) {
   // internal/licensable are deliberately left untouched here — those can be an
   // admin's manual override and a re-upload shouldn't stomp them.
   const existing = await db.asset.findFirst({ where: { projectId: project.id, relPath } });
+
+  // Without a date folder, a file belongs to the week it arrived — a render dropped
+  // straight into the project's inbox is this week's post. A re-export keeps the week
+  // it already had, so fixing an old reel doesn't pull it into this week.
+  const weekOf = datedFolder ?? existing?.weekOf ?? todayInNewYork();
   const asset = existing
     ? await db.asset.update({
         where: { id: existing.id },

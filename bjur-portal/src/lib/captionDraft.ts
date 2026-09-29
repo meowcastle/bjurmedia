@@ -79,7 +79,7 @@ export const claudeDrafter: CaptionDrafter = async (input) => {
         : {}),
     },
     body: JSON.stringify({
-      model: process.env.CAPTION_MODEL ?? "claude-sonnet-5",
+      model: process.env.CAPTION_MODEL || "claude-sonnet-5",
       max_tokens: 1024,
       system: SYSTEM,
       messages: [

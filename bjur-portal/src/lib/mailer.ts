@@ -9,7 +9,7 @@ import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutRe
 import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
 
 function mailFrom() {
-  return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? "Bjur Media <hello@bjur.media>";
+  return process.env.MAIL_FROM || process.env.SMTP_FROM || "Bjur Media <hello@bjur.media>";
 }
 
 /**
@@ -51,7 +51,7 @@ function getTransport() {
   if (!process.env.SMTP_HOST) return null;
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
+    port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === "true",
     auth: process.env.SMTP_USER
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
