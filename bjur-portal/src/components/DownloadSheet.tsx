@@ -27,6 +27,42 @@ export type DownloadFacts = {
   watermarked: boolean;
 };
 
+/** A reel's post copy: what goes in the description when it is posted. */
+export type PostCopy = {
+  title: string | null;
+  instagram: string | null;
+  youtube: string | null;
+};
+
+/** One block of post copy with its own Copy button, so it can go straight into the app. */
+function CopyBlock({ label, text }: { label: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard refused (insecure context, denied permission) — the text is still
+      // selectable, so there is nothing worth interrupting anyone about.
+    }
+  }
+  return (
+    <div className="py-2.5 border-b border-white/10">
+      <div className="flex items-baseline justify-between gap-4 mb-1.5">
+        <span className="text-[10px] uppercase tracking-[.12em] text-white/45">{label}</span>
+        <button
+          onClick={copy}
+          className="text-[10px] uppercase tracking-[.12em] text-white/60 hover:text-white cursor-pointer"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p className="text-[13px] leading-relaxed text-white/85 whitespace-pre-wrap select-text">{text}</p>
+    </div>
+  );
+}
+
 /**
  * What a held project actually hands over: the marked 1080p proxy, not the master. The
  * sheet's facts come from the Asset row, so without this a 4K master advertises "3840 ×
@@ -51,10 +87,12 @@ export function DownloadSheet({
   facts,
   assetId,
   canDownload,
+  copy,
   onClose,
 }: {
   open: boolean;
   facts: DownloadFacts;
+  copy?: PostCopy;
   assetId: string;
   canDownload: boolean;
   onClose: () => void;
@@ -191,6 +229,16 @@ export function DownloadSheet({
           {facts.durationLabel && <Fact label="Duration" value={facts.durationLabel} />}
           {!facts.watermarked && facts.size && <Fact label="Size" value={facts.size} />}
         </div>
+
+        {/* The description that goes out with the post. Scrolls on its own so a long
+            caption never pushes the download button off a phone screen. */}
+        {(copy?.title || copy?.instagram || copy?.youtube) && (
+          <div className="px-5 max-h-[40vh] overflow-y-auto" data-testid="sheet-copy">
+            {copy.title && <CopyBlock label="Title" text={copy.title} />}
+            {copy.instagram && <CopyBlock label="Instagram caption" text={copy.instagram} />}
+            {copy.youtube && <CopyBlock label="YouTube description" text={copy.youtube} />}
+          </div>
+        )}
 
         <div className="px-5 pt-4 pb-6">
           {canDownload ? (

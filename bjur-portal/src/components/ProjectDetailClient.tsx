@@ -22,6 +22,7 @@ type Asset = TileAsset & {
   folderId: string | null;
   contentTitle: string | null;
   caption: string | null;
+  captionYT: string | null;
   publishAt: string | null;
   publishIg: boolean;
   publishYt: boolean;
@@ -475,6 +476,7 @@ export function ProjectDetailClient({
         format: v.format,
         dims: v.dims,
         durationSec: v.durationSec,
+        copy: { title: v.contentTitle, instagram: v.caption, youtube: v.captionYT },
       })),
     [videoOrder],
   );

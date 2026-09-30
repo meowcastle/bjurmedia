@@ -13,7 +13,7 @@
  * change (line below) is the standard "reset state when switching to a new
  * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
-import { DownloadSheet } from "@/components/DownloadSheet";
+import { DownloadSheet, type PostCopy } from "@/components/DownloadSheet";
 import { useTapGestures, useHeartBurst } from "@/lib/useTapGestures";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
@@ -31,6 +31,8 @@ export type VideoNavAsset = {
   format: string;
   dims: string | null;
   durationSec: number | null;
+  /** The post's title and captions, drafted from the clip or written by staff. */
+  copy?: PostCopy;
 };
 
 /**
@@ -224,6 +226,7 @@ export function VideoViewer({
           open={masterOpen}
           assetId={currentItem.id}
           canDownload={canDownload}
+          copy={currentItem.copy}
           facts={{
             name: currentItem.name,
             format: currentItem.format,

@@ -86,6 +86,7 @@ export default async function ProjectDetailPage({
         thumbReady: a.thumbRelPath != null,
         contentTitle: a.contentTitle,
         caption: a.caption,
+        captionYT: a.captionYT,
         publishAt: a.publishAt?.toISOString() ?? null,
         publishIg: a.publishIg,
         publishYt: a.publishYt,
