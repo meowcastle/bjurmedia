@@ -5,9 +5,9 @@ import { AdminMediaClient } from "@/components/AdminMediaClient";
 export default async function AdminMediaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ project?: string; asset?: string }>;
 }) {
-  const { project: projectParam } = await searchParams;
+  const { project: projectParam, asset: assetParam } = await searchParams;
 
   const projects = await db.project.findMany({
     orderBy: { createdAt: "desc" },
@@ -56,6 +56,7 @@ export default async function AdminMediaPage({
 
   return (
     <AdminMediaClient
+      initialBoardAssetId={selected && assetParam ? assetParam : null}
       selectedProjectId={selected?.id ?? ""}
       selectedProjectTitle={selected?.title ?? null}
       selectedClientId={selected?.clientId ?? null}
@@ -91,6 +92,8 @@ export default async function AdminMediaPage({
         caption: a.caption,
         captionYT: a.captionYT,
         captionApprovedAt: a.captionApprovedAt?.toISOString() ?? null,
+        captionEditedBy: a.captionEditedBy,
+        captionEditedAt: a.captionEditedAt?.toISOString() ?? null,
         postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
         socialPosts: a.socialPosts.map((p) => ({
           id: p.id,

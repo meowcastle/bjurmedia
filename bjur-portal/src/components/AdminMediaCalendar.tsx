@@ -18,7 +18,22 @@ export type CalendarRow = {
   captionYT: string | null;
   captionApprovedAt: string | null;
   postedToSlackAt: string | null;
+  captionEditedBy: string | null;
+  captionEditedAt: string | null;
 };
+
+/** "Edited by client · Sep 30" — the client changed copy staff may already have read. */
+function ClientEdited({ a }: { a: CalendarRow }) {
+  if (a.captionEditedBy !== "CLIENT") return null;
+  const day = a.captionEditedAt
+    ? new Date(a.captionEditedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : "";
+  return (
+    <div data-testid={`client-edited-${a.id}`} className="text-[9.5px] uppercase tracking-[.08em] text-muted mt-1">
+      Edited by client{day ? ` · ${day}` : ""}
+    </div>
+  );
+}
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const IG_CAPTION_LIMIT = 2200;
@@ -65,6 +80,7 @@ export function AdminMediaCalendar({
   projectId,
   canPost = false,
   onPosted,
+  initialOpenId = null,
 }: {
   rows: CalendarRow[];
   /** Persists a change and updates the parent's copy — the table and calendar share state. */
@@ -75,13 +91,26 @@ export function AdminMediaCalendar({
   canPost?: boolean;
   /** Ask the page to refetch, so states land from the server rather than being guessed. */
   onPosted?: () => void;
+  /** Arrive with this card open, on its week — how Today's "edited by client" item lands. */
+  initialOpenId?: string | null;
 }) {
-  const [weekStart, setWeekStart] = useState(() => mondayOfWeek(new Date()));
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => {
+    const target = initialOpenId ? rows.find((r) => r.id === initialOpenId) : null;
+    return mondayOfWeek(target?.weekOf ? new Date(target.weekOf) : new Date());
+  });
+  const arrivalCard = initialOpenId ? (rows.find((r) => r.id === initialOpenId) ?? null) : null;
+  const [openId, setOpenId] = useState<string | null>(arrivalCard?.id ?? null);
   const [pickerDay, setPickerDay] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ contentTitle: string; caption: string; captionYT: string } | null>(
-    null
+    () =>
+      arrivalCard
+        ? {
+            contentTitle: arrivalCard.contentTitle ?? "",
+            caption: arrivalCard.caption ?? "",
+            captionYT: arrivalCard.captionYT ?? "",
+          }
+        : null
   );
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -358,6 +387,7 @@ export function AdminMediaCalendar({
                       />
                       <span className="text-[10px] text-muted">{readiness(a).label}</span>
                     </div>
+                    <ClientEdited a={a} />
                     {(overflowByDay.get(key) ?? 0) > 1 && (
                       <div className="text-[10px] text-accentb mt-1">
                         +{(overflowByDay.get(key) ?? 0) - 1} more on this day — not posted
@@ -433,6 +463,7 @@ export function AdminMediaCalendar({
 
             <div className="text-[11px] text-dim mb-3 truncate" title={open.name}>
               {open.name} · {open.format}
+              <ClientEdited a={open} />
             </div>
 
             <label className="block text-[10.5px] uppercase tracking-wide font-bold text-muted mb-1.5">

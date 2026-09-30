@@ -7,6 +7,13 @@ import {
   IconVolumeOn,
   IconVolumeOff,
 } from "@/components/ui/Icon";
+import type { CaptionState } from "@/lib/captionState";
+
+const PREVIEW_PILL: Partial<Record<CaptionState, { label: string; cls: string }>> = {
+  DRAFT: { label: "Draft · not checked", cls: "border-[#ff9d85] text-[#ff9d85]" },
+  CHECKED: { label: "Checked", cls: "border-[#2ec36b] text-[#2ec36b]" },
+  POSTED: { label: "Posted · locked", cls: "border-white/40 text-white/50" },
+};
 
 function fmtTime(sec: number) {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
@@ -40,6 +47,8 @@ export function VideoChrome({
   onSeek,
   onClose,
   onOpenMaster,
+  positionLabel = null,
+  caption = null,
 }: {
   visible: boolean;
   name: string;
@@ -57,6 +66,10 @@ export function VideoChrome({
   onClose: () => void;
   /** Opens the master sheet, which carries the download and licensing actions. */
   onOpenMaster: () => void;
+  /** "3 / 12 · Week of Sep 28" — desktop only; a phone has the swipe for bearings. */
+  positionLabel?: string | null;
+  /** A reel's copy at a glance on a phone. Tapping it opens the sheet to edit. */
+  caption?: { state: CaptionState | null; title: string | null; text: string | null } | null;
 }) {
   // Hidden chrome must be fully click-through, not just invisible — otherwise an
   // opacity-0 button still sits there intercepting the tap that's meant to reveal it.
@@ -81,6 +94,7 @@ export function VideoChrome({
         className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 pb-3 pointer-events-none"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
+        <span className="flex items-center gap-4">
         <span
           data-testid="viewer-favorite-state"
           data-favorite={isFavorite ? "1" : "0"}
@@ -88,6 +102,10 @@ export function VideoChrome({
           className={`text-lg ${isFavorite ? "text-accentb" : "text-white/30"}`}
         >
           {isFavorite ? "\u2665" : "\u2661"}
+        </span>
+        {positionLabel && (
+          <span className="text-[11px] uppercase tracking-[.1em] text-white/60 tabular-nums">{positionLabel}</span>
+        )}
         </span>
         <button
           onClick={(e) => {
@@ -106,6 +124,36 @@ export function VideoChrome({
         className="absolute bottom-0 left-0 right-0 px-4 pt-10 pointer-events-none bg-gradient-to-t from-black/85 to-transparent"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)" }}
       >
+        {caption && (
+          <button
+            data-testid="caption-preview"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMaster();
+            }}
+            className={`block w-full text-left mb-4 cursor-pointer ${interactive}`}
+          >
+            <span className="flex items-center justify-between gap-3 mb-2">
+              {caption.state && PREVIEW_PILL[caption.state] ? (
+                <span
+                  className={`text-[10px] uppercase tracking-[.1em] px-2 py-1 border ${PREVIEW_PILL[caption.state]!.cls}`}
+                >
+                  {PREVIEW_PILL[caption.state]!.label}
+                </span>
+              ) : (
+                <span className="text-[10px] uppercase tracking-[.1em] text-white/50">Caption</span>
+              )}
+              <span className="text-[10.5px] uppercase tracking-[.08em] text-white/70">{"\u2191"} Edit</span>
+            </span>
+            {caption.title && (
+              <span className="block font-serif text-[21px] leading-tight text-white mb-1">{caption.title}</span>
+            )}
+            <span className="block text-[13px] leading-snug text-white/75 line-clamp-2">
+              {caption.text || "Write a caption"}
+            </span>
+          </button>
+        )}
+
         <div className={`flex items-center gap-3 ${interactive} mb-3`}>
           <span className="text-[11px] text-white/70 font-mono tabular-nums w-9 text-right">
             {fmtTime(currentTime)}

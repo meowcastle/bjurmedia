@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
 import { formatBytes } from "@/lib/format";
@@ -63,6 +63,7 @@ export function AssetTile({
   onToggleSelect,
   onToggleFavorite,
   onOpen,
+  footer = null,
 }: {
   asset: TileAsset;
   selected: boolean;
@@ -72,6 +73,8 @@ export function AssetTile({
   onToggleSelect: () => void;
   onToggleFavorite: () => void;
   onOpen: () => void;
+  /** One more line under the date/size row — a reel's caption state. */
+  footer?: ReactNode;
 }) {
   const stamp = fmtStamp(asset.createdAt, asset.updatedAt);
   const badge =
@@ -188,6 +191,7 @@ export function AssetTile({
           {formatBytes(Number(asset.sizeBytes))}
         </span>
       </div>
+      {footer}
     </motion.div>
   );
 }

@@ -15,16 +15,20 @@ export function Toast({
   onDone,
   /** Lifts clear of the client-side selection bar when one is up. */
   raised = false,
+  action,
 }: {
   message: string | null;
   onDone: () => void;
   raised?: boolean;
+  /** One follow-up, such as UNDO. The strip stays up longer so there is time to reach it. */
+  action?: { label: string; onClick: () => void };
 }) {
+  const hasAction = Boolean(action);
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(onDone, 2200);
+    const t = setTimeout(onDone, hasAction ? 5000 : 2200);
     return () => clearTimeout(t);
-  }, [message, onDone]);
+  }, [message, onDone, hasAction]);
 
   if (!message) return null;
 
@@ -39,6 +43,17 @@ export function Toast({
         }`}
       >
         {message}
+        {action && (
+          <button
+            onClick={() => {
+              action.onClick();
+              onDone();
+            }}
+            className="ml-4 underline underline-offset-2 cursor-pointer tracking-[.08em]"
+          >
+            {action.label}
+          </button>
+        )}
       </div>
     </Portal>
   );

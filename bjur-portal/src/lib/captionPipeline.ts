@@ -104,7 +104,7 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
         : await resolveMediaPath(asset.relPath);
 
       audioPath = await extractAudio(source);
-      const { text } = await transcribe(audioPath);
+      const { text, segments } = await transcribe(audioPath);
 
       // A music video, a performance, a silent cutaway. There is nothing to transcribe,
       // but there is plenty to see — so this is no longer a dead end, it just means the
@@ -162,6 +162,7 @@ export async function processCaptionQueue(deps: Partial<CaptionDeps> = {}) {
         where: { id: asset.id },
         data: {
           transcript: text || null,
+          transcriptSegments: segments?.length ? segments : undefined,
           // NO_SPEECH still records the truth about the audio even when a draft was
           // written from the stills — the two facts are independent.
           transcriptStatus: hasSpeech ? "DONE" : "NO_SPEECH",

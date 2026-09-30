@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
@@ -12,6 +12,8 @@ import {
 import { haptic } from "@/lib/haptics";
 import { ImageViewer } from "@/components/ImageViewer";
 import { VideoViewer } from "@/components/VideoViewer";
+import type { ReelCopy, CopyPatch } from "@/components/CaptionEditor";
+import { captionState, type CaptionState } from "@/lib/captionState";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
 import { IconPlay, IconHeart } from "@/components/ui/Icon";
@@ -23,6 +25,13 @@ type Asset = TileAsset & {
   contentTitle: string | null;
   caption: string | null;
   captionYT: string | null;
+  captionSource: "HUMAN" | "AI";
+  transcriptStatus: string;
+  postedToSlackAt: string | null;
+  captionEditedBy: string | null;
+  captionEditedAt: string | null;
+  transcript: string | null;
+  transcriptSegments: { start: number; text: string }[] | null;
   publishAt: string | null;
   publishIg: boolean;
   publishYt: boolean;
@@ -104,9 +113,27 @@ function mondayOfWeek(d: Date) {
 type Group = {
   label: string;
   count: string;
+  /** Replaces "count · size" in the header, for views where size is beside the point. */
+  summary?: string;
   folder: string;
   cols: string;
   items: Asset[];
+};
+
+function isReel(a: Asset) {
+  return a.kind === "VIDEO" && a.format === "Reel";
+}
+
+function reelCaptionState(a: Asset): CaptionState | null {
+  return isReel(a) ? captionState(a) : null;
+}
+
+/** The tile's caption line, per state. No line at all when there is nothing to say. */
+const CAPTION_LINE: Record<CaptionState, { label: string; action: string; color: string }> = {
+  DRAFT: { label: "Caption · draft", action: "Check \u2192", color: "var(--warn)" },
+  CHECKED: { label: "Caption · checked", action: "Edit \u2192", color: "var(--muted)" },
+  POSTED: { label: "Caption · posted", action: "View \u2192", color: "var(--dim)" },
+  NO_SPEECH: { label: "No caption", action: "Write \u2192", color: "var(--dim)" },
 };
 
 /** Buckets assets by the Monday of their weekOf's calendar week, newest first, Undated last. */
@@ -138,7 +165,7 @@ function bucketByWeek(items: Asset[], folderBase: string): Group[] {
 
 export function ProjectDetailClient({
   project,
-  assets,
+  assets: initialAssets,
   initialFavorites,
   role,
   totalViews,
@@ -153,6 +180,8 @@ export function ProjectDetailClient({
     expiresAt: string | null;
     /** Everything here streams and downloads watermarked until the invoice is settled. */
     paymentHold: boolean;
+    /** Where a posted week went, named in the note on a locked caption. */
+    slackChannel: string | null;
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
@@ -161,6 +190,34 @@ export function ProjectDetailClient({
   totalViews: number;
   totalSocialPosts: number;
 }) {
+  // Local, because captions are edited in place: a save updates the tile line and the
+  // "to check" count without a reload.
+  const [assets, setAssets] = useState(initialAssets);
+  const onCopyChange = useCallback((id: string, patch: CopyPatch) => {
+    setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+  }, []);
+  const assetById = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
+  const reelCopy = useCallback(
+    (id: string): ReelCopy | null => {
+      const a = assetById.get(id);
+      if (!a || !isReel(a)) return null;
+      return {
+        id: a.id,
+        contentTitle: a.contentTitle,
+        caption: a.caption,
+        captionYT: a.captionYT,
+        captionSource: a.captionSource,
+        transcriptStatus: a.transcriptStatus,
+        postedToSlackAt: a.postedToSlackAt,
+        captionEditedBy: a.captionEditedBy,
+        captionEditedAt: a.captionEditedAt,
+        transcript: a.transcript,
+        transcriptSegments: a.transcriptSegments,
+      };
+    },
+    [assetById],
+  );
+
   // §13. Anything with a publish date is a post as far as the client is concerned.
   const scheduled: ScheduledPost[] = assets
     .filter((a) => a.publishState !== "NONE")
@@ -204,6 +261,7 @@ export function ProjectDetailClient({
    */
   const orientationCandidates = useMemo(() => {
     if (filter === "FAV") return folderScoped.filter((a) => favorites.has(a.id));
+    if (filter === "CHECK") return folderScoped.filter((a) => reelCaptionState(a) === "DRAFT");
     if (filter === "ALL") return folderScoped;
     return folderScoped.filter((a) => a.format === filter);
   }, [folderScoped, filter, favorites]);
@@ -232,6 +290,10 @@ export function ProjectDetailClient({
   );
 
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  // The run the viewer swipes through, fixed when it opens. Under "Captions to check" a
+  // reel leaves the grid the moment it is checked; if the viewer followed the grid, the
+  // reel being read would vanish out from under the person reading it.
+  const [viewerIds, setViewerIds] = useState<string[]>([]);
 
   // "New" badges compare each asset's createdAt against the timestamp of the client's
   // previous visit to *this* project, stored locally (no per-user "last viewed"
@@ -360,6 +422,11 @@ export function ProjectDetailClient({
     [scoped, favorites],
   );
 
+  const draftCount = useMemo(
+    () => scoped.filter((a) => reelCaptionState(a) === "DRAFT").length,
+    [scoped],
+  );
+
   const filters = [
     { id: "ALL", label: `All ${scoped.length}`, icon: null as React.ReactNode },
     ...FORMAT_DEFS.filter((d) => formatCounts[d[0]]).map((d) => ({
@@ -372,6 +439,17 @@ export function ProjectDetailClient({
       label: `Favorites${favCount ? ` ${favCount}` : ""}`,
       icon: <IconHeart fill="currentColor" />,
     },
+    // Stays while it is the view in use, so checking the last draft shows the all-clear
+    // rather than yanking the tab away; it is gone on the next load.
+    ...(draftCount > 0 || filter === "CHECK"
+      ? [
+          {
+            id: "CHECK",
+            label: `Captions to check${draftCount ? ` ${draftCount}` : ""}`,
+            icon: <span aria-hidden className="inline-block w-1.5 h-1.5 bg-warn" /> as React.ReactNode,
+          },
+        ]
+      : []),
   ];
 
   const metaAssets = FORMAT_DEFS.map(
@@ -389,6 +467,12 @@ export function ProjectDetailClient({
   const currentYear = new Date().getFullYear();
 
   const groups: Group[] = useMemo(() => {
+    if (filter === "CHECK") {
+      return bucketByWeek(
+        scoped.filter((a) => reelCaptionState(a) === "DRAFT"),
+        `${project.path}/check`,
+      ).map((g) => ({ ...g, summary: `${g.items.length} to check` }));
+    }
     if (filter === "FAV") {
       const items = scoped.filter((a) => favorites.has(a.id));
       return items.length
@@ -430,7 +514,7 @@ export function ProjectDetailClient({
 
   type YearFolder = { year: number; count: string; weeks: Group[] };
   const pastYearFolders: YearFolder[] = useMemo(() => {
-    if (groupMode !== "week" || filter === "FAV") return [];
+    if (groupMode !== "week" || filter === "FAV" || filter === "CHECK") return [];
     const byFilter =
       filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
     const byYear = new Map<number, Asset[]>();
@@ -468,7 +552,10 @@ export function ProjectDetailClient({
   );
   const videoNavItems = useMemo(
     () =>
-      videoOrder.map((v) => ({
+      viewerIds.flatMap((id) => {
+        const v = assetById.get(id);
+        return v ? [v] : [];
+      }).map((v) => ({
         id: v.id,
         name: v.name,
         // Every download control states its size, per the handoff's global rule.
@@ -476,9 +563,11 @@ export function ProjectDetailClient({
         format: v.format,
         dims: v.dims,
         durationSec: v.durationSec,
-        copy: { title: v.contentTitle, instagram: v.caption, youtube: v.captionYT },
+        weekLabel: v.weekOf
+          ? `Week of ${new Date(mondayOfWeek(new Date(v.weekOf))).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
+          : null,
       })),
-    [videoOrder],
+    [viewerIds, assetById],
   );
   const photoOrder = useMemo(
     () => groups.flatMap((g) => g.items.filter((i) => i.kind === "PHOTO")),
@@ -491,10 +580,32 @@ export function ProjectDetailClient({
 
   function openAsset(a: Asset) {
     if (a.kind === "VIDEO") {
+      setViewerIds(videoOrder.map((v) => v.id));
       setOpenVideoId(a.id);
     } else {
       setOpenPhotoId(a.id);
     }
+  }
+
+  function captionLine(a: Asset) {
+    const state = reelCaptionState(a);
+    if (!state) return null;
+    const line = CAPTION_LINE[state];
+    return (
+      <button
+        type="button"
+        data-testid={`caption-line-${a.id}`}
+        data-state={state}
+        onClick={() => openAsset(a)}
+        className="group w-full mt-2 pt-2 pb-1.5 min-h-8 border-t border-line flex items-center gap-2 text-[10.5px] tracking-[.08em] uppercase cursor-pointer text-left whitespace-nowrap"
+      >
+        <span aria-hidden className="w-1.5 h-1.5 flex-none" style={{ background: line.color }} />
+        <span className="group-hover:!text-text truncate min-w-0" style={{ color: line.color }}>
+          {line.label}
+        </span>
+        <span className="ml-auto text-dim2 whitespace-nowrap flex-none">{line.action}</span>
+      </button>
+    );
   }
 
   function renderGroup(grp: Group) {
@@ -510,7 +621,7 @@ export function ProjectDetailClient({
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
           <span className="text-[15px] font-extrabold">{grp.label}</span>
           <span className="text-[11px] text-muted">
-            {grp.count} · {formatBytes(bytesOf(grp.items))}
+            {grp.summary ?? `${grp.count} · ${formatBytes(bytesOf(grp.items))}`}
           </span>
           {canDownload && (
             <button
@@ -551,6 +662,7 @@ export function ProjectDetailClient({
               onToggleSelect={() => toggleSelect(a.id)}
               onToggleFavorite={() => toggleFavorite(a.id)}
               onOpen={() => openAsset(a)}
+              footer={captionLine(a)}
             />
           ))}
         </div>
@@ -753,9 +865,13 @@ export function ProjectDetailClient({
             belongs to the client, not to whichever project happened to exist when it was
             sent, and showing it here implied a link that was never real. */}
         <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2 mb-3">
-          <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Delivered</span>
+          <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
+            {filter === "CHECK" ? "Captions to check" : "Delivered"}
+          </span>
           <span className="text-[11px] text-dim2">
-            {assets.length} file{assets.length === 1 ? "" : "s"}
+            {filter === "CHECK"
+              ? `${draftCount} file${draftCount === 1 ? "" : "s"}`
+              : `${assets.length} file${assets.length === 1 ? "" : "s"}`}
           </span>
         </div>
 
@@ -787,6 +903,12 @@ export function ProjectDetailClient({
           );
         })}
 
+        {filter === "CHECK" && groups.length === 0 && (
+          <div data-testid="captions-all-checked" className="text-[12.5px] text-dim py-[60px] text-center">
+            Nothing left to check. Every caption this week has been read.
+          </div>
+        )}
+
         {filter === "FAV" && groups.length === 0 && (
           <div className="border border-line px-6 py-16 text-center mt-0.5">
             <div className="text-2xl text-dim mb-3 flex justify-center">
@@ -817,6 +939,9 @@ export function ProjectDetailClient({
           onClose={() => setOpenVideoId(null)}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
+          reelCopy={reelCopy}
+          onCopyChange={onCopyChange}
+          slackChannel={project.slackChannel}
         />
       )}
 

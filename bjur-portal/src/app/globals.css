@@ -24,9 +24,12 @@
   --body: #c9c5bd;
   --muted: #a8a49c;
   --dim: #8a877f;
+  --dim2: #6f6c66;
   --accent: #ec3013;
   --accentb: #ff5a3c;
   --success: #2ec36b;
+  /* Something for the client to look at, not an error: a caption nobody has read yet. */
+  --warn: #ff9d85;
 }
 
 [data-theme="light"] {
@@ -45,6 +48,9 @@
      Darkened until it carries the same weight against a light ground. */
   --accentb: #c3341a;
   --success: #2b6b47;
+  --dim2: #a29e97;
+  /* #ff9d85 washes out on paper; the same salmon, deepened to read at 10px. */
+  --warn: #c2562f;
 }
 
 @theme inline {
@@ -61,6 +67,8 @@
   --color-accent: var(--accent);
   --color-accentb: var(--accentb);
   --color-success: var(--success);
+  --color-dim2: var(--dim2);
+  --color-warn: var(--warn);
   --font-sans: var(--font-fragment-mono);
   --font-serif: var(--font-source-serif);
   --font-mono: var(--font-fragment-mono);

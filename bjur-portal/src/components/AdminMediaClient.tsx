@@ -43,6 +43,8 @@ type Asset = {
   caption: string | null;
   captionYT: string | null;
   captionApprovedAt: string | null;
+  captionEditedBy: string | null;
+  captionEditedAt: string | null;
   postedToSlackAt: string | null;
   socialPosts: { id: string; permalink: string | null; viewCount: number }[];
 };
@@ -70,6 +72,7 @@ export function AdminMediaClient({
   clientGroups,
   folders,
   assets,
+  initialBoardAssetId = null,
 }: {
   selectedProjectId: string;
   selectedProjectTitle: string | null;
@@ -83,6 +86,8 @@ export function AdminMediaClient({
   clientGroups: ClientGroup[];
   folders: FolderRow[];
   assets: Asset[];
+  /** Open on the board with this card selected. */
+  initialBoardAssetId?: string | null;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(assets);
@@ -96,7 +101,7 @@ export function AdminMediaClient({
   >({});
   const [ytExpanded, setYtExpanded] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [view, setView] = useState<"files" | "calendar">("files");
+  const [view, setView] = useState<"files" | "calendar">(initialBoardAssetId ? "calendar" : "files");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
@@ -647,6 +652,7 @@ export function AdminMediaClient({
           projectId={selectedProjectId}
           canPost={projectOnBoard}
           onPosted={() => router.refresh()}
+          initialOpenId={initialBoardAssetId}
         />
       )}
 

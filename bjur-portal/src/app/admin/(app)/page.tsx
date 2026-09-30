@@ -189,6 +189,28 @@ export default async function AdminDashboardPage() {
     unscheduledRetainer.map((r) => [r.projectId, r._count])
   );
 
+  // A client changed a caption on a reel that is on a day. The change cleared (or never
+  // got) staff approval, so the week will not go out until someone reads it again.
+  const clientEditedCaptions = await db.asset.findMany({
+    where: {
+      captionEditedBy: "CLIENT",
+      captionApprovedAt: null,
+      postedToSlackAt: null,
+      weekOf: { not: null },
+      captionEditedAt: { gte: new Date(new Date().getTime() - 14 * 24 * 60 * 60 * 1000) },
+    },
+    orderBy: { captionEditedAt: "desc" },
+    take: 6,
+    select: {
+      id: true,
+      name: true,
+      contentTitle: true,
+      weekOf: true,
+      projectId: true,
+      project: { select: { title: true } },
+    },
+  });
+
   const attention = [
     ...unsentCuts.map((r) => ({
       id: `cut-ready-${r.id}`,
@@ -232,6 +254,19 @@ export default async function AdminDashboardPage() {
         action: "Open client",
       };
     }),
+    ...clientEditedCaptions.map((a) => ({
+      id: `caption-edited-${a.id}`,
+      kind: "caption-edited" as const,
+      subject: `${a.contentTitle?.trim() || a.name} · edited by client`,
+      body: `${a.project.title} · ${a.weekOf!.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      })} · needs your approval again`,
+      href: `/admin/media?project=${a.projectId}&asset=${a.id}`,
+      action: "Open board",
+    })),
     ...soonExpiring.map((p) => ({
       id: `expiry-${p.id}`,
       kind: "expiry" as const,

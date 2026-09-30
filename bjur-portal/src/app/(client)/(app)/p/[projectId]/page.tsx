@@ -16,7 +16,7 @@ export default async function ProjectDetailPage({
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: {
-      client: true,
+      client: { include: { channel: true } },
       folders: { orderBy: { createdAt: "asc" } },
       assets: {
         where: { internal: false },
@@ -51,9 +51,12 @@ export default async function ProjectDetailPage({
   const totalPosts = allSocialPosts.length;
 
   const assetIds = project.assets.map((a) => a.id);
-  const [favorites] = await Promise.all([
+  const [favorites, slack] = await Promise.all([
     db.favorite.findMany({ where: { userId: session.id, assetId: { in: assetIds } } }),
+    db.slackConfig.findUnique({ where: { id: 1 }, select: { defaultChannel: true } }),
   ]);
+  // Named in the note on a locked caption: the channel the week actually went to.
+  const slackChannel = project.client.channel?.channel || slack?.defaultChannel || null;
 
   return (
     <ProjectDetailClient
@@ -65,6 +68,7 @@ export default async function ProjectDetailPage({
         deliveredAt: project.deliveredAt?.toISOString() ?? null,
         expiresAt: project.expiresAt?.toISOString() ?? null,
         paymentHold: project.paymentHold,
+        slackChannel,
         folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
       totalViews={totalViews}
@@ -87,6 +91,15 @@ export default async function ProjectDetailPage({
         contentTitle: a.contentTitle,
         caption: a.caption,
         captionYT: a.captionYT,
+        captionSource: a.captionSource,
+        transcriptStatus: a.transcriptStatus,
+        postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
+        captionEditedBy: a.captionEditedBy,
+        captionEditedAt: a.captionEditedAt?.toISOString() ?? null,
+        transcript: a.transcript,
+        transcriptSegments: Array.isArray(a.transcriptSegments)
+          ? (a.transcriptSegments as { start: number; text: string }[])
+          : null,
         publishAt: a.publishAt?.toISOString() ?? null,
         publishIg: a.publishIg,
         publishYt: a.publishYt,

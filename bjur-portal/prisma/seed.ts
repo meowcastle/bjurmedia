@@ -379,6 +379,16 @@ const assetsByProject: Record<string, SeedAsset[]> = {
     still("Halcyon_Key_01.jpg", "landscape", "6048×4032", "Jul 01", "23.4 MB"),
     master("Halcyon_Anthem_MASTER.braw", "01:00", "Jul 01", "44.6 GB"),
   ],
+  // One reel per caption state, for the client caption specs. Its own project so
+  // nothing they write can move the board specs on p8.
+  p9: [
+    { ...reel("WR_Draft_A.mp4", "00:32", "Sep 28", "50 MB"), weekOf: date("Sep 28") },
+    { ...reel("WR_Draft_B.mp4", "00:33", "Sep 28", "66 MB"), weekOf: date("Sep 28") },
+    { ...reel("WR_Draft_C.mp4", "00:25", "Sep 28", "75 MB"), weekOf: date("Sep 28") },
+    { ...reel("WR_Checked.mp4", "00:36", "Sep 21", "108 MB"), weekOf: date("Sep 21") },
+    { ...reel("WR_Posted.mp4", "00:30", "Sep 14", "40 MB"), weekOf: date("Sep 14") },
+    { ...reel("WR_NoSpeech.mp4", "00:20", "Sep 14", "30 MB"), weekOf: date("Sep 14") },
+  ],
   p8: [
     { ...reel("IG_Jul06_ReelA.mp4", "00:14", "Jul 06", "1.6 GB"), weekOf: date("Jul 06") },
     { ...reel("IG_Jul06_ReelB.mp4", "00:16", "Jul 06", "1.7 GB"), weekOf: date("Jul 06") },
@@ -434,6 +444,7 @@ const projectsSeed = [
   { id: "p6", clientId: "c3", title: "Live Set — Warehouse", path: "SUYINSAMA/Live-Set/2026-06", inboxSlug: "live-set-warehouse", deliveredAt: date("Jun 22"), expiresAt: null },
   { id: "p7", clientId: "c4", title: "Brand Anthem — Delivery", path: "Halcyon/Brand-Anthem/2026-07", inboxSlug: "brand-anthem", deliveredAt: date("Jul 03"), expiresAt: date("Sep 01") },
   { id: "p8", clientId: "c2", title: "IG Posting", path: "57NYC/IG-Posting", inboxSlug: "ig-posting", deliveredAt: date("Jul 13"), expiresAt: null },
+  { id: "p9", clientId: "c2", title: "Weekly Reels", path: "57NYC/Weekly-Reels", inboxSlug: "weekly-reels", deliveredAt: date("Sep 28"), expiresAt: null },
 ];
 
 
@@ -645,6 +656,58 @@ async function seedReviews() {
 }
 
 
+/**
+ * The caption states a client sees on p9, as the worker and the board leave them.
+ * Drafts carry timed transcript lines so the transcript tab has something to seek.
+ */
+async function seedCaptionStates() {
+  const segments = [
+    { start: 0, text: "No bank account. No health insurance." },
+    { start: 4.2, text: "I just turned 28, sleeping on packing foam." },
+    { start: 9.8, text: "And I never once felt sorry for myself." },
+  ];
+  const drafts = ["WR_Draft_A.mp4", "WR_Draft_B.mp4", "WR_Draft_C.mp4"];
+  for (const [i, name] of drafts.entries()) {
+    await db.asset.updateMany({
+      where: { projectId: "p9", name },
+      data: {
+        contentTitle: `Draft title ${String.fromCharCode(65 + i)}`,
+        caption: `Drafted caption ${String.fromCharCode(65 + i)} from the audio.`,
+        captionSource: "AI",
+        transcriptStatus: "DONE",
+        transcript: segments.map((s) => s.text).join(" "),
+        transcriptSegments: segments,
+      },
+    });
+  }
+  await db.asset.updateMany({
+    where: { projectId: "p9", name: "WR_Checked.mp4" },
+    data: {
+      contentTitle: "A caption the client already read",
+      caption: "Checked caption.",
+      captionSource: "HUMAN",
+      transcriptStatus: "DONE",
+      captionEditedBy: "CLIENT",
+      captionEditedAt: date("Sep 22"),
+    },
+  });
+  await db.asset.updateMany({
+    where: { projectId: "p9", name: "WR_Posted.mp4" },
+    data: {
+      contentTitle: "Already in Slack",
+      caption: "Posted caption.",
+      captionSource: "HUMAN",
+      transcriptStatus: "DONE",
+      captionApprovedAt: date("Sep 15"),
+      postedToSlackAt: date("Sep 15"),
+    },
+  });
+  await db.asset.updateMany({
+    where: { projectId: "p9", name: "WR_NoSpeech.mp4" },
+    data: { transcriptStatus: "NO_SPEECH" },
+  });
+}
+
 async function main() {
   console.log("Seeding…");
 
@@ -781,6 +844,7 @@ async function main() {
   await seedReviews();
   await seedSocial();
   await seedPublishStates();
+  await seedCaptionStates();
   await seedThumbs();
 
   console.log("Done. Dev login password for every seeded user: " + DEV_PASSWORD);

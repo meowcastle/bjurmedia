@@ -53,6 +53,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     body.captionYT !== undefined
   ) {
     data.captionSource = "HUMAN";
+    data.captionEditedBy = "ADMIN";
+    data.captionEditedAt = new Date();
   }
 
   await db.asset.update({ where: { id }, data });

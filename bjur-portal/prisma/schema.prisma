@@ -383,6 +383,17 @@ model Asset {
    * HUMAN once a person edits the caption, which takes the draft warning off.
    */
   captionSource    CaptionSource    @default(HUMAN)
+  /**
+   * Who last saved the copy, "CLIENT" or "ADMIN", and when. Written on every save from
+   * either side, so the board can say a client changed a caption staff already read.
+   */
+  captionEditedBy    String?
+  captionEditedAt    DateTime?
+  /**
+   * Deepgram's utterances, [{ start: seconds, text }], so the client transcript can seek
+   * the video. Optional: older reels have only the plain transcript.
+   */
+  transcriptSegments Json?
 
   publishAt         DateTime?
   publishIg         Boolean      @default(false)

@@ -19,7 +19,11 @@ export type Transcript = {
   text: string;
   /** Provider's own confidence, 0–1, when it reports one. */
   confidence: number | null;
+  /** Timed lines, so a reader can jump to where something was said. Empty if none came back. */
+  segments?: TranscriptSegment[];
 };
+
+export type TranscriptSegment = { start: number; text: string };
 
 export type Transcriber = (audioPath: string) => Promise<Transcript>;
 
@@ -83,6 +87,7 @@ export const deepgramTranscriber: Transcriber = async (audioPath) => {
     smart_format: "true",
     punctuate: "true",
     detect_language: "true",
+    utterances: "true",
   });
 
   const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
@@ -97,13 +102,18 @@ export const deepgramTranscriber: Transcriber = async (audioPath) => {
   const json = (await res.json()) as {
     results?: {
       channels?: { alternatives?: { transcript?: string; confidence?: number }[] }[];
+      utterances?: { start?: number; transcript?: string }[];
     };
   };
   const best = json.results?.channels?.[0]?.alternatives?.[0];
+  const segments = (json.results?.utterances ?? [])
+    .filter((u) => typeof u.start === "number" && u.transcript?.trim())
+    .map((u) => ({ start: Math.round(u.start! * 10) / 10, text: u.transcript!.trim() }));
 
   return {
     text: (best?.transcript ?? "").trim(),
     confidence: typeof best?.confidence === "number" ? best.confidence : null,
+    segments,
   };
 };
 

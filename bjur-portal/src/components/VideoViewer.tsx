@@ -13,7 +13,7 @@
  * change (line below) is the standard "reset state when switching to a new
  * item" effect — deliberate, not an accidental derived-state anti-pattern. */
 import { useEffect, useRef, useState } from "react";
-import { DownloadSheet, type PostCopy } from "@/components/DownloadSheet";
+import { DownloadSheet } from "@/components/DownloadSheet";
 import { useTapGestures, useHeartBurst } from "@/lib/useTapGestures";
 import { motion } from "framer-motion";
 import { Portal } from "@/components/ui/Portal";
@@ -21,6 +21,24 @@ import { VideoSlide } from "@/components/VideoSlide";
 import { VideoChrome } from "@/components/VideoChrome";
 import { SwipeHint } from "@/components/SwipeHint";
 import { useMediaCarousel, OVERDAMPED_DRAG_TRANSITION } from "@/lib/useMediaCarousel";
+import { CaptionEditor, type ReelCopy, type CopyPatch } from "@/components/CaptionEditor";
+import { captionState } from "@/lib/captionState";
+
+/** Wide enough for the video and a 460px caption panel side by side. */
+const DESKTOP_QUERY = "(min-width: 900px)";
+
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const on = () => setDesktop(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return desktop;
+}
 
 export type VideoNavAsset = {
   id: string;
@@ -31,8 +49,8 @@ export type VideoNavAsset = {
   format: string;
   dims: string | null;
   durationSec: number | null;
-  /** The post's title and captions, drafted from the clip or written by staff. */
-  copy?: PostCopy;
+  /** "Week of Sep 28", for the position line on desktop. */
+  weekLabel?: string | null;
 };
 
 /**
@@ -51,6 +69,9 @@ export function VideoViewer({
   onClose,
   favorites,
   onToggleFavorite,
+  reelCopy,
+  onCopyChange,
+  slackChannel = null,
 }: {
   items: VideoNavAsset[];
   initialId: string;
@@ -61,7 +82,13 @@ export function VideoViewer({
   /** Ids currently favourited, so the heart reflects the page's state. */
   favorites?: Set<string>;
   onToggleFavorite?: (assetId: string) => void;
+  /** A reel's live copy, or null for anything that is not a reel. Looked up, not
+   *  snapshotted, so swiping back to a reel shows what was just typed on it. */
+  reelCopy?: (assetId: string) => ReelCopy | null;
+  onCopyChange?: (assetId: string, patch: CopyPatch) => void;
+  slackChannel?: string | null;
 }) {
+  const desktop = useIsDesktop();
   const { burst, fire } = useHeartBurst();
   const [masterOpen, setMasterOpen] = useState(false);
   const [playing, setPlaying] = useState(true);
@@ -125,6 +152,8 @@ export function VideoViewer({
   // because the sheet is this viewer's concern, not the track's.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setMasterOpen(true);
@@ -147,9 +176,32 @@ export function VideoViewer({
   const currentItem = carousel.currentItem;
   if (!currentItem) return null;
 
+  const copy = reelCopy?.(currentItem.id) ?? null;
+  const panel = desktop && copy && onCopyChange;
+  const state = copy ? captionState(copy) : null;
+  const position = items.findIndex((i) => i.id === currentItem.id) + 1;
+
+  const editor = (variant: "panel" | "sheet") =>
+    copy && onCopyChange ? (
+      <CaptionEditor
+        key={copy.id}
+        reel={copy}
+        variant={variant}
+        currentTime={currentTime}
+        onSeek={seek}
+        onChange={onCopyChange}
+        onClose={() => setMasterOpen(false)}
+        slackChannel={slackChannel}
+      />
+    ) : null;
+
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 bg-black bjfade overscroll-contain">
+      <div
+        className={`fixed inset-0 z-50 bg-black bjfade overscroll-contain ${panel ? "grid" : ""}`}
+        style={panel ? { gridTemplateColumns: "minmax(0,1fr) min(460px,42vw)" } : undefined}
+      >
+      <div className="relative w-full h-full min-w-0 overflow-hidden">
         <div ref={carousel.viewportRef} className="relative w-full h-full overflow-hidden">
           <motion.div
             className="flex h-full"
@@ -222,11 +274,35 @@ export function VideoViewer({
 
         <SwipeHint visible={carousel.swipeHintVisible} />
 
+        {/* Only beside the caption panel, per the captions handoff: with a panel taking the
+            right of the screen, the swipe is no longer the obvious way on. Everywhere
+            else the viewer stays swipe-only. */}
+        {panel && items.length > 1 && (
+          <>
+            {(["prev", "next"] as const).map((dir) => {
+              const enabled = dir === "prev" ? carousel.hasPrev : carousel.hasNext;
+              return (
+                <button
+                  key={dir}
+                  aria-label={dir === "prev" ? "Previous reel" : "Next reel"}
+                  disabled={!enabled}
+                  onClick={dir === "prev" ? carousel.goPrev : carousel.goNext}
+                  className={`absolute top-1/2 -translate-y-1/2 z-20 w-11 h-11 grid place-items-center border border-white/20 text-white/85 bg-black/30 ${
+                    dir === "prev" ? "left-4" : "right-4"
+                  } ${enabled ? "hover:border-white cursor-pointer" : "opacity-30"}`}
+                >
+                  {dir === "prev" ? "\u2190" : "\u2192"}
+                </button>
+              );
+            })}
+          </>
+        )}
+
         <DownloadSheet
           open={masterOpen}
           assetId={currentItem.id}
           canDownload={canDownload}
-          copy={currentItem.copy}
+          editor={panel ? null : editor("sheet")}
           facts={{
             name: currentItem.name,
             format: currentItem.format,
@@ -257,7 +333,23 @@ export function VideoViewer({
           onSeek={seek}
           onClose={onClose}
           onOpenMaster={() => setMasterOpen(true)}
+          positionLabel={
+            desktop
+              ? `${position} / ${items.length}${currentItem.weekLabel ? ` · ${currentItem.weekLabel}` : ""}`
+              : null
+          }
+          caption={
+            copy && !panel
+              ? { state, title: copy.contentTitle, text: copy.caption }
+              : null
+          }
         />
+      </div>
+      {panel && (
+        <aside data-testid="caption-panel" className="h-full min-h-0 bg-[#101012] border-l border-white/10">
+          {editor("panel")}
+        </aside>
+      )}
       </div>
     </Portal>
   );

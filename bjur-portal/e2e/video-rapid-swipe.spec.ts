@@ -127,7 +127,11 @@ test("rapid consecutive swipes stay in sync — no desync, no crash", async ({ p
   expect(startId).toBeTruthy();
   expect(await hasNextButton(page)).toBe(true);
 
-  const width = await page.evaluate(() => window.innerWidth);
+  // The track's own width, not the window's: on a desktop viewport a reel opens beside
+  // its caption panel, and the track only spans the video column.
+  const width = await page.evaluate(
+    () => (document.querySelector('[data-testid="video-gesture-surface"]') as HTMLElement).clientWidth,
+  );
 
   // Fire flicks back-to-back with only a short gap — comfortably inside the
   // ~350-500ms spring settle window — between each. This is exactly the

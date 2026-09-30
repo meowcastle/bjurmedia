@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { IconDownload, IconClose } from "@/components/ui/Icon";
 
 /**
@@ -27,42 +27,6 @@ export type DownloadFacts = {
   watermarked: boolean;
 };
 
-/** A reel's post copy: what goes in the description when it is posted. */
-export type PostCopy = {
-  title: string | null;
-  instagram: string | null;
-  youtube: string | null;
-};
-
-/** One block of post copy with its own Copy button, so it can go straight into the app. */
-function CopyBlock({ label, text }: { label: string; text: string }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard refused (insecure context, denied permission) — the text is still
-      // selectable, so there is nothing worth interrupting anyone about.
-    }
-  }
-  return (
-    <div className="py-2.5 border-b border-white/10">
-      <div className="flex items-baseline justify-between gap-4 mb-1.5">
-        <span className="text-[10px] uppercase tracking-[.12em] text-white/45">{label}</span>
-        <button
-          onClick={copy}
-          className="text-[10px] uppercase tracking-[.12em] text-white/60 hover:text-white cursor-pointer"
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      <p className="text-[13px] leading-relaxed text-white/85 whitespace-pre-wrap select-text">{text}</p>
-    </div>
-  );
-}
-
 /**
  * What a held project actually hands over: the marked 1080p proxy, not the master. The
  * sheet's facts come from the Asset row, so without this a 4K master advertises "3840 ×
@@ -87,12 +51,14 @@ export function DownloadSheet({
   facts,
   assetId,
   canDownload,
-  copy,
+  editor = null,
   onClose,
 }: {
   open: boolean;
   facts: DownloadFacts;
-  copy?: PostCopy;
+  /** A reel's caption editor. When given, the sheet leads with it on a phone and the
+   *  file facts move underneath the download. */
+  editor?: ReactNode;
   assetId: string;
   canDownload: boolean;
   onClose: () => void;
@@ -207,19 +173,34 @@ export function DownloadSheet({
       <div
         data-testid="download-sheet"
         data-open={open ? "1" : "0"}
+        // Off-screen is not gone: without this a closed sheet's controls (the editor's
+        // own close among them) still sit in the tab order and the accessibility tree.
+        inert={!open}
+        aria-hidden={!open}
         className={`absolute left-0 right-0 bottom-0 z-[61] bg-[#101012] border-t border-white/12 transition-transform duration-[500ms] ${
+          editor ? "flex flex-col max-h-[82%] overflow-y-auto" : ""
+        } ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ transitionTimingFunction: "cubic-bezier(.32,.72,0,1)" }}
       >
-        <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
-          <span className="text-[13px] text-white/90 font-semibold break-all">{facts.name}</span>
-          <button onClick={onClose} className="flex-none text-white/60 hover:text-white text-lg cursor-pointer">
-            <IconClose />
-          </button>
-        </div>
+        {editor ? (
+          <>
+            <div className="flex justify-center pt-2.5 pb-2" aria-hidden>
+              <span className="block w-9 h-1 bg-white/25" />
+            </div>
+            {editor}
+          </>
+        ) : (
+          <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
+            <span className="text-[13px] text-white/90 font-semibold break-all">{facts.name}</span>
+            <button onClick={onClose} className="flex-none text-white/60 hover:text-white text-lg cursor-pointer">
+              <IconClose />
+            </button>
+          </div>
+        )}
 
-        <div className="px-5">
+        <div className={`px-5 ${editor ? "order-last pb-6" : ""}`}>
           <Fact label="Format" value={facts.format} />
           {facts.watermarked ? (
             <Fact label="Resolution" value={heldDims(facts.format)} />
@@ -230,17 +211,7 @@ export function DownloadSheet({
           {!facts.watermarked && facts.size && <Fact label="Size" value={facts.size} />}
         </div>
 
-        {/* The description that goes out with the post. Scrolls on its own so a long
-            caption never pushes the download button off a phone screen. */}
-        {(copy?.title || copy?.instagram || copy?.youtube) && (
-          <div className="px-5 max-h-[40vh] overflow-y-auto" data-testid="sheet-copy">
-            {copy.title && <CopyBlock label="Title" text={copy.title} />}
-            {copy.instagram && <CopyBlock label="Instagram caption" text={copy.instagram} />}
-            {copy.youtube && <CopyBlock label="YouTube description" text={copy.youtube} />}
-          </div>
-        )}
-
-        <div className="px-5 pt-4 pb-6">
+        <div className={`px-5 ${editor ? "pt-1 pb-4" : "pt-4 pb-6"}`}>
           {canDownload ? (
             <>
               <a
@@ -248,7 +219,11 @@ export function DownloadSheet({
                 onClick={startDownload}
                 aria-disabled={checking}
                 data-testid="sheet-download"
-                className={`block w-full text-center bg-white text-black text-[12px] uppercase tracking-[.1em] py-3.5 hover:bg-accent hover:text-white ${
+                className={`block w-full text-center text-[12px] uppercase tracking-[.1em] py-3.5 ${
+                  editor
+                    ? "border border-white/30 text-white hover:border-white"
+                    : "bg-white text-black hover:bg-accent hover:text-white"
+                } ${
                   checking ? "opacity-70 pointer-events-none" : ""
                 }`}
               >
