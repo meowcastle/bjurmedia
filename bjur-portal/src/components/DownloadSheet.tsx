@@ -72,6 +72,70 @@ export function DownloadSheet({
   const visibleError = error?.assetId === assetId ? error.message : null;
 
   /**
+   * "Save to phone": the 1080p preview, not the master, handed to the OS share sheet so
+   * it can go straight into Photos. Two taps by necessity: Safari only lets a page open
+   * the share sheet during a tap, and fetching an 80 MB file outlasts that window. So
+   * the first tap fetches (with a count), and the second, on the same button, shares the
+   * file already in hand. Browsers without file sharing fall back to a plain download of
+   * the same preview, which lands in Files/Downloads like the master does.
+   */
+  const [phone, setPhone] = useState<{ assetId: string; progress: number; file: File | null; shared: boolean } | null>(null);
+  const phoneState = phone?.assetId === assetId ? phone : null;
+  const canShareFiles =
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function";
+
+  async function saveToPhone() {
+    if (phoneState?.file) {
+      const files = [phoneState.file];
+      if (canShareFiles && navigator.canShare({ files })) {
+        try {
+          await navigator.share({ files, title: phoneState.file.name });
+          setPhone({ ...phoneState, shared: true });
+        } catch {
+          /* the person closed the sheet; the file is still here for another tap */
+        }
+      } else {
+        const href = URL.createObjectURL(phoneState.file);
+        const a = document.createElement("a");
+        a.href = href;
+        a.download = phoneState.file.name;
+        a.click();
+        URL.revokeObjectURL(href);
+        setPhone({ ...phoneState, shared: true });
+      }
+      return;
+    }
+    if (phoneState && phoneState.progress < 100) return; // already fetching
+
+    const stem = facts.name.replace(/\.[^.]+$/, "");
+    const url = `/api/assets/${assetId}/proxy?download=1`;
+    setError(null);
+    setPhone({ assetId, progress: 0, file: null, shared: false });
+    try {
+      const res = await fetch(url);
+      if (!res.ok || !res.body) throw new Error();
+      const total = Number(res.headers.get("content-length") ?? 0);
+      const reader = res.body.getReader();
+      const parts: BlobPart[] = [];
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value as unknown as BlobPart);
+        received += value.length;
+        if (total) setPhone({ assetId, progress: Math.min(99, Math.round((received / total) * 100)), file: null, shared: false });
+      }
+      const file = new File(parts, `${stem}.mp4`, { type: "video/mp4" });
+      setPhone({ assetId, progress: 100, file, shared: false });
+    } catch {
+      setPhone(null);
+      setError({ assetId, message: "The preview could not be fetched just now. Try again shortly." });
+    }
+  }
+
+  /**
    * Above this the browser does the transfer and there is no percentage.
    *
    * A live number means reading the response in JS and holding it as a Blob until it is
@@ -247,6 +311,36 @@ export function DownloadSheet({
                     style={{ width: `${progress}%` }}
                   />
                 </span>
+              )}
+              {!facts.watermarked && (
+                <>
+                  <button
+                    type="button"
+                    onClick={saveToPhone}
+                    data-testid="sheet-save-to-phone"
+                    className="mt-2.5 block w-full text-center text-[12px] uppercase tracking-[.1em] py-3.5 border border-white/30 text-white hover:border-white cursor-pointer"
+                  >
+                    {phoneState?.shared
+                      ? "Saved"
+                      : phoneState?.file
+                        ? canShareFiles ? "Add to Photos" : "Save preview"
+                        : phoneState
+                          ? `Fetching preview ${phoneState.progress}%`
+                          : "Save to phone · 1080p preview"}
+                  </button>
+                  {phoneState && !phoneState.file && (
+                    <span className="block h-[2px] bg-white/12 mt-[3px]">
+                      <span className="block h-full bg-white transition-[width] duration-200" style={{ width: `${phoneState.progress}%` }} />
+                    </span>
+                  )}
+                  <div className="mt-2 text-[11px] leading-relaxed text-white/45">
+                    {phoneState?.file && !phoneState.shared
+                      ? canShareFiles
+                        ? "Tap again, then choose Save Video."
+                        : "Tap again to save the preview."
+                      : "The phone-sized copy, ready to post. Download above is the full master."}
+                  </div>
+                </>
               )}
               {/* One quiet line, no red and no lock glyph: a mark on an unpaid job is a
                   normal condition of the work, not an error the client has hit. */}

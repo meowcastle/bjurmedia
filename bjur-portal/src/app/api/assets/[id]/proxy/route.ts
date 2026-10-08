@@ -19,7 +19,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!filePath) return new Response(null, { status: 404 });
 
   try {
+    // ?download=1 hands the preview over as a file instead of a stream: the phone-sized
+    // copy of a reel, named after the master, for a client who wants it in their camera
+    // roll rather than a 500 MB ProRes in their Downloads folder.
+    const asFile = req.nextUrl.searchParams.get("download") === "1";
+    const stem = auth.asset.name.replace(/\.[^.]+$/, "");
     return streamFile(filePath, req.headers.get("range"), {
+      download: asFile ? `${stem}.mp4` : undefined,
       // Marked proxies are never cached — releasing the hold has to take effect on the
       // client's next play, not a day later.
       cacheControl: auth.watermark ? "private, no-store" : "private, max-age=86400",
