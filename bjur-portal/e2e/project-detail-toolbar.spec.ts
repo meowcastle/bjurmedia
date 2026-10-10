@@ -55,3 +55,30 @@ test("each group header states its own size", async ({ page }) => {
   // "3 files · 5.5 GB" — the count and size of that format bucket.
   await expect(page.getByText(/\d+ (file|item)s? · \d+(\.\d+)? (MB|GB)/).first()).toBeVisible();
 });
+
+/**
+ * The zip is handed to the browser rather than read into a blob in the page, so it
+ * shows up as a real download and the gallery stays where it was. The blob version
+ * held a large gallery back from Downloads until it had all arrived, and on a phone
+ * the tab could die first, so the button looked like it did nothing.
+ */
+test("both zip buttons produce a download and leave the gallery in place", async ({ page }) => {
+  await page.goto(PROJECT);
+
+  const [all] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: /Download all · / }).click(),
+  ]);
+  expect(all.suggestedFilename()).toMatch(/\.zip$/);
+  await all.cancel();
+  await expect(page).toHaveURL(new RegExp(`${PROJECT}$`));
+
+  await page.getByRole("checkbox", { name: /^Select / }).first().click();
+  const [some] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: /Download 1 · \d/ }).click(),
+  ]);
+  expect(some.suggestedFilename()).toMatch(/\.zip$/);
+  await some.cancel();
+  await expect(page).toHaveURL(new RegExp(`${PROJECT}$`));
+});

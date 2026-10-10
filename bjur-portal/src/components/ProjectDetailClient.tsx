@@ -51,47 +51,17 @@ function colsFor(format: string) {
   return "repeat(auto-fill,minmax(340px,1fr))";
 }
 
-/** Live byte counter for a streaming download — B/KB/MB, not the file-size formatter.
- *  Named apart from formatBytes because it shadowed it, which is how a decimal-GB size
- *  column and a binary-GB total ended up disagreeing about the same file. */
-function formatProgressBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/** Download button with a looping shimmer + live byte count while a zip streams in —
- * the server can't report a Content-Length (archiver zips on the fly), so this is
- * honest progress feedback rather than a fabricated percentage. */
-function DownloadButton({
-  label,
-  onClick,
-  downloading,
-  downloadedBytes,
-}: {
-  label: string;
-  onClick: () => void;
-  downloading: boolean;
-  downloadedBytes: number;
-}) {
+/** The browser does the transfer, so the zip lands in Downloads with the browser's own
+ * progress as soon as the first byte arrives. It used to be read into a blob in the page
+ * first, which kept a multi-gigabyte gallery out of Downloads until the very end, and
+ * on a phone or a big project the tab ran out of memory and nothing landed at all. */
+function DownloadButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      disabled={downloading}
-      className="relative overflow-hidden cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-text hover:bg-accent px-5 py-3.5 disabled:cursor-default"
+      className="cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-text hover:bg-accent px-5 py-3.5"
     >
-      {downloading && (
-        <motion.div
-          className="absolute inset-y-0 left-0 w-1/3 bg-white/25"
-          animate={{ x: ["-100%", "300%"] }}
-          transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
-        />
-      )}
-      <span className="relative z-10">
-        {downloading
-          ? `↓ Downloading… ${formatProgressBytes(downloadedBytes)}`
-          : label}
-      </span>
+      {label}
     </button>
   );
 }
@@ -312,67 +282,32 @@ export function ProjectDetailClient({
   }, [project.id]);
 
   const canDownload = role !== "VIEWER";
-  const [downloading, setDownloading] = useState(false);
-  const [downloadedBytes, setDownloadedBytes] = useState(0);
-
-  async function downloadZip(opts: {
-    method: "GET" | "POST";
-    body?: { assetIds: string[] };
-    filename: string;
-  }) {
-    setDownloading(true);
-    setDownloadedBytes(0);
-    try {
-      const res = await fetch(`/api/projects/${project.id}/download-all`, {
-        method: opts.method,
-        headers: opts.body ? { "Content-Type": "application/json" } : undefined,
-        body: opts.body ? JSON.stringify(opts.body) : undefined,
-      });
-      if (!res.ok || !res.body) return;
-
-      // No Content-Length to compute a real percentage against (the server zips on
-      // the fly via archiver), so this tracks bytes actually received — honest
-      // progress feedback instead of a static "Zipping…" label.
-      const reader = res.body.getReader();
-      const chunks: Uint8Array[] = [];
-      let total = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          total += value.byteLength;
-          setDownloadedBytes(total);
-        }
-      }
-
-      const blob = new Blob(chunks as BlobPart[], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = opts.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  function downloadSelected() {
-    downloadZip({
-      method: "POST",
-      body: { assetIds: [...selected] },
-      filename: `${project.title.replace(/[^a-z0-9]+/gi, "-")}-selected.zip`,
-    });
-  }
+  const zipUrl = `/api/projects/${project.id}/download-all`;
 
   function downloadAll() {
-    downloadZip({
-      method: "GET",
-      filename: `${project.title.replace(/[^a-z0-9]+/gi, "-")}.zip`,
-    });
+    const a = document.createElement("a");
+    a.href = zipUrl;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  /** A form POST rather than fetch, for the same reason as Download all: the response
+   * is an attachment, so the page stays put and the browser saves the stream. */
+  function downloadSelected() {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = zipUrl;
+    for (const id of selected) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "assetIds";
+      input.value = id;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
   }
 
   async function toggleSelect(id: string) {
@@ -728,8 +663,6 @@ export function ProjectDetailClient({
             <DownloadButton
               label={`↓ Download all · ${formatBytes(totalBytes)}`}
               onClick={downloadAll}
-              downloading={downloading}
-              downloadedBytes={downloadedBytes}
             />
           )}
         </div>
@@ -974,8 +907,6 @@ export function ProjectDetailClient({
             <DownloadButton
               label={`↓ Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
               onClick={downloadSelected}
-              downloading={downloading}
-              downloadedBytes={downloadedBytes}
             />
           </div>
         </div>

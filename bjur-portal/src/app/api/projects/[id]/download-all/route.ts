@@ -130,7 +130,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await getSessionUser();
   if (!session) return new Response(null, { status: 401 });
 
-  const { assetIds } = await req.json().catch(() => ({ assetIds: null }));
+  // The gallery submits a plain form so the browser saves the zip itself; JSON is
+  // still accepted for scripted callers.
+  const assetIds = req.headers.get("content-type")?.includes("application/json")
+    ? ((await req.json().catch(() => ({}))) as { assetIds?: unknown }).assetIds
+    : (await req.formData().catch(() => null))?.getAll("assetIds");
   if (!Array.isArray(assetIds) || assetIds.length === 0) {
     return new Response(JSON.stringify({ error: "No assets selected." }), { status: 400 });
   }
