@@ -79,6 +79,9 @@ function fmtDetected(iso: string) {
   });
 }
 
+/** How long Done waits for the date saves before closing anyway. */
+const SAVE_WAIT_MS = 8000;
+
 export function UploadDialog({
   projectId,
   projectTitle,
@@ -96,6 +99,7 @@ export function UploadDialog({
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
   const [folderId, setFolderId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
   const listEndRef = useRef<HTMLDivElement>(null);
 
   function addFiles(files: FileList | null) {
@@ -196,8 +200,16 @@ export function UploadDialog({
   // The date field is prefilled but may never be focused (an admin who agrees with a
   // detected date has no reason to click into it), so onBlur alone would never fire —
   // flushing every ingested item's current draft here is what actually confirms it.
+  //
+  // Done always closes. It used to wait on every save with Promise.all, so one request
+  // that never answered (the NAS busy encoding the files that just landed) or one that
+  // failed left a Done button that did nothing at all. A date that did not save still
+  // shows under "Needs week" on the media page.
   async function finishAndClose() {
-    await Promise.all(queue.filter((qi) => qi.assetId).map(saveWeekOf));
+    if (saving) return;
+    setSaving(true);
+    const saves = Promise.allSettled(queue.filter((qi) => qi.assetId).map(saveWeekOf));
+    await Promise.race([saves, new Promise((r) => setTimeout(r, SAVE_WAIT_MS))]);
     onClose();
   }
 
@@ -205,7 +217,7 @@ export function UploadDialog({
     queue.length > 0 &&
     queue.every((q) => q.status === "done" || q.status === "warning");
   const hasPending = queue.some((q) => q.status === "pending");
-  const handleDismiss = uploading
+  const handleDismiss = uploading || saving
     ? undefined
     : allDone
       ? finishAndClose
@@ -342,9 +354,9 @@ export function UploadDialog({
             <Button
               variant="secondary"
               onClick={handleDismiss}
-              disabled={uploading}
+              disabled={uploading || saving}
             >
-              {allDone ? "Done" : "Cancel"}
+              {saving ? "Saving…" : allDone ? "Done" : "Cancel"}
             </Button>
             {!allDone && (
               <Button onClick={startUpload} disabled={uploading || !hasPending}>
