@@ -1,5 +1,6 @@
 "use client";
 
+import { Toast } from "@/components/ui/Toast";
 import { haptic } from "@/lib/haptics";
 import { useState } from "react";
 import { formatBytes } from "@/lib/format";
@@ -350,15 +351,9 @@ export function AdminIntakeBlock({
         </div>
       </div>
 
-      {toast && (
-        <div
-          data-testid="intake-toast"
-          onAnimationEnd={() => setToast(null)}
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-text text-bg text-[12.5px] px-4 py-2.5"
-        >
-          {toast}
-        </div>
-      )}
+      {/* The shared toast. This one had its own markup that cleared itself on
+          onAnimationEnd without an animation, so it never left the screen. */}
+      <Toast message={toast} onDone={() => setToast(null)} />
     </div>
   );
 }

@@ -125,3 +125,25 @@ test("Media is reached from the project, not a picker of its own", async ({ page
   await expect(page).toHaveURL(/\/admin\/media\?project=p1$/);
   await expect(page.locator('[data-testid^="asset-row-"]').first()).toBeVisible();
 });
+
+/**
+ * Toasts stack (up to three) instead of the second replacing the first mid-read, and each
+ * leaves on its own timer.
+ */
+test("two quick confirmations stack, then each goes away", async ({ page, request }) => {
+  const project = await makeProject(request);
+  await page.goto(`/admin/projects/${project.id}`);
+
+  const title = page.getByTestId("project-title");
+  await title.fill("Stacked toasts");
+  await title.press("Enter");
+  await page.getByRole("switch", { name: "Awaiting payment" }).click();
+
+  const toasts = page.getByTestId("toast");
+  await expect(toasts).toHaveCount(2);
+  await expect(toasts.nth(0)).toContainText("Title saved");
+  await expect(toasts.nth(1)).toContainText("Awaiting payment");
+  await expect(toasts).toHaveCount(0, { timeout: 6000 });
+
+  await request.delete(`/api/admin/projects/${project.id}`);
+});

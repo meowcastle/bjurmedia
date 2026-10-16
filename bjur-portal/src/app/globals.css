@@ -333,6 +333,13 @@ body {
   from { opacity: 1; transform: translate(-50%, 0); }
   to { opacity: 0; transform: translate(-50%, 0); }
 }
+@keyframes bj-stack-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bj-stack-out { from { opacity: 1; } to { opacity: 0; } }
+.bj-stack-in { animation: bj-stack-in var(--dur-2) var(--ease-out) both; }
+.bj-stack-out { animation: bj-stack-out var(--dur-1) var(--ease-in) both; }
 .bj-pop-in { animation: bj-pop-in var(--dur-1) var(--ease-out) both; }
 .bj-pop-out { animation: bj-pop-out var(--dur-1) var(--ease-in) both; }
 .bj-toast-in { animation: bj-toast-in var(--dur-2) var(--ease-out) both; }

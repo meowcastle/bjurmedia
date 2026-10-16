@@ -37,6 +37,11 @@ test("a long-silent upload reads as stalled, not receiving", async ({ page }) =>
     await expect(row).toContainText(/never finished/);
     // Its files can still be cleared — that is most of what a stalled batch is for.
     await expect(page.getByTestId(`delete-files-${batchId}`)).toBeVisible();
+    // Its toast leaves on its own. It had its own markup that waited for an animation it
+    // never had, so "Path copied." stayed on screen until the page reloaded.
+    await page.getByTestId(`copy-path-${batchId}`).click();
+    await expect(page.getByTestId("toast")).toContainText("Path copied.");
+    await expect(page.getByTestId("toast")).toHaveCount(0, { timeout: 6000 });
   } finally {
     sql(`UPDATE Submission SET updatedAt = strftime('%s','now')*1000 WHERE batchId='${batchId}';`);
   }
