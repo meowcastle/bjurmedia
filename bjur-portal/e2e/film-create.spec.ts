@@ -84,12 +84,37 @@ test("the create sheet offers Film, and asks for guests when it is picked", asyn
   await expect(page.getByRole("button", { name: /^Film/ })).toBeVisible();
   await expect(page.getByTestId("add-review")).toHaveCount(0);
 
-  // The reviewers block is Film-only.
-  await expect(page.getByTestId("reviewers-block")).toHaveCount(0);
+  // Guests are added on the Film project's own page now, not at creation.
   await page.getByRole("button", { name: /^Film/ }).click();
-  await expect(page.getByTestId("reviewers-block")).toBeVisible();
-  await page.getByTestId("guest-emails").fill("a@b.com, c@d.com");
-  await expect(page.getByTestId("guest-emails")).toHaveValue("a@b.com, c@d.com");
+  await expect(page.getByTestId("reviewers-block")).toHaveCount(0);
+});
+
+/**
+ * A guest — a director, a label — added after the project exists. p2 already has cut 2
+ * out, so the new guest is sent it at once rather than waiting for cut 3.
+ */
+test("a guest can be added from the Film project's page and is sent the current cut", async ({ page }) => {
+  await page.goto("/admin/projects/p2");
+  const block = page.getByTestId("film-block");
+  await block.getByTestId("add-guest").click();
+  const email = `guest+${Date.now()}@label.test`;
+  await block.getByLabel("Guest email").fill(email);
+  await block.getByLabel("Guest role").fill("Label");
+  await block.getByRole("button", { name: "Add guest" }).click();
+
+  await expect(page.getByTestId("toast")).toContainText("Added · sent cut 2");
+  // They are on the list, as a guest, with a link staff can hand over.
+  const row = block.getByText("Guest link · Label").locator("xpath=ancestor::div[1]");
+  await expect(row.first()).toBeVisible();
+  await expect(block.getByRole("button", { name: "Copy link" }).first()).toBeVisible();
+
+  // Leave p2's reviewer list as the other specs expect to find it.
+  execFileSync("sqlite3", [DB, `DELETE FROM Reviewer WHERE email='${email}';`]);
+});
+
+test("adding a guest rejects something that is not an email", async ({ request }) => {
+  const res = await request.post("/api/admin/projects/p2/reviewers", { data: { email: "not-an-email" } });
+  expect(res.status()).toBe(400);
 });
 
 test("the admin project page shows cuts and reviewers for a film", async ({ page }) => {

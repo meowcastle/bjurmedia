@@ -97,7 +97,7 @@ test.describe("studio", () => {
 
 test.describe("guest", () => {
   test("the link asks for a name once, then plays the cut", async ({ page }) => {
-    const token = sql("SELECT token FROM Reviewer WHERE projectId='p2' AND kind='GUEST';");
+    const token = sql("SELECT token FROM Reviewer WHERE projectId='p2' AND kind='GUEST' AND email='tom@reyes.film';");
     const before = sql(`SELECT name FROM Reviewer WHERE token='${token}';`);
     sql(`UPDATE Reviewer SET name='' WHERE token='${token}';`);
 
@@ -116,7 +116,7 @@ test.describe("guest", () => {
   });
 
   test("a revoked link stops existing", async ({ page }) => {
-    const token = sql("SELECT token FROM Reviewer WHERE projectId='p2' AND kind='GUEST';");
+    const token = sql("SELECT token FROM Reviewer WHERE projectId='p2' AND kind='GUEST' AND email='tom@reyes.film';");
     sql(`UPDATE Reviewer SET revokedAt=CURRENT_TIMESTAMP WHERE token='${token}';`);
     try {
       const res = await page.goto(`/r/${token}`);

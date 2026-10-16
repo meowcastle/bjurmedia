@@ -17,9 +17,8 @@ const TYPES: { id: ProjectType; label: string }[] = [
 /**
  * The create sheet: client, title, type — the three things that cannot wait.
  *
- * Expiry and payment are set on the project page, which already edits both; upload
- * links live on the client page. Reviewers stay here for Film because guests can only be
- * added at creation — the project page lists reviewers but cannot add one yet.
+ * Everything else is set where it is owned: expiry and payment on the project page, guest
+ * reviewers on a Film project's page (+ Add guest), upload links on the client page.
  */
 export function NewProjectDialog({
   clients,
@@ -33,7 +32,6 @@ export function NewProjectDialog({
   const { close, closing } = useDialogExit(onClose, "drawer");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [type, setType] = useState<ProjectType>("DELIVERY");
-  const [guests, setGuests] = useState("");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,13 +41,6 @@ export function NewProjectDialog({
   const client = clients.find((c) => c.id === clientId);
   const calendarBlocked = type === "CALENDAR" && client !== undefined && !client.hasSlackChannel;
 
-
-  // Comma, space or newline — people paste addresses out of a mail client and the
-  // separator is whatever that client used.
-  const guestEmails = guests
-    .split(/[,\s]+/)
-    .map((e) => e.trim())
-    .filter((e) => e.includes("@"));
 
   async function submit() {
     if (!title.trim() || !clientId) {
@@ -66,7 +57,6 @@ export function NewProjectDialog({
         clientId,
         title: title.trim(),
         type,
-        guests: type === "FILM" ? guestEmails.map((email) => ({ email })) : undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -149,21 +139,6 @@ export function NewProjectDialog({
                     </div>
                   )}
                 </div>
-
-                {type === "FILM" && (
-                  <div data-testid="reviewers-block">
-                    <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-2">
-                      Reviewers
-                    </span>
-                    <input
-                      value={guests}
-                      onChange={(e) => setGuests(e.target.value)}
-                      placeholder="director@studio.com, label@records.com"
-                      data-testid="guest-emails"
-                      className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2 text-[13px]"
-                    />
-                  </div>
-                )}
 
                 <div>
                   <label

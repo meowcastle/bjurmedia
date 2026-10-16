@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AddGuestReviewer, CopyGuestLink } from "@/components/AddGuestReviewer";
 
 /**
  * Cuts and reviewers, on a Film project's admin page.
@@ -29,6 +30,8 @@ export type ReviewerRow = {
   draftingOnLatest: boolean;
   lastOpenedAt: string | null;
   revoked: boolean;
+  /** Guests only: their personal review link. */
+  link: string | null;
 };
 
 function when(iso: string | null) {
@@ -135,9 +138,12 @@ export function AdminFilmBlock({
             <div key={r.id} className="py-3 flex items-baseline justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[13px] truncate">{r.name || r.email}</div>
-                <div className="text-[11px] text-muted truncate">
-                  {r.kind === "SEAT" ? "Login" : "Guest link"}
-                  {r.role ? ` · ${r.role}` : ""}
+                <div className="text-[11px] text-muted truncate flex items-baseline gap-2">
+                  <span className="truncate">
+                    {r.kind === "SEAT" ? "Login" : "Guest link"}
+                    {r.role ? ` · ${r.role}` : ""}
+                  </span>
+                  {r.link && <CopyGuestLink link={r.link} />}
                 </div>
               </div>
               <span className="text-[10.5px] whitespace-nowrap">
@@ -156,6 +162,10 @@ export function AdminFilmBlock({
               </span>
             </div>
           ))}
+        </div>
+
+        <div className="pt-3 border-t border-line">
+          <AddGuestReviewer projectId={projectId} />
         </div>
 
         <p className="text-[11px] text-dim2 leading-relaxed mt-3">

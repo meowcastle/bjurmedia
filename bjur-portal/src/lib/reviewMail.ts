@@ -63,7 +63,12 @@ async function activeReviewers(projectId: string) {
  * answers exist nowhere else in the client's world, so this send is the only time they
  * travel; a failure here is worth chasing rather than shrugging at.
  */
-export async function notifyCutReady(reviewId: string, deps: Partial<ReviewMailDeps> = {}) {
+export async function notifyCutReady(
+  reviewId: string,
+  deps: Partial<ReviewMailDeps> = {},
+  /** Just these reviewers — a guest added after the cut went out, catching up. */
+  only?: string[]
+) {
   const send = deps.sendCutReady ?? sendCutReadyEmail;
   try {
     const cut = await db.review.findUnique({
@@ -110,7 +115,7 @@ export async function notifyCutReady(reviewId: string, deps: Partial<ReviewMailD
         }))
       : [];
 
-    const reviewers = await activeReviewers(projectId);
+    const reviewers = (await activeReviewers(projectId)).filter((r) => !only || only.includes(r.id));
     if (reviewers.length === 0) {
       console.warn(`[review-mail] ${cut.asset.project.title} has no active reviewer to tell`);
       return { sent: 0 };

@@ -73,22 +73,7 @@ export async function createProject(opts: {
     await seatReviewers(project.id, opts.clientId);
 
     for (const guest of opts.guests ?? []) {
-      const email = guest.email.trim().toLowerCase();
-      if (!email.includes("@")) continue;
-      await db.reviewer.upsert({
-        where: { projectId_email: { projectId: project.id, email } },
-        update: { revokedAt: null },
-        create: {
-          projectId: project.id,
-          kind: "GUEST",
-          email,
-          // Blank until their first visit, where they are asked once. Showing the address
-          // in the meantime would put a stranger's email in front of the whole client.
-          name: guest.name?.trim() || "",
-          role: guest.role?.trim() || null,
-          token: newGuestToken(),
-        },
-      });
+      await addGuestReviewer(project.id, guest);
     }
   }
 
@@ -121,4 +106,32 @@ export async function seatReviewers(projectId: string, clientId: string) {
       },
     });
   }
+}
+
+/**
+ * Puts a guest — someone with no login, a director or a label — on a Film project's
+ * review. Used at creation and from the project page. Re-adding a revoked guest restores
+ * them with their old link rather than minting a second one. Returns null for an address
+ * that is not one.
+ */
+export async function addGuestReviewer(
+  projectId: string,
+  guest: { email: string; name?: string; role?: string }
+) {
+  const email = guest.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return db.reviewer.upsert({
+    where: { projectId_email: { projectId, email } },
+    update: { revokedAt: null, ...(guest.role?.trim() ? { role: guest.role.trim() } : {}) },
+    create: {
+      projectId,
+      kind: "GUEST",
+      email,
+      // Blank until their first visit, where they are asked once. Showing the address
+      // in the meantime would put a stranger's email in front of the whole client.
+      name: guest.name?.trim() || "",
+      role: guest.role?.trim() || null,
+      token: newGuestToken(),
+    },
+  });
 }

@@ -87,6 +87,11 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
                 draftingOnLatest: r.notes.some((n) => !n.sentAt && n.reviewId === latestCutId),
                 lastOpenedAt: r.lastOpenedAt?.toISOString() ?? null,
                 revoked: r.revokedAt !== null,
+                // A guest's whole access is this link; staff need it to hand over by hand.
+                link:
+                  r.kind === "GUEST" && r.token
+                    ? `${(process.env.PORTAL_URL ?? "").replace(/\/$/, "")}/r/${r.token}`
+                    : null,
               })),
             }
           : null
