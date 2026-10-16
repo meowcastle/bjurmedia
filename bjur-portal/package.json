@@ -20,6 +20,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@prisma/client": "^6.19.3",
     "archiver": "^8.0.0",
     "argon2": "^0.44.0",

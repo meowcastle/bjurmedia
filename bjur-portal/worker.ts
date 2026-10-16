@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { draftStalledFollowUps, postWeeklyDigest, sendApprovedDrafts } from "./src/lib/crm/agents";
 import { mkdirSync } from "fs";
 import { rm } from "fs/promises";
 import { createServer } from "http";
@@ -466,6 +467,28 @@ function startInternalServer() {
   server.listen(INGEST_PORT, () => console.log(`[internal-server] listening on :${INGEST_PORT}`));
 }
 
+// CRM, Phase 1 (design_handoff_bjur_portal/CRM.md). The two agents only create rows —
+// drafts and tasks — and the sender is the single place anything leaves, and only what a
+// person approved. All three ride the same guarded poll, so a slow tick never overlaps.
+function startCrmSchedulers() {
+  guardedInterval("crm-followups", async () => {
+    const r = await draftStalledFollowUps();
+    if (r.drafted || r.tasked) console.log(`[crm] ${r.drafted} draft(s), ${r.tasked} task(s)`);
+  }, SCHEDULER_POLL_MS);
+  guardedInterval("crm-digest", async () => {
+    const r = await postWeeklyDigest();
+    if (r.posted) console.log("[crm] posted the Monday brief");
+  }, SCHEDULER_POLL_MS);
+  guardedInterval("crm-sender", async () => {
+    const r = await sendApprovedDrafts();
+    if (r.sent) console.log(`[crm] sent ${r.sent} approved draft(s)`);
+  }, SCHEDULER_POLL_MS);
+  console.log(
+    `[crm] follow-ups, Monday brief and sender checking every ${SCHEDULER_POLL_MS}ms — ` +
+      `drafting ${process.env.ANTHROPIC_API_KEY ? "on" : "off (tasks only)"}, mail ${process.env.DELIVERY_EMAILS === "live" ? "LIVE" : "dry run"}`,
+  );
+}
+
 startHeartbeat();
 startIngestWatcher();
 startInternalServer();
@@ -476,3 +499,4 @@ startSessionSweepScheduler();
 startPublishScheduler();
 startClientMailScheduler();
 startCaptionScheduler();
+startCrmSchedulers();

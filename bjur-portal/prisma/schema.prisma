@@ -47,6 +47,8 @@ model Client {
   channel            ClientChannel?
   socialAccounts     SocialAccount[]
   members            ClientMember[]
+  contacts           Contact[]
+  deals              Deal[]
 }
 
 enum ProjectType {
@@ -168,6 +170,7 @@ model Project {
   // Which reminder threshold has already gone out (14 or 3). Null = none yet, and it
   // resets whenever expiresAt moves, so extending a gallery re-arms both.
   expiryReminderSentFor Int?
+  deal                  Deal?
 
   @@index([clientId])
 }
@@ -375,14 +378,14 @@ model Asset {
   // "when exactly does it go out" the same field, and they are not.
   // Transcription and the caption draft that comes from it. Only ever set on assets
   // ingested after the feature existed — nothing backfills the library.
-  transcript       String?
-  transcriptStatus TranscriptStatus @default(NONE)
-  transcriptError  String?
-  transcribedAt    DateTime?
+  transcript         String?
+  transcriptStatus   TranscriptStatus @default(NONE)
+  transcriptError    String?
+  transcribedAt      DateTime?
   /**
    * HUMAN once a person edits the caption, which takes the draft warning off.
    */
-  captionSource    CaptionSource    @default(HUMAN)
+  captionSource      CaptionSource    @default(HUMAN)
   /**
    * Who last saved the copy, "CLIENT" or "ADMIN", and when. Written on every save from
    * either side, so the board can say a client changed a caption staff already read.
@@ -753,4 +756,196 @@ model SocialPost {
 model SocialConfig {
   id            Int     @id @default(1) // singleton row
   youtubeApiKey String?
+}
+
+// ─── CRM, Phase 1 (design_handoff_bjur_portal/CRM.md §2, §4) ─────────────────────────
+// A relationship and revenue layer over the portal's own data, not a copy of it. Agents
+// only ever create rows here (drafts, tasks); the one sender in the worker is the only
+// thing that sends, and only what a person approved.
+
+/**
+ * A person the studio has a relationship with — before, during or after being a client
+ * login. Most leads never have a login, which is why Contact is not User.
+ */
+model Contact {
+  id           String       @id @default(cuid())
+  name         String
+  email        String?      @unique
+  phone        String?
+  company      String?
+  /**
+   * Set once they become (or are matched to) a client. A lead has none.
+   */
+  clientId     String?
+  client       Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  /**
+   * The portal login this mirrors, when there is one.
+   */
+  userId       String?      @unique
+  /**
+   * "referral" | "sharegrid" | "manual" | "backfill"
+   */
+  source       String?
+  /**
+   * Every scheduler checks this before drafting anything addressed to them.
+   */
+  doNotContact Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  deals        Deal[]
+  tasks        Task[]
+  drafts       AgentDraft[]
+
+  @@index([clientId])
+}
+
+/**
+ * One potential or actual piece of business, moving through stages. Not a Project: it
+ * exists before one (a lead, a quote) and after one closes (was it paid, is there a next).
+ * stageChangedAt is the whole engine of the follow-up agent.
+ */
+model Deal {
+  id             String       @id @default(cuid())
+  title          String
+  contactId      String?
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId      String?      @unique
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  kind           DealKind     @default(PROJECT)
+  stage          DealStage    @default(LEAD)
+  stageChangedAt DateTime     @default(now())
+  /**
+   * Whole dollars, estimate or agreed. Never shown to a drafter.
+   */
+  amount         Int?
+  notes          String?
+  /**
+   * "I already nudged this", so one stall produces one draft rather than one per tick.
+   */
+  lastNudgedAt   DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  tasks          Task[]
+  drafts         AgentDraft[]
+
+  @@index([stage, stageChangedAt])
+  @@index([clientId])
+}
+
+enum DealKind {
+  PROJECT
+  RETAINER
+  ADVISORY
+  GEAR
+}
+
+enum DealStage {
+  LEAD
+  QUOTED
+  ACTIVE
+  DELIVERED
+  PAID
+  WON
+  LOST
+}
+
+/**
+ * Something a person must do, with a date. "Call Adam Friday", not Asana.
+ */
+model Task {
+  id        String     @id @default(cuid())
+  title     String
+  dueAt     DateTime?
+  dealId    String?
+  deal      Deal?      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  source    TaskSource @default(HUMAN)
+  doneAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([dueAt])
+}
+
+enum TaskSource {
+  HUMAN
+  AGENT
+}
+
+/**
+ * The approval queue: one row per message an agent proposes. Visibly the machine's until a
+ * person approves it, and approval is the only way to SENT. Named AgentDraft so it is not
+ * confused with review-note drafts or PublishState.DRAFT.
+ */
+model AgentDraft {
+  id          String       @id @default(cuid())
+  kind        DraftKind
+  channel     DraftChannel @default(EMAIL)
+  toEmail     String?
+  subject     String?
+  body        String
+  /**
+   * What the drafter was given, so a bad draft can be traced to bad context.
+   */
+  context     Json?
+  dealId      String?
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  clientId    String?
+  state       DraftState   @default(PENDING)
+  createdAt   DateTime     @default(now())
+  approvedAt  DateTime?
+  sentAt      DateTime?
+  dismissedAt DateTime?
+  error       String?
+
+  @@index([state, createdAt])
+}
+
+enum DraftKind {
+  FOLLOW_UP
+  PAYMENT_NUDGE
+  NEXT_STEP
+  INQUIRY_REPLY
+  REVIEW_NUDGE
+  RETAINER_RECAP
+  CHECK_IN
+  REFERRAL_ASK
+}
+
+enum DraftChannel {
+  EMAIL
+  SLACK
+}
+
+enum DraftState {
+  PENDING
+  APPROVED
+  SENT
+  DISMISSED
+  FAILED
+}
+
+/**
+ * Thresholds and autonomy, one row. Everything a person may want to tune lives here.
+ */
+model AgentConfig {
+  id              Int       @id @default(1)
+  digestDay       String    @default("Monday")
+  digestTime      String    @default("09:00")
+  /**
+   * Last digest posted, so a restart on a Monday does not post it twice.
+   */
+  digestSentAt    DateTime?
+  quotedStallDays Int       @default(5)
+  unpaidStallDays Int       @default(7)
+  nextStepDays    Int       @default(14)
+  reviewStallDays Int       @default(4)
+  /**
+   * Kinds a person has promoted to auto-send. Empty on day one; money kinds are ignored.
+   */
+  autoSendKinds   Json      @default("[]")
+  maxSendsPerDay  Int       @default(10)
 }

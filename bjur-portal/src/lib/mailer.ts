@@ -120,6 +120,23 @@ export async function sendNotesInEmail(to: string, props: NotesInEmailProps) {
   return sendMail({ to, subject: `[Bjur] ${what}`, html: renderNotesInEmailHtml(props) });
 }
 
+/**
+ * A CRM email a person approved (lib/crm/agents.ts). Deliberately plain — it reads as a
+ * note from the studio, not a template — so the body is the approved text, escaped, with
+ * its line breaks kept.
+ */
+export async function sendOutreachEmail(to: string, subject: string, body: string) {
+  const esc = (t: string) =>
+    t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#17161a;max-width:560px">${esc(body)
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("")}</div>`;
+  const result = await sendMail({ to, subject, html });
+  if (!result.sent) throw new Error("No mail transport is configured.");
+  return result;
+}
+
 export async function sendStaffAlertEmail(to: string, props: StaffAlertEmailProps) {
   const html = renderStaffAlertEmailHtml(props);
   return sendMail({ to, subject: `[Bjur] ${props.headline}`, html });
