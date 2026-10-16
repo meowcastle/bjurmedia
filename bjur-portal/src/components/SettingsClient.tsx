@@ -62,6 +62,7 @@ export function SettingsClient({
   const [notifyExpiry, setNotifyExpiry] = useState(initialNotifyExpiry);
 
   const [sessions, setSessions] = useState(initialSessions);
+  const [confirmingRevokeId, setConfirmingRevokeId] = useState<string | null>(null);
 
   const initials =
     initialName
@@ -203,12 +204,32 @@ export function SettingsClient({
             {s.isCurrent ? (
               <span className="text-[11px] font-bold tracking-wide uppercase text-success">This device</span>
             ) : (
-              <button
-                onClick={() => revoke(s.id)}
-                className="text-[11px] font-semibold text-muted border border-line2 px-3 py-1.5 hover:text-accentb hover:border-accentb cursor-pointer"
-              >
-                Sign out
-              </button>
+              confirmingRevokeId === s.id ? (
+                <span className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setConfirmingRevokeId(null);
+                      void revoke(s.id);
+                    }}
+                    className="text-[11px] font-semibold text-accentb border border-accentb px-3 py-1.5 hover:text-text cursor-pointer"
+                  >
+                    Confirm sign out
+                  </button>
+                  <button
+                    onClick={() => setConfirmingRevokeId(null)}
+                    className="text-[11px] font-semibold text-muted px-1.5 py-1.5 hover:text-text cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setConfirmingRevokeId(s.id)}
+                  className="text-[11px] font-semibold text-muted border border-line2 px-3 py-1.5 hover:text-accentb hover:border-accentb cursor-pointer"
+                >
+                  Sign out
+                </button>
+              )
             )}
           </div>
         ))}

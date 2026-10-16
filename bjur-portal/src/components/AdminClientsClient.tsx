@@ -46,6 +46,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
     seat: Seat;
   } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmingDisableId, setConfirmingDisableId] = useState<string | null>(null);
 
   function toggleExpand(id: string) {
     setExpanded((s) => {
@@ -66,6 +67,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
       }),
     });
     setBusyId(null);
+    setConfirmingDisableId(null);
     router.refresh();
   }
 
@@ -180,13 +182,32 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                   >
                     {active ? "Active" : "Disabled"}
                   </span>
-                  <button
-                    onClick={() => toggleStatus(c)}
-                    disabled={busyId === c.id}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
-                  >
-                    {active ? "Disable" : "Enable"}
-                  </button>
+                  {confirmingDisableId === c.id ? (
+                    <>
+                      <button
+                        onClick={() => toggleStatus(c)}
+                        disabled={busyId === c.id}
+                        className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5 disabled:opacity-40"
+                      >
+                        {busyId === c.id ? "Disabling…" : "Confirm disable"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDisableId(null)}
+                        className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-1 py-1.5"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      // Disabling signs every login out, so it asks once; enabling does not.
+                      onClick={() => (active ? setConfirmingDisableId(c.id) : toggleStatus(c))}
+                      disabled={busyId === c.id}
+                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 disabled:opacity-40"
+                    >
+                      {active ? "Disable" : "Enable"}
+                    </button>
+                  )}
                 </div>
               </div>
               {isExpanded && (

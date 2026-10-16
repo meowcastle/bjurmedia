@@ -240,9 +240,10 @@ export function AdminDashboardClient({
           <span className="text-right">Delivered</span>
         </div>
         {recentDeliveries.map((r) => (
-          <div
+          <Link
             key={r.id}
-            className="grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center"
+            href={`/admin/projects/${r.id}`}
+            className="grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center hover:bg-s1"
             style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr" }}
           >
             <div className="flex items-center gap-2.5">
@@ -252,7 +253,7 @@ export function AdminDashboardClient({
             <span className="text-[13px] text-muted">{r.client}</span>
             <span className="text-[13px] text-muted">{r.count}</span>
             <span className="text-[13px] text-muted text-right">{r.delivered}</span>
-          </div>
+          </Link>
         ))}
         {recentDeliveries.length === 0 && (
           <div className="px-5 py-8 text-center text-sm text-muted">No projects yet.</div>

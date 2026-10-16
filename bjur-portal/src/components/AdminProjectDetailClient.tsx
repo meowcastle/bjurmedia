@@ -102,6 +102,7 @@ export function AdminProjectDetailClient({
   const [expires, setExpires] = useState(toDateInput(project.expiresAt));
 
   const [openFileId, setOpenFileId] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function patch(data: Record<string, unknown>, note: string) {
     const res = await fetch(`/api/admin/projects/${project.id}`, {
@@ -452,14 +453,34 @@ export function AdminProjectDetailClient({
 
       <div className="mt-12 pt-5 border-t border-line">
         {project.isEmpty ? (
-          <button
-            onClick={deleteProject}
-            disabled={busy}
-            data-testid="delete-project"
-            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb disabled:opacity-50"
-          >
-            Delete this project
-          </button>
+          confirmingDelete ? (
+            <span className="flex items-center gap-3">
+              <span className="text-[11px] text-muted">Delete {project.title}?</span>
+              <button
+                onClick={deleteProject}
+                disabled={busy}
+                data-testid="confirm-delete-project"
+                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5 disabled:opacity-50"
+              >
+                {busy ? "Deleting…" : "Confirm delete"}
+              </button>
+              <button
+                onClick={() => setConfirmingDelete(false)}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              disabled={busy}
+              data-testid="delete-project"
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb disabled:opacity-50"
+            >
+              Delete this project
+            </button>
+          )
         ) : (
           // Only delivered work stands in the way now. Footage used to as well, which is
           // how a review project became undeletable because somebody else's rushes had

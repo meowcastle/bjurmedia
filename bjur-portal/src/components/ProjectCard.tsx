@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { gradientFor } from "@/lib/gradients";
 import { formatBytes } from "@/lib/format";
+import { LinkPending } from "@/components/ui/LinkPending";
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("en-US", {
@@ -50,8 +51,9 @@ export function ProjectCard({
       // A Film project's front door is the cut under review. Sending it to the gallery
       // first would show a client one file and no way to say anything about it.
       href={isFilm ? `/p/${id}/review` : `/p/${id}`}
-      className="block bg-s1 border border-line hover:border-line2 bjfade"
+      className="relative block bg-s1 border border-line hover:border-line2 bjfade"
     >
+      <LinkPending />
       <div
         className="aspect-[16/10] relative overflow-hidden"
         style={{ background: gradientFor(id) }}

@@ -76,6 +76,11 @@ test("a project holding files says so instead of offering delete", async ({ page
 
   await page.goto(`/admin/projects/${project.id}`);
   await expect(page.getByTestId("delete-project")).toBeVisible();
+  // Delete asks once before it acts, and Cancel backs out.
+  await page.getByTestId("delete-project").click();
+  await expect(page.getByTestId("confirm-delete-project")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("delete-project")).toBeVisible();
 
   // p1 is the seeded gallery with real assets in it.
   await page.goto("/admin/projects/p1");

@@ -134,6 +134,7 @@ export function AdminMediaClient({
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
+  const [confirmingUnlinkId, setConfirmingUnlinkId] = useState<string | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
@@ -1160,14 +1161,34 @@ export function AdminMediaClient({
                             {formatViews(p.viewCount)} views
                           </span>
                         )}
-                        <button
-                          onClick={() => unlinkSocialPost(a.id, p.id)}
-                          className="cursor-pointer text-[10px] text-dim hover:text-accentb px-2.5 py-2.5 -mx-1 -my-1"
-                          aria-label="Unlink this post"
-                          title="Unlink this post"
-                        >
-                          <IconClose />
-                        </button>
+                        {confirmingUnlinkId === p.id ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                setConfirmingUnlinkId(null);
+                                void unlinkSocialPost(a.id, p.id);
+                              }}
+                              className="cursor-pointer text-[10px] font-semibold text-accentb hover:text-text px-1.5 py-2.5 -my-1"
+                            >
+                              Unlink
+                            </button>
+                            <button
+                              onClick={() => setConfirmingUnlinkId(null)}
+                              className="cursor-pointer text-[10px] font-semibold text-dim hover:text-text px-1.5 py-2.5 -my-1"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmingUnlinkId(p.id)}
+                            className="cursor-pointer text-[10px] text-dim hover:text-accentb px-2.5 py-2.5 -mx-1 -my-1"
+                            aria-label="Unlink this post"
+                            title="Unlink this post"
+                          >
+                            <IconClose />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

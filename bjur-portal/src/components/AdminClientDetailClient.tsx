@@ -105,6 +105,7 @@ export function AdminClientDetailClient({
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [uploadingTo, setUploadingTo] = useState<ProjectRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmingDisable, setConfirmingDisable] = useState(false);
 
   const [accentColor, setAccentColor] = useState(
     client.accentColor ?? DEFAULT_ACCENT,
@@ -141,6 +142,7 @@ export function AdminClientDetailClient({
       body: JSON.stringify({ status: active ? "DISABLED" : "ACTIVE" }),
     });
     setBusy(false);
+    setConfirmingDisable(false);
     router.refresh();
   }
 
@@ -278,13 +280,34 @@ export function AdminClientDetailClient({
               </button>
             )}
           </div>
-          <button
-            onClick={toggleStatus}
-            disabled={busy}
-            className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 disabled:opacity-40"
-          >
-            {active ? "Disable client" : "Enable client"}
-          </button>
+          {confirmingDisable ? (
+            <span className="flex items-center gap-2">
+              <span className="text-[11px] text-muted">Disable {client.name}?</span>
+              <button
+                onClick={toggleStatus}
+                disabled={busy}
+                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-3.5 py-2 disabled:opacity-40"
+              >
+                {busy ? "Disabling…" : "Confirm disable"}
+              </button>
+              <button
+                onClick={() => setConfirmingDisable(false)}
+                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-2"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              // Disabling signs every login out, so it asks once. Enabling is the safe
+              // direction and stays one click.
+              onClick={active ? () => setConfirmingDisable(true) : toggleStatus}
+              disabled={busy}
+              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 disabled:opacity-40"
+            >
+              {active ? "Disable client" : "Enable client"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -519,9 +542,14 @@ export function AdminClientDetailClient({
                   Held for payment
                 </span>
               ) : null}
+              {/* Labelled at every width: the column holds whichever date matters, and
+                  a bare date could not say which one it was. */}
               <span className="text-muted md:text-right">
-                <span className="md:hidden text-dim">Expires · </span>
-                {p.expiresAt ? fmtDate(p.expiresAt) : fmtDate(p.deliveredAt)}
+                {p.expiresAt
+                  ? `Expires ${fmtDate(p.expiresAt)}`
+                  : p.deliveredAt
+                    ? `Delivered ${fmtDate(p.deliveredAt)}`
+                    : "—"}
               </span>
             </div>
             <div className="flex gap-2 justify-start md:justify-end">

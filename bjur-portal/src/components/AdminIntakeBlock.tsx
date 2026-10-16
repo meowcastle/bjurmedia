@@ -57,6 +57,7 @@ export function AdminIntakeBlock({
 }) {
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [naming, setNaming] = useState(false);
   const [linkName, setLinkName] = useState("");
 
@@ -69,6 +70,7 @@ export function AdminIntakeBlock({
     setBusy(b.id);
     const res = await fetch(`/api/admin/upload-batches/${b.id}/files`, { method: "DELETE" });
     setBusy(null);
+    setConfirmingDeleteId(null);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setToast(data.error ?? "Could not delete those files.");
@@ -213,17 +215,37 @@ export function AdminIntakeBlock({
                       >
                         Copy path
                       </button>
-                      {(b.status === "ON_SERVER" || b.status === "STALLED") && (
-                        <button
-                          type="button"
-                          onClick={() => void deleteFiles(b)}
-                          disabled={busy === b.id}
-                          data-testid={`delete-files-${b.id}`}
-                          className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-muted hover:text-accentb cursor-pointer disabled:opacity-50"
-                        >
-                          {busy === b.id ? "Deleting…" : "Delete files"}
-                        </button>
-                      )}
+                      {(b.status === "ON_SERVER" || b.status === "STALLED") &&
+                        (confirmingDeleteId === b.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => void deleteFiles(b)}
+                              disabled={busy === b.id}
+                              data-testid={`confirm-delete-files-${b.id}`}
+                              className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-accentb hover:text-text cursor-pointer disabled:opacity-50"
+                            >
+                              {busy === b.id ? "Deleting…" : "Confirm delete"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingDeleteId(null)}
+                              className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-muted hover:text-text cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteId(b.id)}
+                            disabled={busy === b.id}
+                            data-testid={`delete-files-${b.id}`}
+                            className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-muted hover:text-accentb cursor-pointer disabled:opacity-50"
+                          >
+                            Delete files
+                          </button>
+                        ))}
                       <span className="text-[10.5px] text-dim2 font-mono truncate">{b.smbPath}</span>
                     </div>
                   )}
