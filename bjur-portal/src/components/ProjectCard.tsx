@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FadeImg } from "@/components/ui/FadeImg";
 import { gradientFor } from "@/lib/gradients";
 import { formatBytes } from "@/lib/format";
 import { LinkPending } from "@/components/ui/LinkPending";
@@ -23,6 +24,7 @@ export function ProjectCard({
   totalBytes,
   isFilm,
   reviewPending,
+  index = 0,
 }: {
   id: string;
   title: string;
@@ -38,6 +40,8 @@ export function ProjectCard({
   isFilm?: boolean;
   /** True while the latest cut is still awaiting an answer — worth saying on the card. */
   reviewPending?: boolean;
+  /** Position in the list, for the §3 stagger. */
+  index?: number;
 }) {
   const parts: string[] = [];
   if (isFilm) parts.push(reviewPending ? "Cut awaiting your notes" : "Cuts & notes");
@@ -51,7 +55,8 @@ export function ProjectCard({
       // A Film project's front door is the cut under review. Sending it to the gallery
       // first would show a client one file and no way to say anything about it.
       href={isFilm ? `/p/${id}/review` : `/p/${id}`}
-      className="relative block bg-s1 border border-line hover:border-line2 bjfade"
+      className="group relative block bg-s1 border border-line hover:border-line2 shadow-1 hover:shadow-2 hover:-translate-y-0.5 active:scale-[.985] transition-[transform,box-shadow,border-color] duration-(--dur-1) ease-std bj-row"
+      style={{ "--i": index } as React.CSSProperties}
     >
       <LinkPending />
       <div
@@ -59,11 +64,9 @@ export function ProjectCard({
         style={{ background: gradientFor(id) }}
       >
         {coverAssetId && (
-          // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
-          <img
+          <FadeImg
             src={`/api/assets/${coverAssetId}/thumb`}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-[opacity,transform] duration-(--dur-3) ease-out"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-black/55" />

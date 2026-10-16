@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -410,9 +411,9 @@ export function AdminClientDetailClient({
           </div>
         ))}
         {seats.length === 0 && (
-          <div className="px-5 py-8 text-center text-sm text-muted">
+          <EmptyState icon="logins" className="px-5 py-8">
             No logins yet.
-          </div>
+          </EmptyState>
         )}
       </div>
 
@@ -431,7 +432,7 @@ export function AdminClientDetailClient({
               </span>
             )}
           </div>
-          <div className="border border-line bg-s1">
+          <div className="shadow-1 border border-line bg-s1">
             {topPosts.map((p) => (
               <div
                 key={p.id}
@@ -550,9 +551,7 @@ export function AdminClientDetailClient({
           </div>
         ))}
         {projects.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-muted">
-            No projects yet.
-          </div>
+          <EmptyState icon="projects">No projects yet.</EmptyState>
         )}
       </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           <span>Logins</span>
           <span className="text-right">Status</span>
         </div>
-        {clients.map((c) => {
+        {clients.map((c, i) => {
           const active = c.status === "ACTIVE";
           const accent = c.accentColor ?? DEFAULT_ACCENT;
           return (
@@ -56,12 +57,13 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
               key={c.id}
               href={`/admin/clients/${c.id}`}
               data-testid={`client-row-${c.id}`}
-              className="group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-5 md:grid md:gap-4 md:px-5 border-b border-line last:border-b-0 hover:bg-s1"
+              className="bj-row group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-5 md:grid md:gap-4 md:px-5 border-b border-line last:border-b-0 hover:bg-s3 active:bg-s3 transition-colors"
               style={{
+                "--i": i,
                 gridTemplateColumns: COLS,
                 borderLeft: `3px solid ${active ? accent : "var(--line2)"}`,
                 background: active ? undefined : "var(--s1)",
-              }}
+              } as React.CSSProperties}
             >
               <div className="flex items-center gap-3.5 min-w-0 basis-full md:basis-auto">
                 <div
@@ -107,7 +109,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           );
         })}
         {clients.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm text-muted">No clients yet.</div>
+          <EmptyState icon="clients">No clients yet.</EmptyState>
         )}
       </div>
 

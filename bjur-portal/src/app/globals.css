@@ -338,6 +338,32 @@ body {
 .bj-toast-in { animation: bj-toast-in var(--dur-2) var(--ease-out) both; }
 .bj-toast-out { animation: bj-toast-out var(--dur-1) var(--ease-in) both; }
 
+/* Placeholder shimmer (§3): a 6% white sweep, slow enough to read as "loading" rather
+   than as motion. Under reduced motion it stops, leaving the plain gradient. */
+@keyframes bj-shimmer {
+  from { background-position: -150% 0; }
+  to { background-position: 250% 0; }
+}
+.bj-shimmer {
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: bj-shimmer 1.8s linear infinite;
+}
+
+/* List rows (§3): rise in one after another, 20ms apart, never more than 300ms in total.
+   The row sets --i to its index. */
+.bj-row {
+  animation: bjrise var(--dur-3) var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 15) * 20ms);
+}
+
+/* Selection bars (§3): up from the bottom edge on the first selection, back down on clear. */
+@keyframes bj-bar-in { from { transform: translateY(110%); } to { transform: none; } }
+@keyframes bj-bar-out { from { transform: none; } to { transform: translateY(110%); } }
+.bj-bar-in { animation: bj-bar-in var(--dur-3) var(--ease-out) both; }
+.bj-bar-out { animation: bj-bar-out var(--dur-2) var(--ease-in) both; pointer-events: none; }
+
 /*
  * Reduced motion, once, for everything (PORTAL-POLISH §1). The viewer's drag is driven by
  * the finger rather than a transition, so it still works; its fades simply snap.

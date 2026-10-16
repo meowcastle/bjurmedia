@@ -437,7 +437,7 @@ export function AdminMediaCalendar({
 
       <div className="min-w-0">
         {open && draft ? (
-          <div className="border border-line2 bg-s1 p-4">
+          <div className="shadow-1 border border-line2 bg-s1 p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="text-[11px] uppercase tracking-wide font-bold text-muted">
                 {open.weekOf
@@ -559,12 +559,12 @@ export function AdminMediaCalendar({
             </div>
           </div>
         ) : (
-          <div className="border border-line bg-s1 p-4 text-[12px] text-dim">
+          <div className="shadow-1 border border-line bg-s1 p-4 text-[12px] text-dim">
             Pick a day to see and edit what goes out that morning.
           </div>
         )}
 
-        <div className="border border-line bg-s1 p-4 mt-4">
+        <div className="shadow-1 border border-line bg-s1 p-4 mt-4">
           <div className="flex items-center justify-between mb-2.5">
             <div className="text-[10.5px] uppercase tracking-wide font-bold text-muted">
               Slack post preview

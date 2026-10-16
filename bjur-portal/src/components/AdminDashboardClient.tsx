@@ -1,5 +1,7 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/EmptyState";
+import { CountUp } from "@/components/ui/CountUp";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -83,8 +85,8 @@ export function AdminDashboardClient({
 
       <div className="grid gap-3.5 mb-7 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {stats.map((s) => (
-          <div key={s.label} className="bg-s1 border border-line p-5">
-            <div className="text-[34px] font-black tracking-tight tabular-nums">{s.value}</div>
+          <div key={s.label} className="shadow-1 bg-s1 border border-line p-5">
+            <div className="text-[34px] font-black tracking-tight tabular-nums"><CountUp value={s.value} /></div>
             <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1.5">
               {s.label}
             </div>
@@ -93,10 +95,10 @@ export function AdminDashboardClient({
 
         {/* §9: the worker's own row becomes the fifth stat, so its state reads at the
             same glance as the rest instead of in a bar of its own. */}
-        <div className="bg-s1 border border-line p-5 max-[1100px]:col-span-full">
+        <div className="shadow-1 bg-s1 border border-line p-5 max-[1100px]:col-span-full">
           <div className="flex items-baseline gap-3">
             <span className={`text-[34px] font-black tracking-tight tabular-nums ${queueCount > 0 ? "text-accentb" : ""}`}>
-              {queueCount}
+              <CountUp value={queueCount} />
             </span>
             {failedCount > 0 && failedHref && (
               <Link href={failedHref} className="text-sm font-bold text-accent hover:underline">
@@ -119,13 +121,15 @@ export function AdminDashboardClient({
               Needs attention
               <span className="text-accentb tabular-nums">{attention.length}</span>
             </div>
-            {attention.map((a) => (
+            {attention.map((a, i) => (
               <div
                 key={a.id}
                 data-testid={`attention-${a.kind}`}
-                className="flex items-center gap-3 px-5 py-3.5 border-b border-line last:border-b-0"
+                className="bj-row flex items-center gap-3 px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s3 transition-colors"
+                style={{ "--i": i } as React.CSSProperties}
               >
-                <span className="w-2 h-2 flex-none" style={{ background: ATTENTION_DOT[a.kind] }} />
+                {/* The only dots that pulse: these rows are waiting on someone. */}
+                <span className="w-2 h-2 flex-none bjpulse" style={{ background: ATTENTION_DOT[a.kind] }} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-bold truncate">{a.subject}</span>
                   {/* A client's note is the whole reason the row is here, so it wraps.
@@ -153,8 +157,12 @@ export function AdminDashboardClient({
           <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
             Recent activity
           </div>
-          {activity.map((a) => (
-            <div key={a.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-b-0">
+          {activity.map((a, i) => (
+            <div
+              key={a.id}
+              className="bj-row flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s3 transition-colors"
+              style={{ "--i": i } as React.CSSProperties}
+            >
               <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-none" style={{ background: a.dot }} />
               <div className="flex-1 min-w-0 text-[13px]">
                 <span className="font-bold">{a.who}</span> {a.action}
@@ -218,12 +226,12 @@ export function AdminDashboardClient({
           <span>Files</span>
           <span className="text-right">Delivered</span>
         </div>
-        {recentDeliveries.map((r) => (
+        {recentDeliveries.map((r, i) => (
           <Link
             key={r.id}
             href={`/admin/projects/${r.id}`}
-            className="grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center hover:bg-s1"
-            style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr" }}
+            className="bj-row grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center hover:bg-s3 transition-colors"
+            style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr", "--i": i } as React.CSSProperties}
           >
             <div className="flex items-center gap-2.5">
               <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: r.statusColor }} />
@@ -235,7 +243,7 @@ export function AdminDashboardClient({
           </Link>
         ))}
         {recentDeliveries.length === 0 && (
-          <div className="px-5 py-8 text-center text-sm text-muted">No projects yet.</div>
+          <EmptyState icon="projects" className="px-5 py-8">No projects yet.</EmptyState>
         )}
       </div>
 

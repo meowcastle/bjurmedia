@@ -1,5 +1,8 @@
 "use client";
 
+import { usePresence } from "@/components/ui/usePresence";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FadeImg } from "@/components/ui/FadeImg";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -97,6 +100,7 @@ export function AdminMediaClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const bulkBar = usePresence(selectedIds.size > 0, 200);
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [confirmingUnlinkId, setConfirmingUnlinkId] = useState<string | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -568,10 +572,10 @@ export function AdminMediaClient({
           No bulk "set week" here on purpose: weekOf is the post's day, and the calendar
           and Slack post both render one file per date. Setting twelve files to one week
           would silently drop eleven of them. */}
-          {selectedIds.size > 0 && (
+          {bulkBar.mounted && (
             <div
               data-testid="bulk-bar"
-              className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise"
+              className={`fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 ${bulkBar.leaving ? "bj-bar-out" : "bj-bar-in"}`}
             >
               <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-3 flex items-center gap-3 flex-wrap">
                 <span className="text-sm font-extrabold tabular-nums">
@@ -736,11 +740,8 @@ export function AdminMediaClient({
                       style={{ background: gradientFor(a.id) }}
                     >
                       {a.thumbReady && !thumbFailed.has(a.id) && (
-                        // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
-                        <img
+                        <FadeImg
                           src={`/api/assets/${a.id}/thumb`}
-                          alt=""
-                          loading="lazy"
                           className="absolute inset-0 w-full h-full object-cover"
                           onError={() =>
                             setThumbFailed((s) => new Set(s).add(a.id))
@@ -1016,11 +1017,9 @@ export function AdminMediaClient({
               );
             })}
             {tableRows.length === 0 && (
-              <div className="px-5 py-10 text-center text-sm text-muted">
-                {rows.length === 0
-                  ? "No files in this project yet."
-                  : "No files in this folder."}
-              </div>
+              <EmptyState icon="files">
+                {rows.length === 0 ? "No files in this project yet." : "No files in this folder."}
+              </EmptyState>
             )}
           </div>
         </>

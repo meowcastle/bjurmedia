@@ -1,5 +1,6 @@
 "use client";
 
+import { FadeImg } from "@/components/ui/FadeImg";
 import { useState } from "react";
 import { gradientFor } from "@/lib/gradients";
 import type { PublishState } from "@prisma/client";
@@ -123,7 +124,7 @@ export function ClientPostsPanel({
       {awaiting.length > 0 && (
         <div
           data-testid="approval-banner"
-          className="bg-s1 border border-line2 px-4 py-[14px] mb-5 flex items-center gap-4 flex-wrap"
+          className="shadow-1 bg-s1 border border-line2 px-4 py-[14px] mb-5 flex items-center gap-4 flex-wrap"
         >
           <div className="min-w-0 flex-1 text-[11px] tracking-[0.18em] uppercase font-bold text-accentb">
             {awaiting.length} post{awaiting.length > 1 ? "s need" : " needs"} your review
@@ -161,7 +162,7 @@ export function ClientPostsPanel({
       </div>
 
       {view !== "files" && (
-        <div className="border border-line bg-s1 mb-8">
+        <div className="shadow-1 border border-line bg-s1 mb-8">
           {error && <div className="px-5 py-3 text-[12px] text-accentb border-b border-line">{error}</div>}
 
           {shown.length === 0 ? (
@@ -180,11 +181,8 @@ export function ClientPostsPanel({
                   style={{ background: gradientFor(p.id) }}
                 >
                   {p.thumbReady && (
-                    // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
-                    <img
+                    <FadeImg
                       src={`/api/assets/${p.id}/thumb`}
-                      alt=""
-                      loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   )}

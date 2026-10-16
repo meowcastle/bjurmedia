@@ -141,7 +141,7 @@ export function SettingsClient({
         </div>
       </div>
 
-      <div className="border border-line bg-s1 p-6 mb-5">
+      <div className="shadow-1 border border-line bg-s1 p-6 mb-5">
         <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-4">Profile</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Field label="Display name" htmlFor="name">
@@ -157,7 +157,7 @@ export function SettingsClient({
         </div>
       </div>
 
-      <div className="border border-line bg-s1 p-6 mb-5">
+      <div className="shadow-1 border border-line bg-s1 p-6 mb-5">
         <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-4">Security</div>
         <div className="flex flex-col gap-3.5 max-w-[360px] mb-4">
           <Field label="Current password" htmlFor="pwCur">
@@ -176,7 +176,7 @@ export function SettingsClient({
         </div>
       </div>
 
-      <div className="border border-line bg-s1 p-6 mb-5">
+      <div className="shadow-1 border border-line bg-s1 p-6 mb-5">
         <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-1.5">Notifications</div>
         <div className="flex items-center justify-between gap-4 py-3.5 border-b border-line">
           <span className="text-sm">Email me when new work is delivered</span>
@@ -188,7 +188,7 @@ export function SettingsClient({
         </div>
       </div>
 
-      <div className="border border-line bg-s1 p-6">
+      <div className="shadow-1 border border-line bg-s1 p-6">
         <div className="text-[11px] tracking-wide uppercase text-muted font-bold mb-1.5">Signed-in devices</div>
         {sessions.map((s) => (
           <div key={s.id} className="flex items-center justify-between gap-4 py-3.5 border-b border-line last:border-b-0">

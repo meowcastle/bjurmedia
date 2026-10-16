@@ -1,5 +1,6 @@
 "use client";
 
+import { NavUnderline } from "@/components/ui/NavUnderline";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -52,23 +53,23 @@ export function ClientHeader({
       <nav className="flex items-center gap-1 ml-2">
         <Link
           href="/"
-          className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-            pathname === "/" ? "text-text border-b-2 border-accent" : "text-muted hover:text-text"
+          className={`relative px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+            pathname === "/" ? "text-text" : "text-muted hover:text-text"
           }`}
         >
           Projects
+          {pathname === "/" && <NavUnderline group="client" />}
         </Link>
         {footageUploads && (
           <Link
             href="/send"
             data-testid="nav-send"
-            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-              pathname.startsWith("/send")
-                ? "text-text border-b-2 border-accent"
-                : "text-muted hover:text-text"
+            className={`relative px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+              pathname.startsWith("/send") ? "text-text" : "text-muted hover:text-text"
             }`}
           >
             Upload footage
+            {pathname.startsWith("/send") && <NavUnderline group="client" />}
           </Link>
         )}
       </nav>

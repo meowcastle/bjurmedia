@@ -54,7 +54,7 @@ export function AdminSocialIntegrationsClient({
       {/* A section of Integrations, not a second page title under the first. */}
       <h2 className="bj-serif text-[26px] font-normal mb-5">Instagram &amp; YouTube</h2>
 
-      <div className="border border-line bg-s1 p-5 mb-5">
+      <div className="shadow-1 border border-line bg-s1 p-5 mb-5">
         <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-3">
           YouTube API key
         </div>
@@ -80,7 +80,7 @@ export function AdminSocialIntegrationsClient({
         </div>
       </div>
 
-      <div className="border border-line bg-s1 p-5">
+      <div className="shadow-1 border border-line bg-s1 p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="text-sm font-semibold">Weekly sync</div>

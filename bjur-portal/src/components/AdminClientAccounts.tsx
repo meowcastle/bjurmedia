@@ -106,7 +106,7 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
         </p>
       </div>
 
-      <div className="border border-line bg-s1">
+      <div className="shadow-1 border border-line bg-s1">
         <div className="flex items-center gap-3 flex-wrap px-5 py-3 border-b border-line">
           <span className="text-[12px] font-semibold tabular-nums">
             {connected} of {rows.length} clients connected

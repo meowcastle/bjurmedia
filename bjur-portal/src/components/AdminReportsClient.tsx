@@ -1,5 +1,6 @@
 "use client";
 
+import { FadeImg } from "@/components/ui/FadeImg";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatViews } from "@/lib/format";
@@ -132,12 +133,12 @@ export function AdminReportsClient({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8">
             {FORMATS.map((fmt) => (
-              <div key={fmt} className="bg-s1 border border-line px-4 py-4">
+              <div key={fmt} className="shadow-1 bg-s1 border border-line px-4 py-4">
                 <div className="text-[26px] font-black tracking-tight tabular-nums">{report.totalsByFormat[fmt] ?? 0}</div>
                 <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">{fmt}s delivered</div>
               </div>
             ))}
-            <div className="bg-s1 border border-line px-4 py-4">
+            <div className="shadow-1 bg-s1 border border-line px-4 py-4">
               <div className="text-[26px] font-black tracking-tight tabular-nums">{Math.round(report.publishRate * 100)}%</div>
               <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1" title="Files that went live">
                 Publish rate
@@ -179,10 +180,9 @@ export function AdminReportsClient({
               <div className="border border-line">
                 {report.topAssets.map((a) => (
                   <div key={a.id} className="flex items-center gap-3.5 px-5 py-3.5 border-b border-line last:border-b-0">
-                    <div className="w-14 h-14 bg-s3 flex-none overflow-hidden">
+                    <div className="w-14 h-14 bg-s3 flex-none overflow-hidden relative">
                       {a.thumbRelPath && (
-                        // eslint-disable-next-line @next/next/no-img-element -- proxied binary, not a static asset Next can optimize
-                        <img src={`/api/assets/${a.id}/thumb`} alt="" className="w-full h-full object-cover" />
+                        <FadeImg src={`/api/assets/${a.id}/thumb`} className="absolute inset-0 w-full h-full object-cover" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

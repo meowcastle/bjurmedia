@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useMemo, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 
@@ -56,9 +57,9 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
 
   if (projects.length === 0) {
     return (
-      <div className="border border-line2 px-5 py-10 text-center text-sm text-muted">
+      <EmptyState icon="projects" className="border border-line2 px-5 py-10">
         No projects yet.
-      </div>
+      </EmptyState>
     );
   }
 
@@ -100,9 +101,10 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:[grid-template-columns:repeat(auto-fill,minmax(330px,1fr))]">
-          {shown.map((p) => (
+          {shown.map((p, i) => (
             <ProjectCard
               key={p.id}
+              index={i}
               id={p.id}
               title={p.title}
               deliveredAt={p.deliveredAt ? new Date(p.deliveredAt) : null}

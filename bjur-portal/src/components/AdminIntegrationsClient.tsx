@@ -123,7 +123,7 @@ export function AdminIntegrationsClient({
 
 
       {!config.connected && (
-        <div className="border border-line bg-s1 p-5 mb-9 flex items-end gap-4 flex-wrap">
+        <div className="shadow-1 border border-line bg-s1 p-5 mb-9 flex items-end gap-4 flex-wrap">
           <div className="flex-1 min-w-[280px]">
             <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-2">
               Connect Slack

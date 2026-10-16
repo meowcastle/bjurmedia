@@ -1,5 +1,6 @@
 "use client";
 
+import { FadeImg } from "@/components/ui/FadeImg";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -293,7 +294,7 @@ export function AdminProjectDetailClient({
       </div>
 
       {project.type === "CALENDAR" && !project.hasSlackChannel && (
-        <div className="text-[11px] text-accentb border border-line2 bg-s1 px-[18px] py-3 mb-1">
+        <div className="shadow-1 text-[11px] text-accentb border border-line2 bg-s1 px-[18px] py-3 mb-1">
           No Slack channel for {client.name} yet.{" "}
           <Link href="/admin/integrations" className="text-text tracking-[.06em] font-semibold">
             Add one
@@ -304,7 +305,7 @@ export function AdminProjectDetailClient({
       {/* One switch. It was a status, a sentence restating the status and a button
           naming the opposite state. What a held download looks like is the client's
           concern; the admin needs only to say whether the invoice is open. */}
-      <div className="flex items-center justify-between gap-4 border border-line2 bg-s1 px-[18px] py-4">
+      <div className="shadow-1 flex items-center justify-between gap-4 border border-line2 bg-s1 px-[18px] py-4">
         <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Awaiting payment</span>
         <button
           onClick={togglePay}
@@ -372,11 +373,9 @@ export function AdminProjectDetailClient({
               >
                 <span className="block relative aspect-video bg-s0 overflow-hidden">
                   {a.thumbReady ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <FadeImg
                       src={`/api/assets/${a.id}/thumb`}
-                      alt=""
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-[10px] tracking-[.1em] uppercase text-dim2">

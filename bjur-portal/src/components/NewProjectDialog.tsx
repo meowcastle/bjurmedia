@@ -208,7 +208,7 @@ export function NewProjectDialog({
                 <IconCheck /> Created.
               </div>
 
-              <div className="border border-line2 bg-s1 p-4 mb-3">
+              <div className="shadow-1 border border-line2 bg-s1 p-4 mb-3">
                 <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-1.5">
                   Inbox
                 </span>

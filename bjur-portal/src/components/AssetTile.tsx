@@ -1,5 +1,6 @@
 "use client";
 
+import { FadeImg } from "@/components/ui/FadeImg";
 import { DUR, EASE_OUT } from "@/lib/motion";
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
@@ -87,17 +88,15 @@ export function AssetTile({
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: DUR[1], ease: EASE_OUT }}
-        className={`cursor-pointer relative overflow-hidden border hover:border-accent transition-colors ${borderColor}`}
+        className={`cursor-pointer relative overflow-hidden border hover:border-accent shadow-1 hover:shadow-2 transition-[border-color,box-shadow] duration-(--dur-1) ease-std ${borderColor}`}
         style={{
           aspectRatio: aspectFor(asset),
           background: gradientFor(asset.id),
         }}
       >
         {asset.thumbReady && !thumbFailed && (
-          // eslint-disable-next-line @next/next/no-img-element -- proxied binary from our own API, not a static asset Next can optimize
-          <img
+          <FadeImg
             src={`/api/assets/${asset.id}/thumb`}
-            alt=""
             className="absolute inset-0 w-full h-full object-cover"
             onError={() => setThumbFailed(true)}
           />
