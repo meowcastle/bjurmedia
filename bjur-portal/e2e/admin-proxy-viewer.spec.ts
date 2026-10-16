@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 test.use({ storageState: "e2e/.auth/admin.json" });
 
@@ -153,4 +157,53 @@ test("the rail says the file is missing rather than reprinting a resolution", as
   // contradict the rail and read as a file that was simply never encoded.
   await expect(viewer.getByText(/the file will not load/)).toBeVisible();
   await expect(viewer.getByText(/H\.264/)).toHaveCount(0);
+});
+
+/**
+ * The media fits whatever screen it is opened on, whatever its shape. A vertical reel
+ * used to render at its full 1920px: it ran off the bottom of the screen and widened the
+ * media pane until the rail was pushed half off the right edge.
+ */
+test.describe("the preview fits the screen", () => {
+  const clips: Record<string, Buffer> = {};
+
+  test.beforeAll(() => {
+    const dir = mkdtempSync(path.join(tmpdir(), "bjur-proxy-fit-"));
+    for (const [name, size] of [["vertical", "1080x1920"], ["wide", "1920x1080"]] as const) {
+      const out = path.join(dir, `${name}.mp4`);
+      execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", `color=c=gray:s=${size}:d=1`,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]);
+      clips[name] = readFileSync(out);
+    }
+  });
+
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    for (const shape of ["vertical", "wide"] as const) {
+      test(`${shape} at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.route(/\/api\/assets\/[^/]+\/proxy/, (route) =>
+          route.fulfill({ status: 200, contentType: "video/mp4", body: clips[shape] })
+        );
+        await page.goto(PROJECT);
+        await openPreview(page);
+
+        const media = page.getByTestId("proxy-media");
+        await expect(media).toBeVisible();
+        // Wait for the frame size to be known, then check the picture drawn inside the box.
+        await expect.poll(() => media.evaluate((v: HTMLVideoElement) => v.videoWidth)).toBeGreaterThan(0);
+        const box = (await media.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+
+        // The rail is on screen too, not pushed past the right edge.
+        const download = page.getByRole("link", { name: /Download master/ });
+        await download.scrollIntoViewIfNeeded();
+        const d = (await download.boundingBox())!;
+        expect(d.x).toBeGreaterThanOrEqual(0);
+        expect(d.x + d.width).toBeLessThanOrEqual(viewport.width + 1);
+      });
+    }
+  }
 });

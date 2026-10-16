@@ -121,7 +121,10 @@ export function AdminProxyViewer({
         className="fixed inset-0 z-50 bg-black flex flex-col lg:flex-row"
       >
         {/* Media */}
-        <div className="relative flex-1 min-h-0 grid place-items-center p-4 lg:p-8">
+        {/* min-w-0 and a definite box for the media: a grid cell sized to its content gave
+            max-h-full nothing to measure, so a vertical reel rendered at its full 1920px,
+            ran off the bottom and widened this pane until the rail was pushed off-screen. */}
+        <div className="relative flex-1 min-h-0 min-w-0 grid place-items-center p-4 lg:p-8">
           {mediaFailed || (asset.kind === "VIDEO" && !hasPlayableProxy) ? (
             <div className="text-center max-w-sm">
               <div className="text-[13px] text-white/80 font-semibold">No proxy to preview</div>
@@ -145,7 +148,8 @@ export function AdminProxyViewer({
               src={src}
               controls
               playsInline
-              className="max-w-full max-h-full"
+              data-testid="proxy-media"
+              className="absolute inset-4 lg:inset-8 w-[calc(100%-2rem)] h-[calc(100%-2rem)] lg:w-[calc(100%-4rem)] lg:h-[calc(100%-4rem)] object-contain"
               onTimeUpdate={(e) => setElapsed(e.currentTarget.currentTime)}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
@@ -157,7 +161,8 @@ export function AdminProxyViewer({
               key={asset.id}
               src={src}
               alt={asset.name}
-              className="max-w-full max-h-full object-contain"
+              data-testid="proxy-media"
+              className="absolute inset-4 lg:inset-8 w-[calc(100%-2rem)] h-[calc(100%-2rem)] lg:w-[calc(100%-4rem)] lg:h-[calc(100%-4rem)] object-contain"
               onError={() => setMediaFailed(true)}
             />
           )}
