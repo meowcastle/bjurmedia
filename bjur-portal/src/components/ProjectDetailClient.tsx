@@ -17,6 +17,7 @@ import { captionState, type CaptionState } from "@/lib/captionState";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { formatViews, formatBytes } from "@/lib/format";
 import { IconPlay, IconHeart } from "@/components/ui/Icon";
+import { PhoneSaveButtons, phoneSaveAvailable, usePhoneSave } from "@/components/PhoneSave";
 
 
 type Asset = TileAsset & {
@@ -284,7 +285,15 @@ export function ProjectDetailClient({
   const canDownload = role !== "VIEWER";
   const zipUrl = `/api/projects/${project.id}/download-all`;
 
+  const phoneSave = usePhoneSave();
+
   function downloadAll() {
+    // On a phone, Download all selects everything instead, so the bar can offer Photos
+    // or Files — a zip alone never reaches the camera roll.
+    if (phoneSaveAvailable()) {
+      setSelected(new Set(scoped.map((a) => a.id)));
+      return;
+    }
     const a = document.createElement("a");
     a.href = zipUrl;
     document.body.appendChild(a);
@@ -904,10 +913,17 @@ export function ProjectDetailClient({
             >
               Select all
             </button>
-            <DownloadButton
-              label={`↓ Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
-              onClick={downloadSelected}
-            />
+            {phoneSave ? (
+              <PhoneSaveButtons
+                assets={selectedAssets.map((a) => ({ id: a.id, kind: a.kind, name: a.name }))}
+                onSaveToFiles={downloadSelected}
+              />
+            ) : (
+              <DownloadButton
+                label={`↓ Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
+                onClick={downloadSelected}
+              />
+            )}
           </div>
         </div>
       )}

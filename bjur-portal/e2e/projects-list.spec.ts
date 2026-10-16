@@ -51,3 +51,22 @@ test("cards state a size and drop the LIVE kicker", async ({ page }) => {
   await expect(card).toContainText("Open →");
   await expect(page.getByText("LIVE", { exact: true })).toHaveCount(0);
 });
+
+/**
+ * A Film project's card opens the cut, not a gallery of one file, and says when a cut is
+ * waiting on the client. Both props were once dropped between the page and the card, so
+ * every Film project quietly opened the gallery and the prompt never rendered.
+ */
+test("a Film project's card opens the review and says a cut is waiting", async ({ page }) => {
+  await page.goto("/");
+
+  // p2 is seeded as Film with a sent, still-pending cut.
+  const card = page.locator("a[href='/p/p2/review']");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Cut awaiting your notes");
+  await expect(page.locator("a[href='/p/p2']")).toHaveCount(0);
+
+  await card.click();
+  await expect(page).toHaveURL("/p/p2/review");
+  await expect(page.getByTestId("review-screen")).toBeVisible();
+});

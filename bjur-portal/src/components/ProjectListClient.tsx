@@ -14,6 +14,8 @@ export type ProjectListItem = {
   newCount: number;
   /** Decimal string — sizeBytes is a BigInt server-side. */
   totalBytes: string;
+  isFilm: boolean;
+  reviewPending: boolean;
 };
 
 type Sort = "newest" | "az";
@@ -96,6 +98,8 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
               coverAssetId={p.coverAssetId}
               newCount={p.newCount}
               totalBytes={Number(p.totalBytes)}
+              isFilm={p.isFilm}
+              reviewPending={p.reviewPending}
             />
           ))}
         </div>
