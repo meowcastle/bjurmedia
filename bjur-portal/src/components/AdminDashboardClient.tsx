@@ -26,7 +26,7 @@ type TopSocialPostRow = { id: string; assetName: string; clientName: string; pro
 
 type AttentionRow = {
   id: string;
-  kind: "expiry" | "unscheduled" | "cut-ready" | "notes-in" | "approved" | "landed" | "caption-edited";
+  kind: "expiry" | "unscheduled" | "cut-ready" | "notes-in" | "approved" | "landed" | "caption-edited" | "drafts";
   subject: string;
   body: string;
   href: string;
@@ -41,6 +41,7 @@ const ATTENTION_DOT: Record<AttentionRow["kind"], string> = {
   unscheduled: "var(--muted)",
   landed: "var(--success)",
   "caption-edited": "var(--warn)",
+  drafts: "var(--accentb)",
 };
 
 export function AdminDashboardClient({

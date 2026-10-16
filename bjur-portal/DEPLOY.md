@@ -46,3 +46,13 @@ curl -s -o /dev/null -w "%{http_code}\n" https://portal.justinbjur.com/login   #
 sudo docker-compose logs web --tail=30     # confirm no fresh errors after the restart
 sudo docker-compose ps                     # both containers Up
 ```
+
+## CRM (Admin → Pipeline, Inbox)
+
+The worker runs three CRM schedulers on its usual poll: follow-up drafts for stalled
+deals, the Monday brief (09:00 `STUDIO_TZ`, posted to Slack's default channel), and the
+sender. Nothing a client receives leaves without a person approving it in **Inbox**, and
+only under `DELIVERY_EMAILS=live`. The `crm_phase1` migration backfills a deal per project
+and a contact per client login; it is a pure addition (no table rebuild). Check the worker
+log for the `[crm]` line after a deploy to see whether drafting and mail are on.
+

@@ -711,6 +711,11 @@ async function seedCaptionStates() {
 async function main() {
   console.log("Seeding…");
 
+  // CRM first: drafts and tasks hang off deals, deals and contacts off clients.
+  await db.agentDraft.deleteMany();
+  await db.task.deleteMany();
+  await db.deal.deleteMany();
+  await db.contact.deleteMany();
   await db.favorite.deleteMany();
   await db.session.deleteMany();
   await db.submission.deleteMany();

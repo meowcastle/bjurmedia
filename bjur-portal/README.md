@@ -32,6 +32,10 @@ Dev login password for every seeded user is printed by `db:seed`.
 | `PORTAL_URL` | Used in outbound email links |
 | `WORKER_CONCURRENCY` | Parallel proxy-generation jobs (worker only) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Outbound mail (`src/lib/mailer.ts`) — unset in dev, logs instead of sending |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_WORKSPACE_ID` | Caption drafting and the CRM's follow-up drafts and Monday brief. Unset: captions do not run and the CRM makes tasks instead of drafts |
+| `CRM_MODEL` | Model for CRM drafts (default `claude-opus-5-5`) |
+| `STUDIO_TZ` | Timezone the Monday brief is scheduled in (default `America/New_York`) |
+| `DELIVERY_EMAILS` | `live` to actually send client mail, CRM emails included. Anything else logs to Activity instead |
 
 ## Scripts
 

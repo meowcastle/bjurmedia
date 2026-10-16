@@ -67,7 +67,14 @@ const OUTREACH_GUIDE: Record<OutreachKind, string> = {
     "A short note after finished, paid work: glad it went well, and an open offer to help with whatever comes next. Do not propose a specific project unless the notes name one. Two to four sentences.",
 };
 
-const client = () => new Anthropic();
+// An org-level key has to name the workspace to bill against, as in captionDraft.ts; a
+// workspace-scoped key carries it already. Supporting both means either key just works.
+const client = () =>
+  new Anthropic(
+    process.env.ANTHROPIC_WORKSPACE_ID
+      ? { defaultHeaders: { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID } }
+      : {},
+  );
 
 /**
  * One Messages call with a JSON-schema reply. Opted into the server-side default fallback,

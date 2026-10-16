@@ -210,7 +210,23 @@ export default async function AdminDashboardPage() {
     },
   });
 
+  // The CRM's approval queue. Without a row here it is only seen by someone who thinks to
+  // open the Inbox, which defeats a follow-up agent.
+  const pendingDrafts = await db.agentDraft.count({ where: { state: "PENDING" } });
+
   const attention = [
+    ...(pendingDrafts
+      ? [
+          {
+            id: "drafts",
+            kind: "drafts" as const,
+            subject: `${pendingDrafts} draft${pendingDrafts === 1 ? "" : "s"} waiting`,
+            body: "Follow-ups the agent wrote for you to read before they go out",
+            href: "/admin/inbox",
+            action: "Open inbox",
+          },
+        ]
+      : []),
     ...unsentCuts.map((r) => ({
       id: `cut-ready-${r.id}`,
       kind: "cut-ready" as const,

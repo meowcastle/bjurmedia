@@ -75,6 +75,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - ANTHROPIC_WORKSPACE_ID=${ANTHROPIC_WORKSPACE_ID:-}
       - CAPTION_MODEL=${CAPTION_MODEL:-}
+      - CRM_MODEL=${CRM_MODEL:-}
+      - STUDIO_TZ=${STUDIO_TZ:-}
     volumes:
       - ./data:/data
       # read-write: the ingest watcher moves finished exports from _inbox into the
