@@ -63,17 +63,17 @@ export function GuestReviewEntry({
           <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-1.5">
             {data.clientName} · {data.projectTitle}
           </div>
-          <p className="text-[13px] leading-relaxed text-white/60 mt-5">
-            Your notes go out with your name on them, so we know who asked for what.
-          </p>
+          <label htmlFor="guest-name" className="block mt-6 text-[10px] uppercase tracking-[.1em] text-white/45">
+            Your name
+          </label>
           <input
+            id="guest-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void save()}
-            placeholder="Your name"
             autoFocus
             data-testid="guest-name"
-            className="mt-4 w-full bg-transparent border border-white/25 focus:border-white outline-none px-3 py-2.5 text-[14px]"
+            className="mt-2 w-full bg-transparent border border-white/25 focus:border-white outline-none px-3 py-2.5 text-[14px]"
           />
           <button
             type="button"

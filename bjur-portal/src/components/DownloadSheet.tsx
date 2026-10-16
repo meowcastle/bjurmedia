@@ -23,6 +23,7 @@ export type DownloadFacts = {
   dims: string | null;
   durationLabel: string | null;
   size: string | null;
+  added?: string | null;
   /** The project is on a payment hold, so what downloads carries a mark. */
   watermarked: boolean;
 };
@@ -273,6 +274,7 @@ export function DownloadSheet({
           )}
           {facts.durationLabel && <Fact label="Duration" value={facts.durationLabel} />}
           {!facts.watermarked && facts.size && <Fact label="Size" value={facts.size} />}
+          {facts.added && <Fact label="Date" value={facts.added} />}
         </div>
 
         <div className={`px-5 ${editor ? "pt-1 pb-4" : "pt-4 pb-6"}`}>
@@ -326,29 +328,29 @@ export function DownloadSheet({
                         ? canShareFiles ? "Add to Photos" : "Save preview"
                         : phoneState
                           ? `Fetching preview ${phoneState.progress}%`
-                          : "Save to phone · 1080p preview"}
+                          : "Save to phone (1080p)"}
                   </button>
                   {phoneState && !phoneState.file && (
                     <span className="block h-[2px] bg-white/12 mt-[3px]">
                       <span className="block h-full bg-white transition-[width] duration-200" style={{ width: `${phoneState.progress}%` }} />
                     </span>
                   )}
-                  <div className="mt-2 text-[11px] leading-relaxed text-white/45">
-                    {phoneState?.file && !phoneState.shared
-                      ? canShareFiles
-                        ? "Tap again, then choose Save Video."
-                        : "Tap again to save the preview."
-                      : "The phone-sized copy, ready to post. Download above is the full master."}
-                  </div>
+                  {/* Only while the second tap is owed: it is the one step nobody would guess. */}
+                  {phoneState?.file && !phoneState.shared && (
+                    <div className="mt-2 text-[11px] leading-relaxed text-white/45">
+                      {canShareFiles ? "Tap again, then choose Save Video." : "Tap again to save the preview."}
+                    </div>
+                  )}
                 </>
               )}
-              {/* One quiet line, no red and no lock glyph: a mark on an unpaid job is a
-                  normal condition of the work, not an error the client has hit. */}
+              {/* The same pill the gallery header carries, not a paragraph restating it. */}
               {facts.watermarked && (
-                <div className="mt-3 text-[12px] leading-relaxed text-white/55">
-                  Downloads are watermarked 1080p previews until the invoice is settled.
-                  Masters arrive at full resolution the moment it is.
-                </div>
+                <span
+                  title="Downloads carry a watermark until the invoice is paid."
+                  className="inline-block mt-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]"
+                >
+                  Awaiting payment
+                </span>
               )}
               {visibleError && (
                 <div

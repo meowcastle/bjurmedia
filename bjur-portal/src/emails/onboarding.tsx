@@ -82,7 +82,7 @@ export function renderOnboardingEmailHtml({
     <div style="padding:24px 40px;border-top:1px solid #dcd8d1;background:#0f0f11">
       <div style="display:flex;gap:11px;align-items:flex-start">
         <div style="width:6px;height:6px;border-radius:50%;background:#ec3013;margin-top:6px;flex:none"></div>
-        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This gallery is available until <strong style="color:#17161a;font-weight:700">${esc(delivery.expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your deliverables.</p>
+        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This project is available until <strong style="color:#17161a;font-weight:700">${esc(delivery.expiresAt)}</strong>.</p>
       </div>
     </div>`
       : "";
@@ -115,7 +115,7 @@ export function renderOnboardingEmailHtml({
     ${statsBlock}
 
     <div style="padding:0 40px 34px">
-      <a href="${portalUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your gallery →</a>
+      <a href="${portalUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your projects</a>
     </div>
 
     <div style="padding:0 40px 36px">
@@ -136,11 +136,11 @@ export function renderOnboardingEmailHtml({
         <span style="font-weight:900;font-size:13px;color:#17161a">BJUR</span>
         <span style="font-weight:600;letter-spacing:.3em;font-size:10px;color:#6e6b66">MEDIA</span>
       </div>
-      <p style="font-size:11px;line-height:1.7;color:#6e6b66;margin:0">Questions about your delivery? Reply to this email or reach us at <a href="mailto:hello@bjur.media" style="color:#ff5a3c">hello@bjur.media</a>.<br>Bjur Media · Video production · New York</p>
+      <p style="font-size:11px;line-height:1.7;color:#6e6b66;margin:0">Questions about your project? Reply to this email or reach us at <a href="mailto:hello@bjur.media" style="color:#ff5a3c">hello@bjur.media</a>.<br>Bjur Media · Video production · New York</p>
     </div>
   </div>
 
-  <div style="max-width:600px;margin:16px auto 0;text-align:center;font-size:11px;color:#3a3a3d;line-height:1.6">Sent by Bjur Media delivery portal · self-hosted<br>You received this because a gallery was shared with your account.</div>
+  <div style="max-width:600px;margin:16px auto 0;text-align:center;font-size:11px;color:#3a3a3d;line-height:1.6">Sent by Bjur Media<br>You received this because a project was shared with you.</div>
 </div>
 </body>
 </html>`;

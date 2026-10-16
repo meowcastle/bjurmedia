@@ -663,7 +663,7 @@ export function AdminMediaClient({
           what the table shows, and the fifth ("Workers online: 1") was a hardcoded
           literal — it never reflected anything. */}
           <div className="flex items-center gap-2.5 flex-wrap text-[13px] text-muted mb-4">
-            <span>{rows.length} assets</span>
+            <span>{rows.length} files</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
             <span className="tabular-nums">{formatBytes(totalBytes)}</span>
             <span className="w-1 h-1 rounded-full bg-dim" />

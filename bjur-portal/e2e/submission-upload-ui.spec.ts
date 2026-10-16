@@ -52,7 +52,7 @@ test("queue rows show size and a per-file state", async ({ page }) => {
   await expect(page.getByText(/^1 MB$/)).toBeVisible();
 });
 
-test("a completed upload offers the way back to the project", async ({ page }) => {
+test("a completed upload ends on Done", async ({ page }) => {
   await page.goto(UPLOAD);
   await page.locator('input[type="file"]').first().setInputFiles([fixture("tiny.mp4", 64 * 1024)]);
 
@@ -61,6 +61,7 @@ test("a completed upload offers the way back to the project", async ({ page }) =
   // Small enough to finish in one chunk; the card should flip to a terminal state and
   // stop offering an upload button that has nothing left to do.
   await expect(page.getByText("1 of 1 files")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("link", { name: "Back to project" })).toBeVisible();
+  // "Back to project" named a project this page never had.
+  await expect(page.getByRole("link", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Upload \d/ })).toHaveCount(0);
 });

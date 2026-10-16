@@ -90,12 +90,9 @@ export function ProjectCard({
         <div className="text-xl font-extrabold tracking-tight leading-snug mb-2.5">
           {title}
         </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-xs text-dim">
-            Delivered {deliveredAt ? formatDate(deliveredAt) : "—"}
-          </span>
-          <span className="text-xs font-bold text-muted">Open →</span>
-        </div>
+        <span className="text-xs text-dim">
+          Delivered {deliveredAt ? formatDate(deliveredAt) : "—"}
+        </span>
       </div>
     </Link>
   );

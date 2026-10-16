@@ -15,6 +15,7 @@ const CHIP = "w-9 h-9 grid place-items-center bg-black/40 hover:bg-black/60 text
 export function PhotoChrome({
   visible,
   name,
+  detail,
   index,
   total,
   hasPrev,
@@ -23,6 +24,7 @@ export function PhotoChrome({
 }: {
   visible: boolean;
   name: string;
+  detail?: string;
   index: number;
   total: number;
   hasPrev: boolean;
@@ -61,7 +63,10 @@ export function PhotoChrome({
         className="absolute bottom-0 left-0 right-0 px-4 pt-10 flex justify-center pointer-events-none bg-gradient-to-t from-black/85 to-transparent"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)" }}
       >
-        <span className={`text-sm text-white/80 ${interactive}`}>{name}</span>
+        <span className={`text-sm text-white/80 ${interactive}`}>
+          {name}
+          {detail && <span className="text-white/50"> · {detail}</span>}
+        </span>
       </div>
     </div>
   );

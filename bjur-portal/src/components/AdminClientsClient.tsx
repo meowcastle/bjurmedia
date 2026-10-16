@@ -173,7 +173,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                     <span className="text-[11px]">
                       {isExpanded ? "▾" : "▸"}
                     </span>
-                    {c.seats.length} seat{c.seats.length !== 1 ? "s" : ""}
+                    {c.seats.length} login{c.seats.length !== 1 ? "s" : ""}
                   </button>
                 </div>
                 <div className="flex items-center gap-3 md:justify-end">

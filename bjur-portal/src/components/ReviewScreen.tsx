@@ -298,10 +298,7 @@ export function ReviewScreen({
     try {
       await onSendNotes();
       setSentBanner(
-        `Your notes went to Bjur Media at ${new Date().toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        })}. Everyone gets one email when cut ${(cut?.version ?? 1) + 1} is up, with every note answered.`
+        `Notes sent · ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
       );
     } finally {
       setBusy(false);
@@ -653,7 +650,7 @@ export function ReviewScreen({
                   onClick={() => latest && onSelectCut(latest.id)}
                   className="underline cursor-pointer hover:text-white"
                 >
-                  Go to cut {latest?.version} →
+                  Go to cut {latest?.version}
                 </button>
               </div>
             )}
@@ -690,19 +687,14 @@ export function ReviewScreen({
                 >
                   Send {myDrafts.length} note{myDrafts.length === 1 ? "" : "s"}
                 </button>
-                <p className="mt-2 text-[11.5px] leading-relaxed text-white/45">
-                  Only you can see these until you send. Keep adding as you watch.
-                </p>
               </>
             )}
 
             {mode === "client" && isLatest && !approved && myDrafts.length === 0 && viewer?.canApprove && (
               <>
-                <p className="mb-2 text-[11.5px] text-white/45">
-                  {sentNotes.length === 0
-                    ? "Nothing to change?"
-                    : `Happy with it after all? Approving tells us cut ${cut?.version} is final.`}
-                </p>
+                {sentNotes.length === 0 && (
+                  <p className="mb-2 text-[11.5px] text-white/45">Nothing to change?</p>
+                )}
                 <button
                   type="button"
                   onClick={() => void onApprove()}
@@ -888,7 +880,7 @@ function StudioFooter({
           className="mt-3 w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-40 disabled:cursor-default"
           style={{ background: "var(--accent)", color: "#0b0b0c" }}
         >
-          Preview cut {version} email →
+          Preview cut {version} email
         </button>
         {unanswered > 0 && (
           <p className="mt-2 text-[11.5px] text-white/45">

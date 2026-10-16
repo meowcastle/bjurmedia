@@ -32,7 +32,8 @@ test("signed-in devices are named as such, with relative times", async ({ page }
 test("the security note says what happens, not how it is hashed", async ({ page }) => {
   await page.goto("/settings");
 
-  await expect(page.getByText(/signs out your other devices/)).toBeVisible();
+  // The success toast already says this; a standing line under the form repeated it.
+  await expect(page.getByText(/signs out your other devices/)).toHaveCount(0);
   // Argon2 is an implementation detail a client cannot act on.
   await expect(page.getByText(/argon2/i)).toHaveCount(0);
 });

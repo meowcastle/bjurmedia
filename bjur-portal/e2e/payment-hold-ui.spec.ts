@@ -24,21 +24,19 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
   try {
     await page.goto("/p/p1");
 
-    // The client is told what the mark is before they go looking for a fault — one
-    // line now, the same sentence the viewer's download sheet uses.
-    await expect(page.getByTestId("hold-line")).toContainText(
-      /watermarked 1080p previews until the invoice is settled/i,
-    );
+    // One pill says it, with the reason on hover — not a pill, a sentence and a banner.
+    const pill = page.getByTestId("hold-pill");
+    await expect(pill).toHaveText("Awaiting payment");
+    await expect(pill).toHaveAttribute("title", /watermark/i);
+    await expect(page.getByText(/until the invoice is settled/i)).toHaveCount(0);
 
     await page.getByText("SSH_Reel_Hero.mp4").click();
     await expect(page.getByTestId("video-gesture-surface")).toBeVisible();
     await page.getByTestId("master-chip").click();
 
     const download = page.getByTestId("sheet-download");
-    // The hold is stated in one quiet line beside the button rather than in its label.
-    await expect(page.getByTestId("download-sheet")).toContainText(
-      /watermarked 1080p previews until the invoice is settled/i,
-    );
+    // The sheet carries the same pill, not a paragraph restating it.
+    await expect(page.getByTestId("download-sheet")).toContainText("Awaiting payment");
     // Still a real link, so save-as and middle-click behave.
     await expect(download).toHaveAttribute("href", /^\/api\/assets\/[^/]+\/download$/);
 
@@ -55,7 +53,7 @@ test("a held gallery says why it is marked, and refuses in place", async ({ page
 
 test("with no hold there is no mark line and no notice", async ({ page }) => {
   await page.goto("/p/p1");
-  await expect(page.getByTestId("hold-line")).toHaveCount(0);
+  await expect(page.getByTestId("hold-pill")).toHaveCount(0);
 
   await page.getByText("SSH_Reel_Hero.mp4").click();
   await page.getByTestId("master-chip").click();

@@ -29,7 +29,7 @@ export function ClientSentList({
       <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2 mb-1">
         <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent</span>
         <span className="text-[11px] text-dim2">
-          {batches.length} batch{batches.length === 1 ? "" : "es"}
+          {batches.length} upload{batches.length === 1 ? "" : "s"}
         </span>
       </div>
 

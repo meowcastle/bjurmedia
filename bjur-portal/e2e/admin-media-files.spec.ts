@@ -21,7 +21,7 @@ test("the stat tiles are gone, replaced by one meta line", async ({ page }) => {
   await expect(page.getByText("Proxies ready")).toHaveCount(0);
 
   // A real total size, not NaN — sizeBytes crossed the RSC boundary as a string.
-  await expect(page.getByText(/\d+ assets/)).toBeVisible();
+  await expect(page.getByText(/^\d+ files$/).first()).toBeVisible();
   await expect(page.getByText(/\d+(\.\d+)? (MB|GB|TB)/).first()).toBeVisible();
   await expect(page.getByText(/\d+ ready/)).toBeVisible();
 });

@@ -31,15 +31,11 @@ function fmtEta(secs: number) {
 
 export function SubmissionUploadClient({
   heading,
-  backHref,
-  backLabel,
   expired,
   apiBase,
 }: {
   /** What this drop zone is for, in the sender's words. */
   heading: string;
-  backHref?: string;
-  backLabel?: string;
   expired: boolean;
   /** `/api/intake` for a seat. The send page passes `/api/send/<token>`. */
   apiBase?: string;
@@ -279,27 +275,8 @@ export function SubmissionUploadClient({
 
   return (
     <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[720px] mx-auto bjfade">
-      <Link
-        href={backHref ?? "/"}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
-      >
-        ← {backLabel ?? "Back"}
-      </Link>
-
       <div className="border-b-2 border-line2 pb-6 mb-6">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
-          Upload footage
-        </div>
-        <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3">
-          {heading}
-        </h1>
-        <div className="text-[13px] text-muted">
-          Camera files, audio, a project file — drag in whole folders and
-          we&apos;ll keep them organized exactly as you dropped them. Large
-          files upload in chunks, so if this page reloads or your connection
-          drops mid-upload, just re-drop the same folder or file and it&apos;ll
-          pick up where it left off.
-        </div>
+        <h1 className="bj-serif text-[28px] sm:text-4xl font-normal">{heading}</h1>
       </div>
 
       {batchError && (
@@ -308,6 +285,8 @@ export function SubmissionUploadClient({
         </div>
       )}
 
+      {/* The one place resuming is explained, and only when there is something to resume.
+          It used to be said three times on this screen whether or not it applied. */}
       {resumable.length > 0 && (
         <div className="mb-4 border border-accent/40 bg-accent/5 px-4 py-3 text-[13px]">
           <div className="font-bold text-accentb mb-1">
@@ -332,7 +311,7 @@ export function SubmissionUploadClient({
           htmlFor="batch-name"
           className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-2"
         >
-          What are you sending?
+          Name this upload
         </label>
         <input
           id="batch-name"
@@ -343,11 +322,6 @@ export function SubmissionUploadClient({
           data-testid="batch-name"
           className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2.5 text-[14px] disabled:opacity-60"
         />
-        {batchId !== null && (
-          <p className="text-[11px] text-dim2 mt-1.5">
-            Named when this upload started. Anything more goes in a new one.
-          </p>
-        )}
       </div>
 
       <label
@@ -359,12 +333,8 @@ export function SubmissionUploadClient({
         }}
         className="block cursor-pointer border border-dashed border-line2 hover:border-accent px-5 py-14 text-center text-sm text-muted mb-1"
       >
-        <span className="block text-[15px] font-bold text-text mb-1">
+        <span className="block text-[15px] font-bold text-text">
           Drop files or folders here
-        </span>
-        <span className="block text-[13px] text-muted">
-          Drag in whole folders; we keep your structure. If the page reloads or
-          the connection drops, re-drop the same folder to resume.
         </span>
       </label>
       <div className="text-center mb-4">
@@ -455,10 +425,10 @@ export function SubmissionUploadClient({
             </Button>
           ) : (
             <Link
-              href={backHref ?? "/"}
+              href="/"
               className="inline-block bg-text hover:bg-accent text-bg text-[11px] uppercase font-bold px-4 py-2.5"
             >
-              Back to project
+              Done
             </Link>
           )}
         </div>

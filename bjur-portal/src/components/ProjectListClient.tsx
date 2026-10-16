@@ -50,35 +50,49 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
     return sorted;
   }, [projects, query, sort]);
 
+  // A handful of cards is faster to scan than to search; the tools earn their place
+  // once the list outgrows a screen.
+  const showTools = projects.length >= 8;
+
+  if (projects.length === 0) {
+    return (
+      <div className="border border-line2 px-5 py-10 text-center text-sm text-muted">
+        No projects yet.
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="flex items-center gap-3 flex-wrap mb-6">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search projects"
-          aria-label="Search projects"
-          className="flex-1 min-w-[200px] bg-bg border border-line2 text-text text-[13px] px-3 py-2.5 outline-none focus:border-accent"
-        />
-        <div className="flex border border-line2">
-          {(
-            [
-              ["newest", "Newest"],
-              ["az", "A–Z"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setSort(id)}
-              className={`cursor-pointer text-[11px] uppercase font-semibold px-3.5 py-2.5 ${
-                sort === id ? "bg-text text-bg" : "text-muted hover:text-text"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {showTools && (
+        <div className="flex items-center gap-3 flex-wrap mb-6">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search projects"
+            aria-label="Search projects"
+            className="flex-1 min-w-[200px] bg-bg border border-line2 text-text text-[13px] px-3 py-2.5 outline-none focus:border-accent"
+          />
+          <div className="flex border border-line2">
+            {(
+              [
+                ["newest", "Newest"],
+                ["az", "A–Z"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setSort(id)}
+                className={`cursor-pointer text-[11px] uppercase font-semibold px-3.5 py-2.5 ${
+                  sort === id ? "bg-text text-bg" : "text-muted hover:text-text"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {shown.length === 0 ? (
         <div className="border border-line2 px-5 py-10 text-center text-sm text-muted">

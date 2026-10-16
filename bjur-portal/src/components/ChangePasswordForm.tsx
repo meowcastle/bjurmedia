@@ -48,14 +48,7 @@ export function ChangePasswordForm() {
           <span className="font-black text-[15px]">BJUR</span>
           <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">MEDIA</span>
         </div>
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
-          One more step
-        </div>
-        <h1 className="bj-serif text-[28px] font-normal mb-3">Set your password</h1>
-        <p className="text-sm text-muted mb-7 leading-relaxed">
-          You signed in with a temporary password. Choose your own before continuing —
-          this also signs out any other device using the old one.
-        </p>
+        <h1 className="bj-serif text-[28px] font-normal mb-7">Set your password</h1>
 
         <form onSubmit={submit} className="flex flex-col gap-4">
           <Field label="Temporary password" htmlFor="current">
@@ -77,7 +70,7 @@ export function ChangePasswordForm() {
           {error && <div className="text-xs text-accentb font-semibold">{error}</div>}
 
           <Button type="submit" disabled={loading} className="mt-2">
-            {loading ? "Saving…" : "Set password & continue"}
+            {loading ? "Saving…" : "Continue"}
           </Button>
         </form>
       </div>

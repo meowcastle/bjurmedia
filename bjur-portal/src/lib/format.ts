@@ -28,6 +28,15 @@ export function formatBytes(bytes: number | bigint) {
   return `${(n / 1_000_000).toFixed(1)} MB`;
 }
 
+/** "Added Oct 2", or "Updated Oct 16" once a file was replaced after it first landed. */
+export function fileStamp(createdAt: string, updatedAt: string) {
+  const day = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 60_000
+    ? `Updated ${day(updatedAt)}`
+    : `Added ${day(createdAt)}`;
+}
+
 export function formatViews(n: number) {
   if (n < 1000) return `${n}`;
   if (n < 1_000_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;

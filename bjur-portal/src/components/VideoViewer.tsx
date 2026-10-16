@@ -51,6 +51,8 @@ export type VideoNavAsset = {
   durationSec: number | null;
   /** "Week of Sep 28", for the position line on desktop. */
   weekLabel?: string | null;
+  /** "Added Oct 2" — moved here from the tile, where it sat under every thumbnail. */
+  added?: string;
 };
 
 /**
@@ -313,6 +315,7 @@ export function VideoViewer({
                 ).padStart(2, "0")}`
               : null,
             size: currentItem.size,
+            added: currentItem.added ?? null,
             watermarked,
           }}
           onClose={() => setMasterOpen(false)}

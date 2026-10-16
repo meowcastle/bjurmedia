@@ -300,7 +300,7 @@ export function CaptionEditor({
       </div>
       {!sheet && (
         <label htmlFor={`title-${reel.id}`} className="block text-[10px] uppercase tracking-[.1em] text-dim mb-1">
-          Title · also the YouTube title
+          Title
         </label>
       )}
       <input
@@ -369,9 +369,6 @@ export function CaptionEditor({
             </span>
             {ig && <CopyButton text={ig} />}
           </div>
-          <p className="text-[11px] text-dim mt-3 leading-relaxed">
-            Used on YouTube too, unless you write a separate description.
-          </p>
         </>
       )}
 
@@ -469,11 +466,6 @@ export function CaptionEditor({
             >
               Looks good
             </button>
-            {!sheet && (
-              <p className="text-[11px] text-dim mt-3 leading-relaxed">
-                Drafted from the audio. Read it before it goes out. Edits save as you type and we see them.
-              </p>
-            )}
           </>
         )}
         {state === "CHECKED" && !sheet && (
@@ -485,7 +477,6 @@ export function CaptionEditor({
                 {meta.captionEditedAt ? ` · ${shortDate(meta.captionEditedAt)}` : ""}
               </span>
             </div>
-            <p className="text-[11px] text-dim mt-3">Still editable. We see every change.</p>
           </>
         )}
         {state === "POSTED" && (
@@ -493,6 +484,8 @@ export function CaptionEditor({
             <div className="border border-line px-3.5 py-3 text-[10.5px] uppercase tracking-[.1em] text-dim">
               Posted to Slack{meta.postedToSlackAt ? ` · ${shortDate(meta.postedToSlackAt)}` : ""}
             </div>
+            {/* Kept against the distill cut list on purpose: it is the only place a client
+                learns how to change a caption that is locked. */}
             <p className="text-[11px] text-dim mt-3">
               Already sent for posting. Ask in {slackChannel || "your Slack channel"} to change it.
             </p>

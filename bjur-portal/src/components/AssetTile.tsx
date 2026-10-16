@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
-import { formatBytes } from "@/lib/format";
 import { formatViews } from "@/lib/format";
 import { IconCheck, IconHeart, IconPlay } from "@/components/ui/Icon";
 
@@ -30,21 +29,6 @@ function fmtDuration(sec: number | null) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function fmtStamp(createdAt: string, updatedAt: string) {
-  const created = new Date(createdAt).getTime();
-  const updated = new Date(updatedAt).getTime();
-  if (updated - created > 60_000) {
-    return {
-      text: `Updated ${new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-      isUpdate: true,
-    };
-  }
-  return {
-    text: `Added ${new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-    isUpdate: false,
-  };
 }
 
 function aspectFor(a: TileAsset) {
@@ -76,7 +60,6 @@ export function AssetTile({
   /** One more line under the date/size row — a reel's caption state. */
   footer?: ReactNode;
 }) {
-  const stamp = fmtStamp(asset.createdAt, asset.updatedAt);
   const badge =
     asset.kind === "VIDEO"
       ? fmtDuration(asset.durationSec)
@@ -183,14 +166,6 @@ export function AssetTile({
             </span>
           </div>
       </motion.div>
-      <div className="pt-1.5 flex items-baseline justify-between gap-2 text-[10.5px]">
-        <span className={stamp.isUpdate ? "text-accentb" : "text-dim"}>
-          {stamp.text}
-        </span>
-        <span className="text-dim tabular-nums flex-none">
-          {formatBytes(Number(asset.sizeBytes))}
-        </span>
-      </div>
       {footer}
     </motion.div>
   );

@@ -207,7 +207,7 @@ export function VideoChrome({
             data-testid="master-chip"
             className="shrink-0 text-xs font-bold uppercase tracking-wide border border-white/25 hover:border-white text-white/85 hover:text-white px-3.5 py-2.5 cursor-pointer whitespace-nowrap"
           >
-            {"\u2191 File"}
+            Download
           </button>
         </div>
       </div>

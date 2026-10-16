@@ -174,9 +174,6 @@ export function SettingsClient({
           <Button onClick={savePassword}>Update password</Button>
           {pwMsg && <span className="text-xs text-muted">{pwMsg}</span>}
         </div>
-        <div className="mt-3 text-[11px] text-dim">
-          Changing your password signs out your other devices.
-        </div>
       </div>
 
       <div className="border border-line bg-s1 p-6 mb-5">

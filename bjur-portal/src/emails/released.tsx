@@ -41,7 +41,7 @@ export function renderReleasedEmailHtml({
     <div style="padding:24px 40px;border-top:1px solid #dcd8d1;background:#0f0f11">
       <div style="display:flex;gap:11px;align-items:flex-start">
         <div style="width:6px;height:6px;border-radius:50%;background:#ec3013;margin-top:6px;flex:none"></div>
-        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This gallery is available until <strong style="color:#17161a;font-weight:700">${esc(expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your deliverables.</p>
+        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This project is available until <strong style="color:#17161a;font-weight:700">${esc(expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your files.</p>
       </div>
     </div>`
       : "";
@@ -69,11 +69,11 @@ export function renderReleasedEmailHtml({
       <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#ec3013;font-weight:700;margin-bottom:16px">Thank you · ${esc(clientName)}</div>
       <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.05;font-weight:400;color:#17161a;margin:0 0 16px">Your ${esc(projectTitle)} files are ready.</h1>
       <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0 0 14px">Hi ${esc(recipientName)} — thank you for your purchase. The watermarks have been removed and all ${fileCount} ${plural} in ${esc(projectTitle)} are now yours to download at full quality.</p>
-      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0">Anything you already downloaded still carries the mark, so grab the finals fresh from the gallery. It's been a pleasure working with you.</p>
+      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0">Anything you already downloaded still carries the mark, so grab the finals fresh from the project. It's been a pleasure working with you.</p>
     </div>
 
     <div style="padding:0 40px 34px">
-      <a href="${projectUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">Download your files →</a>
+      <a href="${projectUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">Download your files</a>
     </div>
 
     ${expiryBlock}

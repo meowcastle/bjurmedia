@@ -19,7 +19,6 @@ export default async function ProjectListPage() {
     },
     orderBy: { deliveredAt: "desc" },
     include: {
-      client: { select: { name: true } },
       assets: {
         where: { internal: false },
         select: { kind: true, sizeBytes: true },
@@ -80,17 +79,7 @@ export default async function ProjectListPage() {
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
-        <div>
-          <div className="text-[11px] tracking-[0.24em] uppercase text-accent font-bold mb-3">
-            {projects[0]?.client.name ? `${projects[0].client.name} · ` : ""}Projects
-          </div>
-          <h1 className="bj-serif text-[32px] sm:text-[44px] font-normal">Projects</h1>
-        </div>
-        <div className="text-[13px] text-muted">
-          {projects.length} active project{projects.length !== 1 ? "s" : ""}
-        </div>
-      </div>
+      <h1 className="bj-serif text-[32px] sm:text-[44px] font-normal mb-9">Projects</h1>
 
       <ProjectListClient
         projects={projects.map((p) => ({

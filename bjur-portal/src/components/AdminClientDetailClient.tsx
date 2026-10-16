@@ -527,7 +527,7 @@ export function AdminClientDetailClient({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
-              <span className="text-muted">{p.assetCount} assets</span>
+              <span className="text-muted">{p.assetCount} files</span>
               {/* What each project is, visible from the list rather than only by
                   opening it. Set at creation and never changes. */}
               <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">

@@ -58,7 +58,7 @@ export function renderDeliveryEmailHtml({
     <div style="padding:24px 40px;border-top:1px solid #dcd8d1;background:#0f0f11">
       <div style="display:flex;gap:11px;align-items:flex-start">
         <div style="width:6px;height:6px;border-radius:50%;background:#ec3013;margin-top:6px;flex:none"></div>
-        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This gallery is available until <strong style="color:#17161a;font-weight:700">${esc(expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your deliverables.</p>
+        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This project is available until <strong style="color:#17161a;font-weight:700">${esc(expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your files.</p>
       </div>
     </div>`
       : "";
@@ -109,7 +109,7 @@ export function renderDeliveryEmailHtml({
     </div>
 
     <div style="padding:0 40px 34px">
-      <a href="${projectUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your gallery →</a>
+      <a href="${projectUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your project</a>
     </div>
 
     ${expiryBlock}

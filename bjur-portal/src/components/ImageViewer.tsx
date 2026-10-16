@@ -80,6 +80,7 @@ export function ImageViewer({
         <PhotoChrome
           visible={carousel.chromeVisible}
           name={currentItem.name}
+          detail={currentItem.detail}
           index={carousel.currentIndex}
           total={items.length}
           hasPrev={carousel.hasPrev}

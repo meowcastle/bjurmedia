@@ -5,6 +5,8 @@ import { gradientFor } from "@/lib/gradients";
 export type PhotoNavAsset = {
   id: string;
   name: string;
+  /** "4.2 MB · Added Oct 2", shown beside the name; it used to sit under every tile. */
+  detail?: string;
 };
 
 /**

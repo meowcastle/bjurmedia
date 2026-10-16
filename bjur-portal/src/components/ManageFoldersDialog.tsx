@@ -133,7 +133,7 @@ export function ManageFoldersDialog({
                   </button>
                 )}
                 <span className="text-[11px] text-dim flex-none">
-                  {f.assetCount} asset{f.assetCount !== 1 ? "s" : ""}
+                  {f.assetCount} file{f.assetCount !== 1 ? "s" : ""}
                 </span>
                 {confirmingDeleteId === f.id ? (
                   <div className="flex items-center gap-1.5 flex-none">

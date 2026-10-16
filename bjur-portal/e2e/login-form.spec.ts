@@ -9,7 +9,19 @@ test("the email field is labelled Email and the URL chip is gone", async ({ page
   await expect(page.getByText("Username")).toHaveCount(0);
   // The chip restated the address bar, and "argon2 hashed" told a client nothing.
   await expect(page.getByText(/argon2/)).toHaveCount(0);
-  await expect(page.getByText("Secure connection")).toBeVisible();
+});
+
+/**
+ * The page is the logo, "Sign in", two fields, a button and Forgot?. The headline, blurb,
+ * NAS credit, "Secure connection" and the admin link told a client nothing they needed.
+ */
+test("the login page is only what signing in needs", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  for (const gone of ["Secure connection", "Your work,", "Synology", "Welcome back", "Admin sign in"]) {
+    await expect(page.getByText(gone)).toHaveCount(0);
+  }
 });
 
 test("Show reveals the password and Hide puts it back", async ({ page }) => {

@@ -125,13 +125,8 @@ export function ClientPostsPanel({
           data-testid="approval-banner"
           className="bg-s1 border border-line2 px-4 py-[14px] mb-5 flex items-center gap-4 flex-wrap"
         >
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] tracking-[0.18em] uppercase font-bold text-accentb">
-              {awaiting.length} post{awaiting.length > 1 ? "s need" : " needs"} your OK
-            </div>
-            <div className="text-[13px] text-muted mt-1">
-              Waiting on you before anything goes out.
-            </div>
+          <div className="min-w-0 flex-1 text-[11px] tracking-[0.18em] uppercase font-bold text-accentb">
+            {awaiting.length} post{awaiting.length > 1 ? "s need" : " needs"} your review
           </div>
           <button
             onClick={() => onViewChange("week")}

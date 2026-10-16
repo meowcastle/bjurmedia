@@ -25,12 +25,17 @@ test("chips carry counts and the header states a total size", async ({ page }) =
   await expect(download).toHaveText(/Download all · \d+(\.\d+)? (MB|GB)$/);
 });
 
-test("defaults to grouping by format, not week", async ({ page }) => {
+test("groups by format, with one row of filters and nothing restated", async ({ page }) => {
   await page.goto(PROJECT);
 
   // Format group headers are format names; week headers read "Week of ...".
   await expect(page.getByText(/^Week of /)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "By Format" })).toBeVisible();
+  // The By Week toggle, the Wide/Vertical filter, per-group "Select all in…" and the
+  // "Delivered · N files" strip are gone; the format chips already carry the counts.
+  await expect(page.getByRole("button", { name: /^By (Format|Week)$/ })).toHaveCount(0);
+  await expect(page.getByTestId("orientation-filter")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Select all in / })).toHaveCount(0);
+  await expect(page.getByTestId("filter-ALL")).toBeVisible();
 });
 
 test("selecting a file raises the selection bar with a count and size", async ({ page }) => {

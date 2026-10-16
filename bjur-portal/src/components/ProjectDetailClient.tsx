@@ -15,7 +15,7 @@ import { VideoViewer } from "@/components/VideoViewer";
 import type { ReelCopy, CopyPatch } from "@/components/CaptionEditor";
 import { captionState, type CaptionState } from "@/lib/captionState";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
-import { formatViews, formatBytes } from "@/lib/format";
+import { fileStamp, formatViews, formatBytes } from "@/lib/format";
 import { IconPlay, IconHeart } from "@/components/ui/Icon";
 import { PhoneSaveButtons, phoneSaveAvailable, usePhoneSave } from "@/components/PhoneSave";
 
@@ -101,10 +101,10 @@ function reelCaptionState(a: Asset): CaptionState | null {
 
 /** The tile's caption line, per state. No line at all when there is nothing to say. */
 const CAPTION_LINE: Record<CaptionState, { label: string; action: string; color: string }> = {
-  DRAFT: { label: "Needs review", action: "Check \u2192", color: "var(--warn)" },
-  CHECKED: { label: "Caption · checked", action: "Edit \u2192", color: "var(--muted)" },
-  POSTED: { label: "Caption · posted", action: "View \u2192", color: "var(--dim)" },
-  NO_SPEECH: { label: "No caption", action: "Write \u2192", color: "var(--dim)" },
+  DRAFT: { label: "Needs review", action: "Check", color: "var(--warn)" },
+  CHECKED: { label: "Caption · checked", action: "Edit", color: "var(--muted)" },
+  POSTED: { label: "Caption · posted", action: "View", color: "var(--dim)" },
+  NO_SPEECH: { label: "No caption", action: "Write", color: "var(--dim)" },
 };
 
 /** Buckets assets by the Monday of their weekOf's calendar week, newest first, Undated last. */
@@ -199,11 +199,7 @@ export function ProjectDetailClient({
   const [postsView, setPostsView] = useState<PostsView>("files");
 
   const [filter, setFilter] = useState<string>("ALL");
-  // §3: format is the default. Week grouping remains available, but a client opening a
-  // delivery wants it sorted by what the files *are*, not which week they landed.
-  const [groupMode, setGroupMode] = useState<"format" | "week">("format");
   const [folderFilter, setFolderFilter] = useState<string>("ALL");
-  const [orientation, setOrientation] = useState<"ALL" | "landscape" | "portrait">("ALL");
 
   const folderScoped = useMemo(
     () =>
@@ -218,47 +214,9 @@ export function ProjectDetailClient({
   );
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
-  /**
-   * Wide vs vertical only earns a control where it actually divides something.
-   *
-   * For video it never does: ingest derives the format *from* the shape — portrait
-   * becomes a Reel, landscape a Film — so on those tabs this would be a second copy of
-   * the tab beside it, always selecting everything or nothing. Stills are the real case,
-   * where a shoot's verticals and its wides land in one undifferentiated pile.
-   *
-   * So the control appears only when what is currently in view holds both, judged before
-   * this filter is applied — otherwise choosing one would remove the other and the
-   * control would take itself away mid-click.
-   */
-  const orientationCandidates = useMemo(() => {
-    if (filter === "FAV") return folderScoped.filter((a) => favorites.has(a.id));
-    if (filter === "CHECK") return folderScoped.filter((a) => reelCaptionState(a) === "DRAFT");
-    if (filter === "ALL") return folderScoped;
-    return folderScoped.filter((a) => a.format === filter);
-  }, [folderScoped, filter, favorites]);
-
-  const orientationCounts = useMemo(
-    () => ({
-      landscape: orientationCandidates.filter((a) => a.orientation === "landscape").length,
-      portrait: orientationCandidates.filter((a) => a.orientation === "portrait").length,
-    }),
-    [orientationCandidates],
-  );
-
-  const showOrientation = orientationCounts.landscape > 0 && orientationCounts.portrait > 0;
-
-  // Derived rather than reset in an effect: switching to Reels while "Vertical" is picked
-  // simply stops applying it, instead of silently filtering behind a control that is no
-  // longer on screen.
-  const activeOrientation = showOrientation ? orientation : "ALL";
-
-  const scoped = useMemo(
-    () =>
-      activeOrientation === "ALL"
-        ? folderScoped
-        : folderScoped.filter((a) => a.orientation === activeOrientation),
-    [folderScoped, activeOrientation],
-  );
+  // Grouped by format only. The By Week toggle, the Wide/Vertical filter and the
+  // past-years accordion each added a control for a question few clients asked.
+  const scoped = folderScoped;
 
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   // The run the viewer swipes through, fixed when it opens. Under "Captions to check" a
@@ -396,20 +354,6 @@ export function ProjectDetailClient({
       : []),
   ];
 
-  const metaAssets = FORMAT_DEFS.map(
-    // Singular carried alongside the count: the labels are plural, so one item read as
-    // "1 films". Taken from the tuple rather than an index, because the filter below
-    // shifts positions and an index would then name the wrong format.
-    (d) => [formatCounts[d[0]] ?? 0, d[1], d[0]] as const,
-  )
-    .filter(([c]) => c)
-    .map(([c, label, singular]) =>
-      c === 1 ? `${c} ${singular.toLowerCase()}` : `${c} ${label.split(" · ")[0].toLowerCase()}`,
-    )
-    .join(" · ");
-
-  const currentYear = new Date().getFullYear();
-
   const groups: Group[] = useMemo(() => {
     if (filter === "CHECK") {
       return bucketByWeek(
@@ -431,17 +375,6 @@ export function ProjectDetailClient({
           ]
         : [];
     }
-    if (groupMode === "week") {
-      // Current year (plus anything undated) shows directly; older years are bucketed
-      // separately below into collapsible folders so the default view stays focused on
-      // this year's weekly deliveries instead of a year-spanning wall of weeks.
-      const byFilter =
-        filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
-      const items = byFilter.filter(
-        (a) => !a.weekOf || new Date(a.weekOf).getUTCFullYear() === currentYear,
-      );
-      return bucketByWeek(items, project.path);
-    }
     return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
       .map((d) => {
         const items = scoped.filter((a) => a.format === d[0]);
@@ -454,31 +387,7 @@ export function ProjectDetailClient({
         };
       })
       .filter((g) => g.items.length);
-  }, [filter, groupMode, scoped, favorites, project.path, currentYear]);
-
-  type YearFolder = { year: number; count: string; weeks: Group[] };
-  const pastYearFolders: YearFolder[] = useMemo(() => {
-    if (groupMode !== "week" || filter === "FAV" || filter === "CHECK") return [];
-    const byFilter =
-      filter === "ALL" ? scoped : scoped.filter((a) => a.format === filter);
-    const byYear = new Map<number, Asset[]>();
-    for (const a of byFilter) {
-      if (!a.weekOf) continue;
-      const year = new Date(a.weekOf).getUTCFullYear();
-      if (year === currentYear) continue;
-      const items = byYear.get(year) ?? [];
-      items.push(a);
-      byYear.set(year, items);
-    }
-    return [...byYear.entries()]
-      .sort(([a], [b]) => b - a)
-      .map(([year, items]) => ({
-        year,
-        count: `${items.length} file${items.length > 1 ? "s" : ""}`,
-        weeks: bucketByWeek(items, `${project.path}/${year}`),
-      }));
-  }, [scoped, groupMode, filter, project.path, currentYear]);
-  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+  }, [filter, scoped, favorites, project.path]);
 
   const visibleIds = useMemo(
     () => groups.flatMap((g) => g.items.map((i) => i.id)),
@@ -510,6 +419,7 @@ export function ProjectDetailClient({
         weekLabel: v.weekOf
           ? `Week of ${new Date(mondayOfWeek(new Date(v.weekOf))).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
           : null,
+        added: fileStamp(v.createdAt, v.updatedAt),
       })),
     [viewerIds, assetById],
   );
@@ -518,7 +428,12 @@ export function ProjectDetailClient({
     [groups],
   );
   const photoNavItems = useMemo(
-    () => photoOrder.map((p) => ({ id: p.id, name: p.name })),
+    () =>
+      photoOrder.map((p) => ({
+        id: p.id,
+        name: p.name,
+        detail: `${formatBytes(Number(p.sizeBytes))} · ${fileStamp(p.createdAt, p.updatedAt)}`,
+      })),
     [photoOrder],
   );
 
@@ -567,27 +482,6 @@ export function ProjectDetailClient({
           <span className="text-[11px] text-muted">
             {grp.summary ?? `${grp.count} · ${formatBytes(bytesOf(grp.items))}`}
           </span>
-          {canDownload && (
-            <button
-              onClick={() => {
-                const ids = grp.items.map((i) => i.id);
-                const allIn = ids.every((id) => selected.has(id));
-                setSelected((prev) => {
-                  const next = new Set(prev);
-                  for (const id of ids) {
-                    if (allIn) next.delete(id);
-                    else next.add(id);
-                  }
-                  return next;
-                });
-              }}
-              className="ml-auto cursor-pointer text-[11px] font-semibold text-muted hover:text-text py-2.5 -my-2.5"
-            >
-              {grp.items.every((i) => selected.has(i.id))
-                ? "Clear"
-                : `Select all in ${grp.label}`}
-            </button>
-          )}
         </div>
         <div
           className="grid gap-4 items-start"
@@ -625,17 +519,10 @@ export function ProjectDetailClient({
 
       <div className="flex items-end justify-between gap-6 flex-wrap border-b-2 border-line2 pb-6 mb-2">
         <div>
-          <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-3">
-            {project.clientName}
-          </div>
           <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3.5">
             {project.title}
           </h1>
           <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">
-            <span>{metaAssets}</span>
-            <span className="w-1 h-1 rounded-full bg-dim" />
-            <span className="tabular-nums">{formatBytes(totalBytes)}</span>
-            <span className="w-1 h-1 rounded-full bg-dim" />
             <span>Delivered {fmtDate(project.deliveredAt)}</span>
             {project.expiresAt && (
               <>
@@ -645,11 +532,16 @@ export function ProjectDetailClient({
                 </span>
               </>
             )}
+            {/* The one place payment is mentioned. It was this, a sentence under the
+                header and another in the download sheet — three for one fact. */}
             {project.paymentHold && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb font-semibold">Awaiting payment</span>
-              </>
+              <span
+                data-testid="hold-pill"
+                title="Downloads carry a watermark until the invoice is paid."
+                className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]"
+              >
+                Awaiting payment
+              </span>
             )}
             {totalSocialPosts > 0 && (
               <>
@@ -670,25 +562,12 @@ export function ProjectDetailClient({
         <div className="flex flex-col items-stretch sm:items-end gap-2.5">
           {canDownload && (
             <DownloadButton
-              label={`↓ Download all · ${formatBytes(totalBytes)}`}
+              label={`Download all · ${formatBytes(totalBytes)}`}
               onClick={downloadAll}
             />
           )}
         </div>
       </div>
-
-      {/* One line, directly under the header. It was a bordered paragraph in accent red,
-          which made a normal condition of an unpaid job read as a fault with the files.
-          No red, no lock glyph — the same sentence appears in the viewer's download sheet
-          and nowhere else. */}
-      {project.paymentHold && (
-        <div
-          data-testid="hold-line"
-          className="text-[11.5px] text-muted leading-relaxed py-3.5 border-b border-line mb-6"
-        >
-          Downloads are watermarked 1080p previews until the invoice is settled.
-        </div>
-      )}
 
       {/* §13. Only for projects that actually have posts — a delivery of stills has
           nothing to approve and should not grow a tab strip saying so. */}
@@ -733,38 +612,6 @@ export function ProjectDetailClient({
                 </button>
               ))}
             </div>
-            {showOrientation && (
-              <div className="inline-flex border border-line2" data-testid="orientation-filter">
-                {(
-                  [
-                    // "Both", not "All": the format chips beside this already have an
-                    // "All N", and two adjacent controls both reading "All 13" / "All 6"
-                    // is a puzzle rather than a choice.
-                    ["ALL", `Both ${orientationCandidates.length}`],
-                    ["landscape", `Wide ${orientationCounts.landscape}`],
-                    ["portrait", `Vertical ${orientationCounts.portrait}`],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    onClick={() => setOrientation(id)}
-                    data-testid={`orientation-${id}`}
-                    className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
-                      activeOrientation === id ? "text-bg" : "text-muted"
-                    }`}
-                  >
-                    {activeOrientation === id && (
-                      <motion.div
-                        layoutId="orientationPill"
-                        className="absolute inset-0 bg-text z-0"
-                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                      />
-                    )}
-                    <span className="relative z-10">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
             {project.folders.length > 0 && (
               <select
                 value={folderFilter}
@@ -780,71 +627,9 @@ export function ProjectDetailClient({
               </select>
             )}
           </div>
-          <div className="inline-flex border border-line2">
-            {(["format", "week"] as const).map((g) => (
-              <button
-                key={g}
-                onClick={() => setGroupMode(g)}
-                className={`relative cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2.5 border-l border-line2 first:border-l-0 ${
-                  groupMode === g ? "text-bg" : "text-muted"
-                }`}
-              >
-                {groupMode === g && (
-                  <motion.div
-                    layoutId="groupModePill"
-                    className="absolute inset-0 bg-text z-0"
-                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                  />
-                )}
-                <span className="relative z-10">
-                  By {g === "format" ? "Format" : "Week"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Just what we delivered. What the client sent us moved to its own tab: footage
-            belongs to the client, not to whichever project happened to exist when it was
-            sent, and showing it here implied a link that was never real. */}
-        <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2 mb-3">
-          <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
-            {filter === "CHECK" ? "Needs review" : "Delivered"}
-          </span>
-          <span className="text-[11px] text-dim2">
-            {filter === "CHECK"
-              ? `${draftCount} file${draftCount === 1 ? "" : "s"}`
-              : `${assets.length} file${assets.length === 1 ? "" : "s"}`}
-          </span>
         </div>
 
         {groups.map(renderGroup)}
-
-        {pastYearFolders.map((yf) => {
-          const isOpen = expandedYears.has(yf.year);
-          return (
-            <div key={yf.year} className="mb-9">
-              <button
-                onClick={() =>
-                  setExpandedYears((s) => {
-                    const next = new Set(s);
-                    if (next.has(yf.year)) next.delete(yf.year);
-                    else next.add(yf.year);
-                    return next;
-                  })
-                }
-                className="cursor-pointer w-full flex items-center gap-3 border-b border-line2 pb-2.5 mb-4 text-left"
-              >
-                <span className="text-[11px]">{isOpen ? "▾" : "▸"}</span>
-                <span className="text-[15px] font-extrabold">{yf.year}</span>
-                <span className="text-[11px] text-muted">{yf.count}</span>
-              </button>
-              {isOpen && (
-                <div className="pl-6">{yf.weeks.map(renderGroup)}</div>
-              )}
-            </div>
-          );
-        })}
 
         {filter === "CHECK" && groups.length === 0 && (
           <div data-testid="captions-all-checked" className="text-[12.5px] text-dim py-[60px] text-center">
