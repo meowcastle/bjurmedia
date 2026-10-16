@@ -41,7 +41,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <div className="min-h-screen grid place-items-center px-6 bjfade">
+    <div className="min-h-dvh grid place-items-center px-6 bjfade">
       <div className="w-full max-w-[400px]">
         <div className="flex items-center gap-2.5 mb-8">
           <div className="w-3.5 h-3.5 bg-accent" />

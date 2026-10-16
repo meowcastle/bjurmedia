@@ -371,7 +371,7 @@ export function SubmissionUploadClient({
       />
 
       {queue.length > 0 && (
-        <div className="shadow-1 sticky top-[70px] z-20 bg-s1 border border-line2 px-5 py-4 mb-4">
+        <div className="shadow-1 sticky top-[var(--header-h,70px)] z-20 bg-s1 border border-line2 px-5 py-4 mb-4">
           <div className="text-[11px] tracking-wide uppercase font-bold text-muted mb-1">
             {errorCount > 0 && !uploading
               ? "Finished with errors"

@@ -50,7 +50,8 @@ export function RowMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
-        className="cursor-pointer w-8 h-8 grid place-items-center border border-line2 text-muted hover:text-text hover:border-text text-[15px] leading-none"
+        // 32px to the eye, 44px to the finger: the ::before halo takes the extra 6px a side.
+        className="relative cursor-pointer w-8 h-8 grid place-items-center border border-line2 text-muted hover:text-text hover:border-text text-[15px] leading-none transition-colors before:absolute before:-inset-1.5 before:content-['']"
       >
         <IconMore />
       </button>

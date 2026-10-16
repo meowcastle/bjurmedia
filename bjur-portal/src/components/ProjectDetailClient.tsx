@@ -243,6 +243,17 @@ export function ProjectDetailClient({
     localStorage.setItem(key, new Date().toISOString());
   }, [project.id]);
 
+  // §4: iOS's rubber-band overscroll dragged the sticky selection bar with it. Contained
+  // while the gallery is up, and put back for every other page.
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.overscrollBehaviorY;
+    html.style.overscrollBehaviorY = "contain";
+    return () => {
+      html.style.overscrollBehaviorY = prev;
+    };
+  }, []);
+
   const canDownload = role !== "VIEWER";
   const zipUrl = `/api/projects/${project.id}/download-all`;
 
@@ -586,14 +597,14 @@ export function ProjectDetailClient({
 
       <div hidden={scheduled.length > 0 && postsView !== "files"}>
         <div className="flex items-center justify-between gap-4 flex-wrap my-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="inline-flex border border-line2">
+          <div className="flex items-center gap-4 flex-wrap min-w-0 w-full sm:w-auto">
+            <div className="bj-chips flex sm:inline-flex max-w-full border border-line2">
               {filters.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id)}
                   data-testid={`filter-${f.id}`}
-                  className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
+                  className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 min-h-11 sm:min-h-0 border-l border-line2 first:border-l-0 ${
                     filter === f.id ? "text-bg" : "text-muted"
                   }`}
                 >

@@ -1,5 +1,8 @@
 "use client";
 
+import { useHeaderHeight } from "@/components/ui/useHeaderHeight";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { useIsPhone } from "@/components/ui/useIsPhone";
 import { NavUnderline } from "@/components/ui/NavUnderline";
 import { usePresence } from "@/components/ui/usePresence";
 import Link from "next/link";
@@ -34,6 +37,8 @@ export function AdminHeader({ userName }: { userName: string }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menu = usePresence(menuOpen);
+  const phone = useIsPhone();
+  const headerRef = useHeaderHeight<HTMLDivElement>();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const initials =
@@ -45,6 +50,9 @@ export function AdminHeader({ userName }: { userName: string }) {
       .join("") || "?";
 
   useEffect(() => {
+    // On a phone the menu is a portalled sheet with its own backdrop; a tap inside it is
+    // "outside" this ref and would close the menu before the tap reached its item.
+    if (phone) return;
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
@@ -57,7 +65,7 @@ export function AdminHeader({ userName }: { userName: string }) {
       document.removeEventListener("mousedown", onClickOutside);
       document.removeEventListener("keydown", onEsc);
     };
-  }, []);
+  }, [phone]);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -65,8 +73,47 @@ export function AdminHeader({ userName }: { userName: string }) {
     router.refresh();
   }
 
+  // One set of items, two containers: a sheet from the bottom edge on a phone, the
+  // dropdown everywhere else.
+  const menuItems = (
+    <>
+    {MENU_LINKS.map((item) => (
+      <Link
+        key={item.href}
+        role="menuitem"
+        href={item.href}
+        // Closed here rather than in an effect on pathname: setState inside an
+        // effect is a cascading render, and the click is the actual event — the
+        // route changing is just its consequence.
+        onClick={() => setMenuOpen(false)}
+        className="block px-4 py-3 border-b border-line hover:bg-s3 group"
+      >
+        <span className="block text-[13px] font-semibold text-muted group-hover:text-text">
+          {item.label}
+        </span>
+        {/* Neither name says what the screen does — "Library" especially reads
+            like a media browser when it is an ingest tool. One line each. */}
+        <span className="block text-[11px] text-muted/70 mt-0.5">{item.hint}</span>
+      </Link>
+    ))}
+    <div className="px-4 py-3 border-b border-line text-[13px] font-semibold truncate">
+      {userName}
+    </div>
+    <button
+      role="menuitem"
+      onClick={signOut}
+      className="w-full text-left px-4 py-3 text-[13px] text-muted hover:text-text hover:bg-s3 cursor-pointer"
+    >
+      Sign out
+    </button>
+    </>
+  );
+
   return (
-    <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-2 px-4 md:px-10 py-3 md:py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
+    <div
+      ref={headerRef}
+      className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-2 px-4 md:px-10 py-3 md:py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20"
+    >
       <Link href="/admin" className="flex items-center gap-2.5 flex-none py-2.5 -my-2.5">
         <div className="w-3.5 h-3.5 bg-accent" />
         <span className="font-black text-[15px]">BJUR</span>
@@ -107,49 +154,31 @@ export function AdminHeader({ userName }: { userName: string }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label={`Menu for ${userName}`}
-            className="w-[30px] h-[30px] grid place-items-center bg-s3 border border-line2 hover:border-text text-[11px] font-black cursor-pointer"
+            // 44px to the finger, 30px to the eye.
+            className="group w-11 h-11 -m-[7px] grid place-items-center cursor-pointer"
           >
-            {initials}
+            <span className="w-[30px] h-[30px] grid place-items-center bg-s3 border border-line2 group-hover:border-text text-[11px] font-black transition-colors">
+              {initials}
+            </span>
           </button>
-          {menu.mounted && (
+          {!phone && menu.mounted && (
             <div
               role="menu"
               data-testid="admin-account-menu"
               className={`absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line2 shadow-2 z-40 ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
             >
-              {MENU_LINKS.map((item) => (
-                <Link
-                  key={item.href}
-                  role="menuitem"
-                  href={item.href}
-                  // Closed here rather than in an effect on pathname: setState inside an
-                  // effect is a cascading render, and the click is the actual event — the
-                  // route changing is just its consequence.
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-3 border-b border-line hover:bg-s3 group"
-                >
-                  <span className="block text-[13px] font-semibold text-muted group-hover:text-text">
-                    {item.label}
-                  </span>
-                  {/* Neither name says what the screen does — "Library" especially reads
-                      like a media browser when it is an ingest tool. One line each. */}
-                  <span className="block text-[11px] text-muted/70 mt-0.5">{item.hint}</span>
-                </Link>
-              ))}
-              <div className="px-4 py-3 border-b border-line text-[13px] font-semibold truncate">
-                {userName}
-              </div>
-              <button
-                role="menuitem"
-                onClick={signOut}
-                className="w-full text-left px-4 py-3 text-[13px] text-muted hover:text-text hover:bg-s3 cursor-pointer"
-              >
-                Sign out
-              </button>
+              {menuItems}
             </div>
           )}
         </div>
       </div>
+      {phone && (
+        <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} label={`Menu for ${userName}`}>
+          <div role="menu" data-testid="admin-account-menu">
+            {menuItems}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }

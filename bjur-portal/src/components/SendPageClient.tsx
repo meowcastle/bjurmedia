@@ -155,7 +155,7 @@ export function SendPageClient({
     return (
       <div
         data-theme="dark"
-        className="min-h-screen bg-bg text-text grid place-items-center px-6 pt-[72px] pb-[120px]"
+        className="min-h-dvh bg-bg text-text grid place-items-center px-6 pt-[72px] pb-[120px]"
       >
         <div className="w-full max-w-[560px]">
           {brand}
@@ -176,7 +176,7 @@ export function SendPageClient({
   return (
     <div
       data-theme="dark"
-      className="min-h-screen bg-bg text-text grid place-items-center px-6 pt-[72px] pb-[120px]"
+      className="min-h-dvh bg-bg text-text grid place-items-center px-6 pt-[72px] pb-[120px]"
     >
       <div className="w-full max-w-[560px]">
         {brand}

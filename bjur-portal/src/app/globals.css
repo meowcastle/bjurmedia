@@ -364,6 +364,27 @@ body {
 .bj-bar-in { animation: bj-bar-in var(--dur-3) var(--ease-out) both; }
 .bj-bar-out { animation: bj-bar-out var(--dur-2) var(--ease-in) both; pointer-events: none; }
 
+/* Chip rows on a phone (§4): one line that scrolls sideways and snaps, with a 24px fade
+   so it is plain there is more. Wider screens wrap as before. */
+@media (max-width: 639px) {
+  .bj-chips {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Right edge only: a fade on the left washed out the first chip before anything had
+       scrolled, and the overflow is always to the right. */
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .bj-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .bj-chips > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
 /*
  * Reduced motion, once, for everything (PORTAL-POLISH §1). The viewer's drag is driven by
  * the finger rather than a transition, so it still works; its fades simply snap.

@@ -62,7 +62,7 @@ export function LoginForm({
   // Logo, title, two fields, a button and Forgot? — the whole page. The headline, blurb,
   // NAS credit and "Secure connection" dot said nothing a person signing in needed.
   return (
-    <div className="relative min-h-screen flex flex-col justify-center px-[5vw] bg-s1">
+    <div className="relative min-h-dvh flex flex-col justify-center px-[5vw] bg-s1">
       <div className="absolute top-8 right-[5vw]">
         <ThemeToggle portal={portal} />
       </div>

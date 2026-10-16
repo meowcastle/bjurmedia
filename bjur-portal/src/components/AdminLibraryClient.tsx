@@ -269,7 +269,7 @@ export function AdminLibraryClient({
           )}
         </div>
 
-        <div className="shadow-1 border border-line bg-s1 sticky top-[92px]">
+        <div className="shadow-1 border border-line bg-s1 sticky top-[var(--header-h,92px)]">
           <div className="p-5 border-b border-line">
             <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-3">
               Register to project

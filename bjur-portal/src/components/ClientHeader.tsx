@@ -1,5 +1,8 @@
 "use client";
 
+import { useIsPhone } from "@/components/ui/useIsPhone";
+import { useHeaderHeight } from "@/components/ui/useHeaderHeight";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { NavUnderline } from "@/components/ui/NavUnderline";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,6 +30,9 @@ export function ClientHeader({
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useHeaderHeight<HTMLDivElement>();
+  // Only mounted on a phone, so a desktop page holds one theme toggle, not two.
+  const phone = useIsPhone();
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -35,7 +41,10 @@ export function ClientHeader({
   }
 
   return (
-    <div className="flex items-center gap-4 px-4 sm:px-6 md:px-10 py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20">
+    <div
+      ref={headerRef}
+      className="flex items-center gap-4 px-4 sm:px-6 md:px-10 py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20"
+    >
       <Link
         href="/"
         className="flex items-center gap-2.5 flex-none py-2.5 -my-2.5"
@@ -53,7 +62,7 @@ export function ClientHeader({
       <nav className="flex items-center gap-1 ml-2">
         <Link
           href="/"
-          className={`relative px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+          className={`relative px-3 py-2 min-h-11 sm:min-h-0 inline-flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
             pathname === "/" ? "text-text" : "text-muted hover:text-text"
           }`}
         >
@@ -64,7 +73,7 @@ export function ClientHeader({
           <Link
             href="/send"
             data-testid="nav-send"
-            className={`relative px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+            className={`relative px-3 py-2 min-h-11 sm:min-h-0 inline-flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
               pathname.startsWith("/send") ? "text-text" : "text-muted hover:text-text"
             }`}
           >
@@ -108,51 +117,43 @@ export function ClientHeader({
           onClick={() => setMenuOpen((v) => !v)}
           aria-label="Open menu"
           aria-expanded={menuOpen}
-          className="w-9 h-9 grid place-items-center text-text cursor-pointer flex-none"
+          className="w-11 h-11 -mr-1 grid place-items-center text-text cursor-pointer flex-none"
         >
           <IconMore className="text-2xl" />
         </button>
-        {menuOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-30"
-              onClick={() => setMenuOpen(false)}
-            />
-            <div className="absolute right-0 top-full mt-2 w-60 bg-s2 border border-line2 z-40 bjfade">
-              <div className="px-4 py-3 border-b border-line">
-                <div className="text-[10px] text-dim uppercase tracking-wide font-semibold">
-                  Signed in as
-                </div>
-                <div className="text-sm font-semibold truncate mt-0.5">
-                  {clientName}
-                </div>
-              </div>
-              <ClientSwitcher
-                variant="list"
-                memberships={memberships}
-                activeClientId={activeClientId}
-                onSwitched={() => setMenuOpen(false)}
-              />
-              <div className="border-b border-line px-2 py-1">
-                <ThemeToggle portal="client" />
-              </div>
-              <Link
-                href="/settings"
-                onClick={() => setMenuOpen(false)}
-                className="block px-4 py-3 text-sm text-text hover:bg-s3 border-b border-line"
-              >
-                Settings
-              </Link>
-              <button
-                onClick={signOut}
-                className="w-full text-left px-4 py-3 text-sm text-text hover:bg-s3 cursor-pointer"
-              >
-                Sign out
-              </button>
-            </div>
-          </>
-        )}
       </div>
+      {/* A sheet from the bottom edge, not a dropdown off the corner: within thumb reach,
+          44px rows, and it closes the way a phone sheet does. */}
+      {phone && (
+      <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu">
+        <div className="px-5 pb-3 border-b border-line">
+          <div className="text-[10px] text-dim uppercase tracking-wide font-semibold">Signed in as</div>
+          <div className="text-sm font-semibold truncate mt-0.5">{clientName}</div>
+        </div>
+        <ClientSwitcher
+          variant="list"
+          memberships={memberships}
+          activeClientId={activeClientId}
+          onSwitched={() => setMenuOpen(false)}
+        />
+        <div className="border-b border-line px-3 min-h-11 flex items-center">
+          <ThemeToggle portal="client" />
+        </div>
+        <Link
+          href="/settings"
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center min-h-11 px-5 text-sm text-text active:bg-s3 border-b border-line transition-colors"
+        >
+          Settings
+        </Link>
+        <button
+          onClick={signOut}
+          className="w-full text-left flex items-center min-h-11 px-5 text-sm text-text active:bg-s3 cursor-pointer transition-colors"
+        >
+          Sign out
+        </button>
+      </BottomSheet>
+      )}
     </div>
   );
 }
