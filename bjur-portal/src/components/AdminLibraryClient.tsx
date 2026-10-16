@@ -240,16 +240,7 @@ export function AdminLibraryClient({
 
   return (
     <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
-      <div className="mb-2">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-          Back-catalog import
-        </div>
-        <h1 className="bj-serif text-[34px] font-normal">Library</h1>
-      </div>
-      <p className="text-sm text-muted max-w-[640px] mb-6">
-        Browse what&apos;s already on the NAS and pull in only what you want — files are registered in
-        place, never moved or re-uploaded.
-      </p>
+      <h1 className="bj-serif text-[34px] font-normal mb-6">Library</h1>
 
       <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
         <div className="border border-line">
@@ -296,7 +287,7 @@ export function AdminLibraryClient({
               <div>
                 <div className="text-[13px] font-semibold">Auto-map from path</div>
                 <div className="text-[11px] text-dim mt-0.5 max-w-[190px]">
-                  Derive date from filename, format from file content
+                  Auto-detect date & format
                 </div>
               </div>
               <div

@@ -20,9 +20,8 @@ test("Done closes the upload dialog even when a date save never answers", async 
   // Never fulfilled: the save hangs for as long as the page lives.
   await page.route("**/api/admin/assets/hung-asset", () => {});
 
-  await page.goto("/admin/media");
-  await page.getByRole("button", { name: /SSH/ }).click();
-  await page.getByRole("link", { name: "Spring Campaign 2026" }).click();
+  // Media is reached from a project; there is no picker of its own any more.
+  await page.goto("/admin/media?project=p1");
   await page.getByRole("button", { name: "Upload" }).click();
   await expect(page.getByText("Upload files")).toBeVisible();
 

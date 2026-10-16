@@ -157,30 +157,7 @@ export function AdminProjectDetailClient({
     router.push(`/admin/clients/${client.id}`);
   }
 
-  // What this project does, in its own words. Derived rather than stored: these are the
-  // consequences of the type, and a client of this page should not have to know how to
-  // read an enum.
-  const does =
-    project.type === "CALENDAR"
-      ? [
-          "Reels land in the inbox and appear on the week board, unscheduled.",
-          "You drag them onto a day, approve the caption, and post the week to Slack.",
-          "The client approves in Slack with a reaction. Nothing posts on its own.",
-        ]
-      : project.type === "FILM"
-        ? [
-            "Each export you drop in the inbox becomes the next cut.",
-            "Reviewers leave timestamped notes and send them together.",
-            "You answer every note before the next cut goes out — your answers travel in that email.",
-            "An owner approves the final cut, and that unlocks the master.",
-          ]
-        : [
-            "Finished files land in the inbox and appear in the client's project.",
-            "The client can stream and download everything as it arrives.",
-          ];
-
   const internalCount = assets.filter((a) => a.internal).length;
-  const ready = assets.filter((a) => a.proxyStatus === "READY").length;
   const failed = assets.filter((a) => a.proxyStatus === "FAILED").length;
   const encoding = assets.filter(
     (a) => a.proxyStatus === "PENDING" || a.proxyStatus === "GENERATING"
@@ -192,12 +169,22 @@ export function AdminProjectDetailClient({
 
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade">
-      <Link
-        href={`/admin/clients/${client.id}`}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
-      >
-        ← {client.name}
-      </Link>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <Link
+          href={`/admin/clients/${client.id}`}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text"
+        >
+          ← {client.name}
+        </Link>
+        {/* The way into Media now that it has no picker of its own. */}
+        <Link
+          href={`/admin/media?project=${project.id}`}
+          data-testid="open-media"
+          className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5"
+        >
+          Media
+        </Link>
+      </div>
 
       <div className="border-b-2 border-line2 pb-6 mb-9">
         <input
@@ -235,12 +222,7 @@ export function AdminProjectDetailClient({
                 ? "Film"
                 : "Delivery"}
           </span>
-          {held && (
-            <span className="text-accentb border border-accentb px-[7px] py-[3px]">Awaiting payment</span>
-          )}
-          <span className="text-dim2 normal-case tracking-normal font-semibold text-[11px]">
-            set at creation
-          </span>
+
         </div>
       </div>
 
@@ -310,47 +292,36 @@ export function AdminProjectDetailClient({
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-px bg-line2 border border-line2">
-        <div className="bg-s1 px-6 py-[22px]">
-          <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3">
-            What this project does
-          </div>
-          {does.map((d) => (
-            <div key={d} className="text-xs text-body py-[9px] border-t border-line leading-relaxed">
-              {d}
-            </div>
-          ))}
-          {project.type === "CALENDAR" && !project.hasSlackChannel && (
-            <div className="text-[11px] text-accentb py-[9px] border-t border-line leading-relaxed">
-              No Slack channel for {client.name} yet.{" "}
-              <Link href="/admin/integrations" className="text-text tracking-[.06em] font-semibold">
-                ADD ONE →
-              </Link>
-            </div>
-          )}
+      {project.type === "CALENDAR" && !project.hasSlackChannel && (
+        <div className="text-[11px] text-accentb border border-line2 bg-s1 px-[18px] py-3 mb-1">
+          No Slack channel for {client.name} yet.{" "}
+          <Link href="/admin/integrations" className="text-text tracking-[.06em] font-semibold">
+            Add one
+          </Link>
         </div>
+      )}
 
-        <div className="bg-s1 px-6 py-[22px]">
-          <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3 flex justify-between">
-            <span>Payment</span>
-            <span className={held ? "text-accentb tracking-[.06em]" : "text-ok tracking-[.06em]"}>
-              {held ? "Awaiting payment" : "Paid"}
-            </span>
-          </div>
-          <p className="text-xs text-dim leading-relaxed mb-4">
-            {held
-              ? "Every download the client makes carries a BJUR MEDIA mark until you mark it paid."
-              : "Downloads are clean. Mark it awaiting payment if an invoice is outstanding; nothing is hidden, only marked."}
-          </p>
-          <button
-            onClick={togglePay}
-            disabled={busy}
-            data-testid="payment-toggle"
-            className="cursor-pointer border border-line2 hover:border-text px-3.5 py-2.5 text-[10.5px] font-semibold uppercase tracking-[.08em] disabled:opacity-50"
-          >
-            {held ? "Mark paid" : "Mark awaiting payment"}
-          </button>
-        </div>
+      {/* One switch. It was a status, a sentence restating the status and a button
+          naming the opposite state. What a held download looks like is the client's
+          concern; the admin needs only to say whether the invoice is open. */}
+      <div className="flex items-center justify-between gap-4 border border-line2 bg-s1 px-[18px] py-4">
+        <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Awaiting payment</span>
+        <button
+          onClick={togglePay}
+          disabled={busy}
+          role="switch"
+          aria-checked={held}
+          aria-label="Awaiting payment"
+          data-testid="payment-toggle"
+          className="cursor-pointer text-[10.5px] font-semibold uppercase tracking-[.06em] border px-2.5 py-1.5 disabled:opacity-50"
+          style={
+            held
+              ? { borderColor: "var(--accentb)", color: "var(--accentb)" }
+              : { borderColor: "var(--line2)", color: "var(--muted)" }
+          }
+        >
+          {held ? "On" : "Off"}
+        </button>
       </div>
 
       {/* What is actually in the project, and what state it is in.
@@ -373,12 +344,13 @@ export function AdminProjectDetailClient({
               )}
             </span>
             <span className="text-dim2 normal-case tracking-normal text-[11px]" data-testid="proxy-progress">
-              {encoding > 0
-                ? `${ready} ready · ${encoding} still encoding`
-                : failed > 0
-                  ? `${ready} ready · ${failed} failed`
-                  : "all ready"}
-              {held && markPending > 0 ? ` · ${markPending} awaiting watermark` : ""}
+              {[
+                encoding > 0 ? `${encoding} processing` : null,
+                failed > 0 ? `${failed} failed` : null,
+                held && markPending > 0 ? `${markPending} awaiting watermark` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
           </div>
 

@@ -31,12 +31,8 @@ function makeFixture(name: string, sizeBytes: number) {
 }
 
 async function openUploadDialog(page: import("@playwright/test").Page) {
-  // No project context yet lands on the grouped-by-client picker (not a flat
-  // dropdown) — expand the client, then click into the project, same as a
-  // real admin would.
-  await page.goto("/admin/media");
-  await page.getByRole("button", { name: /SSH/ }).click();
-  await page.getByRole("link", { name: "Spring Campaign 2026" }).click();
+  // Media is reached from a project; there is no picker of its own any more.
+  await page.goto("/admin/media?project=p1");
   await page.getByRole("button", { name: "Upload" }).click();
   await expect(page.getByText("Upload files")).toBeVisible();
 }

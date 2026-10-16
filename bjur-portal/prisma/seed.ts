@@ -812,7 +812,7 @@ async function main() {
     data: [
       { actor: "SSH", action: "downloaded 12 files from Spring Campaign 2026" },
       { actor: "57.NYC", action: "licensed a BRAW master — Commercial & Broadcast" },
-      { actor: "Worker", action: "finished proxies for Rooftop Series (6 assets)" },
+      { actor: "Worker", action: "finished proxies for Rooftop Series (6 files)" },
     ],
   });
 

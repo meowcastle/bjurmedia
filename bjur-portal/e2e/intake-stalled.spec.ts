@@ -51,7 +51,7 @@ test("with no open link the header says so", async ({ page }) => {
   try {
     await page.goto(`/admin/clients/${clientId}`);
     // Nothing can be received at all, which is a different thing from having nothing yet.
-    await expect(page.getByTestId("intake-block")).toContainText("no open links");
+    await expect(page.getByTestId("intake-block")).toContainText("No open links");
   } finally {
     if (open) {
       sql(

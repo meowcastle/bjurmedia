@@ -48,7 +48,6 @@ test("the shape is stated, not offered", async ({ page, request }) => {
   await page.goto(`/admin/projects/${project.id}`);
 
   await expect(page.getByTestId("project-type")).toHaveText(/delivery/i);
-  await expect(page.getByText("set at creation")).toBeVisible();
   // No control anywhere on the page offers to change either.
   await expect(page.getByRole("button", { name: /social calendar/i })).toHaveCount(0);
 
@@ -59,14 +58,17 @@ test("payment holds and releases from the page", async ({ page, request }) => {
   const project = await makeProject(request);
   await page.goto(`/admin/projects/${project.id}`);
 
-  const toggle = page.getByTestId("payment-toggle");
-  await expect(toggle).toHaveText(/mark awaiting payment/i);
+  // One switch, stating the state it is in rather than naming the opposite one.
+  const toggle = page.getByRole("switch", { name: "Awaiting payment" });
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(toggle).toHaveText("Off");
   await toggle.click();
   await expect(page.getByText(/downloads watermarked/i)).toBeVisible();
-  await expect(toggle).toHaveText(/mark paid/i);
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
 
   await toggle.click();
   await expect(page.getByText(/clean downloads/i)).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
 
   await request.delete(`/api/admin/projects/${project.id}`);
 });
@@ -96,12 +98,30 @@ test("the project page shows what is in it and what state it is in", async ({ pa
 
   const grid = page.locator('[data-testid^="file-"]');
   await expect(grid.first()).toBeVisible();
-  // The pipeline state is stated, not left to be inferred from a blank thumbnail.
-  await expect(page.getByTestId("proxy-progress")).toContainText(/ready|encoding|failed/i);
+  // Only what needs attention is counted — "N processing", "N failed" — and nothing at
+  // all when every proxy is ready, instead of "all ready" beside the file count.
+  await expect(page.getByTestId("proxy-progress")).toHaveText(
+    /^(\d+ (processing|failed|awaiting watermark)( · )?)*$/,
+  );
 
   // A file with a proxy opens the viewer; the page behind it stays put.
   await grid.first().click();
   await expect(page.getByTestId("admin-proxy-viewer")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("admin-proxy-viewer")).toHaveCount(0);
+});
+
+/**
+ * Media is one project's pipeline, reached from that project. It had its own client-then-
+ * project picker and a nav tab, a second route to the choice the Clients page makes.
+ */
+test("Media is reached from the project, not a picker of its own", async ({ page }) => {
+  await page.goto("/admin/media");
+  await expect(page).toHaveURL(/\/admin\/clients$/);
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Media" })).toHaveCount(0);
+
+  await page.goto("/admin/projects/p1");
+  await page.getByTestId("open-media").click();
+  await expect(page).toHaveURL(/\/admin\/media\?project=p1$/);
+  await expect(page.locator('[data-testid^="asset-row-"]').first()).toBeVisible();
 });

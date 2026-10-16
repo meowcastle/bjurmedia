@@ -12,7 +12,6 @@ import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
 import { lighten } from "@/lib/color";
 import { initials } from "@/lib/initials";
-import { Toast } from "@/components/ui/Toast";
 
 type ProjectAccessGrant = { projectId: string; role: string };
 type Seat = {
@@ -32,7 +31,6 @@ type ProjectRow = {
   type: "DELIVERY" | "CALENDAR" | "FILM";
   paymentHold: boolean;
   assetCount: number;
-  inboxPath: string;
 };
 type ClientInfo = {
   id: string;
@@ -94,9 +92,6 @@ export function AdminClientDetailClient({
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [resetDialogFor, setResetDialogFor] = useState<Seat | null>(null);
   const [accessDialogFor, setAccessDialogFor] = useState<Seat | null>(null);
-  // Owned by the page: a save closes the dialog, so a toast inside it would unmount
-  // with the action it is reporting.
-  const [toast, setToast] = useState<string | null>(null);
   const [confirmingRemoveSeat, setConfirmingRemoveSeat] = useState<
     string | null
   >(null);
@@ -213,26 +208,23 @@ export function AdminClientDetailClient({
             )}
           </div>
           <div>
-            <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-              @{client.username}
-            </div>
-            <h1 className="bj-serif text-4xl font-normal mb-3">
-              {client.name}
-            </h1>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold tracking-wide uppercase text-muted border border-line2 px-2 py-1">
+            <h1 className="bj-serif text-4xl font-normal">{client.name}</h1>
+            {!active && (
+              <span className="inline-block mt-2.5 text-[10px] font-extrabold uppercase tracking-[.06em] text-dim border border-line2 px-[7px] py-[3px]">
+                Disabled
               </span>
-              <span
-                className={`text-[11px] font-bold tracking-wide uppercase ${active ? "text-success" : "text-dim"}`}
-              >
-                {active ? "Active" : "Disabled"}
-              </span>
-            </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
+        {/* Set once per client and rarely touched again, so they wait behind one
+            disclosure instead of sharing the header with the name. */}
+        <details className="group relative" data-testid="client-settings">
+          <summary className="list-none cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 select-none">
+            Settings
+          </summary>
+          <div className="absolute right-0 z-20 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-s2 border border-line2 p-4 flex flex-col gap-3.5 shadow-[0_18px_50px_rgba(0,0,0,.4)]">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted">
+            <span className="text-[11px] font-semibold text-muted w-20 flex-none">
               Logo URL
             </span>
             <input
@@ -243,7 +235,7 @@ export function AdminClientDetailClient({
               }
               placeholder="https://…"
               disabled={savingLogo}
-              className="w-44 bg-bg border border-line2 text-text text-[12px] font-mono px-2.5 py-2 outline-none focus:border-accent disabled:opacity-40"
+              className="flex-1 min-w-0 bg-bg border border-line2 text-text text-[12px] font-mono px-2.5 py-2 outline-none focus:border-accent disabled:opacity-40"
             />
             {logoUrl && (
               <button
@@ -259,8 +251,8 @@ export function AdminClientDetailClient({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted">
-              Portal accent
+            <span className="text-[11px] font-semibold text-muted w-20 flex-none">
+              Accent
             </span>
             <input
               type="color"
@@ -308,7 +300,8 @@ export function AdminClientDetailClient({
               {active ? "Disable client" : "Enable client"}
             </button>
           )}
-        </div>
+          </div>
+        </details>
       </div>
 
       <div className="flex items-end justify-between mb-4">
@@ -518,12 +511,6 @@ export function AdminClientDetailClient({
                 >
                   {p.title}
                 </Link>
-                <div
-                  className="text-[10.5px] font-mono text-dim mt-1 truncate"
-                  title={p.inboxPath}
-                >
-                  {p.inboxPath}
-                </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
@@ -619,12 +606,10 @@ export function AdminClientDetailClient({
           onCreated={() => router.refresh()}
         />
       )}
-      <Toast message={toast} onDone={() => setToast(null)} />
 
       {uploadingTo && (
         <UploadDialog
           projectId={uploadingTo.id}
-          projectTitle={uploadingTo.title}
           onClose={() => setUploadingTo(null)}
           onUploaded={() => router.refresh()}
         />

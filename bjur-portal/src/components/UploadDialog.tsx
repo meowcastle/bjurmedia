@@ -84,13 +84,11 @@ const SAVE_WAIT_MS = 8000;
 
 export function UploadDialog({
   projectId,
-  projectTitle,
   folders = [],
   onClose,
   onUploaded,
 }: {
   projectId: string;
-  projectTitle: string;
   folders?: { id: string; name: string }[];
   onClose: () => void;
   onUploaded: () => void;
@@ -233,12 +231,8 @@ export function UploadDialog({
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-[520px] bg-s2 border border-line2 p-7 bjrise"
         >
-          <div className="text-xl font-black tracking-tight mb-1.5">
+          <div className="text-xl font-black tracking-tight mb-6">
             Upload files
-          </div>
-          <div className="text-[13px] text-muted mb-6">
-            Goes straight into &ldquo;{projectTitle}&rdquo;&apos;s inbox —
-            auto-ingested exactly like a NAS drop.
           </div>
 
           <label

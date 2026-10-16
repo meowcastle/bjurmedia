@@ -109,15 +109,10 @@ export function AdminIntegrationsClient({
 
   return (
     <div className="px-6 md:px-10 py-11 max-w-[1100px] mx-auto bjfade">
-      <div className="flex justify-between items-end gap-6 flex-wrap pb-7 border-b border-line2 mb-2">
-        <div>
-          <div className="text-[11px] tracking-[0.14em] uppercase text-dim mb-3.5">
-            Slack · Instagram · YouTube · Captions
-          </div>
-          <h1 className="bj-serif text-[36px] sm:text-[48px] font-light leading-none tracking-tight">
-            Integrations.
-          </h1>
-        </div>
+      <div className="flex justify-between items-end gap-6 flex-wrap pb-7 border-b border-line2 mb-9">
+        <h1 className="bj-serif text-[36px] sm:text-[48px] font-light leading-none tracking-tight">
+          Integrations
+        </h1>
         <div className="text-[11px] text-dim flex gap-2 items-center">
           <span className={`w-1.5 h-1.5 ${config.connected ? "bg-success" : "bg-line2"}`} />
           {config.connected
@@ -126,12 +121,6 @@ export function AdminIntegrationsClient({
         </div>
       </div>
 
-      <p className="text-xs text-dim mt-0 mb-9 leading-relaxed max-w-[60ch]">
-        Optional per client. A Social calendar project needs a Slack channel; captions and
-        accounts are extras. Nothing here changes what a client sees. Turning AI captions
-        on sends this client&apos;s audio to a third party to transcribe, which is why it
-        is off until you say otherwise.
-      </p>
 
       {!config.connected && (
         <div className="border border-line bg-s1 p-5 mb-9 flex items-end gap-4 flex-wrap">
@@ -164,7 +153,10 @@ export function AdminIntegrationsClient({
         <span>Client</span>
         <span>Slack</span>
         <span>Accounts</span>
-        <span>AI captions</span>
+        {/* The one thing the old intro paragraph said that nobody would guess. */}
+        <span title="Sends the client's audio to a third party to transcribe. Off until you turn it on.">
+          AI captions
+        </span>
         <span />
       </div>
 

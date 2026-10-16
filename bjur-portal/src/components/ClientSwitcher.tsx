@@ -10,13 +10,22 @@ import type { ClientMembership } from "@/lib/auth";
  * Renders nothing for the single-client case, which is almost everyone: a switcher
  * offering one option is a control that can only disappoint. Same open/close contract as
  * the other menus in the app.
+ *
+ * The one implementation. "list" is the phone menu's form — that menu is already open,
+ * so the clients go straight in it rather than nesting a dropdown inside — and it used to
+ * be a second copy of the switching logic in ClientHeader.
  */
 export function ClientSwitcher({
   memberships,
   activeClientId,
+  variant = "dropdown",
+  onSwitched,
 }: {
   memberships: ClientMembership[];
   activeClientId: string | null;
+  variant?: "dropdown" | "list";
+  /** Lets the phone menu close itself once a choice is made. */
+  onSwitched?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -43,7 +52,11 @@ export function ClientSwitcher({
   if (memberships.length < 2) return null;
 
   async function pick(clientId: string) {
-    if (clientId === activeClientId) return setOpen(false);
+    if (clientId === activeClientId) {
+      setOpen(false);
+      onSwitched?.();
+      return;
+    }
     setSwitching(clientId);
     const res = await fetch("/api/auth/active-client", {
       method: "POST",
@@ -52,11 +65,35 @@ export function ClientSwitcher({
     });
     setSwitching(null);
     setOpen(false);
+    onSwitched?.();
     if (!res.ok) return;
     // Back to the project list rather than staying put: the current URL is a project
     // belonging to the client we just left, which the new one cannot open.
     router.push("/");
     router.refresh();
+  }
+
+  if (variant === "list") {
+    return (
+      <div className="border-b border-line" data-testid="client-switcher-list">
+        <div className="px-4 pt-3 pb-1 text-[10px] text-dim uppercase tracking-wide font-semibold">
+          Your clients
+        </div>
+        {memberships.map((m) => (
+          <button
+            key={m.clientId}
+            onClick={() => pick(m.clientId)}
+            disabled={switching !== null}
+            className={`w-full text-left px-4 py-3 text-sm hover:bg-s3 cursor-pointer disabled:opacity-50 ${
+              m.clientId === activeClientId ? "text-text font-semibold" : "text-muted"
+            }`}
+          >
+            {m.clientName}
+            {m.clientId === activeClientId ? " · viewing" : ""}
+          </button>
+        ))}
+      </div>
+    );
   }
 
   return (

@@ -50,7 +50,6 @@ type Asset = {
 };
 
 type ProjectOption = { id: string; title: string };
-type ClientGroup = { id: string; name: string; projects: ProjectOption[] };
 const STATUS_MAP: Record<
   Asset["proxyStatus"],
   { label: string; color: string }
@@ -64,26 +63,20 @@ const STATUS_MAP: Record<
 export function AdminMediaClient({
   selectedProjectId,
   selectedProjectTitle,
-  selectedClientId,
   selectedClientName,
-  clientAutoCaption,
   projectOnBoard,
   siblingProjects,
-  clientGroups,
   folders,
   assets,
   initialBoardAssetId = null,
 }: {
   selectedProjectId: string;
   selectedProjectTitle: string | null;
-  selectedClientId: string | null;
   selectedClientName: string | null;
   /** Whether this client has caption drafting on. Client-wide, edited here for reach. */
-  clientAutoCaption: boolean;
   /** Whether this project is scheduled on the board — gates caption sign-off and posting. */
   projectOnBoard: boolean;
   siblingProjects: ProjectOption[];
-  clientGroups: ClientGroup[];
   folders: FolderRow[];
   assets: Asset[];
   /** Open on the board with this card selected. */
@@ -92,14 +85,6 @@ export function AdminMediaClient({
   const router = useRouter();
   const [rows, setRows] = useState(assets);
   const [weekOfDrafts, setWeekOfDrafts] = useState<Record<string, string>>({});
-  const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({});
-  const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>(
-    {},
-  );
-  const [captionYTDrafts, setCaptionYTDrafts] = useState<
-    Record<string, string>
-  >({});
-  const [ytExpanded, setYtExpanded] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [view, setView] = useState<"files" | "calendar">(initialBoardAssetId ? "calendar" : "files");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
@@ -108,30 +93,9 @@ export function AdminMediaClient({
   // A thumb that 404s falls back to the gradient rather than an empty broken-image box.
   const [thumbFailed, setThumbFailed] = useState<Set<string>>(new Set());
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [autoCaption, setAutoCaption] = useState(clientAutoCaption);
-  const [captionSaving, setCaptionSaving] = useState(false);
-
-  async function toggleAutoCaption() {
-    if (!selectedClientId) return;
-    const next = !autoCaption;
-    setAutoCaption(next);
-    setCaptionSaving(true);
-    const res = await fetch(`/api/admin/clients/${selectedClientId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autoCaption: next }),
-    });
-    setCaptionSaving(false);
-    // Put it back rather than showing a state the database never took.
-    if (!res.ok) setAutoCaption(!next);
-  }
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [bulkHiding, setBulkHiding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [expandedClients, setExpandedClients] = useState<Set<string>>(
-    new Set(),
-  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [confirmingUnlinkId, setConfirmingUnlinkId] = useState<string | null>(null);
@@ -158,10 +122,6 @@ export function AdminMediaClient({
     setPrevProjectId(selectedProjectId);
     setRows(assets);
     setWeekOfDrafts({});
-    setTitleDrafts({});
-    setCaptionDrafts({});
-    setCaptionYTDrafts({});
-    setYtExpanded(new Set());
     setFormatFilter("ALL");
     setConfirmingDeleteId(null);
     setDeleteError(null);
@@ -245,15 +205,6 @@ export function AdminMediaClient({
     router.push(`/admin/media?project=${id}`);
   }
 
-  function toggleClientExpand(id: string) {
-    setExpandedClients((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   async function toggleInternal(a: Asset) {
     setRows((rs) =>
       rs.map((r) => (r.id === a.id ? { ...r, internal: !r.internal } : r)),
@@ -318,44 +269,6 @@ export function AdminMediaClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ folderId }),
-    });
-  }
-
-  async function saveContentTitle(a: Asset) {
-    const raw = titleDrafts[a.id];
-    if (raw === undefined) return;
-    const contentTitle = raw.trim() || null;
-    setRows((rs) =>
-      rs.map((r) => (r.id === a.id ? { ...r, contentTitle } : r)),
-    );
-    await fetch(`/api/admin/assets/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentTitle }),
-    });
-  }
-
-  async function saveCaption(a: Asset) {
-    const raw = captionDrafts[a.id];
-    if (raw === undefined) return;
-    const caption = raw.trim() || null;
-    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, caption } : r)));
-    await fetch(`/api/admin/assets/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ caption }),
-    });
-  }
-
-  async function saveCaptionYT(a: Asset) {
-    const raw = captionYTDrafts[a.id];
-    if (raw === undefined) return;
-    const captionYT = raw.trim() || null;
-    setRows((rs) => rs.map((r) => (r.id === a.id ? { ...r, captionYT } : r)));
-    await fetch(`/api/admin/assets/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ captionYT }),
     });
   }
 
@@ -466,81 +379,18 @@ export function AdminMediaClient({
     setMoving(false);
   }
 
-  if (!selectedProjectId) {
-    return (
-      <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
-        <div className="mb-6">
-          <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-            Pipeline
-          </div>
-          <h1 className="bj-serif text-[34px] font-normal mb-2.5">
-            Media
-          </h1>
-          <p className="text-sm text-muted">
-            Pick a client, then a project, to see its pipeline.
-          </p>
-        </div>
-
-        <div className="border border-line">
-          {clientGroups.map((g) => {
-            const isOpen = expandedClients.has(g.id);
-            return (
-              <div key={g.id} className="border-b border-line last:border-b-0">
-                <button
-                  onClick={() => toggleClientExpand(g.id)}
-                  className="cursor-pointer w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="text-[11px] text-muted">
-                      {isOpen ? "▾" : "▸"}
-                    </span>
-                    <span className="font-semibold text-sm">{g.name}</span>
-                  </span>
-                  <span className="text-[11px] text-muted">
-                    {g.projects.length} project
-                    {g.projects.length !== 1 ? "s" : ""}
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="pb-2">
-                    {g.projects.map((p) => (
-                      <Link
-                        key={p.id}
-                        href={`/admin/media?project=${p.id}`}
-                        className="block pl-11 pr-5 py-2.5 text-[13px] text-muted hover:text-text hover:bg-s1"
-                      >
-                        {p.title}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {clientGroups.length === 0 && (
-            <div className="px-5 py-10 text-center text-sm text-muted">
-              No projects yet.
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 pb-32 max-w-[1400px] mx-auto bjfade">
       <div className="mb-6">
-        {selectedClientName && selectedClientId && (
-          <Link
-            href={`/admin/clients/${selectedClientId}`}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4 py-2.5 -my-2.5"
-          >
-            ← {selectedClientName}
-          </Link>
-        )}
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-          Media
-        </div>
+        {/* Media is reached from a project and goes back to it. Its own client-then-
+            project picker was a second way to choose a project the Clients page already
+            offers. */}
+        <Link
+          href={`/admin/projects/${selectedProjectId}`}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4 py-2.5 -my-2.5"
+        >
+          ← {selectedClientName ? `${selectedClientName} · ` : ""}Project
+        </Link>
         <h1 className="bj-serif text-[34px] font-normal">
           {selectedProjectTitle}
         </h1>
@@ -597,30 +447,6 @@ export function AdminMediaClient({
         >
           Folders{folders.length > 0 ? ` (${folders.length})` : ""}
         </button>
-        {/* The switch lives on the client's own page too, since it is a client-wide
-            policy — but this is where reels are actually handled, and a setting you
-            have to go looking for is one you forget exists. Labelled with the client so
-            it never reads as a per-project toggle. */}
-        {selectedClientId && (
-          <button
-            onClick={toggleAutoCaption}
-            disabled={captionSaving}
-            data-testid="media-auto-caption"
-            aria-pressed={autoCaption}
-            title={
-              autoCaption
-                ? `New reels for ${selectedClientName} get a drafted caption from their audio.`
-                : `New reels for ${selectedClientName} are left without drafted captions.`
-            }
-            className={`cursor-pointer text-[11px] font-semibold px-3 py-2 border disabled:opacity-50 ${
-              autoCaption
-                ? "text-accentb border-accentb/50 bg-accent/[.06]"
-                : "text-muted border-line2 hover:text-text hover:border-text"
-            }`}
-          >
-            Caption drafts: {autoCaption ? "on" : "off"}
-          </button>
-        )}
         {folders.length > 0 && (
           <>
             <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">
@@ -680,9 +506,7 @@ export function AdminMediaClient({
             {failed > 0 && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
-                <Link href="/admin/media" className="text-accent font-semibold">
-                  {failed} failed
-                </Link>
+                <span className="text-accent font-semibold">{failed} failed</span>
               </>
             )}
           </div>
@@ -1017,106 +841,25 @@ export function AdminMediaClient({
                               : "border-accent/50 text-accentb"
                           }`}
                         />
-                        {/* Folder, title and captions used to sit open on every row, which
-                        made a thirteen-file project two thousand pixels of mostly-empty
-                        form. Folded away behind this, so the table reads as a table. */}
-                        <button
-                          onClick={() =>
-                            setExpandedRows((set) => {
-                              const next = new Set(set);
-                              if (next.has(a.id)) next.delete(a.id);
-                              else next.add(a.id);
-                              return next;
-                            })
-                          }
-                          aria-expanded={expandedRows.has(a.id)}
-                          className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-dim hover:text-text ml-2 py-2.5 -my-2.5"
-                        >
-                          {expandedRows.has(a.id) ? "Hide details" : "Details"}
-                          {!expandedRows.has(a.id) &&
-                          (a.contentTitle || a.caption || a.captionYT)
-                            ? " ·"
-                            : ""}
-                        </button>
+                        {/* Folder only. Title and captions are edited in the calendar
+                        drawer, which owns admin captions; a second editor here meant two
+                        places to change one caption and no way to tell which saved last. */}
+                        {folders.length > 0 && (
+                          <select
+                            value={a.folderId ?? ""}
+                            onChange={(e) => saveFolder(a, e.target.value || null)}
+                            aria-label={`Folder for ${a.name}`}
+                            className="ml-2 bg-bg border border-line2 text-[11px] text-text px-1.5 py-2 outline-none focus:border-accent"
+                          >
+                            <option value="">Unsorted</option>
+                            {folders.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
-                      {expandedRows.has(a.id) && (
-                        <>
-                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <span className="text-[10px] text-dim uppercase tracking-wide">
-                              Folder
-                            </span>
-                            <select
-                              value={a.folderId ?? ""}
-                              onChange={(e) =>
-                                saveFolder(a, e.target.value || null)
-                              }
-                              className="bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent"
-                            >
-                              <option value="">Unsorted</option>
-                              {folders.map((f) => (
-                                <option key={f.id} value={f.id}>
-                                  {f.name}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="text-[10px] text-dim uppercase tracking-wide ml-2">
-                              Title
-                            </span>
-                            <input
-                              type="text"
-                              defaultValue={a.contentTitle ?? ""}
-                              placeholder="e.g. TOVA (FAM ONLY)"
-                              onChange={(e) =>
-                                setTitleDrafts((d) => ({
-                                  ...d,
-                                  [a.id]: e.target.value,
-                                }))
-                              }
-                              onBlur={() => saveContentTitle(a)}
-                              className="bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent w-44"
-                            />
-                          </div>
-                          <div className="mt-1.5">
-                            <textarea
-                              defaultValue={a.caption ?? ""}
-                              placeholder="IG & YT caption…"
-                              rows={2}
-                              onChange={(e) =>
-                                setCaptionDrafts((d) => ({
-                                  ...d,
-                                  [a.id]: e.target.value,
-                                }))
-                              }
-                              onBlur={() => saveCaption(a)}
-                              className="w-full bg-bg border border-line2 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent resize-y"
-                            />
-                            {a.captionYT != null || ytExpanded.has(a.id) ? (
-                              <textarea
-                                defaultValue={a.captionYT ?? ""}
-                                placeholder="YouTube caption (if different)…"
-                                rows={2}
-                                onChange={(e) =>
-                                  setCaptionYTDrafts((d) => ({
-                                    ...d,
-                                    [a.id]: e.target.value,
-                                  }))
-                                }
-                                onBlur={() => saveCaptionYT(a)}
-                                className="w-full mt-1 bg-bg border border-accent/40 text-[11px] text-text px-1.5 py-1 outline-none focus:border-accent resize-y"
-                              />
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  setYtExpanded((s) => new Set(s).add(a.id))
-                                }
-                                className="cursor-pointer text-[10px] text-dim hover:text-accentb mt-1"
-                              >
-                                + Different caption for YouTube
-                              </button>
-                            )}
-                          </div>
-                        </>
-                      )}
                     </div>
                   </div>
                   {/* Format/size/status flow inline on mobile instead of each fighting for a
@@ -1286,7 +1029,6 @@ export function AdminMediaClient({
       {uploadOpen && selectedProjectId && (
         <UploadDialog
           projectId={selectedProjectId}
-          projectTitle={selectedProjectTitle ?? "this project"}
           folders={folders}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => router.refresh()}

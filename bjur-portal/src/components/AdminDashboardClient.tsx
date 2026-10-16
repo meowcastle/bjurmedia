@@ -10,7 +10,6 @@ import { IconPlay } from "@/components/ui/Icon";
 
 type Stat = { value: string; label: string };
 type ActivityRow = { id: string; who: string; action: string; when: string; dot: string };
-type ExpiringRow = { id: string; title: string; client: string; expires: string };
 type DeliveryRow = {
   id: string;
   title: string;
@@ -43,27 +42,25 @@ const ATTENTION_DOT: Record<AttentionRow["kind"], string> = {
 };
 
 export function AdminDashboardClient({
-  dateLabel,
   stats,
   attention,
   workerOnline,
   queueCount,
   failedCount,
+  failedHref,
   activity,
-  expiring,
   recentDeliveries,
   clients,
   socialErrors,
   topSocialPosts,
 }: {
-  dateLabel: string;
   stats: Stat[];
   attention: AttentionRow[];
   workerOnline: boolean;
   queueCount: number;
   failedCount: number;
+  failedHref: string | null;
   activity: ActivityRow[];
-  expiring: ExpiringRow[];
   recentDeliveries: DeliveryRow[];
   clients: ClientOption[];
   socialErrors: SocialErrorRow[];
@@ -75,12 +72,7 @@ export function AdminDashboardClient({
   return (
     <div className="px-4 sm:px-6 md:px-10 py-8 md:py-10 max-w-[1400px] mx-auto bjfade">
       <div className="flex items-end justify-between gap-5 flex-wrap mb-7">
-        <div>
-          <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-            {dateLabel}
-          </div>
-          <h1 className="bj-serif text-4xl font-normal">Dashboard</h1>
-        </div>
+        <h1 className="bj-serif text-4xl font-normal">Dashboard</h1>
         <div className="flex gap-2.5">
           <Button variant="secondary" onClick={() => setDialog("client")}>
             + Client
@@ -106,8 +98,8 @@ export function AdminDashboardClient({
             <span className={`text-[34px] font-black tracking-tight tabular-nums ${queueCount > 0 ? "text-accentb" : ""}`}>
               {queueCount}
             </span>
-            {failedCount > 0 && (
-              <Link href="/admin/media" className="text-sm font-bold text-accent hover:underline">
+            {failedCount > 0 && failedHref && (
+              <Link href={failedHref} className="text-sm font-bold text-accent hover:underline">
                 {failedCount} failed
               </Link>
             )}
@@ -179,23 +171,6 @@ export function AdminDashboardClient({
         <div className="flex flex-col gap-5">
           <div className="border border-line">
             <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
-              Expiring soon
-            </div>
-            {expiring.map((e) => (
-              <div key={e.id} className="px-5 py-3.5 border-b border-line last:border-b-0">
-                <div className="text-[13px] font-semibold truncate">{e.title}</div>
-                <div className="text-xs text-muted mt-1">
-                  {e.client} · <span className="text-accentb">{e.expires}</span>
-                </div>
-              </div>
-            ))}
-            {expiring.length === 0 && (
-              <div className="px-5 py-8 text-center text-sm text-muted">Nothing expiring.</div>
-            )}
-          </div>
-
-          <div className="border border-line">
-            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
               Social insights
             </div>
             {socialErrors.map((e) => (
@@ -222,7 +197,11 @@ export function AdminDashboardClient({
             ))}
             {socialErrors.length === 0 && topSocialPosts.length === 0 && (
               <div className="px-5 py-8 text-center text-sm text-muted">
-                No linked accounts yet — connect one from a client&apos;s page.
+                Connect an account in{" "}
+                <Link href="/admin/integrations" className="text-text hover:text-accent">
+                  Integrations
+                </Link>
+                .
               </div>
             )}
           </div>

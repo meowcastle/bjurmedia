@@ -10,22 +10,14 @@ export const dynamic = "force-dynamic";
 const HEARTBEAT_TIMEOUT_MS = 15_000;
 
 export default async function AdminDashboardPage() {
-  const [activeClients, liveProjects, assets, heartbeat, recentActivity, expiringProjects, recentProjects, clients] =
+  const [activeClients, heartbeat, recentActivity, recentProjects, clients] =
     await Promise.all([
       db.client.count({ where: { status: "ACTIVE" } }),
-      db.project.count({ where: { status: "LIVE" } }),
-      db.asset.findMany({ select: { sizeBytes: true } }),
       db.workerHeartbeat.findUnique({ where: { id: 1 } }),
       // Fetched wider than the ~8 we'll display — a burst of routine proxy
       // completions can otherwise push every real event out of a 6-row window
       // before summarizeActivity() ever gets a chance to collapse them down.
       db.activity.findMany({ orderBy: { createdAt: "desc" }, take: 40 }),
-      db.project.findMany({
-        where: { expiresAt: { gt: new Date() } },
-        orderBy: { expiresAt: "asc" },
-        take: 5,
-        include: { client: true },
-      }),
       db.project.findMany({
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -40,7 +32,14 @@ export default async function AdminDashboardPage() {
 
   const queueCount = await db.asset.count({ where: { proxyStatus: { in: ["PENDING", "GENERATING"] } } });
   const failedCount = await db.asset.count({ where: { proxyStatus: "FAILED" } });
-  const totalBytes = assets.reduce((t, a) => t + a.sizeBytes, BigInt(0));
+  // Media is per project now, so "N failed" opens the project holding the newest failure.
+  const firstFailed = failedCount
+    ? await db.asset.findFirst({
+        where: { proxyStatus: "FAILED" },
+        orderBy: { updatedAt: "desc" },
+        select: { projectId: true },
+      })
+    : null;
   const workerOnline = !!heartbeat && isRecentlyActive(heartbeat.lastSeen, HEARTBEAT_TIMEOUT_MS);
 
   const [socialAccountErrors, topSocialPosts] = await Promise.all([
@@ -234,7 +233,7 @@ export default async function AdminDashboardPage() {
       id: `approved-${r.id}`,
       kind: "approved" as const,
       subject: `${r.approvedBy?.name ?? "A reviewer"} approved cut ${r.version}`,
-      body: `${r.asset.project.client.name} · ${r.asset.project.title} — deliver the master`,
+      body: `${r.asset.project.client.name} · ${r.asset.project.title}`,
       href: `/admin/projects/${r.asset.projectId}`,
       action: "Open project",
     })),
@@ -271,7 +270,7 @@ export default async function AdminDashboardPage() {
       id: `expiry-${p.id}`,
       kind: "expiry" as const,
       subject: `${p.title} expires ${formatDate(p.expiresAt)}`,
-      body: `${p.client.name} · the client loses access on that date`,
+      body: p.client.name,
       href: `/admin/projects/${p.id}`,
       action: "Open",
     })),
@@ -279,7 +278,7 @@ export default async function AdminDashboardPage() {
       id: `unscheduled-${p.id}`,
       kind: "unscheduled" as const,
       subject: `${unscheduledCountByProject.get(p.id) ?? 0} files with no delivery week`,
-      body: `${p.client.name} · ${p.title} — not in the calendar or the Slack post`,
+      body: `${p.client.name} · ${p.title}`,
       href: `/admin/media?project=${p.id}`,
       action: "Schedule",
     })),
@@ -287,12 +286,6 @@ export default async function AdminDashboardPage() {
 
   const summarizedActivity = summarizeActivity(recentActivity).slice(0, 8);
 
-  const dateLabel = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
 
   const statusColor: Record<string, string> = {
     LIVE: "#2ec36b",
@@ -301,29 +294,20 @@ export default async function AdminDashboardPage() {
 
   return (
     <AdminDashboardClient
-      dateLabel={dateLabel}
       stats={[
         { value: String(activeClients), label: "Active clients" },
-        { value: String(liveProjects), label: "Live projects" },
-        { value: String(assets.length), label: "Files" },
-        { value: formatBytes(totalBytes), label: "Storage indexed" },
       ]}
       attention={attention}
       workerOnline={workerOnline}
       queueCount={queueCount}
       failedCount={failedCount}
+      failedHref={firstFailed ? `/admin/media?project=${firstFailed.projectId}` : null}
       activity={summarizedActivity.map((a) => ({
         id: a.id,
         who: a.actor,
         action: a.action,
         when: timeAgo(a.createdAt),
         dot: a.actor === "Worker" ? "var(--muted)" : "#2ec36b",
-      }))}
-      expiring={expiringProjects.map((p) => ({
-        id: p.id,
-        title: p.title,
-        client: p.client.name,
-        expires: formatDate(p.expiresAt),
       }))}
       recentDeliveries={recentProjects.map((p) => ({
         id: p.id,

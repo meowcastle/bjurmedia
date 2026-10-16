@@ -43,8 +43,12 @@ test.describe("the per-client switch", () => {
     // is switched on for this client" is answerable by looking rather than remembering.
     await page.goto("/admin/integrations");
     await expect(page.getByTestId("captions-c1")).toBeVisible();
-    // The reason it is off by default has to be on screen, not just in a commit message.
-    await expect(page.getByText(/sends this client's audio/i)).toBeVisible();
+    // The reason it is off by default has to be on screen, not just in a commit message —
+    // on the column it governs now, rather than in a paragraph above the table.
+    await expect(page.getByText("AI captions", { exact: true })).toHaveAttribute(
+      "title",
+      /sends the client's audio to a third party/i,
+    );
   });
 });
 
@@ -72,49 +76,19 @@ test.describe("editing a draft", () => {
   });
 });
 
-test.describe("the switch on the media page", () => {
+/**
+ * One setting, one place. The media page carried a second copy of this switch; it is a
+ * client-wide policy, and Integrations is where client-wide integrations are set.
+ */
+test.describe("the switch", () => {
   test.use({ storageState: "e2e/.auth/admin.json" });
 
-  test("is where the reels are, and says which client it applies to", async ({ page }) => {
+  test("is on Integrations and nowhere on the media page", async ({ page }) => {
     await page.goto("/admin/media?project=p1");
-
-    const toggle = page.getByTestId("media-auto-caption");
-    await expect(toggle).toBeVisible();
-
-    // Client-wide, not per-project — the label has to make that unmistakable, since it
-    // sits on a page that is otherwise entirely about one project.
-    await expect(toggle).toHaveAttribute("title", /SSH/);
-  });
-
-  test("flips the client setting and survives a reload", async ({ page }) => {
-    await page.goto("/admin/media?project=p1");
-    const toggle = page.getByTestId("media-auto-caption");
-
-    const before = await toggle.getAttribute("aria-pressed");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-pressed", before === "true" ? "false" : "true");
-
-    await page.reload();
-    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute(
-      "aria-pressed",
-      before === "true" ? "false" : "true"
-    );
-
-    // Put the client back as it was.
-    await page.getByTestId("media-auto-caption").click();
-    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute("aria-pressed", before!);
-  });
-
-  test("the same setting is reflected on the client's own page", async ({ page, request }) => {
-    // One setting in two places has to actually be one setting.
-    await request.patch("/api/admin/clients/c1", { data: { autoCaption: true } });
-
-    await page.goto("/admin/media?project=p1");
-    await expect(page.getByTestId("media-auto-caption")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-testid^="asset-row-"]').first()).toBeVisible();
+    await expect(page.getByTestId("media-auto-caption")).toHaveCount(0);
 
     await page.goto("/admin/integrations");
-    await expect(page.getByTestId("captions-c1")).toHaveAttribute("aria-pressed", "true");
-
-    await request.patch("/api/admin/clients/c1", { data: { autoCaption: false } });
+    await expect(page.getByTestId("captions-c1")).toBeVisible();
   });
 });

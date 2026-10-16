@@ -61,9 +61,6 @@ export function AdminIntakeBlock({
   const [naming, setNaming] = useState(false);
   const [linkName, setLinkName] = useState("");
 
-  const receiving = batches.filter((b) => b.status === "RECEIVING").length;
-  const stalled = batches.filter((b) => b.status === "STALLED").length;
-  const onServer = batches.filter((b) => b.status === "ON_SERVER").length;
   const openLinks = links.filter((l) => l.state === "open").length;
 
   async function deleteFiles(b: IntakeBatch) {
@@ -128,27 +125,20 @@ export function AdminIntakeBlock({
     <div className="mt-10" data-testid="intake-block">
       <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2">
         <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent</span>
-        <span className="text-[11px] text-dim2">
-          {receiving} receiving
-          {stalled > 0 ? ` · ${stalled} stalled` : ""} · {onServer} on server ·{" "}
-          {openLinks === 0 ? (
-            // Worth saying plainly: with no open link nobody can send anything, which is
-            // a different situation from having nothing to show.
-            <span style={{ color: "var(--accentb)" }}>no open links</span>
-          ) : (
-            `${openLinks} open link${openLinks === 1 ? "" : "s"}`
-          )}
-        </span>
+        {/* Counts went; each row already says its own state. This one stays because it
+            is not a count: with no open link nobody can send anything. */}
+        {openLinks === 0 && (
+          <span className="text-[11px]" style={{ color: "var(--accentb)" }}>
+            No open links
+          </span>
+        )}
       </div>
 
       <div className="grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-px bg-line2 border border-line2 border-t-0">
         {/* What came in */}
         <div className="bg-s1 p-5">
           {batches.length === 0 ? (
-            <p className="text-[12px] text-muted leading-relaxed">
-              Nothing yet. Make a link and send it to whoever is shooting — they need no
-              login.
-            </p>
+            <p className="text-[12px] text-muted leading-relaxed">Nothing yet.</p>
           ) : (
             <div className="divide-y divide-line">
               {batches.map((b) => (
@@ -260,14 +250,7 @@ export function AdminIntakeBlock({
           {/* Two independent doors. A link is for people with no account; this switch is
               for the client's own seats. Neither implies the other. */}
           <div className="flex items-baseline justify-between gap-3 pb-3 mb-3 border-b border-line">
-            <div className="min-w-0">
-              <div className="text-[11px] tracking-[0.1em] uppercase text-dim">Portal uploads</div>
-              <div className="text-[11px] text-muted mt-1 leading-relaxed">
-                {footageUploads
-                  ? `${clientName}'s logins can upload footage from the portal.`
-                  : "Their logins have no way to send us anything."}
-              </div>
-            </div>
+            <div className="text-[11px] tracking-[0.1em] uppercase text-dim">Portal uploads</div>
             <button
               type="button"
               onClick={() => void togglePortalUploads()}
@@ -285,7 +268,7 @@ export function AdminIntakeBlock({
           </div>
 
           <div className="flex items-baseline justify-between gap-3 pb-2 border-b border-line">
-            <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Send links</span>
+            <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Upload links</span>
             <button
               type="button"
               onClick={() => setNaming((v) => !v)}
@@ -307,17 +290,14 @@ export function AdminIntakeBlock({
                 data-testid="link-name"
                 className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2 text-[13px]"
               />
-              <p className="text-[10.5px] text-dim2 mt-1.5">
-                Admin-only label — the sender never sees it. The link lives 14 days and
-                closes itself.
-              </p>
+              <p className="text-[10.5px] text-dim2 mt-1.5">Closes after 14 days.</p>
               <button
                 type="button"
                 onClick={() => void newLink()}
                 disabled={!linkName.trim() || busy === "new-link"}
                 className="mt-2 text-[10.5px] font-semibold uppercase tracking-[.06em] border border-line2 hover:border-text px-3 py-1.5 cursor-pointer disabled:opacity-40"
               >
-                Make it
+                Create link
               </button>
             </div>
           )}

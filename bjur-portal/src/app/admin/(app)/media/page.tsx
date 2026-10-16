@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
 import { AdminMediaClient } from "@/components/AdminMediaClient";
@@ -14,11 +15,10 @@ export default async function AdminMediaPage({
     include: { client: true },
   });
 
-  // No auto-selecting projects[0] anymore — arriving with no ?project= param
-  // (e.g. the top-nav MEDIA link with no prior context) now shows a
-  // grouped-by-client landing picker instead of silently picking a project
-  // for you, which was indistinguishable from actually choosing one.
+  // Media is one project's pipeline, reached from that project's page. With no project
+  // there is nothing to show, and choosing one is what the Clients page is for.
   const selected = projectParam ? (projects.find((p) => p.id === projectParam) ?? null) : null;
+  if (!selected) redirect("/admin/clients");
 
   const [assets, folders] = await Promise.all([
     selected
@@ -37,17 +37,6 @@ export default async function AdminMediaPage({
       : Promise.resolve([]),
   ]);
 
-  const clientGroups = Object.values(
-    projects.reduce<Record<string, { id: string; name: string; projects: { id: string; title: string }[] }>>(
-      (acc, p) => {
-        const g = (acc[p.clientId] ??= { id: p.clientId, name: p.client.name, projects: [] });
-        g.projects.push({ id: p.id, title: p.title });
-        return acc;
-      },
-      {}
-    )
-  ).sort((a, b) => a.name.localeCompare(b.name));
-
   const siblingProjects = selected
     ? projects
         .filter((p) => p.clientId === selected.clientId && p.id !== selected.id)
@@ -59,12 +48,9 @@ export default async function AdminMediaPage({
       initialBoardAssetId={selected && assetParam ? assetParam : null}
       selectedProjectId={selected?.id ?? ""}
       selectedProjectTitle={selected?.title ?? null}
-      selectedClientId={selected?.clientId ?? null}
       selectedClientName={selected?.client.name ?? null}
       projectOnBoard={selected?.type === "CALENDAR"}
-      clientAutoCaption={selected?.client.autoCaption ?? false}
       siblingProjects={siblingProjects}
-      clientGroups={clientGroups}
       folders={folders.map((f) => ({ id: f.id, name: f.name, assetCount: f._count.assets }))}
       assets={assets.map((a) => ({
         id: a.id,

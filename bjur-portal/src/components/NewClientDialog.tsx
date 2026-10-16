@@ -14,14 +14,15 @@ export function NewClientDialog({
   onCreated: () => void;
 }) {
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{
-    tempPassword: string;
+    /** Null when the owner already had a login and was linked rather than created. */
+    tempPassword: string | null;
     ownerEmail: string;
+    emailed: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -37,7 +38,6 @@ export function NewClientDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: name.trim(),
-        username: username.trim(),
         ownerName,
         ownerEmail,
       }),
@@ -49,15 +49,16 @@ export function NewClientDialog({
       return;
     }
     setResult({
-      tempPassword: data.tempPassword,
+      tempPassword: data.tempPassword ?? null,
       ownerEmail: ownerEmail.trim(),
+      emailed: data.emailed === true,
     });
     setLoading(false);
     onCreated();
   }
 
   function copyPassword() {
-    if (!result) return;
+    if (!result?.tempPassword) return;
     navigator.clipboard.writeText(result.tempPassword).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
@@ -76,12 +77,8 @@ export function NewClientDialog({
         >
           {!result ? (
             <>
-              <div className="text-[22px] font-black tracking-tight mb-1.5">
+              <div className="text-[22px] font-black tracking-tight mb-6">
                 New client
-              </div>
-              <div className="text-[13px] text-muted mb-6">
-                Creates a client org with an owner login and a secure
-                password.
               </div>
 
               <div className="flex flex-col gap-4">
@@ -91,14 +88,6 @@ export function NewClientDialog({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Meridian Films"
-                  />
-                </Field>
-                <Field label="Username" htmlFor="cusername">
-                  <Input
-                    id="cusername"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="auto from name"
                   />
                 </Field>
                 <Field label="Owner name" htmlFor="oname">
@@ -140,10 +129,17 @@ export function NewClientDialog({
               <div className="text-[22px] font-black tracking-tight mb-1.5">
                 Client created
               </div>
-              <div className="text-[13px] text-muted mb-6">
-                Send these to {result.ownerEmail} (see the onboarding email
-                template) — this password is only shown once.
+              {/* Says what actually happened. It used to tell the admin to send the
+                  credentials by hand, beside an email the route had already sent. */}
+              <div className="text-[13px] text-muted mb-6" data-testid="client-created-note">
+                {!result.tempPassword
+                  ? `${result.ownerEmail} already has a login, now with access to this client.`
+                  : result.emailed
+                    ? `Login details sent to ${result.ownerEmail}.`
+                    : `Email not sent — give ${result.ownerEmail} this password. It is only shown once.`}
               </div>
+              {result.tempPassword && (
+              <>
               <div className="flex items-center gap-2 text-[13px] font-mono text-text bg-bg border border-line2 px-3.5 py-3 mb-2">
                 {result.tempPassword}
               </div>
@@ -159,6 +155,8 @@ export function NewClientDialog({
                   "Copy password"
                 )}
               </button>
+              </>
+              )}
               <div className="flex justify-end mt-7">
                 <Button onClick={onClose}>Done</Button>
               </div>

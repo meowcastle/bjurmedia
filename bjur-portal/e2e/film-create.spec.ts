@@ -89,7 +89,7 @@ test("the create sheet offers Film, and asks for guests when it is picked", asyn
   await page.getByRole("button", { name: /^Film/ }).click();
   await expect(page.getByTestId("reviewers-block")).toBeVisible();
   await page.getByTestId("guest-emails").fill("a@b.com, c@d.com");
-  await expect(page.getByTestId("reviewers-block")).toContainText("2 guests");
+  await expect(page.getByTestId("guest-emails")).toHaveValue("a@b.com, c@d.com");
 });
 
 test("the admin project page shows cuts and reviewers for a film", async ({ page }) => {

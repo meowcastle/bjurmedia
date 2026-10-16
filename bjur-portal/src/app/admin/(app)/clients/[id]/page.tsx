@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { inboxDirFor } from "@/lib/projects";
 import { slugify, stateOf } from "@/lib/submissionRequests";
 
 /**
@@ -130,7 +129,6 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         type: p.type,
         paymentHold: p.paymentHold,
         assetCount: p.assets.filter((a) => !a.internal).length,
-        inboxPath: inboxDirFor(client.username, p.inboxSlug),
       }))}
       intake={{
         // The batch is the unit: one named folder per session, which is how it lands on

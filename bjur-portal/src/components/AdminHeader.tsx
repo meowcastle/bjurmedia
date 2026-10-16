@@ -9,7 +9,6 @@ import { AdminSearchBox } from "@/components/AdminSearchBox";
 const TABS = [
   { href: "/admin", label: "Home" },
   { href: "/admin/clients", label: "Clients" },
-  { href: "/admin/media", label: "Media" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/integrations", label: "Integrations" },
 ];

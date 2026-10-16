@@ -26,24 +26,6 @@ export function ClientHeader({
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [switching, setSwitching] = useState(false);
-
-  async function switchClient(clientId: string) {
-    if (clientId === activeClientId) return setMenuOpen(false);
-    setSwitching(true);
-    const res = await fetch("/api/auth/active-client", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId }),
-    });
-    setSwitching(false);
-    setMenuOpen(false);
-    if (!res.ok) return;
-    // Home rather than the current URL, which points at a project the client we just
-    // switched away from owns.
-    router.push("/");
-    router.refresh();
-  }
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -144,31 +126,12 @@ export function ClientHeader({
                   {clientName}
                 </div>
               </div>
-              {/* The desktop switcher is a dropdown; on a phone the menu is already
-                  open, so the clients go straight in it rather than nesting a second
-                  menu inside this one. */}
-              {memberships.length > 1 && (
-                <div className="border-b border-line">
-                  <div className="px-4 pt-3 pb-1 text-[10px] text-dim uppercase tracking-wide font-semibold">
-                    Your clients
-                  </div>
-                  {memberships.map((m) => (
-                    <button
-                      key={m.clientId}
-                      onClick={() => switchClient(m.clientId)}
-                      disabled={switching}
-                      className={`w-full text-left px-4 py-3 text-sm hover:bg-s3 cursor-pointer disabled:opacity-50 ${
-                        m.clientId === activeClientId
-                          ? "text-text font-semibold"
-                          : "text-muted"
-                      }`}
-                    >
-                      {m.clientName}
-                      {m.clientId === activeClientId ? " · viewing" : ""}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <ClientSwitcher
+                variant="list"
+                memberships={memberships}
+                activeClientId={activeClientId}
+                onSwitched={() => setMenuOpen(false)}
+              />
               <div className="border-b border-line px-2 py-1">
                 <ThemeToggle portal="client" />
               </div>

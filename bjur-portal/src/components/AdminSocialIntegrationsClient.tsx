@@ -51,14 +51,8 @@ export function AdminSocialIntegrationsClient({
 
   return (
     <div className="px-10 pb-12 max-w-[820px] mx-auto -mt-6">
-      <div className="mb-5">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-          Weekly insights
-        </div>
-        <h1 className="bj-serif text-[26px] font-normal">
-          Instagram &amp; YouTube views
-        </h1>
-      </div>
+      {/* A section of Integrations, not a second page title under the first. */}
+      <h2 className="bj-serif text-[26px] font-normal mb-5">Instagram &amp; YouTube</h2>
 
       <div className="border border-line bg-s1 p-5 mb-5">
         <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-3">
