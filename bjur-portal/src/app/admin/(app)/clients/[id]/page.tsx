@@ -151,7 +151,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
               id: b.id,
               name: b.name,
               uploaderName: b.user?.name ?? b.senderName ?? "Someone",
-              via: b.requestId ? ("send link" as const) : ("portal" as const),
+              via: b.requestId ? ("upload link" as const) : ("portal" as const),
               fileCount: b.submissions.length,
               completeCount: complete,
               receivedBytes: String(b.submissions.reduce((n, s) => n + Number(s.receivedBytes), 0)),

@@ -304,8 +304,8 @@ export default async function AdminDashboardPage() {
       dateLabel={dateLabel}
       stats={[
         { value: String(activeClients), label: "Active clients" },
-        { value: String(liveProjects), label: "Live galleries" },
-        { value: String(assets.length), label: "Deliverables" },
+        { value: String(liveProjects), label: "Live projects" },
+        { value: String(assets.length), label: "Files" },
         { value: formatBytes(totalBytes), label: "Storage indexed" },
       ]}
       attention={attention}

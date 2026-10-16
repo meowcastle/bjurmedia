@@ -138,7 +138,7 @@ async function main() {
   const r4 = await db.asset.findUniqueOrThrow({ where: { id: a4.id } });
   check(
     "refuses a held project without uploading it",
-    r4.publishState === "FAILED" && uploadCalls === beforeHold && /payment hold/i.test(r4.publishError ?? ""),
+    r4.publishState === "FAILED" && uploadCalls === beforeHold && /awaiting payment/i.test(r4.publishError ?? ""),
     `${r4.publishState} / ${r4.publishError}`
   );
   check("gives up immediately on a permanent problem", r4.publishAttempts === 1, String(r4.publishAttempts));

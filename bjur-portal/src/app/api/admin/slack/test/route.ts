@@ -19,7 +19,7 @@ export async function POST() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         channel: config.defaultChannel,
-        username: "Bjur Delivery Bot",
+        username: "Bjur Media",
         blocks: [
           {
             type: "section",

@@ -24,7 +24,7 @@ export type PostsView = "week" | "published" | "files";
 const STATE_LABEL: Record<PublishState, string> = {
   NONE: "Not scheduled",
   DRAFT: "On hold",
-  AWAITING: "Needs your OK",
+  AWAITING: "Needs review",
   APPROVED: "Approved",
   PUBLISHING: "Publishing",
   PUBLISHED: "Published",

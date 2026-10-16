@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const alreadyHere = existing?.clientMemberships.some((m) => m.clientId === clientId) ?? false;
 
   if (existing && !existing.deactivatedAt && alreadyHere) {
-    return NextResponse.json({ error: "That person is already a seat on this client." }, { status: 409 });
+    return NextResponse.json({ error: "That person already has a login for this client." }, { status: 409 });
   }
 
   // Linking an existing, active login to another client issues no password and sends no

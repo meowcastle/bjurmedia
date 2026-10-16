@@ -100,6 +100,6 @@ export function renderCutReadyEmailHtml({
     rows: notes.length ? notes.map(toRow) : undefined,
     cta: { label: `Watch cut ${version}`, url: reviewUrl },
     footnote:
-      "Leave notes right on the video. They reach Bjur when you press send — not before.",
+      "Leave notes right on the video. They reach us when you press send — not before.",
   });
 }

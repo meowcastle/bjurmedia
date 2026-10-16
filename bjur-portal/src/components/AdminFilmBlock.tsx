@@ -136,7 +136,7 @@ export function AdminFilmBlock({
               <div className="min-w-0">
                 <div className="text-[13px] truncate">{r.name || r.email}</div>
                 <div className="text-[11px] text-muted truncate">
-                  {r.kind === "SEAT" ? "Seat" : "Guest link"}
+                  {r.kind === "SEAT" ? "Login" : "Guest link"}
                   {r.role ? ` · ${r.role}` : ""}
                 </div>
               </div>
@@ -159,8 +159,8 @@ export function AdminFilmBlock({
         </div>
 
         <p className="text-[11px] text-dim2 leading-relaxed mt-3">
-          Client seats review automatically. Guests get a link and give their name once; no
-          account, no downloads.
+          Client logins review automatically. Guests get a link and give their name once; no
+          login, no downloads.
         </p>
       </div>
     </div>

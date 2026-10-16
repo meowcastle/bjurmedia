@@ -91,7 +91,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
           <span>Client</span>
           <span>Type</span>
           <span>Projects</span>
-          <span>Users</span>
+          <span>Logins</span>
           <span className="text-right">Status</span>
         </div>
         {clients.map((c) => {
@@ -256,7 +256,7 @@ export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
                     onClick={() => setSeatDialogFor(c)}
                     className="cursor-pointer mt-3 text-xs font-semibold text-muted hover:text-text border border-dashed border-line2 hover:border-text px-3.5 py-2"
                   >
-                    + Add user seat
+                    + Add login
                   </button>
                 </div>
               )}

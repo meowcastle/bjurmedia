@@ -45,7 +45,7 @@ test("a live link takes files with no login at all", async ({ page, baseURL }) =
   await page.getByTestId("send-sender").fill("Marcus");
   await page.getByTestId("send-submit").click();
 
-  await expect(page.getByTestId("send-done")).toContainText("Bjur has it. Sent as Marcus.");
+  await expect(page.getByTestId("send-done")).toContainText("We have it. Sent as Marcus.");
   await expect(page.getByTestId("send-list")).toContainText("Sent");
   // The dropzone never goes away — the page keeps accepting files.
   await expect(page.getByTestId("send-dropzone")).toBeVisible();

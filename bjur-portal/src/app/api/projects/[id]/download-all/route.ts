@@ -139,7 +139,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ? ((await req.json().catch(() => ({}))) as { assetIds?: unknown }).assetIds
     : (await req.formData().catch(() => null))?.getAll("assetIds");
   if (!Array.isArray(assetIds) || assetIds.length === 0) {
-    return new Response(JSON.stringify({ error: "No assets selected." }), { status: 400 });
+    return new Response(JSON.stringify({ error: "No files selected." }), { status: 400 });
   }
 
   return buildZipResponse(projectId, session, assetIds);

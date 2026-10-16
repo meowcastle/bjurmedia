@@ -30,7 +30,7 @@ type Field = "contentTitle" | "caption" | "captionYT";
 const SAVE_DEBOUNCE_MS = 600;
 
 const PILL: Record<Exclude<CaptionState, "NO_SPEECH">, { label: string; cls: string }> = {
-  DRAFT: { label: "Draft · not checked", cls: "border-warn text-warn" },
+  DRAFT: { label: "Needs review", cls: "border-warn text-warn" },
   CHECKED: { label: "Checked", cls: "border-success text-success" },
   POSTED: { label: "Posted · locked", cls: "border-dim text-dim" },
 };
@@ -471,7 +471,7 @@ export function CaptionEditor({
             </button>
             {!sheet && (
               <p className="text-[11px] text-dim mt-3 leading-relaxed">
-                Drafted from the audio. Read it before it goes out. Edits save as you type and Bjur sees them.
+                Drafted from the audio. Read it before it goes out. Edits save as you type and we see them.
               </p>
             )}
           </>
@@ -481,11 +481,11 @@ export function CaptionEditor({
             <div className="flex items-center justify-between border border-line2 px-3.5 py-3 text-[10.5px] uppercase tracking-[.1em]">
               <span>Checked</span>
               <span className="text-dim">
-                {meta.captionEditedBy === "ADMIN" ? "Bjur" : "You"}
+                {meta.captionEditedBy === "ADMIN" ? "Bjur Media" : "You"}
                 {meta.captionEditedAt ? ` · ${shortDate(meta.captionEditedAt)}` : ""}
               </span>
             </div>
-            <p className="text-[11px] text-dim mt-3">Still editable. Bjur sees every change.</p>
+            <p className="text-[11px] text-dim mt-3">Still editable. We see every change.</p>
           </>
         )}
         {state === "POSTED" && (

@@ -70,7 +70,7 @@ export function AddSeatDialog({
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error ?? "Failed to add seat.");
+      setError(data.error ?? "Failed to add login.");
       setLoading(false);
       return;
     }
@@ -100,7 +100,7 @@ export function AddSeatDialog({
           {!result ? (
             <>
               <div className="text-xl font-black tracking-tight mb-1.5">
-                Add user seat
+                Add login
               </div>
               <div className="text-[13px] text-muted mb-6">
                 New login for {clientName}.
@@ -133,7 +133,7 @@ export function AddSeatDialog({
                     className="w-full bg-bg border border-line2 px-4 py-3 text-sm text-text outline-none focus:border-accent"
                   >
                     <option value="OWNER">
-                      Owner — full access, manages seats
+                      Owner — full access, manages logins
                     </option>
                     <option value="DOWNLOADER">
                       Downloader — view + download
@@ -229,14 +229,14 @@ export function AddSeatDialog({
                   Cancel
                 </Button>
                 <Button onClick={submit} disabled={loading}>
-                  {loading ? "Adding…" : "Add seat"}
+                  {loading ? "Adding…" : "Add login"}
                 </Button>
               </div>
             </>
           ) : (
             <>
               <div className="text-xl font-black tracking-tight mb-1.5">
-                Seat added
+                Login added
               </div>
               <div className="text-[13px] text-muted mb-6">
                 Send this temp password to {email} — shown only once.

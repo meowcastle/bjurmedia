@@ -51,7 +51,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           dirPath: path.join("_submissions", client.username, b.name),
           // Null for anyone who arrived through a send link rather than a seat.
           uploaderName: b.user?.name ?? b.senderName ?? "Someone",
-          via: b.requestId ? ("send link" as const) : ("portal" as const),
+          via: b.requestId ? ("upload link" as const) : ("portal" as const),
           requestName: b.request?.name ?? null,
           fileCount: b.submissions.length,
           completeCount: complete,

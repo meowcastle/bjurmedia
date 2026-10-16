@@ -92,7 +92,7 @@ async function sendMail(opts: { to: string; subject: string; html: string }) {
 export async function sendOnboardingEmail(to: string, props: OnboardingEmailProps) {
   const html = renderOnboardingEmailHtml(props);
   const subject = props.delivery
-    ? `Your ${props.delivery.projectTitle} deliverables are ready`
+    ? `Your ${props.delivery.projectTitle} files are ready`
     : `Your Bjur Media portal access is ready`;
   return sendMail({ to, subject, html });
 }
@@ -101,7 +101,7 @@ export async function sendDeliveryEmail(to: string, props: DeliveryEmailProps) {
   const html = renderDeliveryEmailHtml(props);
   const subject = props.isUpdate
     ? `${props.projectTitle} has been updated`
-    : `Your ${props.projectTitle} deliverables are ready`;
+    : `Your ${props.projectTitle} files are ready`;
   return sendMail({ to, subject, html });
 }
 

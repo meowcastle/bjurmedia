@@ -27,7 +27,7 @@ export async function DELETE(
   });
   const isMember = target?.clientMemberships.some((m) => m.clientId === clientId) ?? false;
   if (!target || !isMember || target.deactivatedAt) {
-    return NextResponse.json({ error: "Seat not found." }, { status: 404 });
+    return NextResponse.json({ error: "Login not found." }, { status: 404 });
   }
 
   // Remove them from *this* client only. Deactivating the account outright would cut

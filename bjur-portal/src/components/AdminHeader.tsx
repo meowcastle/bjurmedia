@@ -24,7 +24,7 @@ const TABS = [
  * an avatar that already opens a menu is two doors into one room.
  */
 const MENU_LINKS = [
-  { href: "/admin/team", label: "Team", hint: "Staff logins for Bjur Media" },
+  { href: "/admin/team", label: "Team", hint: "Admin logins for Bjur Media" },
   { href: "/admin/library", label: "Library", hint: "Register footage already on the NAS" },
 ];
 
@@ -103,7 +103,7 @@ export function AdminHeader({ userName }: { userName: string }) {
             onClick={() => setMenuOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
-            aria-label={`Account menu for ${userName}`}
+            aria-label={`Menu for ${userName}`}
             className="w-[30px] h-[30px] grid place-items-center bg-s3 border border-line2 hover:border-text text-[11px] font-black cursor-pointer"
           >
             {initials}

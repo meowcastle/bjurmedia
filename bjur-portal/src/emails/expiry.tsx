@@ -47,9 +47,9 @@ export function renderExpiryEmailHtml({
   return renderShell({
     preheader: `${projectTitle} downloads close in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
     kicker: urgent ? `Closing in ${daysLeft} days` : `${daysLeft} days left`,
-    headline: urgent ? "Last chance to download" : "Your gallery closes soon",
+    headline: urgent ? "Last chance to download" : "Your project closes soon",
     accent,
     body,
-    footnote: `Sent to ${clientName} because you asked to be reminded before a gallery expires.`,
+    footnote: `Sent to ${clientName} because you asked to be reminded before a project expires.`,
   });
 }

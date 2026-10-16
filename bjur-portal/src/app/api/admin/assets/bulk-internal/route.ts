@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest) {
 
   const { assetIds, internal } = (await req.json()) as { assetIds: string[]; internal: boolean };
   if (!Array.isArray(assetIds) || assetIds.length === 0) {
-    return NextResponse.json({ error: "No assets selected." }, { status: 400 });
+    return NextResponse.json({ error: "No files selected." }, { status: 400 });
   }
   if (typeof internal !== "boolean") {
     return NextResponse.json({ error: "internal must be true or false." }, { status: 400 });
@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest) {
 
   const found = await db.asset.count({ where: { id: { in: assetIds } } });
   if (found !== assetIds.length) {
-    return NextResponse.json({ error: "One or more assets weren't found." }, { status: 404 });
+    return NextResponse.json({ error: "One or more files weren't found." }, { status: 404 });
   }
 
   await db.asset.updateMany({ where: { id: { in: assetIds } }, data: { internal } });

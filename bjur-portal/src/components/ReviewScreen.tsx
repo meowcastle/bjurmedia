@@ -298,7 +298,7 @@ export function ReviewScreen({
     try {
       await onSendNotes();
       setSentBanner(
-        `Your notes went to Bjur at ${new Date().toLocaleTimeString("en-US", {
+        `Your notes went to Bjur Media at ${new Date().toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
         })}. Everyone gets one email when cut ${(cut?.version ?? 1) + 1} is up, with every note answered.`
@@ -328,10 +328,10 @@ export function ReviewScreen({
             className="bj-serif text-[19px] leading-none text-white/80 hover:text-white"
             title="Back to the project"
           >
-            Bjur
+            Bjur Media
           </Link>
         ) : (
-          <span className="bj-serif text-[19px] leading-none">Bjur</span>
+          <span className="bj-serif text-[19px] leading-none">Bjur Media</span>
         )}
         <div className="min-w-0">
           <div className="text-[12px] font-mono truncate" data-testid="asset-title">
@@ -688,7 +688,7 @@ export function ReviewScreen({
                   className="w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-50"
                   style={{ background: "var(--accent)", color: "#0b0b0c" }}
                 >
-                  Send {myDrafts.length} note{myDrafts.length === 1 ? "" : "s"} to Bjur
+                  Send {myDrafts.length} note{myDrafts.length === 1 ? "" : "s"}
                 </button>
                 <p className="mt-2 text-[11.5px] leading-relaxed text-white/45">
                   Only you can see these until you send. Keep adding as you watch.
@@ -701,7 +701,7 @@ export function ReviewScreen({
                 <p className="mb-2 text-[11.5px] text-white/45">
                   {sentNotes.length === 0
                     ? "Nothing to change?"
-                    : `Happy with it after all? Approving tells Bjur cut ${cut?.version} is final.`}
+                    : `Happy with it after all? Approving tells us cut ${cut?.version} is final.`}
                 </p>
                 <button
                   type="button"

@@ -234,7 +234,7 @@ export function AdminDashboardClient({
           className="grid gap-4 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
           style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr" }}
         >
-          <span>Recent delivery</span>
+          <span>Recent projects</span>
           <span>Client</span>
           <span>Files</span>
           <span className="text-right">Delivered</span>

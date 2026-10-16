@@ -161,7 +161,7 @@ export function LoginForm({
               />
               {resetSent && (
                 <div className="mt-3 border border-success/50 p-3 text-xs text-muted">
-                  We&apos;ve told the studio you need a reset. You&apos;ll get an email from Bjur
+                  We&apos;ve told Bjur Media you need a reset. You&apos;ll get an email from Bjur
                   Media shortly.
                 </div>
               )}

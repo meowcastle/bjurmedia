@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   if (portal === "client" && activeMemberships.length === 0) {
     // Every client they belong to is disabled. Distinct from a bad password, because
     // the credentials were right and the person needs to know why they are stuck.
-    return NextResponse.json({ error: "This account has been disabled." }, { status: 403 });
+    return NextResponse.json({ error: "This login has been disabled." }, { status: 403 });
   }
 
   // Land on a client they can see. Alphabetical so a multi-client seat opens on the

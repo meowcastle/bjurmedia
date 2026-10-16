@@ -7,7 +7,7 @@ import { test, expect, type Page } from "@playwright/test";
 test.use({ storageState: "e2e/.auth/studio57.json" });
 
 async function toCheckCount(page: Page) {
-  const tab = page.getByRole("button", { name: /Captions to check/i });
+  const tab = page.getByTestId("filter-CHECK");
   if ((await tab.count()) === 0) return 0;
   const m = (await tab.innerText()).match(/(\d+)/);
   return m ? Number(m[1]) : 0;

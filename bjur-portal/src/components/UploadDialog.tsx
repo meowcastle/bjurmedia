@@ -234,7 +234,7 @@ export function UploadDialog({
           className="w-full max-w-[520px] bg-s2 border border-line2 p-7 bjrise"
         >
           <div className="text-xl font-black tracking-tight mb-1.5">
-            Upload deliverables
+            Upload files
           </div>
           <div className="text-[13px] text-muted mb-6">
             Goes straight into &ldquo;{projectTitle}&rdquo;&apos;s inbox —

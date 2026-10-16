@@ -36,7 +36,7 @@ test.describe("admin auth", () => {
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
     // Sign out sits behind the account menu now, so signing out is two steps.
-    await page.getByRole("button", { name: /Account menu/ }).click();
+    await page.getByRole("button", { name: /^Menu for / }).click();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL("/admin/login");
   });

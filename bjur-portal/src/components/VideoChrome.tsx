@@ -10,7 +10,7 @@ import {
 import type { CaptionState } from "@/lib/captionState";
 
 const PREVIEW_PILL: Partial<Record<CaptionState, { label: string; cls: string }>> = {
-  DRAFT: { label: "Draft · not checked", cls: "border-[#ff9d85] text-[#ff9d85]" },
+  DRAFT: { label: "Needs review", cls: "border-[#ff9d85] text-[#ff9d85]" },
   CHECKED: { label: "Checked", cls: "border-[#2ec36b] text-[#2ec36b]" },
   POSTED: { label: "Posted · locked", cls: "border-white/40 text-white/50" },
 };

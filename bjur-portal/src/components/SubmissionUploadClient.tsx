@@ -294,7 +294,7 @@ export function SubmissionUploadClient({
           {heading}
         </h1>
         <div className="text-[13px] text-muted">
-          Camera originals, audio, a project file — drag in whole folders and
+          Camera files, audio, a project file — drag in whole folders and
           we&apos;ll keep them organized exactly as you dropped them. Large
           files upload in chunks, so if this page reloads or your connection
           drops mid-upload, just re-drop the same folder or file and it&apos;ll
@@ -345,7 +345,7 @@ export function SubmissionUploadClient({
         />
         {batchId !== null && (
           <p className="text-[11px] text-dim2 mt-1.5">
-            Named once this batch started. Anything more goes in a new one.
+            Named when this upload started. Anything more goes in a new one.
           </p>
         )}
       </div>

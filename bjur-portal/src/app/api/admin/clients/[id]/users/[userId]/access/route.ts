@@ -20,7 +20,7 @@ export async function PATCH(
 
   const target = await db.user.findUnique({ where: { id: userId } });
   if (!target || target.clientId !== clientId) {
-    return NextResponse.json({ error: "Seat not found." }, { status: 404 });
+    return NextResponse.json({ error: "Login not found." }, { status: 404 });
   }
 
   const { projectAccess } = (await req.json()) as { projectAccess: ProjectAccessInput[] };

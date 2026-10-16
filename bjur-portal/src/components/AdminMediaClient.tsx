@@ -394,7 +394,7 @@ export function AdminMediaClient({
       setConfirmingDeleteId(null);
     } else {
       const data = await res.json().catch(() => ({}));
-      setDeleteError(data.error ?? "Failed to delete asset.");
+      setDeleteError(data.error ?? "Failed to delete file.");
     }
     setDeletingId(null);
   }
@@ -434,7 +434,7 @@ export function AdminMediaClient({
     setSelectedIds(new Set(failedIds));
     if (failedIds.length > 0) {
       setBulkDeleteError(
-        `Failed to delete ${failedIds.length} of ${ids.length} asset${ids.length !== 1 ? "s" : ""}.`,
+        `Failed to delete ${failedIds.length} of ${ids.length} file${ids.length !== 1 ? "s" : ""}.`,
       );
     } else {
       setConfirmingBulkDelete(false);
@@ -454,7 +454,7 @@ export function AdminMediaClient({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setMoveError(data.error ?? "Failed to move assets.");
+      setMoveError(data.error ?? "Failed to move files.");
       setMoving(false);
       return;
     }
@@ -1275,8 +1275,8 @@ export function AdminMediaClient({
             {tableRows.length === 0 && (
               <div className="px-5 py-10 text-center text-sm text-muted">
                 {rows.length === 0
-                  ? "No assets in this project yet."
-                  : "No assets in this folder."}
+                  ? "No files in this project yet."
+                  : "No files in this folder."}
               </div>
             )}
           </div>

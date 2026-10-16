@@ -324,7 +324,7 @@ export function AdminLibraryClient({
               {loading ? "Working…" : "Preview import"}
             </button>
             <div className="mt-3 text-[11px] text-dim leading-relaxed">
-              Registered in place · originals stay put · proxies + thumbnails queued to the worker.
+              Registered in place · masters stay put · proxies + thumbnails queued to the worker.
             </div>
           </div>
         </div>

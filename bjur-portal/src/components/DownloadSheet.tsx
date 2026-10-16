@@ -347,7 +347,7 @@ export function DownloadSheet({
               {facts.watermarked && (
                 <div className="mt-3 text-[12px] leading-relaxed text-white/55">
                   Downloads are watermarked 1080p previews until the invoice is settled.
-                  Masters release at full resolution the moment it clears.
+                  Masters arrive at full resolution the moment it is.
                 </div>
               )}
               {visibleError && (
@@ -361,7 +361,7 @@ export function DownloadSheet({
             </>
           ) : (
             <div className="text-[12px] text-white/50 text-center py-3">
-              Your access is view-only. Ask the account owner for downloads.
+              Your access is view-only. Ask an owner for downloads.
             </div>
           )}
         </div>

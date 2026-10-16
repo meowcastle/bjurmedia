@@ -41,16 +41,16 @@ export function renderDeliveryEmailHtml({
   isUpdate,
   expiresAt,
 }: DeliveryEmailProps): string {
-  const kicker = isUpdate ? `Updated · ${esc(clientName)}` : `New delivery · ${esc(clientName)}`;
+  const kicker = isUpdate ? `Updated · ${esc(clientName)}` : `New files · ${esc(clientName)}`;
   const headline = isUpdate
     ? `${esc(projectTitle)} has been updated.`
-    : `Your ${esc(projectTitle)} deliverables are ready.`;
+    : `Your ${esc(projectTitle)} files are ready.`;
   const body = isUpdate
-    ? `Hi ${esc(recipientName)} — we've updated the files in ${esc(projectTitle)}. Everything below is live in your gallery now, at full resolution whenever you're ready.`
+    ? `Hi ${esc(recipientName)} — we've updated the files in ${esc(projectTitle)}. Everything below is live in your project now, at full resolution whenever you're ready.`
     : `Hi ${esc(recipientName)} — new work just landed in ${esc(projectTitle)}. Stream it in-browser and download the masters at full resolution whenever you're ready.`;
   const preheader = isUpdate
-    ? `${esc(projectTitle)} has been updated in your Bjur Media gallery.`
-    : `New work is live in your ${esc(projectTitle)} gallery.`;
+    ? `${esc(projectTitle)} has been updated in your Bjur Media project.`
+    : `New work is live in ${esc(projectTitle)}.`;
 
   const expiryBlock =
     expiresAt != null

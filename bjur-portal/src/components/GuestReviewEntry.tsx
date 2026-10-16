@@ -59,12 +59,12 @@ export function GuestReviewEntry({
     return (
       <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
         <div className="w-full max-w-[360px]">
-          <div className="bj-serif text-[26px]">Bjur</div>
+          <div className="bj-serif text-[26px]">Bjur Media</div>
           <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-1.5">
             {data.clientName} · {data.projectTitle}
           </div>
           <p className="text-[13px] leading-relaxed text-white/60 mt-5">
-            Your notes go out with your name on them, so the studio knows who asked for what.
+            Your notes go out with your name on them, so we know who asked for what.
           </p>
           <input
             value={name}

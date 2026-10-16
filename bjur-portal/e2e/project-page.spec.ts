@@ -60,10 +60,10 @@ test("payment holds and releases from the page", async ({ page, request }) => {
   await page.goto(`/admin/projects/${project.id}`);
 
   const toggle = page.getByTestId("payment-toggle");
-  await expect(toggle).toHaveText(/hold for payment/i);
+  await expect(toggle).toHaveText(/mark awaiting payment/i);
   await toggle.click();
   await expect(page.getByText(/downloads watermarked/i)).toBeVisible();
-  await expect(toggle).toHaveText(/release/i);
+  await expect(toggle).toHaveText(/mark paid/i);
 
   await toggle.click();
   await expect(page.getByText(/clean downloads/i)).toBeVisible();

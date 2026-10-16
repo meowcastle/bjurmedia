@@ -50,7 +50,7 @@ export default async function ClientReviewPage({
             {data.clientName}
           </div>
           <p className="text-[13px] leading-relaxed text-white/60 mt-5">
-            No cut yet. When Bjur puts one up you&apos;ll get an email, and it will play here
+            No cut yet. When we put one up you&apos;ll get an email, and it will play here
             with room to leave notes.
           </p>
         </div>

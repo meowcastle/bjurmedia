@@ -106,7 +106,7 @@ export function ManageFoldersDialog({
           </div>
           <div className="text-[13px] text-muted mb-6">
             Client-facing sections within this project. Deleting a folder
-            doesn&apos;t delete its assets — they just become Unsorted.
+            doesn&apos;t delete its files — they just become Unsorted.
           </div>
 
           <div className="border border-line2 mb-4">

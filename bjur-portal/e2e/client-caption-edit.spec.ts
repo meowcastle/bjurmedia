@@ -51,7 +51,7 @@ test("the transcript tab lists timed lines", async ({ page }) => {
 // Last in this file on purpose: it checks every remaining draft on p9.
 test("the check filter lists only drafts, then says when none are left", async ({ page }) => {
   await page.goto("/p/p9");
-  await page.getByRole("button", { name: /Captions to check/i }).click();
+  await page.getByTestId("filter-CHECK").click();
   const lines = page.locator('[data-testid^="caption-line-"]');
   const n = await lines.count();
   expect(n).toBeGreaterThan(0);

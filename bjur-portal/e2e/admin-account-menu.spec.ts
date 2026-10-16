@@ -18,7 +18,7 @@ test("Team and Library live in the account menu, not the nav", async ({ page }) 
   await expect(nav.getByRole("link", { name: "Team" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Library" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("button", { name: /^Menu for / }).click();
   const menu = page.getByTestId("admin-account-menu");
   await expect(menu.getByRole("menuitem", { name: /Team/ })).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: /Library/ })).toBeVisible();
@@ -26,7 +26,7 @@ test("Team and Library live in the account menu, not the nav", async ({ page }) 
 
 test("the menu navigates and closes behind itself", async ({ page }) => {
   await page.goto("/admin");
-  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("button", { name: /^Menu for / }).click();
   await page.getByTestId("admin-account-menu").getByRole("menuitem", { name: /Team/ }).click();
 
   await page.waitForURL("**/admin/team");
@@ -37,7 +37,7 @@ test("the menu navigates and closes behind itself", async ({ page }) => {
 
 test("Library reaches the archive registrar", async ({ page }) => {
   await page.goto("/admin");
-  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("button", { name: /^Menu for / }).click();
   await page.getByTestId("admin-account-menu").getByRole("menuitem", { name: /Library/ }).click();
 
   await page.waitForURL("**/admin/library");

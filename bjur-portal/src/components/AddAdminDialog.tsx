@@ -67,7 +67,7 @@ export function AddAdminDialog({
                 Add admin
               </div>
               <div className="text-[13px] text-muted mb-6">
-                Full staff access: every client, project and integration.
+                Full admin access: every client, project and integration.
               </div>
 
               <div className="flex flex-col gap-4">

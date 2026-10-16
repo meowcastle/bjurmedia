@@ -122,7 +122,7 @@ async function sendForProject(project: {
     await db.activity.create({
       data: {
         actor: "Mailer",
-        action: `delivery ready for ${project.title} (${project.client.name}) — no seat has delivery notifications on, nothing sent`,
+        action: `new files in ${project.title} (${project.client.name}) — no login has new-file emails on, nothing sent`,
       },
     });
     await clearPending();

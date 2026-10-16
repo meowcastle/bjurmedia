@@ -38,7 +38,7 @@ async function openUploadDialog(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: /SSH/ }).click();
   await page.getByRole("link", { name: "Spring Campaign 2026" }).click();
   await page.getByRole("button", { name: "Upload" }).click();
-  await expect(page.getByText("Upload deliverables")).toBeVisible();
+  await expect(page.getByText("Upload files")).toBeVisible();
 }
 
 test("large upload (15MB) completes without silent truncation", async ({ page }) => {
@@ -118,6 +118,6 @@ test("canceling before upload starts clears the queue without any network call",
   await expect(page.getByText("1 file queued")).toBeVisible();
 
   await page.getByRole("button", { name: "Cancel" }).click();
-  await expect(page.getByText("Upload deliverables")).not.toBeVisible();
+  await expect(page.getByText("Upload files")).not.toBeVisible();
   expect(uploadRequestSeen).toBe(false);
 });

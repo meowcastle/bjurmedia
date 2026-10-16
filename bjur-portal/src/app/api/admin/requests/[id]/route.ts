@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await db.activity.create({
     data: {
       actor: "You",
-      action: `${open ? "reopened" : "closed"} the send link for "${request.name}" on ${existing.client.name}`,
+      action: `${open ? "reopened" : "closed"} the upload link for "${request.name}" on ${existing.client.name}`,
     },
   });
 

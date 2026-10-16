@@ -80,7 +80,7 @@ export function NewClientDialog({
                 New client
               </div>
               <div className="text-[13px] text-muted mb-6">
-                Creates a client org with an owner seat and a secure, hashed
+                Creates a client org with an owner login and a secure
                 password.
               </div>
 

@@ -13,14 +13,14 @@ test("sign out lives behind the account menu, not loose in the header", async ({
   // Not on screen until the menu is opened.
   await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Account menu/ }).click();
+  await page.getByRole("button", { name: /^Menu for / }).click();
   await expect(page.getByRole("menu")).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
 });
 
 test("the account menu closes on Escape and on an outside click", async ({ page }) => {
   await page.goto("/admin");
-  const trigger = page.getByRole("button", { name: /Account menu/ });
+  const trigger = page.getByRole("button", { name: /^Menu for / });
 
   await trigger.click();
   await expect(page.getByRole("menu")).toBeVisible();

@@ -43,7 +43,7 @@ const FORMAT_DEFS: [string, string][] = [
   ["Reel", "Reels"],
   ["Film", "Films"],
   ["Still", "Stills"],
-  ["Master", "Masters · BRAW"],
+  ["Master", "Master"],
 ];
 
 function colsFor(format: string) {
@@ -101,7 +101,7 @@ function reelCaptionState(a: Asset): CaptionState | null {
 
 /** The tile's caption line, per state. No line at all when there is nothing to say. */
 const CAPTION_LINE: Record<CaptionState, { label: string; action: string; color: string }> = {
-  DRAFT: { label: "Caption · draft", action: "Check \u2192", color: "var(--warn)" },
+  DRAFT: { label: "Needs review", action: "Check \u2192", color: "var(--warn)" },
   CHECKED: { label: "Caption · checked", action: "Edit \u2192", color: "var(--muted)" },
   POSTED: { label: "Caption · posted", action: "View \u2192", color: "var(--dim)" },
   NO_SPEECH: { label: "No caption", action: "Write \u2192", color: "var(--dim)" },
@@ -389,7 +389,7 @@ export function ProjectDetailClient({
       ? [
           {
             id: "CHECK",
-            label: `Captions to check${draftCount ? ` ${draftCount}` : ""}`,
+            label: `Needs review${draftCount ? ` ${draftCount}` : ""}`,
             icon: <span aria-hidden className="inline-block w-1.5 h-1.5 bg-warn" /> as React.ReactNode,
           },
         ]
@@ -423,7 +423,7 @@ export function ProjectDetailClient({
         ? [
             {
               label: "Favorites",
-              count: `${items.length} item${items.length > 1 ? "s" : ""}`,
+              count: `${items.length} file${items.length > 1 ? "s" : ""}`,
               folder: project.path,
               cols: "repeat(auto-fill,minmax(220px,1fr))",
               items,
@@ -648,7 +648,7 @@ export function ProjectDetailClient({
             {project.paymentHold && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb font-semibold">Watermarked preview</span>
+                <span className="text-accentb font-semibold">Awaiting payment</span>
               </>
             )}
             {totalSocialPosts > 0 && (
@@ -710,6 +710,7 @@ export function ProjectDetailClient({
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id)}
+                  data-testid={`filter-${f.id}`}
                   className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 border-l border-line2 first:border-l-0 ${
                     filter === f.id ? "text-bg" : "text-muted"
                   }`}
@@ -808,7 +809,7 @@ export function ProjectDetailClient({
             sent, and showing it here implied a link that was never real. */}
         <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2 mb-3">
           <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
-            {filter === "CHECK" ? "Captions to check" : "Delivered"}
+            {filter === "CHECK" ? "Needs review" : "Delivered"}
           </span>
           <span className="text-[11px] text-dim2">
             {filter === "CHECK"

@@ -16,7 +16,7 @@ export type IntakeBatch = {
   id: string;
   name: string;
   uploaderName: string;
-  via: "send link" | "portal";
+  via: "upload link" | "portal";
   fileCount: number;
   completeCount: number;
   receivedBytes: string;
@@ -127,7 +127,7 @@ export function AdminIntakeBlock({
   return (
     <div className="mt-10" data-testid="intake-block">
       <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2">
-        <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent to Bjur</span>
+        <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent</span>
         <span className="text-[11px] text-dim2">
           {receiving} receiving
           {stalled > 0 ? ` · ${stalled} stalled` : ""} · {onServer} on server ·{" "}
@@ -147,7 +147,7 @@ export function AdminIntakeBlock({
           {batches.length === 0 ? (
             <p className="text-[12px] text-muted leading-relaxed">
               Nothing yet. Make a link and send it to whoever is shooting — they need no
-              account.
+              login.
             </p>
           ) : (
             <div className="divide-y divide-line">
@@ -264,8 +264,8 @@ export function AdminIntakeBlock({
               <div className="text-[11px] tracking-[0.1em] uppercase text-dim">Portal uploads</div>
               <div className="text-[11px] text-muted mt-1 leading-relaxed">
                 {footageUploads
-                  ? `${clientName}'s seats can upload footage from the portal.`
-                  : "Their seats have no way to send us anything."}
+                  ? `${clientName}'s logins can upload footage from the portal.`
+                  : "Their logins have no way to send us anything."}
               </div>
             </div>
             <button

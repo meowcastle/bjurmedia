@@ -308,7 +308,7 @@ export function SendPageClient({
 
         {done && (
           <div className="text-[13px] text-body mt-[26px]" data-testid="send-done">
-            Bjur has it.{sentAs ? ` Sent as ${sentAs}.` : ""}
+            We have it.{sentAs ? ` Sent as ${sentAs}.` : ""}
           </div>
         )}
       </div>

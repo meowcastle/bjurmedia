@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await db.activity.create({
       data: {
         actor: "You",
-        action: `put "${updated.title}" on a payment hold — watermarking ${queued} file(s)`,
+        action: `put "${updated.title}" awaiting payment — watermarking ${queued} file(s)`,
       },
     });
   }

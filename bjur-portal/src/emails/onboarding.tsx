@@ -52,16 +52,16 @@ export function renderOnboardingEmailHtml({
   tempPassword,
   delivery,
 }: OnboardingEmailProps): string {
-  const heroKicker = delivery ? `New delivery · ${esc(clientName)}` : `Welcome · ${esc(clientName)}`;
+  const heroKicker = delivery ? `New files · ${esc(clientName)}` : `Welcome · ${esc(clientName)}`;
   const heroHeadline = delivery
-    ? `Your ${esc(delivery.projectTitle)} deliverables are ready.`
+    ? `Your ${esc(delivery.projectTitle)} files are ready.`
     : "Your Bjur Media portal access is ready.";
   const heroBody = delivery
-    ? `Hi ${esc(recipientName)} — your final photo and video deliverables are live in the Bjur Media delivery portal. Stream everything in-browser and download the masters at full resolution whenever you're ready.`
-    : `Hi ${esc(recipientName)} — you now have access to the Bjur Media delivery portal for ${esc(clientName)}. Sign in below to view your deliverables as they're ready.`;
+    ? `Hi ${esc(recipientName)} — your final photo and video files are live in the Bjur Media client portal. Stream everything in-browser and download the masters at full resolution whenever you're ready.`
+    : `Hi ${esc(recipientName)} — you now have access to the Bjur Media client portal for ${esc(clientName)}. Sign in below to view your files as they're ready.`;
 
   const preheader = delivery
-    ? `Your ${esc(delivery.projectTitle)} deliverables are ready to view and download.`
+    ? `Your ${esc(delivery.projectTitle)} files are ready to view and download.`
     : `Your Bjur Media portal login is ready.`;
 
   const statsBlock = delivery

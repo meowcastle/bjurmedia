@@ -9,12 +9,12 @@ export default function AdminLoginPage() {
       <script dangerouslySetInnerHTML={{ __html: themeScript("admin") }} />
       <LoginForm
       portal="admin"
-      kicker="Staff Control Panel"
+      kicker="Admin"
       headA="Deliver with"
       headB="control."
-      blurb="Manage client accounts, build galleries and run the media pipeline. Staff access only."
+      blurb="Manage clients, build projects and run the media pipeline. Admin access only."
       eyebrow="Admin access"
-      formTitle="Staff sign in"
+      formTitle="Admin sign in"
       demoEmail="admin@bjurmedia.nyc"
       switchHref="/login"
       switchLabel="Client sign in →"

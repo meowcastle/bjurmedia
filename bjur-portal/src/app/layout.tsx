@@ -18,8 +18,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Bjur Media — Delivery Portal",
-  description: "Client media-delivery portal for Bjur Media.",
+  title: "Bjur Media — Client Portal",
+  description: "Client portal for Bjur Media.",
 };
 
 export const viewport: Viewport = {

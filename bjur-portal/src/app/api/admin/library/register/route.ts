@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:package: *New delivery — ${project.client.name}*\n*${project.title}*\n${registered} file(s) imported from the library`,
+            text: `:package: *New files — ${project.client.name}*\n*${project.title}*\n${registered} file(s) imported from the library`,
           },
         },
       ],

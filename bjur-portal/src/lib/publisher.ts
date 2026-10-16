@@ -33,7 +33,7 @@ async function resolvePublishSource(asset: {
   }
   if (asset.project.paymentHold) {
     throw new NotPublishableError(
-      "This project is on a payment hold. Release it before publishing to the client's channel."
+      "This project is awaiting payment. Mark it paid before publishing to the client's channel."
     );
   }
   return resolveDerivedPath(asset.proxyRelPath);

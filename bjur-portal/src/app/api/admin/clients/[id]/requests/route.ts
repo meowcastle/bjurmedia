@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   await db.activity.create({
-    data: { actor: "You", action: `made a send link for "${request.name}" on ${client.name}` },
+    data: { actor: "You", action: `made an upload link for "${request.name}" on ${client.name}` },
   });
 
   return NextResponse.json({

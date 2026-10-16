@@ -28,7 +28,7 @@ test("Forgot? tells the client the studio has been notified", async ({ page }) =
   await page.goto("/login");
   await page.getByLabel("Email").fill("sasha@ssh.studio");
   await page.getByRole("button", { name: "Forgot?" }).click();
-  await expect(page.getByText(/told the studio you need a reset/)).toBeVisible();
+  await expect(page.getByText(/told Bjur Media you need a reset/)).toBeVisible();
 });
 
 /**

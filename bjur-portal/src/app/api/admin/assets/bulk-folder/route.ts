@@ -11,16 +11,16 @@ export async function PATCH(req: NextRequest) {
 
   const { assetIds, folderId } = (await req.json()) as { assetIds: string[]; folderId: string | null };
   if (!Array.isArray(assetIds) || assetIds.length === 0) {
-    return NextResponse.json({ error: "No assets selected." }, { status: 400 });
+    return NextResponse.json({ error: "No files selected." }, { status: 400 });
   }
 
   const assets = await db.asset.findMany({ where: { id: { in: assetIds } }, select: { id: true, projectId: true } });
   if (assets.length !== assetIds.length) {
-    return NextResponse.json({ error: "One or more assets weren't found." }, { status: 404 });
+    return NextResponse.json({ error: "One or more files weren't found." }, { status: 404 });
   }
   const projectIds = new Set(assets.map((a) => a.projectId));
   if (projectIds.size > 1) {
-    return NextResponse.json({ error: "Assets must all belong to the same project." }, { status: 400 });
+    return NextResponse.json({ error: "Files must all belong to the same project." }, { status: 400 });
   }
 
   if (folderId !== null) {

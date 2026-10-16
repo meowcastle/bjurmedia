@@ -530,7 +530,7 @@ export async function generateMarkedRenditions(asset: AssetRow) {
     await db.asset.update({ where: { id: asset.id }, data: { markStatus: "READY" } });
 
     await db.activity.create({
-      data: { actor: "Worker", action: `watermarked "${asset.name}" for the payment hold` },
+      data: { actor: "Worker", action: `watermarked "${asset.name}" while awaiting payment` },
     });
   } catch (err) {
     await db.asset.update({ where: { id: asset.id }, data: { markStatus: "FAILED" } });

@@ -50,7 +50,7 @@ export function AdminTeamClient({
         <div>
           <h1 className="bj-serif text-2xl font-normal">Team</h1>
           <div className="text-[13px] text-muted mt-1.5">
-            Staff logins with full access to this control panel.
+            Admin logins with full access.
           </div>
         </div>
         <button
@@ -132,7 +132,7 @@ export function AdminTeamClient({
       </div>
 
       <div className="text-[11px] text-dim mt-4">
-        Removing an admin signs them out everywhere and blocks sign-in. Their account is kept, so
+        Removing an admin signs them out everywhere and blocks sign-in. Their login is kept, so
         anything they granted or uploaded still shows their name — adding the same email back
         reinstates the login with a fresh temp password.
       </div>

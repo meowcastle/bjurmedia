@@ -55,7 +55,7 @@ export async function createSubmission(access: OkAccess, req: NextRequest) {
 
   const batch = await db.uploadBatch.findUnique({ where: { id: batchId } });
   if (!batch || batch.clientId !== clientId || !scopeMatches(access, batch)) {
-    return NextResponse.json({ error: "Unknown upload batch." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown upload." }, { status: 404 });
   }
 
   const relativePath = segments.join("/");
@@ -150,7 +150,7 @@ export async function appendChunk(access: OkAccess, req: NextRequest, submission
     return new NextResponse(null, { status: 404 });
   }
   if (submission.status !== "UPLOADING") {
-    return NextResponse.json({ error: `Submission is already ${submission.status.toLowerCase()}.` }, { status: 409 });
+    return NextResponse.json({ error: `Upload is already ${submission.status.toLowerCase()}.` }, { status: 409 });
   }
 
   const contentRange = req.headers.get("content-range");

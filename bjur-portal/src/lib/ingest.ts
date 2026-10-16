@@ -323,7 +323,7 @@ export async function ingestFile(absPath: string) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `:package: *${existing ? "Updated delivery" : "New delivery"} — ${project.client.name}*\n*${project.title}*\n${filename} ${verb} · proxy generating`,
+          text: `:package: *${existing ? "Updated files" : "New files"} — ${project.client.name}*\n*${project.title}*\n${filename} ${verb} · proxy generating`,
         },
       },
     ],

@@ -137,10 +137,10 @@ export function AdminProjectDetailClient({
     setHeld(next);
     setToast(
       next
-        ? "Held · downloads watermarked"
+        ? "Awaiting payment · downloads watermarked"
         : body.released
-          ? `Released · clean downloads · ${body.released} owner${body.released === 1 ? "" : "s"} emailed`
-          : "Released · clean downloads"
+          ? `Paid · clean downloads · ${body.released} owner${body.released === 1 ? "" : "s"} emailed`
+          : "Paid · clean downloads"
     );
     router.refresh();
   }
@@ -170,12 +170,12 @@ export function AdminProjectDetailClient({
       : project.type === "FILM"
         ? [
             "Each export you drop in the inbox becomes the next cut.",
-            "Reviewers leave timestamped notes and send them in one batch.",
+            "Reviewers leave timestamped notes and send them together.",
             "You answer every note before the next cut goes out — your answers travel in that email.",
             "An owner approves the final cut, and that unlocks the master.",
           ]
         : [
-            "Finished files land in the inbox and appear in the client's gallery.",
+            "Finished files land in the inbox and appear in the client's project.",
             "The client can stream and download everything as it arrives.",
           ];
 
@@ -236,7 +236,7 @@ export function AdminProjectDetailClient({
                 : "Delivery"}
           </span>
           {held && (
-            <span className="text-accentb border border-accentb px-[7px] py-[3px]">Held for payment</span>
+            <span className="text-accentb border border-accentb px-[7px] py-[3px]">Awaiting payment</span>
           )}
           <span className="text-dim2 normal-case tracking-normal font-semibold text-[11px]">
             set at creation
@@ -334,13 +334,13 @@ export function AdminProjectDetailClient({
           <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3 flex justify-between">
             <span>Payment</span>
             <span className={held ? "text-accentb tracking-[.06em]" : "text-ok tracking-[.06em]"}>
-              {held ? "Held" : "Clear"}
+              {held ? "Awaiting payment" : "Paid"}
             </span>
           </div>
           <p className="text-xs text-dim leading-relaxed mb-4">
             {held
-              ? "Every download the client makes carries a BJUR MEDIA mark until you release it."
-              : "Downloads are clean. Hold if an invoice is outstanding; nothing is hidden, only marked."}
+              ? "Every download the client makes carries a BJUR MEDIA mark until you mark it paid."
+              : "Downloads are clean. Mark it awaiting payment if an invoice is outstanding; nothing is hidden, only marked."}
           </p>
           <button
             onClick={togglePay}
@@ -348,7 +348,7 @@ export function AdminProjectDetailClient({
             data-testid="payment-toggle"
             className="cursor-pointer border border-line2 hover:border-text px-3.5 py-2.5 text-[10.5px] font-semibold uppercase tracking-[.08em] disabled:opacity-50"
           >
-            {held ? "Release · paid" : "Hold for payment"}
+            {held ? "Mark paid" : "Mark awaiting payment"}
           </button>
         </div>
       </div>

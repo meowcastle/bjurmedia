@@ -35,7 +35,7 @@ test("a draft is private, and sending is what makes it real", async ({ page }) =
   await expect(page.getByTestId("review-screen")).toContainText("Colour on the second verse");
 
   // The send button counts what is actually unsent.
-  await expect(page.getByTestId("send-notes")).toContainText(/Send \d+ notes? to Bjur/);
+  await expect(page.getByTestId("send-notes")).toContainText(/Send \d+ notes?$/);
 });
 
 test("focusing the composer pauses and locks the timestamp", async ({ page }) => {

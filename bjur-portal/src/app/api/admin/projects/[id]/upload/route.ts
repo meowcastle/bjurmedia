@@ -131,7 +131,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         ingested: false,
         note:
           data.note ??
-          "Uploaded, but not registered as an asset — check it's not a WIP file or an unrecognized format, and that this project's inbox folder matched correctly.",
+          "Uploaded, but not registered as a file — check it's not a WIP file or an unrecognized format, and that this project's inbox folder matched correctly.",
       });
     }
     return NextResponse.json({

@@ -125,7 +125,7 @@ export function AdminClientDetailClient({
     const data = await res.json().catch(() => ({}));
     setRemovingSeat(null);
     if (!res.ok) {
-      setSeatError(data.error ?? "Failed to remove seat.");
+      setSeatError(data.error ?? "Failed to remove login.");
       return;
     }
     setConfirmingRemoveSeat(null);
@@ -313,13 +313,13 @@ export function AdminClientDetailClient({
 
       <div className="flex items-end justify-between mb-4">
         <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
-          Seats
+          Logins
         </h2>
         <button
           onClick={() => setSeatDialogOpen(true)}
           className="cursor-pointer text-xs font-semibold text-muted hover:text-text border border-dashed border-line2 hover:border-text px-3.5 py-2"
         >
-          + Add user seat
+          + Add login
         </button>
       </div>
       {seatError && (
@@ -418,7 +418,7 @@ export function AdminClientDetailClient({
         ))}
         {seats.length === 0 && (
           <div className="px-5 py-8 text-center text-sm text-muted">
-            No seats yet.
+            No logins yet.
           </div>
         )}
       </div>
@@ -539,7 +539,7 @@ export function AdminClientDetailClient({
                   a person can act on. */}
               {p.paymentHold ? (
                 <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]">
-                  Held for payment
+                  Awaiting payment
                 </span>
               ) : null}
               {/* Labelled at every width: the column holds whichever date matters, and

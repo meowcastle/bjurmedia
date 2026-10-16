@@ -224,8 +224,8 @@ export function NewProjectDialog({
                       Reviewers
                     </span>
                     <p className="text-[11.5px] text-muted leading-relaxed mb-2">
-                      {client?.name ?? "The client"}&apos;s seats review automatically. Add anyone
-                      else below — they get a link, no account.
+                      {client?.name ?? "The client"}&apos;s logins review automatically. Add anyone
+                      else below — they get a link, no login.
                     </p>
                     <input
                       value={guests}
@@ -252,8 +252,8 @@ export function NewProjectDialog({
                       testId="add-request"
                       on={withRequest}
                       onChange={() => setWithRequest((v) => !v)}
-                      label="Start with a footage request"
-                      hint="Makes a send link the client can use without a login."
+                      label="Start with an upload link"
+                      hint="Makes an upload link the client can use without a login."
                     />
                     {withRequest && (
                       <input
@@ -311,8 +311,8 @@ export function NewProjectDialog({
                   </span>
                   <div className="grid grid-cols-2 gap-1.5">
                     {[
-                      { on: false, label: "Clear", hint: "Downloads are clean." },
-                      { on: true, label: "Hold", hint: "Downloads carry a mark until you release." },
+                      { on: false, label: "Paid", hint: "Downloads are clean." },
+                      { on: true, label: "Awaiting payment", hint: "Downloads carry a mark until it is paid." },
                     ].map((o) => (
                       <button
                         key={o.label}
@@ -379,7 +379,7 @@ export function NewProjectDialog({
               {result.sendPath && (
                 <div className="border border-line2 bg-s1 p-4" data-testid="send-link">
                   <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-1.5">
-                    Send link
+                    Upload link
                   </span>
                   <span className="block text-[12px] font-mono text-body break-all mb-2.5">
                     {result.sendPath}

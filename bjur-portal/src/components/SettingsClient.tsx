@@ -186,7 +186,7 @@ export function SettingsClient({
           <Toggle on={notifyDelivery} onChange={() => toggleNotify("notifyDelivery")} />
         </div>
         <div className="flex items-center justify-between gap-4 py-3.5">
-          <span className="text-sm">Remind me before a gallery expires</span>
+          <span className="text-sm">Remind me before a project expires</span>
           <Toggle on={notifyExpiry} onChange={() => toggleNotify("notifyExpiry")} />
         </div>
       </div>
