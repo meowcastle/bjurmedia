@@ -59,7 +59,9 @@ if ! git_as fetch --quiet origin; then
 fi
 
 BEHIND=$(git_as rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
-DIRTY=$(git_as status --porcelain | wc -l | tr -d ' ')
+# Tracked files only. Loose scripts beside the repo (bitrate tests, old deploy copies)
+# cannot be clobbered by a pull, and counting them blocked every deploy.
+DIRTY=$(git_as status --porcelain --untracked-files=no | wc -l | tr -d ' ')
 
 if [ "$DIRTY" != "0" ]; then
   echo "    Working tree has $DIRTY uncommitted change(s) — not pulling."
