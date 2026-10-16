@@ -1,4 +1,5 @@
 import path from "path";
+import { stat } from "fs/promises";
 import { NextRequest } from "next/server";
 import { Readable } from "stream";
 import { ZipArchive } from "archiver";
@@ -8,6 +9,7 @@ import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 import { getProjectAccess } from "@/lib/projectAccess";
 import { holdApplies, markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
+import { storedZipSize } from "@/lib/zipSize";
 
 /** Same extension-swap as the single-file download: the marked copy is mp4/jpg. */
 function markedZipName(assetName: string, markedPath: string) {
@@ -46,7 +48,7 @@ async function buildZipResponse(
   const watermark = holdApplies(project, session);
   const skipped: string[] = [];
 
-  const entries: { path: string; name: string }[] = [];
+  const entries: { path: string; name: string; size: number }[] = [];
   for (const asset of project.assets) {
     let relPath: string | null;
     let derived: boolean;
@@ -67,8 +69,12 @@ async function buildZipResponse(
       () => null
     );
     if (!resolved) continue;
+    // The size on disk, not the row: Content-Length is computed from these, and a file
+    // that is missing is left out here rather than failing halfway through the stream.
+    const onDisk = await stat(resolved).catch(() => null);
+    if (!onDisk?.isFile()) continue;
     const name = watermark ? markedZipName(asset.name, resolved) : asset.name;
-    entries.push({ path: resolved, name: `${asset.format}/${name}` });
+    entries.push({ path: resolved, name: `${asset.format}/${name}`, size: onDisk.size });
   }
 
   if (watermark && skipped.length > 0) {
@@ -78,7 +84,10 @@ async function buildZipResponse(
   // Stored, not deflated. Video and photos are already compressed, so deflate saved
   // nothing and ran at ~3 MB/s — a multi-gigabyte zip trickled out for an hour and
   // phones gave up partway. Stored streams at disk speed and is the same size.
-  const archive = new ZipArchive({ store: true });
+  // statConcurrency 1 keeps entries in the order they are added. With parallel stats the
+  // order follows whichever finishes first, and past 4 GiB the order decides which
+  // entries need zip64 extras — so the length below would no longer be exact.
+  const archive = new ZipArchive({ store: true, statConcurrency: 1 });
   archive.on("warning", (err: Error) => console.warn("[download-all]", err));
   archive.on("error", (err: Error) => console.error("[download-all]", err));
 
@@ -115,6 +124,9 @@ async function buildZipResponse(
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${fileName}"`,
+      // Known in advance now that the zip is stored, so a phone shows real progress and
+      // time remaining rather than an indefinite spinner.
+      "Content-Length": String(storedZipSize(entries)),
       "Cache-Control": "no-store",
     },
   });
