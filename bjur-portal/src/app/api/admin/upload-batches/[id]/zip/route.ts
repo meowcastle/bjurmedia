@@ -23,7 +23,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (resolved) entries.push({ path: resolved, name: s.relativePath });
   }
 
-  const archive = new ZipArchive({ zlib: { level: 6 } });
+  // Stored, not deflated. Video and photos are already compressed, so deflate saved
+  // nothing and ran at ~3 MB/s — a multi-gigabyte zip trickled out for an hour and
+  // phones gave up partway. Stored streams at disk speed and is the same size.
+  const archive = new ZipArchive({ store: true });
   archive.on("warning", (err: Error) => console.warn("[upload-batch-zip]", err));
   archive.on("error", (err: Error) => console.error("[upload-batch-zip]", err));
   for (const entry of entries) archive.file(entry.path, { name: entry.name });

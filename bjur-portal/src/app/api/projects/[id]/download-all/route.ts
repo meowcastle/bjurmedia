@@ -75,7 +75,10 @@ async function buildZipResponse(
     console.warn(`[download-all] ${skipped.length} asset(s) not yet watermarked, omitted from zip`);
   }
 
-  const archive = new ZipArchive({ zlib: { level: 6 } });
+  // Stored, not deflated. Video and photos are already compressed, so deflate saved
+  // nothing and ran at ~3 MB/s — a multi-gigabyte zip trickled out for an hour and
+  // phones gave up partway. Stored streams at disk speed and is the same size.
+  const archive = new ZipArchive({ store: true });
   archive.on("warning", (err: Error) => console.warn("[download-all]", err));
   archive.on("error", (err: Error) => console.error("[download-all]", err));
 
