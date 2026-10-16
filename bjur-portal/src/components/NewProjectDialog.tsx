@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Portal } from "@/components/ui/Portal";
+import { useState } from "react";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 import { IconCheck } from "@/components/ui/Icon";
 
 export type ClientOption = { id: string; name: string; hasSlackChannel: boolean };
@@ -30,6 +30,7 @@ export function NewProjectDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { close, closing } = useDialogExit(onClose, "drawer");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [type, setType] = useState<ProjectType>("DELIVERY");
   const [guests, setGuests] = useState("");
@@ -42,13 +43,6 @@ export function NewProjectDialog({
   const client = clients.find((c) => c.id === clientId);
   const calendarBlocked = type === "CALENDAR" && client !== undefined && !client.hasSlackChannel;
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !result) onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, result]);
 
   // Comma, space or newline — people paste addresses out of a mail client and the
   // separator is whatever that client used.
@@ -95,15 +89,12 @@ export function NewProjectDialog({
 
 
   return (
-    <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 flex justify-end bjfade"
-        onClick={result ? undefined : onClose}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[460px] h-full overflow-y-auto bg-s2 border-l border-line2 p-7"
-        >
+    <Dialog
+      variant="drawer"
+      closing={closing}
+      onDismiss={result ? undefined : close}
+      panelClassName="max-w-[460px] p-7"
+    >
           {!result ? (
             <>
               <div className="text-[22px] font-black tracking-tight mb-6">New project</div>
@@ -204,7 +195,7 @@ export function NewProjectDialog({
                   {loading ? "Creating…" : "Create project"}
                 </button>
                 <button
-                  onClick={onClose}
+                  onClick={close}
                   className="cursor-pointer text-[12px] font-semibold text-muted hover:text-text px-2"
                 >
                   Cancel
@@ -233,15 +224,13 @@ export function NewProjectDialog({
               </div>
 
               <button
-                onClick={onClose}
+                onClick={close}
                 className="cursor-pointer bg-text text-bg hover:bg-accent px-5 py-3 text-[12px] font-semibold uppercase tracking-[.08em] mt-7"
               >
                 Done
               </button>
             </>
           )}
-        </div>
-      </div>
-    </Portal>
+    </Dialog>
   );
 }

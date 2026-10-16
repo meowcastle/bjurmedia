@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fragment_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import { MotionProvider } from "@/components/ui/MotionProvider";
 
 // Fragment Mono ships a single weight, so bold UI text is synthesised by the browser
 // rather than a real bold cut — which is the trade the v2 type spec makes deliberately.
@@ -43,7 +44,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${fragmentMono.variable} ${sourceSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-bg text-text">{children}</body>
+      <body className="min-h-full flex flex-col bg-bg text-text">
+        <MotionProvider>{children}</MotionProvider>
+      </body>
     </html>
   );
 }

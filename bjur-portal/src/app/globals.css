@@ -30,6 +30,14 @@
   --success: #2ec36b;
   /* Something for the client to look at, not an error: a caption nobody has read yet. */
   --warn: #ff9d85;
+
+  /* Depth (PORTAL-POLISH §1). Three tiers and a hairline, replacing the one hardcoded
+     shadow. The inset top line is the "sheen": a raised surface catches light on its
+     top edge. Radius stays 0 — the brand is square. */
+  --elev-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-2: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 8px 24px rgba(0, 0, 0, 0.45);
+  --elev-3: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 24px 64px rgba(0, 0, 0, 0.6);
+  --hairline: rgba(255, 255, 255, 0.06);
 }
 
 [data-theme="light"] {
@@ -51,6 +59,30 @@
   --dim2: #a29e97;
   /* #ff9d85 washes out on paper; the same salmon, deepened to read at 10px. */
   --warn: #c2562f;
+
+  /* On paper the light edge inverts to a faint dark one, and shadows are lighter. */
+  --elev-1: 0 1px 0 rgba(0, 0, 0, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.08);
+  --elev-2: 0 1px 0 rgba(0, 0, 0, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.12);
+  --elev-3: 0 1px 0 rgba(0, 0, 0, 0.05) inset, 0 24px 64px rgba(0, 0, 0, 0.18);
+  --hairline: rgba(0, 0, 0, 0.06);
+}
+
+/*
+ * Motion (PORTAL-POLISH §1). Every transition in the app uses one of these three eases
+ * and one of these four durations. --ease-out is DownloadSheet's curve, which every
+ * sheet and drawer copies; exits use --ease-in and are always faster than enters.
+ */
+@theme {
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-std: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  --dur-1: 120ms; /* press, menu, chip */
+  --dur-2: 200ms; /* fades, image reveal */
+  --dur-3: 260ms; /* dialog, drawer */
+  --dur-4: 420ms; /* bottom sheet */
 }
 
 @theme inline {
@@ -73,6 +105,14 @@
   --font-serif: var(--font-source-serif);
   --font-mono: var(--font-fragment-mono);
   --radius-none: 0px;
+  --color-hairline: var(--hairline);
+  --shadow-1: var(--elev-1);
+  --shadow-2: var(--elev-2);
+  --shadow-3: var(--elev-3);
+  /* Every bare `transition`, `transition-colors` etc. picks these up, so the whole app
+     moves on the tokens without a duration written into each class list. */
+  --default-transition-duration: var(--dur-1);
+  --default-transition-timing-function: var(--ease-std);
 }
 
 * {
@@ -168,11 +208,11 @@ body {
 }
 
 .bjfade {
-  animation: bjfade 0.4s ease both;
+  animation: bjfade var(--dur-3) var(--ease-out) both;
 }
 
 .bjrise {
-  animation: bjrise 0.4s ease both;
+  animation: bjrise var(--dur-3) var(--ease-out) both;
 }
 
 .bjspin {
@@ -249,5 +289,66 @@ body {
   .bjburst > * {
     animation: bjburst 700ms linear forwards;
     transform: none;
+  }
+}
+
+/*
+ * Dialog and drawer motion (PORTAL-POLISH §2), used by ui/Dialog. Enters run --dur-3 on
+ * --ease-out; exits are shorter, on --ease-in, and hold their last frame until unmount.
+ */
+@keyframes bj-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bj-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes bj-dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bj-dialog-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(4px) scale(0.985); }
+}
+@keyframes bj-drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes bj-drawer-out { from { transform: none; } to { transform: translateX(100%); } }
+
+.bj-backdrop-in { animation: bj-backdrop-in var(--dur-2) var(--ease-std) both; }
+.bj-backdrop-out { animation: bj-backdrop-out var(--dur-1) var(--ease-in) both; }
+.bj-dialog-in { animation: bj-dialog-in var(--dur-3) var(--ease-out) both; }
+.bj-dialog-out { animation: bj-dialog-out var(--dur-1) var(--ease-in) both; }
+.bj-drawer-in { animation: bj-drawer-in var(--dur-3) var(--ease-out) both; }
+.bj-drawer-out { animation: bj-drawer-out var(--dur-2) var(--ease-in) both; }
+
+/* Menus and toasts (§2): a short drop-in from the trigger, and out the same way. */
+@keyframes bj-pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bj-pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+@keyframes bj-toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes bj-toast-out {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, 0); }
+}
+.bj-pop-in { animation: bj-pop-in var(--dur-1) var(--ease-out) both; }
+.bj-pop-out { animation: bj-pop-out var(--dur-1) var(--ease-in) both; }
+.bj-toast-in { animation: bj-toast-in var(--dur-2) var(--ease-out) both; }
+.bj-toast-out { animation: bj-toast-out var(--dur-1) var(--ease-in) both; }
+
+/*
+ * Reduced motion, once, for everything (PORTAL-POLISH §1). The viewer's drag is driven by
+ * the finger rather than a transition, so it still works; its fades simply snap.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

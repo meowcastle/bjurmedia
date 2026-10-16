@@ -1,5 +1,6 @@
 "use client";
 
+import { usePresence } from "@/components/ui/usePresence";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useRef, useState } from "react";
@@ -31,6 +32,7 @@ export function AdminHeader({ userName }: { userName: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menu = usePresence(menuOpen);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const initials =
@@ -107,11 +109,11 @@ export function AdminHeader({ userName }: { userName: string }) {
           >
             {initials}
           </button>
-          {menuOpen && (
+          {menu.mounted && (
             <div
               role="menu"
               data-testid="admin-account-menu"
-              className="absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-40"
+              className={`absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line2 shadow-2 z-40 ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
             >
               {MENU_LINKS.map((item) => (
                 <Link

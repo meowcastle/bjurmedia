@@ -1,5 +1,6 @@
 "use client";
 
+import { usePresence } from "@/components/ui/usePresence";
 import { useEffect, useRef, useState } from "react";
 import { IconMore } from "@/components/ui/Icon";
 
@@ -21,6 +22,7 @@ export function RowMenu({
   align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
+  const menu = usePresence(open);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,10 +54,10 @@ export function RowMenu({
       >
         <IconMore />
       </button>
-      {open && (
+      {menu.mounted && (
         <div
           role="menu"
-          className={`absolute ${align === "right" ? "right-0" : "left-0"} top-[calc(100%+6px)] min-w-[200px] bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-30 py-1`}
+          className={`absolute ${align === "right" ? "right-0" : "left-0"} top-[calc(100%+6px)] min-w-[200px] bg-s2 border border-line2 shadow-2 z-30 py-1 ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
         >
           {children(() => setOpen(false))}
         </div>

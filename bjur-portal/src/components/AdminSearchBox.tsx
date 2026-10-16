@@ -90,7 +90,7 @@ export function AdminSearchBox() {
         )}
       </div>
       {isOpen && (
-        <div className="absolute top-[calc(100%+6px)] right-0 left-0 bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-40 max-h-[62vh] overflow-y-auto">
+        <div className="absolute top-[calc(100%+6px)] right-0 left-0 bg-s2 border border-line2 shadow-2 z-40 max-h-[62vh] overflow-y-auto">
           {groups.map((g) => (
             <div key={g.label}>
               <div className="px-3.5 pt-2.5 pb-1.5 text-[10px] tracking-wide uppercase text-muted font-bold">

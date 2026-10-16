@@ -222,7 +222,7 @@ export function AdminClientDetailClient({
           <summary className="list-none cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 select-none">
             Settings
           </summary>
-          <div className="absolute right-0 z-20 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-s2 border border-line2 p-4 flex flex-col gap-3.5 shadow-[0_18px_50px_rgba(0,0,0,.4)]">
+          <div className="absolute right-0 z-20 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-s2 border border-line2 p-4 flex flex-col gap-3.5 shadow-2">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-muted w-20 flex-none">
               Logo URL

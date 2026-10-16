@@ -276,7 +276,7 @@ export function CaptionEditor({
         <div className="flex items-center gap-3">
           <span
             data-testid="caption-saved"
-            className={`text-[10px] uppercase tracking-[.1em] text-dim transition-opacity duration-300 ${
+            className={`text-[10px] uppercase tracking-[.1em] text-dim transition-opacity duration-(--dur-3) ease-std ${
               savedVisible ? "opacity-100" : "opacity-0"
             }`}
           >

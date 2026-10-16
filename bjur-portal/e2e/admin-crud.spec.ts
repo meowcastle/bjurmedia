@@ -58,7 +58,7 @@ test("create a new project and see its inbox path", async ({ page }) => {
   // the client detail page's own project list show this same new project's inbox path
   // underneath the still-open "Created." dialog, so an unscoped text locator
   // matches both and violates Playwright's strict mode.
-  const dialog = page.locator(".fixed.inset-0.z-50");
+  const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Created.")).toBeVisible();
   await expect(dialog.getByText(/_inbox\/ssh\/fall-lookbook-2026/)).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();

@@ -403,7 +403,7 @@ export function SubmissionUploadClient({
           </div>
           <div className="h-1.5 bg-bg border border-line2 mb-3">
             <div
-              className="h-full bg-accent transition-[width] duration-300"
+              className="h-full bg-accent transition-[width] duration-(--dur-2) ease-std"
               style={{
                 width: `${totalBytes ? (uploadedBytes / totalBytes) * 100 : 0}%`,
               }}
@@ -444,7 +444,7 @@ export function SubmissionUploadClient({
               {/* Progress reads as a faint fill behind the row rather than a separate bar. */}
               <div
                 aria-hidden
-                className="absolute inset-y-0 left-0 bg-accent/[.08] pointer-events-none transition-[width] duration-300"
+                className="absolute inset-y-0 left-0 bg-accent/[.08] pointer-events-none transition-[width] duration-(--dur-2) ease-std"
                 style={{ width: `${item.progress}%` }}
               />
               <span

@@ -264,7 +264,7 @@ export function SendPageClient({
                 <span className="text-[10.5px] text-dim">{fmtBytes(item.sizeBytes)}</span>
                 <span className="col-span-2 h-[2px] bg-white/10 mt-1">
                   <span
-                    className="block h-full bg-text transition-[width] duration-200"
+                    className="block h-full bg-text transition-[width] duration-(--dur-2) ease-std"
                     style={{ width: `${item.progress}%` }}
                   />
                 </span>

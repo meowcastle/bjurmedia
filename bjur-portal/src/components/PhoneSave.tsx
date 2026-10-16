@@ -187,7 +187,7 @@ export function PhoneSaveButtons({
       {fetching && (
         <span className="block h-[2px] bg-line2">
           <span
-            className="block h-full bg-text transition-[width] duration-200"
+            className="block h-full bg-text transition-[width] duration-(--dur-2) ease-std"
             style={{ width: `${(current.done / assets.length) * 100}%` }}
           />
         </span>

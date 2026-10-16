@@ -573,7 +573,7 @@ export function AdminMediaClient({
               data-testid="bulk-bar"
               className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise"
             >
-              <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(0,0,0,.6)] flex items-center gap-3 flex-wrap">
+              <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-3 flex items-center gap-3 flex-wrap">
                 <span className="text-sm font-extrabold tabular-nums">
                   {selectedIds.size} selected
                 </span>

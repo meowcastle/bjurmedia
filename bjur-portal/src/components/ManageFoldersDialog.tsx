@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
-import { Portal } from "@/components/ui/Portal";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 
 export type FolderRow = { id: string; name: string; assetCount: number };
 
@@ -18,6 +18,7 @@ export function ManageFoldersDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { close, closing } = useDialogExit(onClose);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
@@ -92,15 +93,7 @@ export function ManageFoldersDialog({
   }
 
   return (
-    <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
-        onClick={onClose}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-h-[90vh] overflow-y-auto max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
-        >
+    <Dialog closing={closing} onDismiss={close} panelClassName="max-w-[460px] p-7">
           <div className="text-xl font-black tracking-tight mb-1.5">
             Folders
           </div>
@@ -187,12 +180,10 @@ export function ManageFoldersDialog({
           )}
 
           <div className="flex justify-end mt-7">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={close}>
               Done
             </Button>
           </div>
-        </div>
-      </div>
-    </Portal>
+    </Dialog>
   );
 }

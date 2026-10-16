@@ -21,7 +21,7 @@ test("library import: browse, pick a folder, preview, and register", async ({ pa
   await page.getByRole("button", { name: "Preview import" }).click();
 
   // Auto-classified as Still from the actual JPEG content, not a guess.
-  const dialog = page.locator("div.bjrise");
+  const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Confirm import")).toBeVisible();
   await expect(dialog.getByText("IG_Archive_Still_01.jpg")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Still" }).first()).toBeVisible();

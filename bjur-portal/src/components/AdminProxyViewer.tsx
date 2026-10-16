@@ -243,7 +243,7 @@ export function AdminProxyViewer({
                 {asset.proxyStatus === "GENERATING" && asset.proxyProgress !== null && (
                   <span className="block h-[2px] bg-white/12 mt-2">
                     <span
-                      className="block h-full bg-white/70 transition-[width] duration-500"
+                      className="block h-full bg-white/70 transition-[width] duration-(--dur-2) ease-std"
                       style={{ width: `${asset.proxyProgress}%` }}
                     />
                   </span>

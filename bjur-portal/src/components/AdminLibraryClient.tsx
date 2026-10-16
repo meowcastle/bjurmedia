@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatBytes } from "@/lib/format";
-import { Portal } from "@/components/ui/Portal";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 import { IconCheck, IconClose } from "@/components/ui/Icon";
 
 type Entry = { name: string; path: string; isFolder: boolean; size?: number };
@@ -127,6 +127,8 @@ export function AdminLibraryClient({
   );
   const [autoMap, setAutoMap] = useState(true);
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
+  const clearPreview = useCallback(() => setPreview(null), []);
+  const previewExit = useDialogExit(clearPreview);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -233,7 +235,7 @@ export function AdminLibraryClient({
       setError(data.error ?? "Import failed.");
       return;
     }
-    setPreview(null);
+    previewExit.close();
     setPicked(new Set());
     router.refresh();
   }
@@ -322,12 +324,11 @@ export function AdminLibraryClient({
       </div>
 
       {preview && (
-        <Portal>
-        <div className="fixed inset-0 z-50 bg-black/75 grid place-items-center p-6 bjfade" onClick={() => setPreview(null)}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[640px] max-h-[80vh] bg-s2 border border-line2 flex flex-col bjrise"
-          >
+        <Dialog
+          closing={previewExit.closing}
+          onDismiss={previewExit.close}
+          panelClassName="max-w-[640px] max-h-[80dvh]! flex flex-col"
+        >
             <div className="p-6 border-b border-line2">
               <div className="text-xl font-black tracking-tight">Confirm import</div>
               <div className="text-[13px] text-muted mt-1">
@@ -360,7 +361,7 @@ export function AdminLibraryClient({
             </div>
             <div className="p-5 flex justify-end gap-2.5 border-t border-line2">
               <button
-                onClick={() => setPreview(null)}
+                onClick={previewExit.close}
                 className="cursor-pointer text-[13px] font-semibold text-muted hover:text-text border border-line2 px-4 py-2.5"
               >
                 Cancel
@@ -373,9 +374,7 @@ export function AdminLibraryClient({
                 {loading ? "Registering…" : `Register ${preview.length} file(s)`}
               </button>
             </div>
-          </div>
-        </div>
-        </Portal>
+        </Dialog>
       )}
     </div>
   );

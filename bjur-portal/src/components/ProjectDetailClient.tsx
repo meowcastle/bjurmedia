@@ -1,5 +1,6 @@
 "use client";
 
+import { DUR, EASE_OUT } from "@/lib/motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -474,7 +475,7 @@ export function ProjectDetailClient({
         key={grp.folder}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: DUR[2], ease: EASE_OUT }}
         className="mb-9"
       >
         <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
@@ -678,7 +679,7 @@ export function ProjectDetailClient({
           favourite a selection without scrolling back up. */}
       {canDownload && selected.size > 0 && (
         <div className="fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 bjrise">
-          <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(0,0,0,.6)] flex items-center gap-3 sm:gap-4 flex-wrap">
+          <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-3 flex items-center gap-3 sm:gap-4 flex-wrap">
             <span className="text-sm font-extrabold tabular-nums">
               {selected.size} selected
             </span>

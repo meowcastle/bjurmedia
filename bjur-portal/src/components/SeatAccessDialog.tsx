@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Portal } from "@/components/ui/Portal";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 
 type Role = "OWNER" | "DOWNLOADER" | "VIEWER";
 type ProjectOption = { id: string; title: string };
@@ -25,6 +25,7 @@ export function SeatAccessDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { close, closing } = useDialogExit(onClose);
   const initial = new Map(
     initialAccess.map((a) => [a.projectId, a.role as Role]),
   );
@@ -79,15 +80,7 @@ export function SeatAccessDialog({
   }
 
   return (
-    <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
-        onClick={onClose}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[460px] bg-s2 border border-line2 p-7 bjrise"
-        >
+    <Dialog closing={closing} onDismiss={close} panelClassName="max-w-[460px] p-7">
           <div className="text-xl font-black tracking-tight mb-1.5">
             Manage access
           </div>
@@ -163,15 +156,13 @@ export function SeatAccessDialog({
           )}
 
           <div className="flex justify-end gap-2.5 mt-7">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={close}>
               Cancel
             </Button>
             <Button onClick={submit} disabled={loading}>
               {loading ? "Saving…" : "Save access"}
             </Button>
           </div>
-        </div>
-      </div>
-    </Portal>
+    </Dialog>
   );
 }

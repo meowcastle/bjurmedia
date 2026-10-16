@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
-import { Portal } from "@/components/ui/Portal";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 import { IconCheck } from "@/components/ui/Icon";
 
 export function AddAdminDialog({
@@ -13,6 +13,7 @@ export function AddAdminDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { close, closing } = useDialogExit(onClose);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,15 +53,7 @@ export function AddAdminDialog({
   }
 
   return (
-    <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
-        onClick={result ? undefined : onClose}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-h-[90vh] overflow-y-auto max-w-[420px] bg-s2 border border-line2 p-7 bjrise"
-        >
+    <Dialog closing={closing} onDismiss={result ? undefined : close} panelClassName="max-w-[420px] p-7">
           {!result ? (
             <>
               <div className="text-xl font-black tracking-tight mb-1.5">
@@ -95,7 +88,7 @@ export function AddAdminDialog({
               )}
 
               <div className="flex justify-end gap-2.5 mt-7">
-                <Button variant="secondary" onClick={onClose}>
+                <Button variant="secondary" onClick={close}>
                   Cancel
                 </Button>
                 <Button onClick={submit} disabled={loading}>
@@ -128,12 +121,10 @@ export function AddAdminDialog({
                 )}
               </button>
               <div className="flex justify-end mt-7">
-                <Button onClick={onClose}>Done</Button>
+                <Button onClick={close}>Done</Button>
               </div>
             </>
           )}
-        </div>
-      </div>
-    </Portal>
+    </Dialog>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Portal } from "@/components/ui/Portal";
+import { Dialog, useDialogExit } from "@/components/ui/Dialog";
 import { IconCheck } from "@/components/ui/Icon";
 
 type QueueItem = {
@@ -93,6 +93,7 @@ export function UploadDialog({
   onClose: () => void;
   onUploaded: () => void;
 }) {
+  const { close, closing } = useDialogExit(onClose);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
@@ -208,7 +209,7 @@ export function UploadDialog({
     setSaving(true);
     const saves = Promise.allSettled(queue.filter((qi) => qi.assetId).map(saveWeekOf));
     await Promise.race([saves, new Promise((r) => setTimeout(r, SAVE_WAIT_MS))]);
-    onClose();
+    close();
   }
 
   const allDone =
@@ -219,18 +220,10 @@ export function UploadDialog({
     ? undefined
     : allDone
       ? finishAndClose
-      : onClose;
+      : close;
 
   return (
-    <Portal>
-      <div
-        className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-6 bjfade"
-        onClick={handleDismiss}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-[520px] bg-s2 border border-line2 p-7 bjrise"
-        >
+    <Dialog closing={closing} onDismiss={handleDismiss} panelClassName="max-w-[520px] p-7">
           <div className="text-xl font-black tracking-tight mb-6">
             Upload files
           </div>
@@ -293,7 +286,7 @@ export function UploadDialog({
                   )}
                   <div className="h-1 bg-bg border border-line2">
                     <div
-                      className={`h-full ${item.status === "error" || item.status === "warning" ? "bg-accentb" : "bg-accent"}`}
+                      className={`h-full transition-[width] duration-(--dur-2) ease-std ${item.status === "error" || item.status === "warning" ? "bg-accentb" : "bg-accent"}`}
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
@@ -358,8 +351,6 @@ export function UploadDialog({
               </Button>
             )}
           </div>
-        </div>
-      </div>
-    </Portal>
+    </Dialog>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { DUR, EASE_OUT } from "@/lib/motion";
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
@@ -75,16 +76,17 @@ export function AssetTile({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.22,
-        ease: "easeOut",
-        delay: Math.min((index ?? 0) * 0.03, 0.4),
+        duration: DUR[3],
+        ease: EASE_OUT,
+        // §3 stagger: 0.02s a tile, never more than 0.3s in total.
+        delay: Math.min((index ?? 0) * 0.02, 0.3),
       }}
     >
       <motion.div
         onClick={onOpen}
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        transition={{ duration: DUR[1], ease: EASE_OUT }}
         className={`cursor-pointer relative overflow-hidden border hover:border-accent transition-colors ${borderColor}`}
         style={{
           aspectRatio: aspectFor(asset),

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePresence } from "@/components/ui/usePresence";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClientMembership } from "@/lib/auth";
@@ -29,6 +30,7 @@ export function ClientSwitcher({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const menu = usePresence(open);
   const [switching, setSwitching] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -109,10 +111,10 @@ export function ClientSwitcher({
         <span className="text-[10px] text-dim">▾</span>
       </button>
 
-      {open && (
+      {menu.mounted && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] min-w-[220px] bg-s2 border border-line2 shadow-[0_18px_50px_rgba(0,0,0,.6)] z-40 py-1"
+          className={`absolute right-0 top-[calc(100%+6px)] min-w-[220px] bg-s2 border border-line2 shadow-2 z-40 py-1 ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
         >
           <div className="px-3.5 py-2 text-[10px] uppercase tracking-[0.16em] text-dim border-b border-line">
             Your clients
