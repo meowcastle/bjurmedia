@@ -1,7 +1,7 @@
 "use client";
 
 import { FadeImg } from "@/components/ui/FadeImg";
-import { DUR, EASE_OUT } from "@/lib/motion";
+import { DUR, EASE_OUT, SPRING_SMALL } from "@/lib/motion";
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { gradientFor } from "@/lib/gradients";
@@ -139,11 +139,21 @@ export function AssetTile({
             onToggleFavorite();
           }}
           title="Add to favorites"
-          className={`absolute top-2.5 right-2.5 w-[26px] h-[26px] grid place-items-center z-[4] cursor-pointer bg-black/40 hover:bg-black/60 text-sm ${
+          className={`absolute top-2.5 right-2.5 w-[26px] h-[26px] grid place-items-center z-[4] cursor-pointer bg-black/40 hover:bg-black/60 text-sm transition-colors ${
             favorite ? "text-accent" : "text-white/80"
           }`}
         >
-          <IconHeart fill="currentColor" />
+          {/* §3 success moment: the heart remounts on change and springs back from 1.25,
+              so favouriting is a small pop rather than a colour swap. */}
+          <motion.span
+            key={favorite ? "on" : "off"}
+            initial={{ scale: favorite ? 1.25 : 1 }}
+            animate={{ scale: 1 }}
+            transition={SPRING_SMALL}
+            className="grid place-items-center"
+          >
+            <IconHeart fill="currentColor" />
+          </motion.span>
         </div>
 
         {asset.viewCount != null && asset.viewCount > 0 && (

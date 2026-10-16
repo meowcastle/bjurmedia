@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReviewScreen, type ReviewScreenProps, type ScreenCut, type ScreenNote } from "@/components/ReviewScreen";
@@ -51,8 +52,15 @@ export function ReviewScreenClient({
         call(`/api/reviews/${cutId}/notes`, { method: "POST", body: JSON.stringify({ timeSec, body }) })
       }
       onDeleteNote={(noteId) => call(`/api/reviews/${cutId}/notes/${noteId}`, { method: "DELETE" })}
-      onSendNotes={() => call(`/api/reviews/${cutId}/send`, { method: "POST" })}
-      onApprove={() => call(`/api/reviews/${cutId}/approve`, { method: "POST" })}
+      onSendNotes={() => {
+        haptic();
+        return call(`/api/reviews/${cutId}/send`, { method: "POST" });
+      }}
+      onApprove={() => {
+        // A firmer tap for the decision that ends a review.
+        haptic(20);
+        return call(`/api/reviews/${cutId}/approve`, { method: "POST" });
+      }}
       onUndoApprove={() => call(`/api/reviews/${cutId}/approve`, { method: "DELETE" })}
     />
   );

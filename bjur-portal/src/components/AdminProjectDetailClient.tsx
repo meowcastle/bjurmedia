@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { FadeImg } from "@/components/ui/FadeImg";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -428,7 +429,10 @@ export function AdminProjectDetailClient({
             <span className="flex items-center gap-3">
               <span className="text-[11px] text-muted">Delete {project.title}?</span>
               <button
-                onClick={deleteProject}
+                onClick={() => {
+                  haptic(20);
+                  void deleteProject();
+                }}
                 disabled={busy}
                 data-testid="confirm-delete-project"
                 className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5 disabled:opacity-50"

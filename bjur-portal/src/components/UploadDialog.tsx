@@ -284,9 +284,21 @@ export function UploadDialog({
                       {item.note}
                     </div>
                   )}
-                  <div className="h-1 bg-bg border border-line2">
+                  {/* §3 success moment: a finished file's bar turns green, holds a beat, then
+                      folds away — done is a state you see, not a bar left sitting full. */}
+                  <div
+                    className={`bg-bg border border-line2 overflow-hidden transition-[height,opacity,border-color] duration-(--dur-3) ease-out ${
+                      item.status === "done" ? "h-0 opacity-0 border-transparent delay-700" : "h-1"
+                    }`}
+                  >
                     <div
-                      className={`h-full transition-[width] duration-(--dur-2) ease-std ${item.status === "error" || item.status === "warning" ? "bg-accentb" : "bg-accent"}`}
+                      className={`h-full transition-[width,background-color] duration-(--dur-2) ease-std ${
+                        item.status === "error" || item.status === "warning"
+                          ? "bg-accentb"
+                          : item.status === "done"
+                            ? "bg-success"
+                            : "bg-accent"
+                      }`}
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>

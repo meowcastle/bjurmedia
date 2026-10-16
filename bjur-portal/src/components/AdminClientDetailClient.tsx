@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import Link from "next/link";
@@ -277,7 +278,10 @@ export function AdminClientDetailClient({
             <span className="flex items-center gap-2">
               <span className="text-[11px] text-muted">Disable {client.name}?</span>
               <button
-                onClick={toggleStatus}
+                onClick={() => {
+                  haptic(20);
+                  void toggleStatus();
+                }}
                 disabled={busy}
                 className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-3.5 py-2 disabled:opacity-40"
               >
@@ -369,7 +373,10 @@ export function AdminClientDetailClient({
                 <>
                   <span className="text-[11px] text-muted">Revoke access?</span>
                   <button
-                    onClick={() => removeSeat(u)}
+                    onClick={() => {
+                      haptic(20);
+                      void removeSeat(u);
+                    }}
                     disabled={removingSeat === u.id}
                     className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
                   >

@@ -292,6 +292,7 @@ export function ProjectDetailClient({
   }
 
   async function toggleSelect(id: string) {
+    haptic();
     setSelected((s) => {
       const next = new Set(s);
       if (next.has(id)) next.delete(id);

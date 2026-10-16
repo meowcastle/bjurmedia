@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { useState } from "react";
 import { timeAgo } from "@/lib/format";
 import Link from "next/link";
@@ -205,6 +206,7 @@ export function SettingsClient({
                 <span className="flex items-center gap-2">
                   <button
                     onClick={() => {
+                      haptic(20);
                       setConfirmingRevokeId(null);
                       void revoke(s.id);
                     }}

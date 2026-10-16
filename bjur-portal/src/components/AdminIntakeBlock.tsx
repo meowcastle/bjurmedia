@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { useState } from "react";
 import { formatBytes } from "@/lib/format";
 
@@ -210,7 +211,10 @@ export function AdminIntakeBlock({
                           <>
                             <button
                               type="button"
-                              onClick={() => void deleteFiles(b)}
+                              onClick={() => {
+                                haptic(20);
+                                void deleteFiles(b);
+                              }}
                               disabled={busy === b.id}
                               data-testid={`confirm-delete-files-${b.id}`}
                               className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-accentb hover:text-text cursor-pointer disabled:opacity-50"

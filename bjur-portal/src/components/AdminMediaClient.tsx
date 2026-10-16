@@ -1,5 +1,6 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
 import { usePresence } from "@/components/ui/usePresence";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FadeImg } from "@/components/ui/FadeImg";
@@ -909,6 +910,7 @@ export function AdminMediaClient({
                           <>
                             <button
                               onClick={() => {
+                                haptic(20);
                                 setConfirmingUnlinkId(null);
                                 void unlinkSocialPost(a.id, p.id);
                               }}
