@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design handoff prototypes: reference for look and behaviour, never built or
+    // shipped. They are vendored as delivered, so linting them only ever fails.
+    "design/**",
   ]),
 ]);
 
