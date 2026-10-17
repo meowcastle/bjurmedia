@@ -13,8 +13,12 @@ const execFileAsync = promisify(execFile);
 const WATERMARK_FONT =
   process.env.WATERMARK_FONT ?? "/System/Library/Fonts/Supplemental/Arial Bold.ttf";
 
-/** The mark burned into a payment-held delivery. Kept short — drawtext has no line wrap. */
-const HOLD_MARK_TEXT = process.env.HOLD_MARK_TEXT ?? "BJUR MEDIA";
+/**
+ * The mark burned into a payment-held delivery: the BJUR seal (vermilion square, B J / U R,
+ * tilted as on bjur.nyc). A transparent PNG under src/, which the worker image copies.
+ */
+const WATERMARK_IMAGE =
+  process.env.WATERMARK_IMAGE ?? path.join(process.cwd(), "src/assets/watermark-seal.png");
 
 /**
  * "preview" is the long-standing licensing mark: a faint scrolling line over a proxy
@@ -22,9 +26,9 @@ const HOLD_MARK_TEXT = process.env.HOLD_MARK_TEXT ?? "BJUR MEDIA";
  * preview without spoiling the client's read of the work.
  *
  * "hold" is the payment mark, and it has the opposite job: the client is being handed a
- * full-quality file they can actually use, so the mark has to be plainly there. Centred,
- * ~22% opacity, sized off the frame height so it lands the same on a 1080p reel and a 4K
- * master, with a soft shadow so it stays legible over a blown-out sky.
+ * full-quality file they can actually use, so the mark has to be plainly there. The seal,
+ * centred at 40% opacity, a quarter of the frame's shorter side, so it lands the same on
+ * a vertical reel, a 16:9 film and a 4K still.
  */
 export type MarkStyle = "none" | "preview" | "hold";
 
@@ -35,18 +39,33 @@ export type MarkStyle = "none" | "preview" | "hold";
  * feature working.
  */
 const UNMARKABLE =
-  "Cannot draw the watermark (font missing or drawtext failed) — refusing to write an unmarked copy down a marked path.";
+  "Cannot draw the watermark (seal image missing or the overlay failed) — refusing to write an unmarked copy down a marked path.";
 
 function markFilter(style: MarkStyle, hasFont: boolean) {
-  if (style === "none" || !hasFont) return null;
-  if (style === "preview") {
-    return `drawtext=fontfile=${WATERMARK_FONT}:text='BJUR MEDIA . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`;
-  }
-  return (
-    `drawtext=fontfile=${WATERMARK_FONT}:text='${HOLD_MARK_TEXT}':fontcolor=white@0.22:` +
-    `fontsize=h/18:x=(w-text_w)/2:y=(h-text_h)/2:` +
-    `shadowcolor=black@0.22:shadowx=2:shadowy=2:box=0`
-  );
+  if (style !== "preview" || !hasFont) return null;
+  return `drawtext=fontfile=${WATERMARK_FONT}:text='BJUR MEDIA . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`;
+}
+
+/**
+ * ffmpeg arguments for the hold mark, placed right after the source's `-i`: the seal as a
+ * second, looped input, sized against the (already scaled) frame and laid over its centre.
+ * `pre` is whatever the frame needs first, such as the proxy's scale. Null when the seal
+ * is not on disk, which callers turn into UNMARKABLE.
+ */
+export function holdMarkArgs(pre: string | null, keepAudio: boolean) {
+  if (!existsSync(WATERMARK_IMAGE)) return null;
+  const side = "trunc(min(main_w\\,main_h)/4/2)*2";
+  const graph =
+    `[0:v]${pre ?? "null"}[base];` +
+    `[1:v][base]scale2ref=w=${side}:h=ow[seal][ref];` +
+    `[seal]format=rgba,colorchannelmixer=aa=0.4[mark];` +
+    `[ref][mark]overlay=(W-w)/2:(H-h)/2:shortest=1[v]`;
+  return [
+    "-loop", "1", "-i", WATERMARK_IMAGE,
+    "-filter_complex", graph,
+    "-map", "[v]",
+    ...(keepAudio ? ["-map", "0:a?"] : []),
+  ];
 }
 
 type AssetRow = Awaited<ReturnType<typeof db.asset.findFirstOrThrow>>;
@@ -200,27 +219,19 @@ async function generateThumb(
 ) {
   await mkdir(path.dirname(outPath), { recursive: true });
   const scaleOnly = "scale=960:-1:flags=lanczos";
-  const thumbMark = markFilter(style, existsSync(WATERMARK_FONT));
-  if (style === "hold" && !thumbMark) throw new Error(UNMARKABLE);
-  const vf = thumbMark ? `${scaleOnly},${thumbMark}` : scaleOnly;
-  if (isVideo) {
-    const offset = durationSec ? Math.min(1, durationSec * 0.1) : 0.1;
-    await runFfmpeg([
-      "-ss",
-      offset.toFixed(2),
-      "-i",
-      srcPath,
-      "-frames:v",
-      "1",
-      "-vf",
-      vf,
-      "-q:v",
-      "3",
-      outPath,
-    ]);
+  let filter: string[];
+  if (style === "hold") {
+    const hold = holdMarkArgs(scaleOnly, false);
+    if (!hold) throw new Error(UNMARKABLE);
+    filter = hold;
   } else {
-    await runFfmpeg(["-i", srcPath, "-vf", vf, "-q:v", "3", outPath]);
+    const thumbMark = markFilter(style, existsSync(WATERMARK_FONT));
+    filter = ["-vf", thumbMark ? `${scaleOnly},${thumbMark}` : scaleOnly];
   }
+  const seek = isVideo
+    ? ["-ss", (durationSec ? Math.min(1, durationSec * 0.1) : 0.1).toFixed(2)]
+    : [];
+  await runFfmpeg([...seek, "-i", srcPath, ...filter, "-frames:v", "1", "-q:v", "3", outPath]);
 }
 
 async function generateVideoProxy(
@@ -254,17 +265,17 @@ async function generateVideoProxy(
   const scale =
     `scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2` +
     `:flags=lanczos:in_range=auto:out_range=tv`;
-  const hasFont = existsSync(WATERMARK_FONT);
+  const mark = markFilter(style, existsSync(WATERMARK_FONT));
+  let filter: string[];
+  if (style === "hold") {
+    const hold = holdMarkArgs(scale, true);
+    if (!hold) throw new Error(UNMARKABLE);
+    filter = hold;
+  } else {
+    filter = ["-vf", mark ? `${scale},${mark}` : scale];
+  }
 
-  const mark = markFilter(style, hasFont);
-  if (style === "hold" && !mark) throw new Error(UNMARKABLE);
-  const vf = mark ? `${scale},${mark}` : scale;
-
-  const args = [
-    "-i",
-    srcPath,
-    "-vf",
-    vf,
+  const encode = [
     "-c:v",
     "libx264",
     "-preset",
@@ -313,6 +324,7 @@ async function generateVideoProxy(
     "+faststart",
     outPath,
   ];
+  const args = ["-i", srcPath, ...filter, ...encode];
 
   const run = (a: string[]) =>
     progress ? runFfmpegWithProgress(a, progress.durationSec, progress.onPct) : runFfmpeg(a);
@@ -324,7 +336,7 @@ async function generateVideoProxy(
       // Retry without the text overlay so a font/filter issue doesn't fail the whole
       // encode. Only ever for "preview": dropping the mark from a payment-hold rendition
       // would quietly release the work.
-      await run([...args.slice(0, 2), "-vf", scale, ...args.slice(4)]);
+      await run(["-i", srcPath, "-vf", scale, ...encode]);
     } else {
       throw err;
     }
@@ -459,9 +471,9 @@ export async function generateProxy(asset: AssetRow) {
 
 /** Stills keep a full-resolution marked copy: mark burned in, near-lossless JPEG. */
 async function generateMarkedStill(srcPath: string, outPath: string) {
-  const mark = markFilter("hold", existsSync(WATERMARK_FONT));
-  if (!mark) throw new Error(UNMARKABLE);
-  await runFfmpeg(["-i", srcPath, "-vf", mark, "-q:v", "2", outPath]);
+  const hold = holdMarkArgs(null, false);
+  if (!hold) throw new Error(UNMARKABLE);
+  await runFfmpeg(["-i", srcPath, ...hold, "-frames:v", "1", "-q:v", "2", outPath]);
 }
 
 /** Has this rendition already been made, and is it still on disk? */
