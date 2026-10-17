@@ -54,7 +54,8 @@ function markFilter(style: MarkStyle, hasFont: boolean) {
  */
 export function holdMarkArgs(pre: string | null, keepAudio: boolean) {
   if (!existsSync(WATERMARK_IMAGE)) return null;
-  const side = "trunc(min(main_w\\,main_h)/4/2)*2";
+  // In scale2ref, iw/ih are the reference (the frame); main_w/main_h are the seal itself.
+  const side = "trunc(min(iw\\,ih)/4/2)*2";
   const graph =
     `[0:v]${pre ?? "null"}[base];` +
     `[1:v][base]scale2ref=w=${side}:h=ow[seal][ref];` +
