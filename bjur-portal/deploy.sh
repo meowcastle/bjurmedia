@@ -108,7 +108,7 @@ cat <<'NOTE'
 ==> Done. Worth a glance:
 
     docker logs bjur-portal-worker-1 --tail 20    # schedulers started?
-    curl -sI https://portal.justinbjur.com/login  # portal answering?
+    curl -sI https://portal.bjur.nyc/login  # portal answering?
 
 If the migration failed, web and worker are still down on purpose. The backup
 printed above is a straight file copy back into place.

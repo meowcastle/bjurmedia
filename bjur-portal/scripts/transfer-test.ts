@@ -40,7 +40,7 @@ function parseSize(s: string) {
   return Math.round(n * (m[2].toUpperCase() === "GB" ? 1024 ** 3 : 1024 ** 2));
 }
 
-const BASE = arg("url", "https://portal.justinbjur.com").replace(/\/$/, "");
+const BASE = arg("url", "https://portal.bjur.nyc").replace(/\/$/, "");
 const PROJECT = arg("project");
 const TOTAL = parseSize(arg("size", "20GB"));
 const NAME = arg("name", `transfer-test-${Date.now()}.bin`);

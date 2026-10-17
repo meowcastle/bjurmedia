@@ -1,6 +1,21 @@
 # Deploying to the NAS
 
-Live at **portal.justinbjur.com**, Synology NAS, `/volume2/docker/bjurmedia/bjur-portal`.
+Live at **portal.bjur.nyc** (portal.justinbjur.com redirects there), Synology NAS, `/volume2/docker/bjurmedia/bjur-portal`.
+Repo on the Mac: `~/Desktop/BJUR MEDIA/bjurmedia/bjur-portal`.
+
+## Moving the host to portal.bjur.nyc (one time)
+
+The hostname lives in one place in the app, `PORTAL_URL`; everything else is outside it.
+
+1. **Cloudflare, zone bjur.nyc:** Zero Trust → Tunnels → `sweetdreams-nas` → Public hostnames → add `portal.bjur.nyc` → `http://192.168.1.117:3003`.
+2. **Cloudflare, zone justinbjur.com:** Rules → Redirect Rules → new rule: hostname equals `portal.justinbjur.com` → dynamic redirect to `concat("https://portal.bjur.nyc", http.request.uri.path)`, 301, preserve query string. The old A record must stay proxied (orange cloud) for the rule to run. Every link already sent to a client keeps working.
+3. **Google Cloud console** (YouTube publishing): the OAuth client → Authorized redirect URIs → add `https://portal.bjur.nyc/api/admin/youtube/callback` (same path as the current one, new host). Keep the old one until the redirect has been live a day.
+4. **NAS `.env`:** `PORTAL_URL=https://portal.bjur.nyc`, and once bjur.nyc is verified in Resend, `MAIL_FROM="Bjur Media <hello@bjur.nyc>"`, `REPLY_TO=newbusiness@bjur.nyc`. Then `sudo ./deploy.sh`.
+5. **Site:** `PORTAL_URL=https://portal.bjur.nyc` in bjur.nyc's env files.
+6. Everyone is signed out once (the session cookie belongs to the old host). Clients sign in again at the new address; nothing else changes for them.
+
+Uploads and streams are unaffected: client uploads go up in 16 MB chunks, well under Cloudflare's 100 MB per-request limit, and the rate limiter already reads `x-forwarded-for`, which Cloudflare sets.
+
 Uses the legacy hyphenated `docker-compose` CLI (not `docker compose`), needs `sudo`
 for the docker socket. Reverse proxy / DNS / certificate are already set up —
 this covers pushing an update to already-live containers.
@@ -41,8 +56,9 @@ running `web`/`worker` processes hold open.
 ## After deploying
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://portal.justinbjur.com/        # expect 307 → /login
-curl -s -o /dev/null -w "%{http_code}\n" https://portal.justinbjur.com/login   # expect 200
+curl -s -o /dev/null -w "%{http_code}\n" https://portal.bjur.nyc/        # expect 307 → /login
+curl -s -o /dev/null -w "%{http_code}\n" https://portal.bjur.nyc/login   # expect 200
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://portal.justinbjur.com/login   # expect 301 → portal.bjur.nyc
 sudo docker-compose logs web --tail=30     # confirm no fresh errors after the restart
 sudo docker-compose ps                     # both containers Up
 ```

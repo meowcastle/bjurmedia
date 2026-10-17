@@ -5,7 +5,7 @@ const SESSION_COOKIE = "bjur_session";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Typing a bare "portal.justinbjur.com" makes the browser try http:// first. On the
+  // Typing a bare "portal.bjur.nyc" makes the browser try http:// first. On the
   // NAS, port 80 has no vhost for this host, so nginx falls through to its default
   // site — a static page that meta-refreshes to https://media.moon.group, i.e. a
   // *different* machine's login screen. Clients hitting the portal for the first time
