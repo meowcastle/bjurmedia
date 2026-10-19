@@ -27,7 +27,7 @@ const WATERMARK_IMAGE =
  *
  * "hold" is the payment mark, and it has the opposite job: the client is being handed a
  * full-quality file they can actually use, so the mark has to be plainly there. The seal,
- * centred, large (45% of the frame's shorter side) but see-through (20%), so it covers the
+ * centred, large (35% of the frame's shorter side) but faint (12%), so it covers the
  * frame without hiding the work, and lands the same on a vertical reel, a 16:9 film and a
  * 4K still.
  */
@@ -56,11 +56,11 @@ function markFilter(style: MarkStyle, hasFont: boolean) {
 export function holdMarkArgs(pre: string | null, keepAudio: boolean) {
   if (!existsSync(WATERMARK_IMAGE)) return null;
   // In scale2ref, iw/ih are the reference (the frame); main_w/main_h are the seal itself.
-  const side = "trunc(min(iw\\,ih)*0.45/2)*2";
+  const side = "trunc(min(iw\\,ih)*0.35/2)*2";
   const graph =
     `[0:v]${pre ?? "null"}[base];` +
     `[1:v][base]scale2ref=w=${side}:h=ow[seal][ref];` +
-    `[seal]format=rgba,colorchannelmixer=aa=0.2[mark];` +
+    `[seal]format=rgba,colorchannelmixer=aa=0.12[mark];` +
     `[ref][mark]overlay=(W-w)/2:(H-h)/2:shortest=1[v]`;
   return [
     "-loop", "1", "-i", WATERMARK_IMAGE,
