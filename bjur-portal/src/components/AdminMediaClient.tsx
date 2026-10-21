@@ -1031,6 +1031,7 @@ export function AdminMediaClient({
         <UploadDialog
           projectId={selectedProjectId}
           folders={folders}
+          defaultFolderId={folders.some((f) => f.id === folderFilterId) ? folderFilterId : ""}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => router.refresh()}
         />

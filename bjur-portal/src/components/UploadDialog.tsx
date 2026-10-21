@@ -85,11 +85,14 @@ const SAVE_WAIT_MS = 8000;
 export function UploadDialog({
   projectId,
   folders = [],
+  defaultFolderId = "",
   onClose,
   onUploaded,
 }: {
   projectId: string;
   folders?: { id: string; name: string }[];
+  /** The folder being viewed when Upload was opened, so files land there by default. */
+  defaultFolderId?: string;
   onClose: () => void;
   onUploaded: () => void;
 }) {
@@ -97,7 +100,7 @@ export function UploadDialog({
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [justAdded, setJustAdded] = useState(0);
-  const [folderId, setFolderId] = useState<string>("");
+  const [folderId, setFolderId] = useState<string>(defaultFolderId);
   const [saving, setSaving] = useState(false);
   const listEndRef = useRef<HTMLDivElement>(null);
 

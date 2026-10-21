@@ -201,15 +201,6 @@ export function ProjectDetailClient({
   const [postsView, setPostsView] = useState<PostsView>("files");
 
   const [filter, setFilter] = useState<string>("ALL");
-  const [folderFilter, setFolderFilter] = useState<string>("ALL");
-
-  const folderScoped = useMemo(
-    () =>
-      folderFilter === "ALL"
-        ? assets
-        : assets.filter((a) => a.folderId === folderFilter),
-    [assets, folderFilter],
-  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const bar = usePresence(selected.size > 0, 200);
   const [favorites, setFavorites] = useState<Set<string>>(
@@ -217,9 +208,10 @@ export function ProjectDetailClient({
   );
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
-  // Grouped by format only. The By Week toggle, the Wide/Vertical filter and the
-  // past-years accordion each added a control for a question few clients asked.
-  const scoped = folderScoped;
+  // Grouped by format, and by folder when the project has any. The By Week toggle, the
+  // Wide/Vertical filter and the past-years accordion each added a control for a
+  // question few clients asked.
+  const scoped = assets;
 
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   // The run the viewer swipes through, fixed when it opens. Under "Captions to check" a
@@ -390,19 +382,28 @@ export function ProjectDetailClient({
           ]
         : [];
     }
-    return FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0])
-      .map((d) => {
-        const items = scoped.filter((a) => a.format === d[0]);
-        return {
-          label: d[1],
-          count: `${items.length} file${items.length > 1 ? "s" : ""}`,
-          folder: `${project.path}/${d[0]}`,
-          cols: colsFor(d[0]),
-          items,
-        };
-      })
-      .filter((g) => g.items.length);
-  }, [filter, scoped, favorites, project.path]);
+    // Files outside any folder come first under the plain format headings, then each
+    // folder in the order it was made, as its own section. A folder holding more than
+    // one format splits into "Folder · Reels", "Folder · Films" so each grid keeps the
+    // tile size its format needs.
+    const formatDefs = FORMAT_DEFS.filter((d) => filter === "ALL" || filter === d[0]);
+    const sections = [
+      { key: "", name: null as string | null, items: scoped.filter((a) => !a.folderId || !project.folders.some((f) => f.id === a.folderId)) },
+      ...project.folders.map((f) => ({ key: f.id, name: f.name as string | null, items: scoped.filter((a) => a.folderId === f.id) })),
+    ];
+    return sections.flatMap((sec) => {
+      const byFormat = formatDefs
+        .map((d) => ({ d, items: sec.items.filter((a) => a.format === d[0]) }))
+        .filter((x) => x.items.length);
+      return byFormat.map(({ d, items }) => ({
+        label: sec.name == null ? d[1] : byFormat.length > 1 ? `${sec.name} · ${d[1]}` : sec.name,
+        count: `${items.length} file${items.length > 1 ? "s" : ""}`,
+        folder: `${project.path}/${sec.key ? `${sec.key}/` : ""}${d[0]}`,
+        cols: colsFor(d[0]),
+        items,
+      }));
+    });
+  }, [filter, scoped, favorites, project.path, project.folders]);
 
   const visibleIds = useMemo(
     () => groups.flatMap((g) => g.items.map((i) => i.id)),
@@ -627,20 +628,6 @@ export function ProjectDetailClient({
                 </button>
               ))}
             </div>
-            {project.folders.length > 0 && (
-              <select
-                value={folderFilter}
-                onChange={(e) => setFolderFilter(e.target.value)}
-                className="bg-bg border border-line2 text-muted text-xs font-semibold px-3 py-2.5 outline-none focus:border-accent"
-              >
-                <option value="ALL">Folder: All</option>
-                {project.folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    Folder: {f.name}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
         </div>
 
