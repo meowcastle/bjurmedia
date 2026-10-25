@@ -131,8 +131,10 @@ export default async function AdminDashboardPage() {
         },
       },
     }),
+    // An approval needs you until the master goes out, and not forever: it clears when a
+    // new file lands in the project after it (see openApprovals), or after 14 days.
     db.review.findMany({
-      where: { state: "APPROVED" },
+      where: { state: "APPROVED", approvedAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } },
       orderBy: { approvedAt: "desc" },
       take: 4,
       include: {
@@ -172,6 +174,17 @@ export default async function AdminDashboardPage() {
       },
     }),
   ]);
+
+  // Delivered since the approval: any client-visible file added to the project after it,
+  // other than the approved cut itself. That is the master (or the final) going out.
+  const deliveredSince = await Promise.all(
+    approvedCuts.map((r) =>
+      db.asset.count({
+        where: { projectId: r.asset.projectId, internal: false, id: { not: r.assetId }, createdAt: { gt: r.approvedAt ?? r.createdAt } },
+      }),
+    ),
+  );
+  const openApprovals = approvedCuts.filter((_, i) => deliveredSince[i] === 0);
 
   // One row per batch, not per note: a reviewer who sent five notes at once is one thing
   // to deal with, and five identical cards is how a feed stops being read.
@@ -276,7 +289,7 @@ export default async function AdminDashboardPage() {
       href: `/admin/projects/${first.review.asset.projectId}/review`,
       action: "Open review",
     })),
-    ...approvedCuts.map((r) => ({
+    ...openApprovals.map((r) => ({
       id: `approved-${r.id}`,
       kind: "approved" as const,
       subject: `${r.approvedBy?.name ?? "A reviewer"} approved cut ${r.version}`,
