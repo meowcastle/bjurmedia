@@ -39,7 +39,9 @@ const NOT_A_BRAND = new Set([
   "yandex.com", "yandex.ru", "mail.ru", "qq.com", "163.com", "126.com",
   "comcast.net", "verizon.net", "att.net", "sbcglobal.net", "optonline.net",
   "duck.com", "privaterelay.appleid.com", "hushmail.com",
-  "bjur.nyc", "bjur.media",
+  // The studio's own domains: staff logins sit on client accounts, and their address
+  // says nothing about the client's brand.
+  "bjur.nyc", "bjur.media", "bjurmedia.nyc", "wreckroom.nyc", "justinbjur.com",
 ]);
 
 export function isBrandDomain(domain: string) {
