@@ -74,3 +74,15 @@ test("the reset endpoint is rate limited", async ({ request }) => {
   }
   expect(codes).toContain(429);
 });
+
+test("the old address sends every page to portal.bjur.nyc, path and query kept", async ({ request }) => {
+  for (const [path, to] of [
+    ["/", "https://portal.bjur.nyc/?from=jb"],
+    ["/p/p1", "https://portal.bjur.nyc/p/p1?from=jb"],
+    ["/r/abc?t=1", "https://portal.bjur.nyc/r/abc?t=1&from=jb"],
+  ]) {
+    const res = await request.get(path, { headers: { host: "portal.justinbjur.com" }, maxRedirects: 0 });
+    expect(res.status(), path).toBe(301);
+    expect(res.headers()["location"], path).toBe(to);
+  }
+});
