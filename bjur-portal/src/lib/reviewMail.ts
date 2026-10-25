@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendCutReadyEmail, sendNotesInEmail } from "@/lib/mailer";
 import type { CutReadyNote } from "@/emails/cutReady";
 
@@ -83,7 +84,7 @@ export async function notifyCutReady(
             contentTitle: true,
             projectId: true,
             project: {
-              select: { id: true, title: true, client: { select: { name: true, accentColor: true } } },
+              select: { id: true, title: true, client: { select: { name: true, accentColor: true, logoUrl: true } } },
             },
           },
         },
@@ -125,12 +126,14 @@ export async function notifyCutReady(
     for (const reviewer of reviewers) {
       await send(reviewer.email, {
         clientName: cut.asset.project.client.name,
+        logoUrl: emailLogoUrl(cut.asset.project.client.logoUrl),
         version: cut.version,
         title: cut.asset.contentTitle || cut.asset.name,
         projectTitle: cut.asset.project.title,
         note: cut.note,
         notes,
         reviewUrl: watchUrl(projectId, reviewer),
+        recipientName: reviewer.name,
         accent: cut.asset.project.client.accentColor ?? undefined,
       });
       sent += 1;
@@ -166,7 +169,7 @@ export async function notifyNotesIn(
             contentTitle: true,
             projectId: true,
             project: {
-              select: { id: true, title: true, client: { select: { name: true, accentColor: true } } },
+              select: { id: true, title: true, client: { select: { name: true, accentColor: true, logoUrl: true } } },
             },
           },
         },

@@ -13,9 +13,9 @@ export const THEME_KEY: Record<Portal, string> = {
   admin: "bjur:v2:themeA",
 };
 
-/** Clients default light, staff default dark. */
+/** Dark by default for everyone, as on bjur.nyc (v13); the toggle still remembers. */
 export const THEME_FALLBACK: Record<Portal, "light" | "dark"> = {
-  client: "light",
+  client: "dark",
   admin: "dark",
 };
 

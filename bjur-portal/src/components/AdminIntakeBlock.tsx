@@ -124,9 +124,11 @@ export function AdminIntakeBlock({
   }
 
   return (
-    <div className="mt-10" data-testid="intake-block">
-      <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line2">
-        <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Sent</span>
+    <section className="bj-sx" data-testid="intake-block">
+      <span className="bj-mono bj-lab">Sent</span>
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-4 pb-2.5 border-b border-line min-h-[1px]">
+        <span />
         {/* Counts went; each row already says its own state. This one stays because it
             is not a count: with no open link nobody can send anything. */}
         {openLinks === 0 && (
@@ -136,9 +138,9 @@ export function AdminIntakeBlock({
         )}
       </div>
 
-      <div className="grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-px bg-line2 border border-line2 border-t-0">
+      <div className="grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-10">
         {/* What came in */}
-        <div className="bg-s1 p-5">
+        <div className="pt-3 min-w-0">
           {batches.length === 0 ? (
             <p className="text-[12px] text-muted leading-relaxed">Nothing yet.</p>
           ) : (
@@ -251,7 +253,7 @@ export function AdminIntakeBlock({
         </div>
 
         {/* The doors */}
-        <div className="bg-s1 p-5">
+        <div className="pt-3 min-w-0">
           {/* Two independent doors. A link is for people with no account; this switch is
               for the client's own seats. Neither implies the other. */}
           <div className="flex items-baseline justify-between gap-3 pb-3 mb-3 border-b border-line">
@@ -293,14 +295,14 @@ export function AdminIntakeBlock({
                 placeholder="Who is it for? e.g. Xavier"
                 autoFocus
                 data-testid="link-name"
-                className="w-full bg-transparent border border-line2 focus:border-text outline-none px-3 py-2 text-[13px]"
+                className="bj-in w-full"
               />
               <p className="text-[10.5px] text-dim2 mt-1.5">Closes after 14 days.</p>
               <button
                 type="button"
                 onClick={() => void newLink()}
                 disabled={!linkName.trim() || busy === "new-link"}
-                className="mt-2 text-[10.5px] font-semibold uppercase tracking-[.06em] border border-line2 hover:border-text px-3 py-1.5 cursor-pointer disabled:opacity-40"
+                className="bj-ghost bj-sm mt-2 disabled:opacity-40"
               >
                 Create link
               </button>
@@ -355,5 +357,6 @@ export function AdminIntakeBlock({
           onAnimationEnd without an animation, so it never left the screen. */}
       <Toast message={toast} onDone={() => setToast(null)} />
     </div>
+    </section>
   );
 }

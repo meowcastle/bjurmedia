@@ -1,121 +1,219 @@
 "use client";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
-import { lighten } from "@/lib/color";
-import { initials } from "@/lib/initials";
+import { RowMenu, RowMenuItem } from "@/components/RowMenu";
+import { Toast } from "@/components/ui/Toast";
+import { ClientLogo, CLIENT_ASH } from "@/components/ClientLogo";
 
 type ClientRow = {
   id: string;
   name: string;
-  username: string;
+  /** The Instagram or YouTube handle, or domain, the logo comes from. */
+  handle: string;
   status: "ACTIVE" | "DISABLED";
-  accentColor: string | null;
   logoUrl: string | null;
+  logoColor: string | null;
+  logoLocked: boolean;
+  /** "Instagram", "YouTube", "Website", "From email domain", "Brandfetch", "Uploaded", "Initials". */
+  logoSource: string;
   projectCount: number;
-  seats: { id: string }[];
+  loginCount: number;
 };
 
-const DEFAULT_ACCENT = "#ec3013";
-const COLS = "2fr .7fr .7fr .8fr";
+type Filter = "all" | "active" | "off";
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "off", label: "Off" },
+];
 
 /**
- * Name, counts and status — the row is a link to the client. Logins (add, reset, remove)
- * and Disable each live on the client page and nowhere else; this list used to expand to
- * a second copy of the login controls.
+ * Studio, Clients (PortalClients13). Each row is the client's logo (or initials on its
+ * colour), name and handle, where the logo came from, counts and status. The row opens
+ * the client; logins and Disable live on the client page. The row menu carries the two
+ * logo actions: "Replace logo" (a hand upload, which the monthly job then leaves alone)
+ * and "Refresh logo" (unlock and look again on the worker's next tick).
  */
-export function AdminClientsClient({ clients }: { clients: ClientRow[] }) {
+export function AdminClientsClient({ clients, projectTotal }: { clients: ClientRow[]; projectTotal: number }) {
   const router = useRouter();
   const [newClientOpen, setNewClientOpen] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [toast, setToast] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadFor = useRef<ClientRow | null>(null);
+
+  const shown = clients.filter((c) =>
+    filter === "all" ? true : filter === "active" ? c.status === "ACTIVE" : c.status !== "ACTIVE"
+  );
+
+  async function replaceLogo(file: File) {
+    const c = uploadFor.current;
+    if (!c) return;
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch(`/api/admin/clients/${c.id}/logo`, { method: "POST", body });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      setToast(data.error ?? "That logo didn't upload. Try a PNG, JPG or SVG.");
+      return;
+    }
+    setToast(`Logo replaced for ${c.name}`);
+    router.refresh();
+  }
+
+  async function refreshLogo(c: ClientRow) {
+    const res = await fetch(`/api/admin/clients/${c.id}/logo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "refresh" }),
+    });
+    setToast(res.ok ? `Looking for a new logo for ${c.name}` : "Couldn't refresh the logo. Try again.");
+    if (res.ok) router.refresh();
+  }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
-      <div className="flex items-end justify-between mb-7">
-        <h1 className="bj-serif text-[34px] font-normal">Clients</h1>
-        <Button onClick={() => setNewClientOpen(true)}>+ New client</Button>
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div>
+          <span className="bj-mono">
+            {clients.length} client{clients.length === 1 ? "" : "s"} · {projectTotal} project
+            {projectTotal === 1 ? "" : "s"}
+          </span>
+          <h1 className="bj-big">Clients.</h1>
+        </div>
+        <div className="acts">
+          <button type="button" className="bj-cta" onClick={() => setNewClientOpen(true)}>
+            + New client
+          </button>
+        </div>
+      </section>
+
+      <div className="bj-filters" role="group" aria-label="Show clients">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            className={filter === f.key ? "on" : undefined}
+            aria-pressed={filter === f.key}
+            onClick={() => setFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      <div className="border border-line">
-        <div
-          className="hidden md:grid gap-4 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
-          style={{ gridTemplateColumns: COLS }}
-        >
-          <span>Client</span>
-          <span>Projects</span>
-          <span>Logins</span>
-          <span className="text-right">Status</span>
-        </div>
-        {clients.map((c, i) => {
-          const active = c.status === "ACTIVE";
-          const accent = c.accentColor ?? DEFAULT_ACCENT;
-          return (
-            <Link
-              key={c.id}
-              href={`/admin/clients/${c.id}`}
-              data-testid={`client-row-${c.id}`}
-              className="bj-row group flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-5 md:grid md:gap-4 md:px-5 border-b border-line last:border-b-0 hover:bg-s3 active:bg-s3 transition-colors"
-              style={{
-                "--i": i,
-                gridTemplateColumns: COLS,
-                borderLeft: `3px solid ${active ? accent : "var(--line2)"}`,
-                background: active ? undefined : "var(--s1)",
-              } as React.CSSProperties}
-            >
-              <div className="flex items-center gap-3.5 min-w-0 basis-full md:basis-auto">
-                <div
-                  className="w-12 h-12 flex-none grid place-items-center overflow-hidden"
-                  style={
-                    !c.logoUrl
-                      ? { background: `linear-gradient(135deg, ${accent}, ${lighten(accent, 0.6)})` }
-                      : { background: "var(--s3)" }
-                  }
-                >
-                  {c.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
-                    <img src={c.logoUrl} alt="" className="w-full h-full object-contain bg-bg" />
-                  ) : (
-                    <span className={`text-sm font-black ${active ? "text-bg" : "text-dim"}`}>
-                      {initials(c.name)}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div
-                    className={`font-bold text-base truncate group-hover:text-accent ${active ? "text-text" : "text-dim"}`}
+      {shown.length > 0 ? (
+        // No scroll wrapper here: it would clip the row menu, and with the logo column
+        // dropped on a phone and the name truncating, the table fits at 360px anyway.
+        <div>
+          <table className="bj-tbl bj-ctbl">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th className="hide">Logo + colour</th>
+                <th>Projects</th>
+                <th className="hide">Logins</th>
+                <th className="r">Status</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((c) => {
+                const active = c.status === "ACTIVE";
+                const colour = c.logoColor ?? CLIENT_ASH;
+                return (
+                  <tr
+                    key={c.id}
+                    data-testid={`client-row-${c.id}`}
+                    className={`row bj-acc${active ? "" : " off"}`}
+                    style={{ "--acc": colour } as React.CSSProperties}
+                    onClick={() => router.push(`/admin/clients/${c.id}`)}
                   >
-                    {c.name}
-                  </div>
-                  <div className="text-[11px] text-dim font-mono">@{c.username}</div>
-                </div>
-              </div>
-              <span className="text-[12px] text-dim">
-                <span className="md:hidden">Projects · </span>
-                {c.projectCount}
-              </span>
-              <span className="text-[12px] text-dim">
-                <span className="md:hidden">Logins · </span>
-                {c.seats.length}
-              </span>
-              <span
-                className={`text-[11px] font-bold tracking-wide uppercase md:text-right ml-auto md:ml-0 ${active ? "text-success" : "text-dim"}`}
-              >
-                {active ? "Active" : "Disabled"}
-              </span>
-            </Link>
-          );
-        })}
-        {clients.length === 0 && (
-          <EmptyState icon="clients">No clients yet.</EmptyState>
-        )}
-      </div>
+                    <td>
+                      <div className="bj-cname">
+                        <ClientLogo client={c} size={40} />
+                        <div>
+                          <Link href={`/admin/clients/${c.id}`}>
+                            <b>{c.name}</b>
+                          </Link>
+                          <span className="bj-mono">{c.handle}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hide">
+                      <span className="bj-src">
+                        <i style={{ background: colour }} />
+                        <span className="bj-mono">{c.logoSource}</span>
+                      </span>
+                    </td>
+                    <td className="num">{c.projectCount}</td>
+                    <td className="num hide">{c.loginCount}</td>
+                    <td className="r">
+                      {active ? (
+                        <span className="bj-mono bj-status-on">
+                          <span className="bj-dot ok" />
+                          <span className="bj-status-word">Active</span>
+                        </span>
+                      ) : (
+                        <span className="bj-mono">Off</span>
+                      )}
+                    </td>
+                    <td className="menu" onClick={(e) => e.stopPropagation()}>
+                      <RowMenu label={`Actions for ${c.name}`}>
+                        {(close) => (
+                          <>
+                            <RowMenuItem
+                              onClick={() => {
+                                uploadFor.current = c;
+                                fileInput.current?.click();
+                                close();
+                              }}
+                            >
+                              Replace logo
+                            </RowMenuItem>
+                            <RowMenuItem
+                              onClick={() => {
+                                refreshLogo(c);
+                                close();
+                              }}
+                            >
+                              Refresh logo
+                            </RowMenuItem>
+                          </>
+                        )}
+                      </RowMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="bj-adm-empty">
+          {clients.length === 0 ? "No clients yet." : filter === "off" ? "No clients are off." : "No active clients."}
+        </p>
+      )}
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) replaceLogo(file);
+        }}
+      />
 
       {newClientOpen && (
         <NewClientDialog onClose={() => setNewClientOpen(false)} onCreated={() => router.refresh()} />
       )}
+      <Toast message={toast} onDone={() => setToast(null)} />
     </div>
   );
 }

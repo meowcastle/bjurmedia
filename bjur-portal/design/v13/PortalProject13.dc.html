@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>portal.bjur.nyc — Project v13</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+:root{--paper:#141412;--ink:#F2EEE4;--sumi:#D3CEC1;--ash:#8C887C;--rule:#2F2E29;--shu:#E04A2E;--ph:#211F1B;--raise:#1A1A17;--ok:#7FB08A;color-scheme:dark}
+:root.light{--paper:#F4F1E8;--ink:#1A1A1A;--sumi:#3A3934;--ash:#7A776E;--rule:#D9D3C4;--shu:#C8371F;--ph:#E9E4D8;--raise:#FBF9F3;--ok:#2F6B45;color-scheme:light}
+html{background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit}
+.page{padding:28px 40px;box-sizing:border-box;min-height:100%;display:flex;flex-direction:column}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash)}
+.ink{color:var(--ink)}
+.sealsvg{width:40px;height:40px;display:block;transform:rotate(-3deg);transform-origin:50% 60%;transition:transform .35s cubic-bezier(.3,.7,.2,1),filter .35s}
+.sealsvg.sm{width:30px;height:30px}
+.brand:hover .sealsvg{transform:translateY(1px) rotate(-1deg) scale(.95);filter:brightness(.92);transition-duration:.18s}
+/* nav: same bones as bjur.nyc */
+.nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .who{display:grid;gap:2px}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;font-size:14px;justify-self:center}
+.nav ul a{padding-bottom:3px;color:var(--sumi)}
+.nav ul .on{border-bottom:2px solid var(--ink);color:var(--ink)}
+.nav .r{justify-self:end;display:flex;gap:14px;align-items:center}
+.tg{appearance:none;background:none;border:1px solid var(--rule);color:var(--ash);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;cursor:pointer;border-radius:2px}
+.tg:hover{color:var(--ink);border-color:var(--ink)}
+.lg{border-radius:50%;object-fit:cover;display:inline-block;vertical-align:middle;flex:none;box-shadow:0 0 0 1px var(--rule);background:var(--ph)}
+.brand .x{font:300 18px 'Archivo',system-ui,sans-serif;color:var(--ash);margin:0 -2px}
+.cl{display:inline-flex;align-items:center;gap:8px}
+.me{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ph);font:500 11px 'IBM Plex Mono',monospace;color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule)}
+.search{display:flex;align-items:center;gap:10px;border:1px solid var(--rule);border-radius:2px;padding:7px 10px;min-width:220px;color:var(--ash);font-size:13px}
+.search kbd{margin-left:auto;font:10px 'IBM Plex Mono',monospace;border:1px solid var(--rule);padding:1px 5px;border-radius:2px}
+/* type */
+h1.big{margin:0;text-wrap:balance;font-size:clamp(36px,4.4vw,64px);font-weight:700;letter-spacing:-.045em;line-height:1}
+h1.mid{margin:0;font-size:clamp(30px,3.2vw,46px);font-weight:700;letter-spacing:-.04em;line-height:1.02}
+h2.t{margin:0;font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1.1}
+.lead{margin:12px 0 0;font-size:17px;line-height:1.5;color:var(--sumi);max-width:56ch}
+/* label grid (Studio v13) */
+.sx{display:grid;grid-template-columns:160px minmax(0,1fr);gap:40px;border-top:1px solid var(--ink);padding:24px 0 36px}
+.sx>.lab{padding-top:4px}
+.sx>.lab b{display:block;margin-top:6px;font:600 22px 'Archivo',system-ui,sans-serif;letter-spacing:-.02em;color:var(--ink);text-transform:none}
+/* buttons */
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--shu);color:#fff;font-weight:600;font-size:14px;padding:11px 16px;border-radius:3px;border:0;cursor:pointer;white-space:nowrap;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.cta:hover{transform:translateY(-1px)}
+.cta i{font-style:normal}
+.ghost{display:inline-flex;align-items:center;gap:8px;background:none;color:var(--ink);font-weight:500;font-size:14px;padding:10px 14px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--rule);border:0;cursor:pointer;white-space:nowrap}
+.ghost:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+.ulink{border-bottom:1px solid var(--ink);padding-bottom:2px;font-size:14px}
+.ulink:hover{color:var(--shu);border-color:var(--shu)}
+/* status dots */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ash);margin-right:8px;vertical-align:1px}
+.dot.red{background:var(--shu)}.dot.ok{background:var(--ok)}
+.pill{font:10px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--rule);padding:3px 7px;border-radius:999px;color:var(--ash);white-space:nowrap}
+.pill.red{border-color:var(--shu);color:var(--shu)}
+.pill.ok{border-color:color-mix(in srgb,var(--ok) 60%,transparent);color:var(--ok)}
+/* tables */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font:11px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);font-weight:400;padding:0 12px 10px 0;border-bottom:1px solid var(--rule)}
+.tbl td{padding:16px 12px 16px 0;border-bottom:1px solid var(--rule);font-size:15px;vertical-align:middle}
+.tbl tr.row{cursor:pointer;transition:background .2s}
+.tbl tr.row:hover td{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.tbl .num{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--sumi)}
+.tbl .r{text-align:right;padding-right:0}
+.tbl .t b{font-weight:600}
+.tbl .t span{display:block;margin-top:3px}
+.thumbs{display:flex;align-items:center;gap:12px}
+.thumbs img{width:64px;height:40px;object-fit:cover;display:block;background:var(--ph)}
+.tblw{overflow-x:auto;max-width:100%}
+.foot{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);padding-top:64px;margin-top:auto}
+.foot .c{justify-self:center}.foot .rr{justify-self:end}
+.page::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");z-index:5}
+@media (max-width:900px){.thumbs img{width:44px;height:44px}.tbl .hide{display:none}.att{grid-template-columns:1fr}.page{padding:20px 16px}.nav{grid-template-columns:1fr auto}.nav ul{display:none}.sx{grid-template-columns:1fr;gap:12px}.search{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.back{display:inline-block;margin:44px 0 22px}
+.phead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px;align-items:end;padding-bottom:36px}
+.phead .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:16px}
+.phead .acts{display:flex;gap:12px;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.tile{position:relative;cursor:pointer;display:block}
+.tile .im{position:relative;aspect-ratio:9/16;overflow:hidden;background:var(--ph);box-shadow:0 0 0 1px var(--rule);transition:box-shadow .2s}
+.tile.wide .im{aspect-ratio:16/9}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.tile:hover img{transform:scale(1.03)}
+.tile .ck{position:absolute;left:10px;top:10px;width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);background:rgba(0,0,0,.25);display:grid;place-items:center;color:#fff;font-size:12px;opacity:0;transition:opacity .2s,background .2s}
+.tile:hover .ck,.grid.sel .ck{opacity:1}
+.tile.on .ck{background:var(--shu);border-color:var(--shu);opacity:1}
+.tile.on .im{box-shadow:0 0 0 2px var(--shu)}
+.tile .dur{position:absolute;right:10px;bottom:10px;font:10px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#fff;background:rgba(0,0,0,.5);padding:4px 7px;border-radius:999px}
+.tile .cap{display:flex;justify-content:space-between;gap:10px;margin-top:10px}
+.tile .cap b{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{position:sticky;bottom:20px;z-index:4;margin-top:28px;display:flex;align-items:center;gap:18px;background:var(--ink);color:var(--paper);padding:12px 12px 12px 20px;border-radius:3px;box-shadow:0 18px 40px -18px rgba(0,0,0,.6);transform:translateY(12px);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.32,.72,0,1),opacity .25s}
+.bar.show{transform:none;opacity:1;pointer-events:auto}
+.bar .mono{color:inherit;opacity:.7}
+.bar b{font-weight:600}
+.bar .sp{flex:1}
+.bar .lnk{font-size:14px;opacity:.8;cursor:pointer;background:none;border:0;color:inherit}
+@media (max-width:900px){.phead{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</helmet>
+<div class="page">
+
+<nav class="nav" aria-label="Primary">
+  <a class="brand" href="PortalProjects13.dc.html"><svg class="sealsvg" viewBox="0 0 100 100" aria-label="BJUR" role="img"><rect width="100" height="100" rx="2" fill="#E04A2E"/><rect x="3" y="3" width="47" height="47" fill="#fff"/><rect x="50" y="50" width="47" height="47" fill="#fff"/><g fill="none" stroke-width=".2609" stroke-linecap="square"><path d="M0 0V1 M0 0H.52A.25 .25 0 0 1 .52 .5H0 M.5 .5H.6A.25 .25 0 0 1 .6 1H0" transform="translate(15 15) scale(23)" stroke="#E04A2E"/><path d="M.2 0H1 M.8 0V.6A.4 .4 0 0 1 0 .6" transform="translate(62 15) scale(23)" stroke="#fff"/><path d="M0 0V.55A.5 .45 0 0 0 1 .55V0" transform="translate(15 62) scale(23)" stroke="#fff"/><path d="M0 1V0H.55A.25 .25 0 0 1 .55 .5H0" transform="translate(62 62) scale(23)" stroke="#E04A2E"/><path d="M.3 .5L1 1" transform="translate(62 62) scale(23)" stroke="#E04A2E" stroke-linecap="butt"/></g></svg><span class="x" aria-hidden="true">&#215;</span><img class="lg" src="/_blob/c979ddda125c44d24edc49d75890fcb0" alt="" style="width:34px;height:34px"><span class="who"><span class="mono ink">Client portal</span><span class="mono">Suyin</span></span></a>
+  <ul><li><a href="PortalProjects13.dc.html" class="on">projects</a></li><li><a href="#">send footage</a></li><li><a href="#">settings</a></li></ul>
+  <div class="r"><button class="tg" type="button" data-tg aria-label="Switch theme">light</button><span class="me" title="Signed in">SU</span></div>
+</nav>
+<a class="back mono" href="PortalProjects13.dc.html">&#8592; All projects</a>
+<section class="phead">
+  <div><h1 class="big">Gumi x Miku Hair</h1>
+    <div class="meta"><span class="mono">Delivered Oct 21, 2026</span><span class="mono">6 files · 2.9 GB</span><span class="mono">Viewed 3 times</span></div></div>
+  <div class="acts"><a class="ghost" href="#">&#8593; Send footage</a><button class="cta" type="button">&#8595; Download all <span style="opacity:.7;font-weight:400">2.9 GB</span></button></div>
+</section>
+<section class="sx"><span class="mono lab">Final<b>4</b></span><div class="grid" data-grid><div class="tile" data-tile><div class="im"><img src="/_blob/2b4f64ea1b9652c5ebd3392f6816dcee" alt=""><span class="ck">&#10003;</span><span class=dur>0:48</span></div><div class="cap"><b>gumi-miku-hair_vertical_v3.mov</b><span class="mono">Video</span></div></div><div class="tile" data-tile><div class="im"><img src="/_blob/7fa7c04f921b6245a004209cf7bd49b0" alt=""><span class="ck">&#10003;</span><span class=dur>0:48</span></div><div class="cap"><b>gumi-miku-hair_square_v3.mov</b><span class="mono">Video</span></div></div><div class="tile" data-tile><div class="im"><img src="/_blob/e7358f5985a230321498e792b0f0407e" alt=""><span class="ck">&#10003;</span><span class=dur>0:15</span></div><div class="cap"><b>gumi-miku-hair_teaser.mov</b><span class="mono">Video</span></div></div><div class="tile" data-tile><div class="im"><img src="/_blob/fe0e3458f873e499df7d0aa38d89fd82" alt=""><span class="ck">&#10003;</span></div><div class="cap"><b>gumi-miku-hair_still-01.tif</b><span class="mono">Still</span></div></div></div></section>
+<section class="sx"><span class="mono lab">Behind the scenes<b>2</b></span><div class="grid" data-grid><div class="tile" data-tile><div class="im"><img src="/_blob/2e3363734d047101d11855d5340d2e9d" alt=""><span class="ck">&#10003;</span><span class=dur>4:12</span></div><div class="cap"><b>BTS_A001_C004.mov</b><span class="mono">Video</span></div></div><div class="tile" data-tile><div class="im"><img src="/_blob/875b536d13b083d53edc33338fcab6ff" alt=""><span class="ck">&#10003;</span><span class=dur>2:31</span></div><div class="cap"><b>BTS_A001_C007.mov</b><span class="mono">Video</span></div></div></div></section>
+<div class="bar" id="bar"><b id="bn">2 selected</b><span class="mono" id="bs">96 MB</span><span class="sp"></span><button class="lnk" type="button" id="bc">Clear</button><button class="cta" type="button">&#8595; Download</button></div>
+<footer class="foot"><span>Bjur · Brooklyn, NY</span><a class="c" href="mailto:hi@bjur.nyc" style="color:var(--ink)">hi@bjur.nyc</a><span class="rr">portal.bjur.nyc</span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700},"theme":"dark"}'>
+class Component extends DCLogic {
+  componentDidMount(){ const tg=document.querySelector('[data-tg]'); const root=document.documentElement; let th=this.props.theme||'dark'; try{th=localStorage.getItem('bjur-portal-theme')||th}catch(e){}; const apply=t=>{ root.classList.toggle('light',t==='light'); if(tg) tg.textContent=(t==='light'?'dark':'light'); }; apply(th); if(tg) tg.addEventListener('click',()=>{ th=th==='light'?'dark':'light'; try{localStorage.setItem('bjur-portal-theme',th)}catch(e){}; apply(th); });
+    
+    const bar=document.getElementById('bar'), bn=document.getElementById('bn'); const tiles=[...document.querySelectorAll('[data-tile]')];
+    const upd=()=>{ const n=tiles.filter(t=>t.classList.contains('on')).length; bar.classList.toggle('show',n>0); bn.textContent=n+' selected'; document.querySelectorAll('[data-grid]').forEach(g=>g.classList.toggle('sel',n>0)); };
+    tiles.forEach(t=>t.querySelector('.ck').addEventListener('click',e=>{ e.stopPropagation(); t.classList.toggle('on'); upd(); }));
+    document.getElementById('bc').addEventListener('click',()=>{ tiles.forEach(t=>t.classList.remove('on')); upd(); });
+    tiles[0].classList.add('on'); tiles[1].classList.add('on'); upd();
+  }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

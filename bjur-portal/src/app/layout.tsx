@@ -1,26 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Fragment_Mono, Source_Serif_4 } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { MotionProvider } from "@/components/ui/MotionProvider";
 
-// Fragment Mono ships a single weight, so bold UI text is synthesised by the browser
-// rather than a real bold cut — which is the trade the v2 type spec makes deliberately.
-const fragmentMono = Fragment_Mono({
-  variable: "--font-fragment-mono",
+// The bjur.nyc pair (v13): Archivo for everything you read, IBM Plex Mono for labels.
+// Archivo is variable on weight and width, so headlines can widen the way the site's do.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400"],
+  axes: ["wdth"],
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
-  weight: ["300", "400"],
-  style: ["normal", "italic"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "Bjur Media — Client Portal",
-  description: "Client portal for Bjur Media.",
+  title: "Bjur · Client portal",
+  description: "The Bjur client portal: review cuts, leave notes and download your files.",
 };
 
 export const viewport: Viewport = {
@@ -42,7 +41,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fragmentMono.variable} ${sourceSerif.variable} h-full antialiased`}
+      className={`${archivo.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
         <MotionProvider>{children}</MotionProvider>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { loadReviewScreen } from "@/lib/reviewScreenData";
 import { GuestReviewEntry } from "@/components/GuestReviewEntry";
+import { themeScript } from "@/lib/theme";
 
 /**
  * A guest reviewing by link. No session, no account, no way to download anything.
@@ -26,11 +27,15 @@ export default async function GuestReviewPage({ params }: { params: Promise<{ to
   if (!data) notFound();
 
   return (
-    <GuestReviewEntry
-      token={token}
-      needsName={!reviewer.name.trim()}
-      reviewerId={reviewer.id}
-      data={data}
-    />
+    <>
+      {/* No portal layout above a guest link, so the theme is stamped here. */}
+      <script dangerouslySetInnerHTML={{ __html: themeScript("client") }} />
+      <GuestReviewEntry
+        token={token}
+        needsName={!reviewer.name.trim()}
+        reviewerId={reviewer.id}
+        data={data}
+      />
+    </>
   );
 }

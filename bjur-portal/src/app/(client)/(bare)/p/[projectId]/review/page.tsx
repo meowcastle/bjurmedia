@@ -2,7 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { loadReviewScreen } from "@/lib/reviewScreenData";
+import Link from "next/link";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
+import { ReviewShell } from "@/components/ReviewScreen";
 
 /**
  * A seat reviewing a Film project.
@@ -43,18 +45,18 @@ export default async function ClientReviewPage({
 
   if (data.empty) {
     return (
-      <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
-        <div className="max-w-sm text-center">
-          <div className="bj-serif text-[26px]">{data.projectTitle}</div>
-          <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-2">
-            {data.clientName}
-          </div>
-          <p className="text-[13px] leading-relaxed text-white/60 mt-5">
+      <ReviewShell mode="client" clientName={data.clientName} brandHref="/" viewerName={session.name}>
+        <section className="bj-rv-solo">
+          <Link href="/" className="bj-mono" data-testid="review-back">
+            ← All projects
+          </Link>
+          <h1 className="bj-mid">{data.projectTitle}</h1>
+          <p className="bj-lead">
             No cut yet. When we put one up you&apos;ll get an email, and it will play here
             with room to leave notes.
           </p>
-        </div>
-      </div>
+        </section>
+      </ReviewShell>
     );
   }
 

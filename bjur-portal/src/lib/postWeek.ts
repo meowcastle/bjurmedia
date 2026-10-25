@@ -128,7 +128,7 @@ const httpSender: SlackSender = async ({ webhookUrl, channel, blocks }) => {
   const res = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ channel, username: "Bjur Media", blocks }),
+    body: JSON.stringify({ channel, username: "Bjur", blocks }),
   });
   return { ok: res.ok, status: res.status, body: await res.text().catch(() => "") };
 };
@@ -241,7 +241,7 @@ export async function postProjectWeek(
 
   await db.activity.create({
     data: {
-      actor: "Bjur Media",
+      actor: "Bjur",
       action: `posted ${preview.projectTitle} week of ${preview.weekLabel} to ${preview.channel} (${toPost.length} posts)`,
     },
   });

@@ -81,15 +81,28 @@ export function AdminPipelineClient({
   }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1600px] mx-auto bjfade">
-      <div className="flex items-end justify-between gap-4 mb-7">
-        <h1 className="bj-serif text-[34px] font-normal">Pipeline</h1>
-        <Button onClick={() => setNewOpen(true)}>+ Deal</Button>
-      </div>
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div>
+          <span className="bj-mono">
+            {deals.length} deal{deals.length === 1 ? "" : "s"} · {tasks.length} to do
+          </span>
+          <h1 className="bj-big">Pipeline.</h1>
+        </div>
+        <div className="acts">
+          <button type="button" className="bj-cta" onClick={() => setNewOpen(true)}>
+            + Deal
+          </button>
+        </div>
+      </section>
 
       <TaskList tasks={tasks} onChanged={() => router.refresh()} />
 
-      <div className="bj-chips flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0" data-testid="pipeline">
+      <section className="bj-sx">
+        <span className="bj-mono bj-lab">
+          Deals<b>{deals.length}</b>
+        </span>
+      <div className="bj-chips bj-stages flex gap-3 overflow-x-auto pb-4" data-testid="pipeline">
         {STAGES.map(([stage, label]) => {
           const inStage = deals.filter((d) => d.stage === stage);
           return (
@@ -109,15 +122,15 @@ export function AdminPipelineClient({
               }}
               // Columns share the width on a wide screen (all seven in view) and keep a
               // readable minimum on a narrow one, where the row scrolls instead.
-              className={`flex-1 min-w-[180px] bg-s1 border shadow-1 transition-colors ${
-                over === stage && dragging ? "border-accent" : "border-line"
+              className={`bj-stage flex-1 min-w-[170px] transition-colors ${
+                over === stage && dragging ? "over" : ""
               }`}
             >
-              <div className="flex items-baseline justify-between px-3.5 py-3 border-b border-line2 text-[10.5px] tracking-[0.1em] uppercase text-muted font-bold">
+              <div className="flex items-baseline justify-between py-2.5 bj-mono">
                 <span>{label}</span>
-                <span className="text-dim2 tabular-nums">{inStage.length}</span>
+                <span className="tabular-nums">{inStage.length}</span>
               </div>
-              <div className="flex flex-col gap-2 p-2 min-h-24">
+              <div className="flex flex-col gap-2 py-2 min-h-24">
                 {inStage.map((d, i) => (
                   <article
                     key={d.id}
@@ -129,14 +142,14 @@ export function AdminPipelineClient({
                     onDragEnd={() => setDragging(null)}
                     data-testid={`deal-${d.id}`}
                     style={{ "--i": i } as React.CSSProperties}
-                    className={`bj-row bg-s2 border border-line px-3 py-2.5 cursor-grab active:cursor-grabbing hover:border-line2 transition-colors ${
+                    className={`bj-row bj-deal px-3 py-2.5 cursor-grab active:cursor-grabbing transition-colors ${
                       dragging === d.id ? "opacity-50" : ""
                     }`}
                   >
-                    <div className="text-[13px] font-semibold leading-snug">{d.title}</div>
-                    {d.who && <div className="text-[11px] text-muted mt-0.5 truncate">{d.who}</div>}
-                    <div className="flex items-center justify-between gap-2 mt-2 text-[10.5px] text-dim">
-                      <span className={d.unpaid ? "text-accentb font-semibold" : ""}>
+                    <div className="text-[14px] font-semibold leading-snug">{d.title}</div>
+                    {d.who && <div className="bj-mono mt-1 truncate">{d.who}</div>}
+                    <div className="flex items-center justify-between gap-2 mt-2 bj-mono">
+                      <span className={d.unpaid ? "bj-pill red" : ""}>
                         {d.unpaid ? "Unpaid · " : ""}
                         {daysIn(d.stageChangedAt)}d
                       </span>
@@ -156,7 +169,7 @@ export function AdminPipelineClient({
                         ))}
                       </select>
                       {d.projectId && (
-                        <Link href={`/admin/projects/${d.projectId}`} className="text-[10.5px] font-semibold text-muted hover:text-text">
+                        <Link href={`/admin/projects/${d.projectId}`} className="bj-link">
                           Project
                         </Link>
                       )}
@@ -168,6 +181,7 @@ export function AdminPipelineClient({
           );
         })}
       </div>
+      </section>
 
       {newOpen && (
         <NewDealDialog
@@ -214,14 +228,15 @@ function TaskList({ tasks, onChanged }: { tasks: TaskRow[]; onChanged: () => voi
 
   const today = new Date().toISOString().slice(0, 10);
   return (
-    <div className="border border-line bg-s1 shadow-1 mb-6" data-testid="tasks">
-      <div className="px-4 py-3 border-b border-line2 text-[10.5px] tracking-[0.1em] uppercase text-muted font-bold">
-        To do <span className="text-dim2">· {tasks.length}</span>
-      </div>
+    <section className="bj-sx" data-testid="tasks">
+      <span className="bj-mono bj-lab">
+        To do<b>{tasks.length}</b>
+      </span>
+      <div>
       {tasks.map((t, i) => (
         <div
           key={t.id}
-          className="bj-row flex items-center gap-3 px-4 py-2.5 border-b border-line"
+          className="bj-row flex items-center gap-3 py-2.5 border-b border-line"
           style={{ "--i": i } as React.CSSProperties}
         >
           <input
@@ -230,43 +245,44 @@ function TaskList({ tasks, onChanged }: { tasks: TaskRow[]; onChanged: () => voi
             aria-label={`Done: ${t.title}`}
             className="w-4 h-4 accent-[var(--accent)] cursor-pointer"
           />
-          <span className="text-[13px] flex-1 min-w-0 truncate">
+          <span className="text-[15px] flex-1 min-w-0 truncate">
             {t.title}
-            {t.agent && <span className="text-[10px] uppercase tracking-wide text-dim ml-2">agent</span>}
+            {t.agent && <span className="bj-pill ml-2">agent</span>}
           </span>
           {t.dueAt && (
-            <span className={`text-[11px] tabular-nums ${t.dueAt.slice(0, 10) < today ? "text-accentb" : "text-dim"}`}>
+            <span className={`bj-mono tabular-nums ${t.dueAt.slice(0, 10) < today ? "bj-sys-err" : ""}`}>
               {fmtDay(t.dueAt)}
             </span>
           )}
         </div>
       ))}
-      <div className="flex items-center gap-2 px-4 py-2.5">
+      <div className="flex items-center gap-2 pt-3">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void add()}
           placeholder="Call Adam Friday"
           aria-label="New task"
-          className="flex-1 min-w-0 bg-transparent border border-line2 focus:border-text outline-none px-3 py-2 text-[13px] transition-colors"
+          className="bj-in flex-1 min-w-0"
         />
         <input
           type="date"
           value={due}
           onChange={(e) => setDue(e.target.value)}
           aria-label="Due"
-          className="bg-bg border border-line2 text-[12px] px-2 py-2 outline-none focus:border-accent"
+          className="bj-in"
         />
         <button
           type="button"
           onClick={() => void add()}
           disabled={!title.trim() || busy}
-          className="text-[10.5px] font-semibold uppercase tracking-[.06em] border border-line2 hover:border-text px-3 py-2 cursor-pointer disabled:opacity-40 transition-colors"
+          className="bj-ghost disabled:opacity-40"
         >
           Add
         </button>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 

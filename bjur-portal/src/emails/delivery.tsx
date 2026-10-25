@@ -1,12 +1,12 @@
-// Delivery notification — the "new work is live" email, sent by the debounced
-// batcher in src/lib/deliveryNotify.ts. Shares the visual language of
-// onboarding.tsx (same prototype lineage) but deliberately carries no credentials:
-// this goes to people who already have a login, and repeating a password in every
-// delivery mail is exactly how one ends up forwarded.
+// Delivery notification: the "new work is live" email, sent by the debounced batcher in
+// src/lib/deliveryNotify.ts. Deliberately carries no credentials: this goes to people
+// who already have a login, and repeating a password in every delivery mail is exactly
+// how one ends up forwarded.
 //
-// Plain HTML string, not JSX->render, for the same reasons as onboarding.tsx:
-// email clients need literal inline style="" attributes, and Next's bundler
-// disallows react-dom/server imports from route-reachable modules.
+// Plain HTML string on the shared shell (shell.tsx), for the same reasons as
+// onboarding.tsx.
+
+import { renderShell, firstName } from "@/emails/shell";
 
 export type DeliveryEmailProps = {
   clientName: string;
@@ -18,18 +18,33 @@ export type DeliveryEmailProps = {
   /** True when this batch replaced existing files rather than adding new ones. */
   isUpdate: boolean;
   expiresAt: string | null;
+  /** "2.1 GB", when the sender knows it. Joins the file count in the facts. */
+  totalSize?: string | null;
+  /** "Oct 21, 2026". Defaults to the day it is sent. */
+  deliveredAt?: string | null;
+  /** Absolute URL of a still from the project, shown above the facts. */
+  stillUrl?: string | null;
+  /** Absolute URL of the client's logo, when they have one. */
+  logoUrl?: string | null;
 };
 
-function esc(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+function count(n: number, one: string, many: string) {
+  return `${n <= 10 ? WORDS[n] : n} ${n === 1 ? one : many}`;
 }
 
-function statCell(value: number, label: string, accent: boolean, last: boolean) {
-  return `
-    <div style="flex:1;padding:18px 16px;${last ? "" : "border-right:1px solid #dcd8d1;"}">
-      <div style="font-size:26px;font-weight:900;color:${accent ? "#ec3013" : "#17161a"};letter-spacing:-.02em">${value}</div>
-      <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6e6b66;font-weight:600;margin-top:4px">${label}</div>
-    </div>`;
+/** "Two reels and 12 stills". Only what actually landed: a batch of three reels
+ * announcing "0 films, 0 stills" is noise that hides the one real number. */
+function landed(counts: DeliveryEmailProps["counts"]) {
+  const parts = [
+    counts.reels ? count(counts.reels, "reel", "reels") : null,
+    counts.films ? count(counts.films, "film", "films") : null,
+    counts.stills ? count(counts.stills, "still", "stills") : null,
+  ].filter((p): p is string => p != null);
+  if (parts.length === 0) return null;
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return list.charAt(0).toUpperCase() + list.slice(1);
 }
 
 export function renderDeliveryEmailHtml({
@@ -40,85 +55,42 @@ export function renderDeliveryEmailHtml({
   counts,
   isUpdate,
   expiresAt,
+  totalSize,
+  deliveredAt,
+  stillUrl,
+  logoUrl,
 }: DeliveryEmailProps): string {
-  const kicker = isUpdate ? `Updated · ${esc(clientName)}` : `New files · ${esc(clientName)}`;
-  const headline = isUpdate
-    ? `${esc(projectTitle)} has been updated.`
-    : `Your ${esc(projectTitle)} files are ready.`;
+  const hi = `Hi ${firstName(recipientName)}.`;
+  const total = counts.reels + counts.films + counts.stills;
+  const what = landed(counts);
+  const verb = total === 1 ? "is" : "are";
+
   const body = isUpdate
-    ? `Hi ${esc(recipientName)} — we've updated the files in ${esc(projectTitle)}. Everything below is live in your project now, at full resolution whenever you're ready.`
-    : `Hi ${esc(recipientName)} — new work just landed in ${esc(projectTitle)}. Stream it in-browser and download the masters at full resolution whenever you're ready.`;
-  const preheader = isUpdate
-    ? `${esc(projectTitle)} has been updated in your Bjur Media project.`
-    : `New work is live in ${esc(projectTitle)}.`;
+    ? `${hi} We updated the files in ${projectTitle}. Stream them in the browser, or download the masters at full resolution whenever you like.`
+    : `${hi} ${what ? `${what} ${verb} in your portal.` : "New files are in your portal."} Stream them in the browser, or download the masters at full resolution whenever you like.`;
 
-  const expiryBlock =
-    expiresAt != null
-      ? `
-    <div style="padding:24px 40px;border-top:1px solid #dcd8d1;background:#0f0f11">
-      <div style="display:flex;gap:11px;align-items:flex-start">
-        <div style="width:6px;height:6px;border-radius:50%;background:#ec3013;margin-top:6px;flex:none"></div>
-        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This project is available until <strong style="color:#17161a;font-weight:700">${esc(expiresAt)}</strong>. Please don't forward this email — your login is personal to you and gives access to your files.</p>
-      </div>
-    </div>`
-      : "";
+  const delivered =
+    deliveredAt ??
+    new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  // Only what actually landed. A delivery of three reels announcing "0 films, 0 stills"
-  // is lines of noise in someone's inbox, and it made the one real number harder to find.
-  const shownCounts = (
-    [
-      [counts.reels, "Reels", false],
-      [counts.films, "Films", false],
-      [counts.stills, "Stills", true],
-    ] as [number, string, boolean][]
-  ).filter(([n]) => n > 0);
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;background:#eeebe5;font-family:'SF Mono',Menlo,Consolas,monospace;-webkit-font-smoothing:antialiased">
-<div style="background:#eeebe5;padding:44px 20px;min-height:100vh">
-  <div style="max-width:600px;margin:0 auto 14px;font-size:11px;letter-spacing:.04em;color:#8a877f">${preheader}</div>
-
-  <div style="max-width:600px;margin:0 auto;background:#f6f4f0;border:1px solid #dcd8d1">
-    <div style="height:3px;background:#ec3013"></div>
-
-    <div style="padding:26px 40px;border-bottom:1px solid #dcd8d1;display:flex;align-items:center;gap:11px">
-      <div style="width:14px;height:14px;background:#ec3013"></div>
-      <span style="font-weight:900;font-size:16px;color:#17161a">BJUR</span>
-      <span style="font-weight:600;letter-spacing:.32em;font-size:12px;color:#6e6b66">MEDIA</span>
-    </div>
-
-    <div style="padding:40px 40px 30px">
-      <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#ec3013;font-weight:700;margin-bottom:16px">${kicker}</div>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.05;font-weight:400;color:#17161a;margin:0 0 16px">${headline}</h1>
-      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0">${body}</p>
-    </div>
-
-    <div style="padding:0 40px 30px">
-      <div style="display:flex;border:1px solid #dcd8d1">
-        ${shownCounts
-          .map(([value, label, accent], i) =>
-            statCell(value, label, accent, i === shownCounts.length - 1)
-          )
-          .join("")}
-      </div>
-    </div>
-
-    <div style="padding:0 40px 34px">
-      <a href="${projectUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your project</a>
-    </div>
-
-    ${expiryBlock}
-
-    <div style="padding:22px 40px;border-top:1px solid #dcd8d1;text-align:center">
-      <p style="font-size:11px;line-height:1.6;color:#8a877f;margin:0">You're receiving this because delivery notifications are on for your Bjur Media account. Turn them off any time in your portal settings.</p>
-    </div>
-  </div>
-</div>
-</body>
-</html>`;
+  return renderShell({
+    preheader: isUpdate ? `${projectTitle} has been updated.` : `Your ${projectTitle} files are ready.`,
+    logoUrl,
+    kicker: isUpdate ? `Updated · ${clientName}` : `New files · ${clientName}`,
+    headline: isUpdate ? `${projectTitle} has been updated.` : `Your ${projectTitle} files are ready.`,
+    body,
+    image: stillUrl,
+    facts: [
+      { label: "Project", value: projectTitle },
+      { label: "Files", value: totalSize ? `${total} · ${totalSize}` : String(total) },
+      { label: isUpdate ? "Updated" : "Delivered", value: delivered },
+      ...(expiresAt ? [{ label: "Available until", value: expiresAt }] : []),
+    ],
+    cta: { label: "Open project", url: projectUrl },
+    note: expiresAt
+      ? `Links expire on ${expiresAt}. Ask us if you need them extended.`
+      : "Your login is just for you, so please do not forward this email.",
+    unsubscribe:
+      "You are receiving this because delivery notifications are on for your account. Turn them off any time in Settings.",
+  });
 }

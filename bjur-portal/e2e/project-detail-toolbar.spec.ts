@@ -57,8 +57,10 @@ test("selecting a file raises the selection bar with a count and size", async ({
 test("each group header states its own size", async ({ page }) => {
   await page.goto(PROJECT);
 
-  // "3 files · 5.5 GB" — the count and size of that format bucket.
-  await expect(page.getByText(/\d+ (file|item)s? · \d+(\.\d+)? (MB|GB)/).first()).toBeVisible();
+  // v13: the count sits under the label in Archivo and the size under it in mono.
+  const group = page.getByTestId("file-group").first();
+  await expect(group.locator(".bj-lab b")).toHaveText(/^\d+$/);
+  await expect(group.getByTestId("group-size")).toHaveText(/^\d+(\.\d+)? (MB|GB)$/);
 });
 
 /**

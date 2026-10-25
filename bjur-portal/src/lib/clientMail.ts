@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendExpiryEmail, sendReleasedEmail } from "@/lib/mailer";
 import { formatBytes } from "@/lib/format";
 import { isLive } from "@/lib/deliveryNotify";
@@ -37,7 +38,7 @@ export async function sendExpiryReminders(now = new Date(), deps: Partial<Client
       expiresAt: true,
       expiryReminderSentFor: true,
       clientId: true,
-      client: { select: { name: true } },
+      client: { select: { name: true, logoUrl: true } },
       assets: { where: { internal: false }, select: { sizeBytes: true } },
     },
   });
@@ -67,6 +68,7 @@ export async function sendExpiryReminders(now = new Date(), deps: Partial<Client
         recipientName: r.name?.split(/\s+/)[0] ?? "there",
         projectTitle: project.title,
         clientName: project.client.name,
+        logoUrl: emailLogoUrl(project.client.logoUrl),
         expiresAtLabel: day(project.expiresAt!),
         daysLeft,
         assetCount: project.assets.length,
@@ -106,7 +108,7 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
         title: true,
         clientId: true,
         expiresAt: true,
-        client: { select: { name: true } },
+        client: { select: { name: true, logoUrl: true } },
         _count: { select: { assets: { where: { internal: false } } } },
       },
     });
@@ -147,6 +149,7 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
       await send(r.email, {
         recipientName: r.name?.split(/\s+/)[0] ?? "there",
         clientName: project.client.name,
+        logoUrl: emailLogoUrl(project.client.logoUrl),
         projectTitle: project.title,
         projectUrl: `${portalUrl()}/p/${project.id}`,
         fileCount: project._count.assets,

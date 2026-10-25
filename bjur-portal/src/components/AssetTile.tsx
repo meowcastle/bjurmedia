@@ -24,8 +24,6 @@ export type TileAsset = {
   viewCount: number | null;
 };
 
-/** §3: `< 1000 MB → "N MB"`, else `"N.N GB"`. Exported so the grid, the group headers
- *  and the selection bar all read the same way. */
 function fmtDuration(sec: number | null) {
   if (sec == null) return "";
   const m = Math.floor(sec / 60);
@@ -33,13 +31,11 @@ function fmtDuration(sec: number | null) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function aspectFor(a: TileAsset) {
-  if (a.format === "Reel") return "9 / 16";
-  if (a.format === "Still")
-    return a.orientation === "portrait" ? "3 / 4" : "3 / 2";
-  return "16 / 9";
-}
-
+/**
+ * One file on a project page (PortalProject13): 9:16 for vertical media, 16:9 for wide,
+ * a round check top left that shows on hover, a duration pill bottom right, and the file
+ * name with "Video" or "Still" under it. Selected, the tile is outlined in shu.
+ */
 export function AssetTile({
   asset,
   selected,
@@ -59,16 +55,12 @@ export function AssetTile({
   onToggleSelect: () => void;
   onToggleFavorite: () => void;
   onOpen: () => void;
-  /** One more line under the date/size row — a reel's caption state. */
+  /** One more line under the name: a reel's caption state. */
   footer?: ReactNode;
 }) {
-  const badge =
-    asset.kind === "VIDEO"
-      ? fmtDuration(asset.durationSec)
-      : (asset.dims ?? "");
   const [thumbFailed, setThumbFailed] = useState(false);
-
-  const borderColor = selected ? "border-accent" : "border-line";
+  const wide = asset.orientation !== "portrait";
+  const duration = asset.kind === "VIDEO" ? fmtDuration(asset.durationSec) : "";
 
   return (
     <motion.div
@@ -82,31 +74,14 @@ export function AssetTile({
         // §3 stagger: 0.02s a tile, never more than 0.3s in total.
         delay: Math.min((index ?? 0) * 0.02, 0.3),
       }}
+      className={`bj-tile${wide ? " wide" : ""}${selected ? " on" : ""}${favorite ? " fav" : ""}`}
     >
-      <motion.div
-        onClick={onOpen}
-        whileHover={{ y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: DUR[1], ease: EASE_OUT }}
-        className={`cursor-pointer relative overflow-hidden border hover:border-accent shadow-1 hover:shadow-2 transition-[border-color,box-shadow] duration-(--dur-1) ease-std ${borderColor}`}
-        style={{
-          aspectRatio: aspectFor(asset),
-          background: gradientFor(asset.id),
-        }}
-      >
+      <div className="im" onClick={onOpen} style={{ background: gradientFor(asset.id) }}>
         {asset.thumbReady && !thumbFailed && (
-          <FadeImg
-            src={`/api/assets/${asset.id}/thumb`}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={() => setThumbFailed(true)}
-          />
+          <FadeImg src={`/api/assets/${asset.id}/thumb`} onError={() => setThumbFailed(true)} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-transparent via-60% to-black/60" />
 
-
-        {/* A click-only div here meant selection was unreachable by keyboard and
-            unnamed to assistive tech — and untargetable by any selector that is not
-            a CSS path. */}
+        {/* A real checkbox to assistive tech and the keyboard, round to the eye. */}
         <div
           role="checkbox"
           aria-checked={selected}
@@ -122,26 +97,20 @@ export function AssetTile({
             e.stopPropagation();
             onToggleSelect();
           }}
-          className={`absolute top-2.5 left-2.5 w-[22px] h-[22px] border-[1.5px] grid place-items-center z-[4] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
-            selected ? "bg-accent border-accent" : "bg-black/35 border-white/70"
-          }`}
+          className="ck"
         >
-          {selected && (
-            <span className="text-bg text-[13px] font-extrabold leading-none">
-              <IconCheck />
-            </span>
-          )}
+          <IconCheck />
         </div>
 
-        <div
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite();
           }}
           title="Add to favorites"
-          className={`absolute top-2.5 right-2.5 w-[26px] h-[26px] grid place-items-center z-[4] cursor-pointer bg-black/40 hover:bg-black/60 text-sm transition-colors ${
-            favorite ? "text-accent" : "text-white/80"
-          }`}
+          aria-pressed={favorite}
+          className="hrt"
         >
           {/* §3 success moment: the heart remounts on change and springs back from 1.25,
               so favouriting is a small pop rather than a colour swap. */}
@@ -154,29 +123,24 @@ export function AssetTile({
           >
             <IconHeart fill="currentColor" />
           </motion.span>
-        </div>
+        </button>
 
         {asset.viewCount != null && asset.viewCount > 0 && (
-          <div className="absolute top-10 left-2.5 z-[3] bg-black/45 text-white/90 text-[10px] font-semibold px-1.5 py-0.5">
+          <span className="vw">
             <IconPlay fill="currentColor" /> {formatViews(asset.viewCount)} views
-          </div>
+          </span>
         )}
 
-        {isNew && (
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-[4] bg-accent text-bg text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 bjpulse">
-            New
-          </div>
-        )}
+        {duration && <span className="dur">{duration}</span>}
+      </div>
 
-          <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2 z-[3]">
-            <span className="text-[11px] text-white/90 font-semibold truncate">
-              {asset.name}
-            </span>
-            <span className="text-[10px] text-white/62 whitespace-nowrap">
-              {badge}
-            </span>
-          </div>
-      </motion.div>
+      <div className="cap" onClick={onOpen}>
+        <b>{asset.name}</b>
+        <span className="kind">
+          {isNew && <span className="bj-pill ok">New</span>}
+          <span className="bj-mono">{asset.kind === "VIDEO" ? "Video" : "Still"}</span>
+        </span>
+      </div>
       {footer}
     </motion.div>
   );

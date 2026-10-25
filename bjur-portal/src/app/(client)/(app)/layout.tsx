@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { lighten } from "@/lib/color";
 import { ClientHeader } from "@/components/ClientHeader";
 import { themeScript } from "@/lib/theme";
+import { PortalFoot } from "@/components/ui/PortalFoot";
 
 export default async function ClientAppLayout({
   children,
@@ -25,29 +25,24 @@ export default async function ClientAppLayout({
   });
   if (!client) notFound();
 
-  // A per-client accent overrides the default brand red for this client's portal
-  // only — set via the admin client detail page. --accentb (hover shade) is derived
-  // rather than stored separately, matching the default accent/accentb pairing.
-  const accentVars = client.accentColor
-    ? ({
-        "--accent": client.accentColor,
-        "--accentb": lighten(client.accentColor, 0.18),
-      } as React.CSSProperties)
-    : undefined;
-
+  // v13: shu is the only action colour, so a client's accentColor no longer re-themes
+  // their portal. The client shows up as their logo (or initials on its colour) instead.
   return (
-    <div style={accentVars}>
+    <div className="min-h-dvh flex flex-col">
       {/* Stamps the theme before first paint. Without it the page renders dark, then
           corrects on hydration — a black flash on every client navigation. */}
       <script dangerouslySetInnerHTML={{ __html: themeScript("client") }} />
       <ClientHeader
         clientName={client.name}
+        logoUrl={client.logoUrl}
+        logoColor={client.logoColor}
         footageUploads={client.footageUploads}
         userName={session.name}
         memberships={session.memberships}
         activeClientId={session.clientId}
       />
-      {children}
+      <main className="flex-1">{children}</main>
+      <PortalFoot />
     </div>
   );
 }

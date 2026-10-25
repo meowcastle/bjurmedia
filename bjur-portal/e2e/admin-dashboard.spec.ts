@@ -16,7 +16,9 @@ test.use({ storageState: "e2e/.auth/admin.json" });
 test("the worker's state reads as a stat rather than its own bar", async ({ page }) => {
   await page.goto("/admin");
 
-  await expect(page.getByText(/In queue · worker (online|offline)/)).toBeVisible();
+  // v13: the queue and the worker are two of Today's four numbers.
+  await expect(page.getByText("In the queue", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Worker · (online|offline)$/)).toBeVisible();
   // The old standalone bar said this; it should not survive alongside the stat.
   await expect(page.getByText(/ffmpeg worker/)).toHaveCount(0);
 });
@@ -24,7 +26,8 @@ test("the worker's state reads as a stat rather than its own bar", async ({ page
 test("needs attention lists retainer files with no delivery week", async ({ page }) => {
   await page.goto("/admin");
 
-  const card = page.getByText("Needs attention");
+  // v13 calls the section "Needs you" (PortalAdmin13); the stat above it shares the words.
+  const card = page.locator(".bj-lab", { hasText: "Needs you" });
   await expect(card).toBeVisible();
 
   // 57.NYC is the seeded RETAINER client, and its IG Posting project has assets
@@ -39,9 +42,10 @@ test("needs attention lists retainer files with no delivery week", async ({ page
 
 test("each attention row offers an action, not just a description", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page.getByText("Needs attention")).toBeVisible();
+  await expect(page.locator(".bj-lab", { hasText: "Needs you" })).toBeVisible();
 
   // Every row is actionable — a list of problems with no next step is just anxiety.
-  const rows = page.locator("a", { hasText: /^(Open|Schedule)$/ });
+  // v13 buttons carry the nudging arrow: "Schedule →".
+  const rows = page.locator("a", { hasText: /^(Open|Schedule)\s*→?$/ });
   expect(await rows.count()).toBeGreaterThan(0);
 });

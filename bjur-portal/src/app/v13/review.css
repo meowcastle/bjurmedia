@@ -1,0 +1,437 @@
+/* v13 review screens (design/v13). Imported from globals.css. */
+
+/*
+ * Reviewing a cut (PortalReview13). Every class is bj-rv- so nothing here can collide with
+ * a Tailwind utility. Shared parts (.bj-page, .bj-nav, .bj-mono, .bj-cta, .bj-ghost,
+ * .bj-link, .bj-pill, .bj-dot, .bj-foot) come from globals.css and are not redefined.
+ * The player stays black in both themes: it is a frame, not a surface.
+ */
+.bj-rv-page { padding-bottom: 0; }
+.bj-rv-foot { padding: 48px 0 28px; }
+/* Seal and who left, theme right: no centre links on this page. */
+.bj-nav.bj-rv-nav { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* Back link, title, cut tabs. */
+.bj-rv-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: 36px 0 22px;
+}
+.bj-rv-back {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--dur-1) var(--ease-std);
+}
+a.bj-rv-back:hover { color: var(--text); }
+.bj-rv-head h1 { margin-top: 12px; overflow-wrap: anywhere; }
+.bj-rv-cuts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.bj-rv-cuts button {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 2px !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-1) var(--ease-std), border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-cuts button:hover:not(:disabled) { color: var(--text); }
+.bj-rv-cuts button.on { border-color: var(--text); color: var(--text); }
+.bj-rv-cuts button.unsent { border-style: dashed; }
+.bj-rv-cuts button:disabled { opacity: 0.5; cursor: default; }
+
+/* Player left, notes right at 380px. */
+.bj-rv { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+
+.bj-rv-player {
+  position: relative;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100dvh - 200px);
+  min-height: 240px;
+  overflow: hidden;
+}
+.bj-rv-player:fullscreen { aspect-ratio: auto; max-height: none; min-height: 0; }
+.bj-rv-player:-webkit-full-screen { aspect-ratio: auto; max-height: none; min-height: 0; }
+.bj-rv-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
+}
+.bj-rv-tc {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  z-index: 2;
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 8px;
+  border-radius: 2px !important;
+  pointer-events: none;
+}
+.bj-rv-fs {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px !important;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-fs:hover { border-color: #fff; }
+.bj-rv-frame-note {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 2;
+  max-width: 60%;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 3px !important;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.bj-rv-frame-note .t {
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+}
+
+/* Transport: round play, the timeline, the clock. */
+.bj-rv-transport {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-top: 0;
+  /* A note timed past the end of a shorter cut would otherwise widen the page. */
+  overflow: hidden;
+}
+.bj-rv-pp {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% !important;
+  background: var(--text);
+  color: var(--bg);
+  display: grid;
+  place-items: center;
+  border: 0;
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-std);
+}
+.bj-rv-pp:active { transform: scale(0.94); }
+.bj-rv-track { position: relative; height: 28px; cursor: pointer; }
+.bj-rv-track .ln { position: absolute; left: 0; right: 0; top: 13px; height: 2px; background: var(--line); }
+.bj-rv-track .pl { position: absolute; left: 0; top: 13px; height: 2px; background: var(--text); }
+.bj-rv-track .hd {
+  position: absolute;
+  top: 7px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  background: var(--text);
+  pointer-events: none;
+}
+/* A 16px target around an 8px dot: shu is a note not sent yet, ash is sent. */
+.bj-rv-mk {
+  position: absolute;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  z-index: 1;
+}
+.bj-rv-mk::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50% !important;
+  background: var(--muted);
+  transition: transform var(--dur-1) var(--ease-std);
+}
+.bj-rv-mk.draft::after { background: var(--accent); }
+.bj-rv-mk.old::after { left: 5px; top: 5px; width: 6px; height: 6px; opacity: 0.7; }
+.bj-rv-mk.on::after, .bj-rv-mk:hover::after { transform: scale(1.35); }
+.bj-rv-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Composer: the moment, the note, Add. */
+.bj-rv-composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 3px !important;
+  transition: border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-composer:focus-within { border-color: var(--text); }
+.bj-rv-at {
+  font: 400 12px var(--font-plex-mono), ui-monospace, monospace;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.bj-rv-at.on { color: var(--accent); }
+.bj-rv-composer input {
+  appearance: none;
+  background: none;
+  border: 0;
+  min-width: 0;
+  width: 100%;
+  color: var(--text);
+  font: 400 15px var(--font-archivo), system-ui, sans-serif;
+  outline: none;
+}
+.bj-rv-composer input::placeholder { color: var(--muted); }
+.bj-rv-add { padding: 7px 12px; }
+.bj-rv-add:disabled { opacity: 0.4; cursor: default; }
+.bj-rv-keys { margin: 10px 0 0; }
+.bj-rv-elsewhere {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 3px !important;
+  font-size: 14px;
+  color: var(--body);
+}
+.bj-rv-elsewhere .bj-link { background: none; border-top: 0; border-left: 0; border-right: 0; color: var(--text); cursor: pointer; font-family: inherit; padding: 0 0 2px; }
+
+/* Notes column: the list scrolls, send and approve stay pinned at its foot. */
+.bj-rv-notes {
+  border-top: 1px solid var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+  max-height: calc(100dvh - 40px);
+  position: sticky;
+  top: 20px;
+}
+.bj-rv-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.bj-rv-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 0; }
+.bj-rv-h.sub { border-top: 1px solid var(--line); margin-top: 10px; }
+.bj-rv-banner { margin: 0; padding: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--body); }
+p.bj-mono.bj-rv-banner { font-size: 11px; color: var(--text); }
+.bj-rv-empty { margin: 0; padding: 14px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5; color: var(--muted); }
+.bj-rv-note {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.bj-rv-note.tc { grid-template-columns: 92px minmax(0, 1fr); }
+.bj-rv-note .t {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 2px 0 0;
+  align-self: start;
+  text-align: left;
+  font: 400 12px var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  cursor: pointer;
+}
+.bj-rv-note.sent .t { color: var(--muted); }
+.bj-rv-note .t:hover { color: var(--text); }
+.bj-rv-note p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
+.bj-rv-note .by { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.bj-rv-note .by button {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease-std), border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-note .by button:hover { color: var(--accent); border-color: var(--accent); }
+.bj-rv-resp {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+}
+.bj-rv-resp .bj-pill { margin-right: 4px; vertical-align: 1px; }
+
+/* Studio answers: Changed or Kept as is, then the why. */
+.bj-rv-ans { display: flex; gap: 6px; margin-top: 10px; }
+.bj-rv-ans button {
+  appearance: none;
+  background: none;
+  font: 400 10px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  border-radius: 999px !important;
+  padding: 4px 9px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease-std), border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-ans button:hover { color: var(--text); }
+.bj-rv-ans button.on { border-color: var(--text); color: var(--text); }
+.bj-rv-ans button.on.ok { border-color: color-mix(in srgb, var(--success) 60%, transparent); color: var(--success); }
+.bj-rv-ans button:disabled { opacity: 0.5; }
+.bj-rv-answer {
+  margin-top: 8px;
+  width: 100%;
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+  color: var(--text);
+  font: 400 14px var(--font-archivo), system-ui, sans-serif;
+  outline: none;
+  transition: border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-answer:focus { border-color: var(--text); }
+.bj-rv-answer::placeholder { color: var(--muted); }
+
+/* The pinned foot. */
+.bj-rv-send {
+  flex: none;
+  border-top: 1px solid var(--line);
+  padding: 18px 0 8px;
+  display: grid;
+  gap: 12px;
+  background: var(--bg);
+}
+.bj-rv-send .bj-cta { justify-content: center; width: 100%; }
+.bj-rv-send .or {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.bj-rv-send .or:first-child { padding-top: 0; border-top: 0; }
+.bj-rv-send .or p { margin: 0; font-size: 13px; color: var(--body); }
+.bj-rv-approved { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: var(--text); }
+.bj-rv-approved .bj-link { background: none; border-top: 0; border-left: 0; border-right: 0; color: var(--text); cursor: pointer; font-family: inherit; padding: 0 0 2px; }
+.bj-rv-studio { display: grid; gap: 12px; }
+.bj-rv-progress { display: flex; justify-content: space-between; gap: 12px; }
+.bj-rv-bar { display: block; height: 3px; background: var(--line); }
+.bj-rv-bar > span { display: block; height: 100%; background: var(--success); transition: width var(--dur-2) var(--ease-std); }
+.bj-rv-small { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.bj-rv-exports { display: flex; flex-wrap: wrap; gap: 8px; }
+.bj-rv-exports .bj-ghost { padding: 7px 10px; font-size: 13px; }
+
+/* Empty, guest-name and release-confirm screens share the frame. */
+.bj-rv-solo {
+  flex: 1;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 14px;
+  max-width: 560px;
+  padding: 64px 0;
+}
+.bj-rv-solo .bj-lead { margin: 0; }
+.bj-rv-solo .fld { display: grid; gap: 8px; width: 100%; max-width: 400px; margin-top: 18px; }
+.bj-rv-solo .fld input {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font: 400 16px var(--font-archivo), system-ui, sans-serif;
+  padding: 10px 0;
+  outline: none;
+  transition: border-color var(--dur-1) var(--ease-std);
+}
+.bj-rv-solo .fld input:focus { border-color: var(--text); }
+.bj-rv-solo .bj-cta { justify-content: center; width: 100%; max-width: 400px; }
+.bj-rv-dialog {
+  width: 100%;
+  max-width: 520px;
+  background: var(--s1);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 3px !important;
+  padding: 24px;
+  box-shadow: var(--elev-3);
+}
+.bj-rv-dialog h2 { margin: 8px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.bj-rv-dialog p { margin: 12px 0 0; font-size: 14px; line-height: 1.55; color: var(--body); }
+.bj-rv-dialog .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.bj-rv-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100vw - 32px);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 3px !important;
+  box-shadow: var(--elev-2);
+}
+
+/* The board drops to one column at 1000px; phone rules from 900px down. */
+@media (max-width: 1000px) {
+  .bj-rv { grid-template-columns: minmax(0, 1fr); }
+  .bj-rv-notes { min-height: 0; max-height: none; position: static; }
+  .bj-rv-list { overflow: visible; }
+}
+@media (max-width: 900px) {
+  .bj-rv-head { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 24px 0 18px; }
+  .bj-rv-cuts { justify-content: flex-start; }
+  /* A fixed slice of the screen rather than 16:9, so the frame keeps real height. */
+  .bj-rv-player { aspect-ratio: auto; height: 42vh; min-height: 0; max-height: none; }
+  .bj-rv-fs { width: 44px; height: 44px; font-size: 16px; }
+  .bj-rv-transport { gap: 12px; padding: 10px 12px; }
+  .bj-rv-composer { padding: 8px 8px 8px 12px; gap: 10px; }
+  /* Under 16px Safari zooms the page when the field takes focus. */
+  .bj-rv-composer input { font-size: 16px; }
+  .bj-rv-keys { display: none; }
+  .bj-rv-send .or { flex-wrap: wrap; }
+  .bj-rv-dialog .row > * { flex: 1 1 100%; justify-content: center; }
+}

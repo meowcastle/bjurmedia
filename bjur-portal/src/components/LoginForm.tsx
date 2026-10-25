@@ -1,28 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { Seal } from "@/components/ui/Seal";
 
+/**
+ * Sign in (PortalLogin13): one centred column, no photo. The seal stamps in once per page
+ * load (the Home11 press, 1.25s), then the copy and the form rise in at about 0.9s. An
+ * error is a re-render, not a reload, so it never replays the stamp. Under reduced motion
+ * the stamp is still and everything shows at once.
+ */
 export function LoginForm({
   portal,
-  title,
+  label,
   demoEmail,
   redirectTo,
+  moved = false,
 }: {
   portal: "client" | "admin";
-  title: string;
+  /** The mono label over the headline: "Client portal", or "Studio" for staff. */
+  label: string;
   demoEmail: string;
   redirectTo: string;
+  /** Arrived through the portal.justinbjur.com redirect (?from=jb). */
+  moved?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [pre, setPre] = useState(true);
+  const stage = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Reduced motion: no stamp, everything at once (on the next tick, not mid-effect).
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const go = still ? undefined : setTimeout(() => stage.current?.classList.add("go"), 250);
+    const rise = setTimeout(() => setPre(false), still ? 0 : 250 + 900);
+    return () => { clearTimeout(go); clearTimeout(rise); };
+  }, []);
 
   async function requestReset() {
     // Fire and forget: the endpoint answers the same either way, so there is nothing
@@ -59,91 +78,66 @@ export function LoginForm({
     }
   }
 
-  // Logo, title, two fields, a button and Forgot? — the whole page. The headline, blurb,
-  // NAS credit and "Secure connection" dot said nothing a person signing in needed.
   return (
-    <div className="relative min-h-dvh flex flex-col justify-center px-[5vw] bg-s1">
-      <div className="absolute top-8 right-[5vw]">
-        <ThemeToggle portal={portal} />
-      </div>
-      <div className="w-full max-w-[360px] mx-auto bjfade">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="w-4 h-4 bg-accent" />
-          <span className="font-black tracking-wide text-base">BJUR</span>
-          <span className="font-semibold tracking-[0.34em] text-sm text-muted">MEDIA</span>
-        </div>
-        <h1 className="text-[28px] tracking-[-0.02em] font-black mb-7">{title}</h1>
+    <div className="bj-page">
+      <nav className="bj-nav" style={{ gridTemplateColumns: "1fr auto" }} aria-label="Primary">
+        <a className="bj-mono" href="https://bjur.nyc">&larr; bjur.nyc</a>
+        <div className="r"><ThemeToggle portal={portal} /></div>
+      </nav>
 
-        <form onSubmit={onSubmit}>
-          <div className="mb-4">
-            <label htmlFor="login-email" className="block text-[11px] tracking-wide uppercase text-muted font-semibold mb-2">
-              Email
+      <section className={`bj-login ${pre ? "pre" : ""}`}>
+        <div className="col">
+          <div className="stage" ref={stage} role="img" aria-label="BJUR">
+            <div className="shd" />
+            <div className="ring" />
+            <div className="st"><Seal className="" /></div>
+          </div>
+          {moved && <p className="bj-mono moved">We&apos;ve moved from portal.justinbjur.com. Same login.</p>}
+          <span className="bj-mono kick after d1">{label}</span>
+          <h1 className="bj-mid after d1">Your work,<br />ready when you are.</h1>
+          <p className="bj-lead after d2">Review cuts, leave notes on the frame, and download your masters.</p>
+
+          <form className="after d3" onSubmit={onSubmit}>
+            <label className="fld">
+              <span className="bj-mono">Email</span>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                autoComplete="username"
+                placeholder={demoEmail}
+                aria-invalid={error ? true : undefined}
+              />
             </label>
-            <input
-              id="login-email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              autoComplete="username"
-              placeholder={demoEmail}
-              className={`w-full bg-bg border text-text text-[15px] px-3.5 py-3.5 outline-none focus:border-accent transition-colors ${
-                error ? "border-accentb" : "border-line2"
-              }`}
-            />
-          </div>
-          <div className="mb-5">
-            <div className="flex items-baseline justify-between gap-2 mb-2">
-              <label htmlFor="login-password" className="block text-[11px] tracking-wide uppercase text-muted font-semibold">
-                Password
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="cursor-pointer text-[11px] font-bold uppercase text-muted hover:text-text py-2"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-                <button
-                  type="button"
-                  onClick={requestReset}
-                  className="cursor-pointer text-[11px] font-bold uppercase text-accentb hover:text-accent py-2"
-                >
-                  Forgot?
-                </button>
-              </div>
-            </div>
-            <input
-              id="login-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              className={`w-full bg-bg border text-text text-[15px] px-3.5 py-3.5 outline-none focus:border-accent transition-colors ${
-                error ? "border-accentb" : "border-line2"
-              }`}
-            />
+            <label className="fld">
+              <span className="bj-mono">Password</span>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                autoComplete="current-password"
+                placeholder="Password"
+                aria-invalid={error ? true : undefined}
+              />
+            </label>
+            {error && <p className="err" role="alert">{error}</p>}
+            <button className="bj-cta" type="submit" disabled={loading}>
+              {loading ? "Signing in…" : <>Sign in <i aria-hidden="true">&rarr;</i></>}
+            </button>
+            <button type="button" className="bj-link forgot" onClick={requestReset}>Forgot password</button>
             {resetSent && (
-              <div className="mt-3 border border-success/50 p-3 text-xs text-muted">
-                We&apos;ve told Bjur Media you need a reset. You&apos;ll get an email from us
-                shortly.
-              </div>
+              <p className="sent" role="status">
+                We&apos;ve let the studio know you need a reset. You&apos;ll get an email from us shortly.
+              </p>
             )}
-          </div>
-          {error && (
-            <div className="flex items-center gap-2 text-xs text-accentb mb-4 font-semibold">
-              <span className="w-3.5 h-3.5 border-[1.5px] border-accentb rounded-full grid place-items-center text-[9px]">
-                !
-              </span>
-              {error}
-            </div>
-          )}
-          <Button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2">
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-      </div>
+          </form>
+          <p className="note after d3">
+            Your login is just for you. Need one for someone else on your team? <a href="mailto:hi@bjur.nyc">Ask us</a>.
+          </p>
+        </div>
+      </section>
+
+      <footer className="bj-foot"><span>Bjur · Brooklyn, NY</span><a className="c" href="mailto:hi@bjur.nyc">hi@bjur.nyc</a><span className="rr">portal.bjur.nyc</span></footer>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailLogoUrl } from "@/lib/emailLogo";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resetSeatPassword } from "@/lib/clients";
@@ -30,10 +31,12 @@ export async function POST(
 
   const { sent } = await sendOnboardingEmail(user.email, {
     clientName: client.name,
+    logoUrl: emailLogoUrl(client.logoUrl),
     recipientName: user.name,
-    portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
+    portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.nyc",
     signInEmail: user.email,
     tempPassword,
+    reason: "reset",
   });
 
   return NextResponse.json({ user, tempPassword, emailed: sent });

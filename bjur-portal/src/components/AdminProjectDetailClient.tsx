@@ -35,7 +35,7 @@ function toDateInput(iso: string | null) {
 }
 
 const Kicker = ({ children }: { children: React.ReactNode }) => (
-  <span className="block text-[10px] tracking-[0.1em] uppercase text-dim mb-1.5">{children}</span>
+  <span className="block bj-mono mb-1.5">{children}</span>
 );
 
 /**
@@ -170,11 +170,11 @@ export function AdminProjectDetailClient({
 
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade">
-      <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="bj-adm bjfade">
+      <div className="flex items-center justify-between gap-4 pt-10 max-[900px]:pt-6 mb-4">
         <Link
           href={`/admin/clients/${client.id}`}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text"
+          className="bj-mono inline-flex items-center gap-2 min-h-[30px] hover:!text-[var(--text)]"
         >
           ← {client.name}
         </Link>
@@ -182,13 +182,13 @@ export function AdminProjectDetailClient({
         <Link
           href={`/admin/media?project=${project.id}`}
           data-testid="open-media"
-          className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5"
+          className="bj-ghost"
         >
           Media
         </Link>
       </div>
 
-      <div className="border-b-2 border-line2 pb-6 mb-9">
+      <div className="pb-8">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -214,10 +214,10 @@ export function AdminProjectDetailClient({
           }}
           aria-label="Project title"
           data-testid="project-title"
-          className="bj-serif text-[28px] sm:text-4xl font-normal bg-transparent w-full outline-none border-b border-transparent focus:border-line2 mb-3"
+          className="bj-big bg-transparent w-full outline-none border-b border-transparent focus:border-line mb-3"
         />
-        <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-extrabold uppercase tracking-[.06em]">
-          <span className="text-muted border border-line2 px-[7px] py-[3px]" data-testid="project-type">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="bj-pill" data-testid="project-type">
             {project.type === "CALENDAR"
               ? "Social calendar"
               : project.type === "FILM"
@@ -228,8 +228,11 @@ export function AdminProjectDetailClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-line2 border border-line2 mb-1">
-        <div className="bg-s1 px-[18px] py-4">
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">Details</span>
+      <div className="min-w-0">
+      <div className="bj-facts grid grid-cols-2 md:grid-cols-4">
+        <div>
           <Kicker>Delivered</Kicker>
           <input
             type="date"
@@ -253,10 +256,10 @@ export function AdminProjectDetailClient({
             }}
             aria-label="Delivered"
             data-testid="project-delivered"
-            className="w-full bg-transparent text-[13px] font-mono outline-none"
+            className="w-full bg-transparent text-[14px] font-mono outline-none min-h-[30px]"
           />
         </div>
-        <div className="bg-s1 px-[18px] py-4">
+        <div>
           <Kicker>Expires</Kicker>
           <input
             type="date"
@@ -280,24 +283,24 @@ export function AdminProjectDetailClient({
             }}
             aria-label="Expires"
             data-testid="project-expires"
-            className="w-full bg-transparent text-[13px] font-mono outline-none"
+            className="w-full bg-transparent text-[14px] font-mono outline-none min-h-[30px]"
             placeholder="Never"
           />
         </div>
-        <div className="bg-s1 px-[18px] py-4">
+        <div>
           <Kicker>Files</Kicker>
-          <span className="text-[13px]">{project.fileCount}</span>
+          <span className="text-[22px] font-semibold tracking-[-0.02em]">{project.fileCount}</span>
         </div>
-        <div className="bg-s1 px-[18px] py-4 min-w-0">
+        <div className="min-w-0">
           <Kicker>Inbox</Kicker>
           <span className="text-[12px] text-body font-mono break-all">{project.inboxPath}</span>
         </div>
       </div>
 
       {project.type === "CALENDAR" && !project.hasSlackChannel && (
-        <div className="shadow-1 text-[11px] text-accentb border border-line2 bg-s1 px-[18px] py-3 mb-1">
+        <div className="text-[14px] text-accent py-3 border-b border-line">
           No Slack channel for {client.name} yet.{" "}
-          <Link href="/admin/integrations" className="text-text tracking-[.06em] font-semibold">
+          <Link href="/admin/integrations" className="bj-link" style={{ color: "var(--text)" }}>
             Add one
           </Link>
         </div>
@@ -306,8 +309,8 @@ export function AdminProjectDetailClient({
       {/* One switch. It was a status, a sentence restating the status and a button
           naming the opposite state. What a held download looks like is the client's
           concern; the admin needs only to say whether the invoice is open. */}
-      <div className="shadow-1 flex items-center justify-between gap-4 border border-line2 bg-s1 px-[18px] py-4">
-        <span className="text-[11px] tracking-[0.1em] uppercase text-dim">Awaiting payment</span>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-line">
+        <span className="bj-mono">Awaiting payment</span>
         <button
           onClick={togglePay}
           disabled={busy}
@@ -315,16 +318,13 @@ export function AdminProjectDetailClient({
           aria-checked={held}
           aria-label="Awaiting payment"
           data-testid="payment-toggle"
-          className="cursor-pointer text-[10.5px] font-semibold uppercase tracking-[.06em] border px-2.5 py-1.5 disabled:opacity-50"
-          style={
-            held
-              ? { borderColor: "var(--accentb)", color: "var(--accentb)" }
-              : { borderColor: "var(--line2)", color: "var(--muted)" }
-          }
+          className={`bj-pill cursor-pointer min-h-[30px] min-w-[48px] disabled:opacity-50${held ? " red" : ""}`}
         >
           {held ? "On" : "Off"}
         </button>
       </div>
+      </div>
+      </section>
 
       {/* What is actually in the project, and what state it is in.
           The client's gallery shows finished work; this shows the pipeline — which files
@@ -332,10 +332,14 @@ export function AdminProjectDetailClient({
           watermarked copy yet. "Is anything weird" is the question this answers, and
           without it the only way to ask was the media table on another screen. */}
       {assets.length > 0 && (
-        <div className="mt-10">
-          <div className="text-[11px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2 flex justify-between items-baseline">
+        <section className="bj-sx">
+          <span className="bj-mono bj-lab">
+            Files<b>{assets.length}</b>
+          </span>
+          <div className="min-w-0">
+          <div className="bj-mono pb-2.5 flex justify-between items-baseline gap-3 flex-wrap">
             <span>
-              Files <span className="text-dim2">· {assets.length}</span>
+              {assets.length} file{assets.length === 1 ? "" : "s"}
               {internalCount > 0 && (
                 // The facts row above counts what the client can see. This counts what is
                 // here. Saying so stops the two numbers reading as a contradiction.
@@ -357,7 +361,7 @@ export function AdminProjectDetailClient({
           </div>
 
           <div
-            className="grid gap-px bg-line2 border border-line2 border-t-0 mt-0"
+            className="grid gap-4 mt-2"
             style={{ gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))" }}
           >
             {assets.map((a) => (
@@ -370,7 +374,7 @@ export function AdminProjectDetailClient({
                 key={a.id}
                 onClick={() => setOpenFileId(a.id)}
                 data-testid={`file-${a.id}`}
-                className="bg-s1 text-left cursor-pointer hover:bg-s2"
+                className="bj-tile text-left cursor-pointer"
               >
                 <span className="block relative aspect-video bg-s0 overflow-hidden">
                   {a.thumbReady ? (
@@ -394,9 +398,9 @@ export function AdminProjectDetailClient({
                     </span>
                   )}
                 </span>
-                <span className="block px-3 pt-2.5 pb-3">
-                  <span className="block text-[12px] truncate">{a.name}</span>
-                  <span className="block text-[10.5px] text-dim mt-1">
+                <span className="block pt-2.5 pb-1">
+                  <span className="block text-[14px] truncate">{a.name}</span>
+                  <span className="block bj-mono mt-1">
                     {a.proxyStatus === "READY"
                       ? [a.dims, a.proxyRes, a.size].filter(Boolean).join(" · ")
                       : a.proxyStatus === "FAILED"
@@ -411,7 +415,8 @@ export function AdminProjectDetailClient({
               </button>
             ))}
           </div>
-        </div>
+          </div>
+        </section>
       )}
 
       {film && (
@@ -423,11 +428,11 @@ export function AdminProjectDetailClient({
         />
       )}
 
-      <div className="mt-12 pt-5 border-t border-line">
+      <div className="mt-6 pt-5 border-t border-line">
         {project.isEmpty ? (
           confirmingDelete ? (
             <span className="flex items-center gap-3">
-              <span className="text-[11px] text-muted">Delete {project.title}?</span>
+              <span className="text-[14px] text-muted">Delete {project.title}?</span>
               <button
                 onClick={() => {
                   haptic(20);
@@ -435,13 +440,13 @@ export function AdminProjectDetailClient({
                 }}
                 disabled={busy}
                 data-testid="confirm-delete-project"
-                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5 disabled:opacity-50"
+                className="bj-cta"
               >
                 {busy ? "Deleting…" : "Confirm delete"}
               </button>
               <button
                 onClick={() => setConfirmingDelete(false)}
-                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text"
+                className="bj-ghost"
               >
                 Cancel
               </button>
@@ -451,7 +456,7 @@ export function AdminProjectDetailClient({
               onClick={() => setConfirmingDelete(true)}
               disabled={busy}
               data-testid="delete-project"
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb disabled:opacity-50"
+              className="bj-link disabled:opacity-50 cursor-pointer"
             >
               Delete this project
             </button>
@@ -460,7 +465,7 @@ export function AdminProjectDetailClient({
           // Only delivered work stands in the way now. Footage used to as well, which is
           // how a review project became undeletable because somebody else's rushes had
           // been filed under it.
-          <span className="text-[11px] text-dim2">
+          <span className="bj-mono">
             Holds {project.fileCount} file{project.fileCount === 1 ? "" : "s"} · empty it to
             delete.
           </span>

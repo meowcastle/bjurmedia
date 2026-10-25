@@ -52,3 +52,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# email template previews (scripts/email-preview.ts)
+/.email-preview

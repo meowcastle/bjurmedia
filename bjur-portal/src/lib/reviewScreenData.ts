@@ -20,7 +20,7 @@ export async function loadReviewScreen(projectId: string, reviewerId: string) {
 
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { title: true, client: { select: { name: true } } },
+    select: { title: true, client: { select: { name: true, logoUrl: true, logoColor: true } } },
   });
   if (!project) return null;
 
@@ -43,6 +43,7 @@ export async function loadReviewScreen(projectId: string, reviewerId: string) {
     return {
       empty: true as const,
       clientName: project.client.name,
+      clientLogo: project.client,
       projectTitle: project.title,
       viewerName: reviewer.name,
     };
@@ -109,6 +110,7 @@ export async function loadReviewScreen(projectId: string, reviewerId: string) {
   return {
     empty: false as const,
     clientName: project.client.name,
+      clientLogo: project.client,
     projectTitle: project.title,
     assetTitle: current.asset.contentTitle || current.asset.name,
     cuts,
@@ -136,7 +138,7 @@ export async function loadReviewScreen(projectId: string, reviewerId: string) {
 export async function loadStudioReviewScreen(projectId: string) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { title: true, type: true, client: { select: { name: true } } },
+    select: { title: true, type: true, client: { select: { name: true, logoUrl: true, logoColor: true } } },
   });
   if (!project || project.type !== "FILM") return null;
 
@@ -151,7 +153,7 @@ export async function loadStudioReviewScreen(projectId: string) {
     },
   });
   if (rows.length === 0) {
-    return { empty: true as const, clientName: project.client.name, projectTitle: project.title };
+    return { empty: true as const, clientName: project.client.name, clientLogo: project.client, projectTitle: project.title };
   }
 
   const cuts: ScreenCut[] = rows.map((r) => {
@@ -207,6 +209,7 @@ export async function loadStudioReviewScreen(projectId: string) {
   return {
     empty: false as const,
     clientName: project.client.name,
+      clientLogo: project.client,
     projectTitle: project.title,
     assetTitle: current.asset.contentTitle || current.asset.name,
     cuts,

@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* v13 screen styles, one file per area so each can change without touching the rest. */
+@import "./v13/client.css";
+@import "./v13/review.css";
+@import "./v13/admin.css";
 
 /*
  * Two palettes, one set of names.
@@ -8,26 +12,27 @@
  * them to the handoff's own names (--ink, --mut, --rule) would have meant editing every
  * file to gain nothing a viewer can see.
  *
- * Dark is the default because the portal was dark first and staff live in it; the client
- * portal opts into light in its own layout. --body is new: the reading colour for a block
- * of someone else's words, a step softer than --text and a step firmer than --muted.
+ * v13: the values are bjur.nyc's (paper, ink, sumi, ash, rule, shu), mapped onto the
+ * portal's own names so components keep styling through --bg, --text and the rest.
+ * Dark is the default for clients and staff alike, as on the site. --body is the
+ * reading colour for a block of words (sumi); --muted and --dim are both ash.
  */
 :root,
 [data-theme="dark"] {
-  --bg: #0c0c0d;
-  --s1: #151517;
-  --s2: #1c1c1f;
-  --s3: #26262b;
-  --line: rgba(255, 255, 255, 0.1);
-  --line2: rgba(255, 255, 255, 0.2);
-  --text: #f2efe9;
-  --body: #c9c5bd;
-  --muted: #a8a49c;
-  --dim: #8a877f;
-  --dim2: #6f6c66;
-  --accent: #ec3013;
-  --accentb: #ff5a3c;
-  --success: #2ec36b;
+  --bg: #141412;
+  --s1: #1a1a17;
+  --s2: #211f1b;
+  --s3: #2a2823;
+  --line: #2f2e29;
+  --line2: #3d3b35;
+  --text: #f2eee4;
+  --body: #d3cec1;
+  --muted: #8c887c;
+  --dim: #8c887c;
+  --dim2: #6f6c63;
+  --accent: #e04a2e;
+  --accentb: #ec6a50;
+  --success: #7fb08a;
   /* Something for the client to look at, not an error: a caption nobody has read yet. */
   --warn: #ff9d85;
 
@@ -41,21 +46,20 @@
 }
 
 [data-theme="light"] {
-  --bg: #f6f4f0;
-  --s1: #eeebe5;
-  --s2: #e6e2db;
-  --s3: #dcd8d1;
-  --line: #dcd8d1;
-  --line2: #cfcbc3;
-  --text: #17161a;
-  --body: #4a4844;
-  --muted: #6e6b66;
-  --dim: #8a877f;
-  --accent: #ec3013;
-  /* The dark palette's #ff5a3c is a warning on black and near-invisible on paper.
-     Darkened until it carries the same weight against a light ground. */
-  --accentb: #c3341a;
-  --success: #2b6b47;
+  --bg: #f4f1e8;
+  --s1: #fbf9f3;
+  --s2: #e9e4d8;
+  --s3: #ded8ca;
+  --line: #d9d3c4;
+  --line2: #c9c2b1;
+  --text: #1a1a1a;
+  --body: #3a3934;
+  --muted: #7a776e;
+  --dim: #7a776e;
+  --accent: #c8371f;
+  /* Hover shade: one step deeper on paper, where a lighter red would wash out. */
+  --accentb: #a92d18;
+  --success: #2f6b45;
   --dim2: #a29e97;
   /* #ff9d85 washes out on paper; the same salmon, deepened to read at 10px. */
   --warn: #c2562f;
@@ -101,9 +105,9 @@
   --color-success: var(--success);
   --color-dim2: var(--dim2);
   --color-warn: var(--warn);
-  --font-sans: var(--font-fragment-mono);
-  --font-serif: var(--font-source-serif);
-  --font-mono: var(--font-fragment-mono);
+  --font-sans: var(--font-archivo);
+  --font-serif: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
   --radius-none: 0px;
   --color-hairline: var(--hairline);
   --shadow-1: var(--elev-1);
@@ -262,13 +266,16 @@ body {
 }
 
 /*
- * Display face. Headlines only — Fragment Mono carries everything else, per the v2
- * type spec. Applied by class rather than to h1/h2 globally, because plenty of things
- * here are headings structurally without wanting to look like a masthead.
+ * Display face (v13): Archivo 700, tight, balanced, as bjur.nyc's headlines. The class
+ * keeps its old name so every headline that used the serif picks this up untouched.
+ * Applied by class rather than to h1/h2 globally, because plenty of things here are
+ * headings structurally without wanting to look like a masthead.
  */
 .bj-serif {
-  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
-  letter-spacing: 0;
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
 /* Double-tap favourite confirmation: a quick swell then away. Deliberately short —
@@ -406,3 +413,260 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * v13: the bjur.nyc look (design/v13). The shared parts every board uses, prefixed bj-
+ * so they never collide with a Tailwind utility of the same name (.grid, .ring). Radius
+ * is set with !important here because the square-everything reset above is !important
+ * too: 3px on buttons and outlined panels, 2px on small chips, pills fully round.
+ */
+body::before {
+  /* bjur.nyc's grain: 5% fractal noise over everything, never in the way of a click. */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  z-index: 60;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+.bj-mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bj-mono.ink { color: var(--text); }
+.bj-big {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(36px, 4.4vw, 64px);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.bj-mid {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(30px, 3.2vw, 46px);
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.bj-lead { font-size: 17px; line-height: 1.5; color: var(--body); max-width: 56ch; }
+
+/* Label grid, as /studio v13: a mono label left, the section right, a 1px ink rule on top. */
+.bj-sx {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 40px;
+  border-top: 1px solid var(--text);
+  padding: 24px 0 36px;
+}
+.bj-sx > .bj-lab { padding-top: 4px; }
+.bj-sx > .bj-lab b {
+  display: block;
+  margin-top: 6px;
+  font: 600 22px var(--font-archivo), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-transform: none;
+}
+
+/* Buttons. Primary is shu with a nudging arrow; secondary a rule outline that inks on
+   hover; text links underline and turn shu. Shu is the only action colour. */
+.bj-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent);
+  color: #fff;
+  font: 600 14px var(--font-archivo), system-ui, sans-serif;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 3px !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background-color var(--dur-1);
+}
+.bj-cta:hover { transform: translateY(-1px); }
+.bj-cta:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.bj-cta i, .bj-cta .bj-arr { font-style: normal; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bj-cta:hover i, .bj-cta:hover .bj-arr { transform: translateX(3px); }
+.bj-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  color: var(--text);
+  font: 500 14px var(--font-archivo), system-ui, sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 3px !important;
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: box-shadow var(--dur-1);
+}
+.bj-ghost:hover { box-shadow: inset 0 0 0 1px var(--text); }
+.bj-link { border-bottom: 1px solid var(--text); padding-bottom: 2px; font-size: 14px; transition: color var(--dur-1), border-color var(--dur-1); }
+.bj-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Status: "Needs your review" in shu, "New" in green, delivered plain mono. */
+.bj-pill {
+  display: inline-block;
+  font: 10px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  padding: 3px 7px;
+  border-radius: 999px !important;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.bj-pill.red { border-color: var(--accent); color: var(--accent); }
+.bj-pill.ok { border-color: color-mix(in srgb, var(--success) 60%, transparent); color: var(--success); }
+.bj-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50% !important; background: var(--muted); margin-right: 8px; vertical-align: 1px; }
+.bj-dot.red { background: var(--accent); }
+.bj-dot.ok { background: var(--success); }
+
+/* Tables: mono header row, rule rows, a 64x40 still beside a title and a mono sub-line. */
+.bj-tblw { overflow-x: auto; max-width: 100%; }
+.bj-tbl { width: 100%; border-collapse: collapse; }
+.bj-tbl th {
+  text-align: left;
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 12px 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.bj-tbl td { padding: 16px 12px 16px 0; border-bottom: 1px solid var(--line); font-size: 15px; vertical-align: middle; }
+.bj-tbl tr.row { cursor: pointer; transition: background-color 0.2s; }
+.bj-tbl tr.row:hover td { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.bj-tbl .num { font-family: var(--font-plex-mono), ui-monospace, monospace; font-size: 12px; color: var(--body); }
+.bj-tbl .r { text-align: right; padding-right: 0; }
+.bj-tbl .t b { font-weight: 600; }
+.bj-tbl .t span { display: block; margin-top: 3px; }
+.bj-thumbs { display: flex; align-items: center; gap: 12px; }
+.bj-thumbs img, .bj-thumbs .ph { width: 64px; height: 40px; object-fit: cover; display: block; background: var(--s2); flex: none; }
+
+/* Header: seal and who on the left, lowercase links centred, toggle and initials right. */
+.bj-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; }
+.bj-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.bj-brand .who { display: grid; gap: 2px; min-width: 0; }
+.bj-brand .who > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bj-brand .x { font: 300 18px var(--font-archivo), system-ui, sans-serif; color: var(--muted); margin: 0 -2px; }
+.bj-seal { width: 40px; height: 40px; display: block; flex: none; transform: rotate(-3deg); transform-origin: 50% 60%; transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1), filter 0.35s; }
+.bj-brand:hover .bj-seal, .bj-brand:focus-visible .bj-seal { transform: translateY(1px) rotate(-1deg) scale(0.95); filter: brightness(0.92); transition-duration: 0.18s; }
+.bj-links { display: flex; gap: 26px; list-style: none; margin: 0; padding: 0; font-size: 14px; justify-self: center; }
+.bj-links a { padding-bottom: 3px; color: var(--body); border-bottom: 2px solid transparent; transition: color var(--dur-1); }
+.bj-links a:hover { color: var(--text); }
+.bj-links a.on { border-bottom-color: var(--text); color: var(--text); }
+.bj-nav .r { justify-self: end; display: flex; gap: 14px; align-items: center; }
+.bj-tg {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 2px !important;
+}
+.bj-tg:hover { color: var(--text); border-color: var(--text); }
+.bj-me { width: 30px; height: 30px; border-radius: 50% !important; display: grid; place-items: center; background: var(--s2); font: 500 11px var(--font-plex-mono), ui-monospace, monospace; color: var(--text); box-shadow: inset 0 0 0 1px var(--line); flex: none; }
+.bj-lg { border-radius: 50% !important; object-fit: cover; display: inline-block; flex: none; box-shadow: 0 0 0 1px var(--line); background: var(--s2); }
+.bj-av { border-radius: 50% !important; display: inline-grid; place-items: center; flex: none; color: #fff; font: 600 12px var(--font-archivo), system-ui, sans-serif; }
+.bj-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 2px !important; padding: 7px 10px; min-width: 220px; color: var(--muted); font-size: 13px; }
+.bj-search kbd { margin-left: auto; font: 10px var(--font-plex-mono), ui-monospace, monospace; border: 1px solid var(--line); padding: 1px 5px; border-radius: 2px !important; }
+.bj-foot {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 64px;
+  margin-top: auto;
+}
+.bj-foot .c { justify-self: center; color: var(--text); }
+.bj-foot .rr { justify-self: end; }
+.bj-page { padding: 28px 40px; box-sizing: border-box; min-height: 100dvh; display: flex; flex-direction: column; }
+
+@media (max-width: 900px) {
+  .bj-page { padding: 20px 16px; }
+  .bj-nav { grid-template-columns: minmax(0, 1fr) auto; }
+  .bj-links { display: none; }
+  .bj-search { display: none; }
+  .bj-sx { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bj-tbl .hide { display: none; }
+  .bj-thumbs img, .bj-thumbs .ph { width: 44px; height: 44px; }
+  .bj-foot { grid-template-columns: 1fr; gap: 8px; }
+  .bj-foot .c, .bj-foot .rr { justify-self: start; }
+  /* Thumb-sized on a phone: the toggle and the footer's address are tap targets too. */
+  .bj-tg { min-height: 34px; }
+  .bj-foot .c { display: inline-block; padding: 9px 0; margin: -9px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bj-cta, .bj-cta i, .bj-seal { transition: none; }
+}
+
+/* Sign in (PortalLogin13). The stamp is the page's only seal, 112px above the copy. */
+.bj-login { flex: 1; display: grid; place-items: center; padding: 40px 0 24px; }
+.bj-login .col { width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.bj-login .stage { position: relative; width: 112px; height: 112px; margin-bottom: 34px; }
+.bj-login .st { position: absolute; inset: 0; transform: rotate(-3deg); transform-origin: 50% 50%; }
+.bj-login .st svg { width: 100%; height: 100%; display: block; }
+.bj-login .shd { position: absolute; inset: 0; border-radius: 4px !important; background: #000; opacity: 0; filter: blur(14px); }
+.bj-login .ring { position: absolute; inset: -8%; border: 2px solid var(--accent); border-radius: 6px !important; opacity: 0; transform: rotate(-3deg); }
+.bj-login.pre .stage:not(.go) .st { opacity: 0; }
+.bj-login .go .st { animation: bj-press 1.25s cubic-bezier(.2, .75, .25, 1) both; }
+.bj-login .go .shd { animation: bj-shd 1.25s cubic-bezier(.2, .75, .25, 1) both; }
+.bj-login .go .ring { animation: bj-ring 1.25s ease-out both; }
+.bj-login .stage.go { animation: bj-thud 1.25s ease-out both; }
+@keyframes bj-press { 0% { opacity: 0; transform: translateY(-14%) rotate(-11deg) scale(1.55); } 8% { opacity: 1; } 46% { transform: translateY(0) rotate(-3.6deg) scale(1.04); } 52% { transform: translateY(.6%) rotate(-3deg) scale(.985); } 64% { transform: translateY(-.8%) rotate(-3deg) scale(1.01); } 74%, 100% { transform: translateY(0) rotate(-3deg) scale(1); } }
+@keyframes bj-shd { 0% { opacity: 0; transform: scale(1.35) translateY(10%); } 10% { opacity: .45; } 46% { opacity: .1; transform: none; } 60%, 100% { opacity: 0; } }
+@keyframes bj-ring { 0%, 45% { opacity: 0; transform: rotate(-3deg) scale(.9); } 48% { opacity: .55; } 80%, 100% { opacity: 0; transform: rotate(-3deg) scale(1.18); } }
+@keyframes bj-thud { 0%, 45% { transform: none; } 48% { transform: translate(0, 3px); } 54% { transform: translate(-1px, -1px); } 60%, 100% { transform: none; } }
+.bj-login .after { transition: opacity .6s ease, transform .6s cubic-bezier(.2, .8, .2, 1); }
+.bj-login.pre .after { opacity: 0; transform: translateY(10px); }
+.bj-login .after.d1 { transition-delay: .05s; } .bj-login .after.d2 { transition-delay: .15s; } .bj-login .after.d3 { transition-delay: .25s; }
+.bj-login .moved { margin: -16px 0 22px; color: var(--text); text-transform: none; letter-spacing: .02em; font-size: 12px; }
+.bj-login .kick { margin-bottom: 14px; }
+.bj-login .bj-lead { margin: 12px auto 0; }
+.bj-login form { display: grid; gap: 16px; margin-top: 36px; width: 100%; max-width: 400px; text-align: left; }
+.bj-login .fld { display: grid; gap: 8px; }
+.bj-login .fld input { appearance: none; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: 16px var(--font-archivo), system-ui, sans-serif; padding: 10px 0; outline: none; transition: border-color .2s; }
+.bj-login .fld input:focus { border-color: var(--text); }
+.bj-login .fld input[aria-invalid] { border-color: var(--accent); }
+.bj-login .fld input::placeholder { color: var(--muted); }
+.bj-login .bj-cta { justify-content: center; margin-top: 10px; }
+.bj-login .forgot { justify-self: center; margin-top: 4px; background: none; border-top: 0; border-left: 0; border-right: 0; color: var(--text); cursor: pointer; font-family: inherit; }
+.bj-login .err { margin: 0; color: var(--accent); font-size: 14px; }
+.bj-login .sent { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
+.bj-login .note { margin-top: 34px; font-size: 14px; line-height: 1.5; color: var(--muted); max-width: 34ch; }
+.bj-login .note a { color: var(--text); border-bottom: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) {
+  .bj-login.pre .after { opacity: 1; transform: none; }
+  .bj-login.pre .stage .st { opacity: 1; }
+  .bj-login .go .st, .bj-login .go .shd, .bj-login .go .ring, .bj-login .stage.go { animation: none; }
+}
+
+/* "Add your logo" (Settings, once, when the logo job found nothing). */
+.bj-addlogo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; padding: 18px 20px; border: 1px solid var(--line); border-radius: 3px !important; margin-bottom: 32px; }
+.bj-addlogo b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.bj-addlogo p { margin: 4px 0 0; color: var(--body); font-size: 14px; line-height: 1.5; max-width: 60ch; }
+.bj-addlogo .err { color: var(--accent); }
+.bj-addlogo .acts { display: flex; gap: 16px; align-items: center; }
+@media (max-width: 900px) { .bj-addlogo { grid-template-columns: 1fr; } .bj-addlogo .acts .bj-cta { flex: 1; justify-content: center; } }

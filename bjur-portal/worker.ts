@@ -15,6 +15,7 @@ import { sendExpiryReminders } from "./src/lib/clientMail";
 import { processCaptionQueue } from "./src/lib/captionPipeline";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
+import { processLogoQueue } from "./src/lib/logos";
 
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
 const POLL_MS = 4000;
@@ -489,6 +490,21 @@ function startCrmSchedulers() {
   );
 }
 
+// Client logos and colours (v13 handoff §4). Picks up clients just created or edited
+// (logoCheckRequestedAt) and anything not checked in 30 days; a few per tick, guarded so
+// a slow homepage never overlaps the next one. checkClientLogo catches per client, and
+// guardedInterval catches anything else — nothing here can take the worker down.
+function startLogoScheduler() {
+  guardedInterval("logos", async () => {
+    const r = await processLogoQueue({ log: (m) => console.log(`[logos]${m}`) });
+    if (r.found || r.missed) console.log(`[logos] ${r.found} found, ${r.missed} with nothing new`);
+  }, SCHEDULER_POLL_MS);
+  console.log(
+    `[logos] checking every ${SCHEDULER_POLL_MS}ms — on create/edit and monthly; ` +
+      `website, Instagram and YouTube via connected accounts, Brandfetch ${process.env.BRANDFETCH_KEY ? "on" : "off (BRANDFETCH_KEY not set)"}`,
+  );
+}
+
 startHeartbeat();
 startIngestWatcher();
 startInternalServer();
@@ -500,3 +516,4 @@ startPublishScheduler();
 startClientMailScheduler();
 startCaptionScheduler();
 startCrmSchedulers();
+startLogoScheduler();

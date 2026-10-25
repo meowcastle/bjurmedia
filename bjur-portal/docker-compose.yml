@@ -74,6 +74,8 @@ services:
       - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - ANTHROPIC_WORKSPACE_ID=${ANTHROPIC_WORKSPACE_ID:-}
+      # Logo job (v13 §4): Brandfetch is the fourth source, tried only when a key is set.
+      - BRANDFETCH_KEY=${BRANDFETCH_KEY:-}
       - CAPTION_MODEL=${CAPTION_MODEL:-}
       - CRM_MODEL=${CRM_MODEL:-}
       - STUDIO_TZ=${STUDIO_TZ:-}

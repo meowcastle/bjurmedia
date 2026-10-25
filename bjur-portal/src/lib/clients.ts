@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { genTempPassword } from "@/lib/users";
+import { requestLogoCheck } from "@/lib/logos";
 
 export function slugifyUsername(name: string) {
   return name
@@ -33,6 +34,8 @@ export async function createClient(opts: {
     data: {
       name: opts.name,
       username: opts.username,
+      // The worker looks for this client's logo on its next tick (src/lib/logos).
+      logoCheckRequestedAt: new Date(),
       ...(existing
         ? { members: { create: { userId: existing.id, role: "OWNER" as const } } }
         : {
@@ -100,6 +103,9 @@ export async function addSeat(opts: {
     },
   });
 
+  // A new login can be the first one on the client's own domain, which is where the
+  // logo job looks first.
+  await requestLogoCheck(opts.clientId);
   return { user, tempPassword };
 }
 
@@ -132,6 +138,7 @@ export async function addExistingUserToClient(opts: {
     });
   }
 
+  await requestLogoCheck(opts.clientId);
   return db.user.findUniqueOrThrow({ where: { id: opts.userId } });
 }
 
@@ -197,5 +204,6 @@ export async function reactivateSeat(opts: {
     }),
   ]);
 
+  await requestLogoCheck(opts.clientId);
   return { user, tempPassword };
 }

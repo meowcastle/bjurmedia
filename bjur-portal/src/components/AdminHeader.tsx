@@ -3,21 +3,21 @@
 import { useHeaderHeight } from "@/components/ui/useHeaderHeight";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useIsPhone } from "@/components/ui/useIsPhone";
-import { NavUnderline } from "@/components/ui/NavUnderline";
 import { usePresence } from "@/components/ui/usePresence";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminSearchBox } from "@/components/AdminSearchBox";
+import { Seal } from "@/components/ui/Seal";
 
 const TABS = [
-  { href: "/admin", label: "Home" },
-  { href: "/admin/clients", label: "Clients" },
-  { href: "/admin/pipeline", label: "Pipeline" },
-  { href: "/admin/inbox", label: "Inbox" },
-  { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/integrations", label: "Integrations" },
+  { href: "/admin", label: "today" },
+  { href: "/admin/clients", label: "clients" },
+  { href: "/admin/pipeline", label: "pipeline" },
+  { href: "/admin/inbox", label: "inbox" },
+  { href: "/admin/reports", label: "reports" },
+  { href: "/admin/integrations", label: "integrations" },
 ];
 
 /**
@@ -30,7 +30,7 @@ const TABS = [
  * an avatar that already opens a menu is two doors into one room.
  */
 const MENU_LINKS = [
-  { href: "/admin/team", label: "Team", hint: "Admin logins for Bjur Media" },
+  { href: "/admin/team", label: "Team", hint: "Staff logins for the portal" },
   { href: "/admin/library", label: "Library", hint: "Register footage already on the NAS" },
 ];
 
@@ -76,9 +76,20 @@ export function AdminHeader({ userName }: { userName: string }) {
   }
 
   // One set of items, two containers: a sheet from the bottom edge on a phone, the
-  // dropdown everywhere else.
+  // dropdown everywhere else. On a phone the centre links have no room, so they lead it.
   const menuItems = (
     <>
+    {phone && TABS.map((tab) => (
+      <Link
+        key={tab.href}
+        role="menuitem"
+        href={tab.href}
+        onClick={() => setMenuOpen(false)}
+        className="block px-4 py-3 border-b border-line text-sm text-body hover:text-text hover:bg-s3"
+      >
+        {tab.label}
+      </Link>
+    ))}
     {MENU_LINKS.map((item) => (
       <Link
         key={item.href}
@@ -114,70 +125,61 @@ export function AdminHeader({ userName }: { userName: string }) {
   return (
     <div
       ref={headerRef}
-      className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-2 px-4 md:px-10 py-3 md:py-4 border-b-2 border-line2 sticky top-0 bg-bg/90 backdrop-blur-md z-20"
+      className="print:hidden sticky top-0 z-20 bg-bg/90 backdrop-blur-md px-4 md:px-10 py-4 md:py-5"
     >
-      <Link href="/admin" className="flex items-center gap-2.5 flex-none py-2.5 -my-2.5">
-        <div className="w-3.5 h-3.5 bg-accent" />
-        <span className="font-black text-[15px]">BJUR</span>
-        <span className="font-semibold tracking-[0.3em] text-[11px] text-muted">MEDIA</span>
-      </Link>
-      <div className="w-px h-5 bg-line2 hidden lg:block" />
-      <span className="text-xs tracking-[0.14em] uppercase text-muted font-semibold hidden lg:inline">Admin</span>
-      {/* Below md the tabs get their own full-width row and scroll sideways: sharing a
-          line with the fixed-width search box left them clipped, and a clipped tab is an
-          unreachable page. */}
-      <nav className="order-last w-full -mx-1 px-1 flex items-center gap-1 overflow-x-auto md:order-none md:w-auto md:mx-0 md:px-0 md:ml-4 md:min-w-0 md:flex-1">
-        {TABS.map((tab) => {
-          const active = tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`relative px-3 py-2 text-xs font-semibold uppercase tracking-wide flex-none whitespace-nowrap transition-colors ${
-                active ? "text-text" : "text-muted hover:text-text"
-              }`}
+      {/* v13 (PortalAdmin13): the seal with "Studio" over "Client portal admin", lowercase
+          links centred, then search (⌘K), the theme toggle and the initials. */}
+      <nav className="bj-nav" aria-label="Studio">
+        <Link href="/admin" className="bj-brand">
+          <Seal className="bj-seal" />
+          <span className="who">
+            <span className="bj-mono ink">Studio</span>
+            <span className="bj-mono">Client portal admin</span>
+          </span>
+        </Link>
+        <ul className="bj-links">
+          {TABS.map((tab) => {
+            const active = tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
+            return (
+              <li key={tab.href}>
+                <Link href={tab.href} className={active ? "on" : undefined} aria-current={active ? "page" : undefined}>
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="r">
+          {!phone && <AdminSearchBox />}
+          {!phone && <ThemeToggle portal="admin" />}
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label={`Menu for ${userName}`}
+              // 44px to the finger, 30px to the eye.
+              className="group w-11 h-11 -m-[7px] grid place-items-center cursor-pointer"
             >
-              {tab.label}
-              {active && <NavUnderline group="admin" />}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="ml-auto flex items-center gap-4 flex-none">
-        <AdminSearchBox />
-
-        {/* §8: the name and a permanent "Sign out" ate width the tabs needed, and the
-            name was hidden below lg anyway — so on a laptop the header offered a
-            sign-out button belonging to nobody in particular. */}
-        <ThemeToggle portal="admin" />
-        <div ref={menuRef} className="relative">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label={`Menu for ${userName}`}
-            // 44px to the finger, 30px to the eye.
-            className="group w-11 h-11 -m-[7px] grid place-items-center cursor-pointer"
-          >
-            <span className="w-[30px] h-[30px] grid place-items-center bg-s3 border border-line2 group-hover:border-text text-[11px] font-black transition-colors">
-              {initials}
-            </span>
-          </button>
-          {!phone && menu.mounted && (
-            <div
-              role="menu"
-              data-testid="admin-account-menu"
-              className={`absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line2 shadow-2 z-40 ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
-            >
-              {menuItems}
-            </div>
-          )}
+              <span className="bj-me group-hover:shadow-[inset_0_0_0_1px_var(--text)]">{initials}</span>
+            </button>
+            {!phone && menu.mounted && (
+              <div
+                role="menu"
+                data-testid="admin-account-menu"
+                className={`absolute right-0 top-[calc(100%+8px)] min-w-[232px] bg-s2 border border-line shadow-2 z-40 [border-radius:3px!important] overflow-hidden ${menu.leaving ? "bj-pop-out pointer-events-none" : "bj-pop-in"}`}
+              >
+                {menuItems}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </nav>
       {phone && (
         <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} label={`Menu for ${userName}`}>
           <div role="menu" data-testid="admin-account-menu">
             {menuItems}
+            <div className="px-3 min-h-11 flex items-center border-t border-line"><ThemeToggle portal="admin" /></div>
           </div>
         </BottomSheet>
       )}

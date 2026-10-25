@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         await sendOnboardingEmail(ownerEmail.trim(), {
           clientName: client.name,
           recipientName: ownerName.trim(),
-          portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
+          portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.nyc",
           signInEmail: ownerEmail.trim(),
           tempPassword,
         })

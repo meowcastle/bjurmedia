@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailLogoUrl } from "@/lib/emailLogo";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { addSeat, reactivateSeat, addExistingUserToClient } from "@/lib/clients";
@@ -98,8 +99,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (tempPassword) {
     await sendOnboardingEmail(email.trim(), {
       clientName: client.name,
+      logoUrl: emailLogoUrl(client.logoUrl),
       recipientName: name.trim(),
-      portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.media",
+      portalUrl: process.env.PORTAL_URL ?? "https://portal.bjur.nyc",
       signInEmail: email.trim(),
       tempPassword,
     });

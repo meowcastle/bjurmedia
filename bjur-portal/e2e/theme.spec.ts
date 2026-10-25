@@ -3,32 +3,31 @@ import { test, expect } from "@playwright/test";
 /**
  * Light/dark, remembered per portal.
  *
- * Two keys, because they are two habits: clients read their gallery in daylight, staff
- * live in the admin at night. One shared preference would mean whichever surface you
- * touched last decides for both.
+ * Two keys, because they are two habits. Both open dark since v13, as bjur.nyc does; one
+ * shared preference would still mean whichever surface you touched last decides for both.
  */
 test.describe("client portal", () => {
   test.use({ storageState: "e2e/.auth/sasha.json" });
 
-  test("opens light and remembers the switch", async ({ page }) => {
+  test("opens dark and remembers the switch", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
     await page.getByTestId("theme-toggle").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
     // Survives a reload, and without a flash of the wrong theme first.
     await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
   test("the ground actually changes, not just the attribute", async ({ page }) => {
     await page.goto("/");
     const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-    const light = await bg();
-    await page.getByTestId("theme-toggle").click();
     const dark = await bg();
+    await page.getByTestId("theme-toggle").click();
+    const light = await bg();
     expect(light).not.toBe(dark);
   });
 });

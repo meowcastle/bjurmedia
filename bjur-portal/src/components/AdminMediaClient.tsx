@@ -385,32 +385,32 @@ export function AdminMediaClient({
   }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 pb-32 max-w-[1400px] mx-auto bjfade">
-      <div className="mb-6">
+    <div className="bj-adm pb-32 bjfade">
+      <div className="bj-adm-top !block !pb-6">
         {/* Media is reached from a project and goes back to it. Its own client-then-
             project picker was a second way to choose a project the Clients page already
             offers. */}
         <Link
           href={`/admin/projects/${selectedProjectId}`}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-4 py-2.5 -my-2.5"
+          className="bj-mono inline-flex items-center gap-2 hover:!text-[var(--text)] min-h-[30px]"
         >
           ← {selectedClientName ? `${selectedClientName} · ` : ""}Project
         </Link>
-        <h1 className="bj-serif text-[34px] font-normal">
+        <h1 className="bj-big">
           {selectedProjectTitle}
         </h1>
       </div>
 
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
+      <div className="flex items-center gap-3 mb-6 flex-wrap border-t border-[var(--text)] pt-5">
         {siblingProjects.length > 0 && (
           <>
-            <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">
+            <span className="bj-mono">
               Switch project
             </span>
             <select
               value={selectedProjectId}
               onChange={(e) => selectProject(e.target.value)}
-              className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+              className="bj-in"
             >
               <option value={selectedProjectId}>{selectedProjectTitle}</option>
               {siblingProjects.map((p) => (
@@ -421,40 +421,42 @@ export function AdminMediaClient({
             </select>
           </>
         )}
-        <div className="flex border border-line2">
+        <div className="bj-filters !mb-0">
           {(["files", "calendar"] as const).map((v) => (
             <button
               key={v}
+              type="button"
               onClick={() => setView(v)}
-              className={`cursor-pointer text-[11px] font-semibold uppercase px-3 py-2 ${
-                view === v ? "bg-text text-bg" : "text-muted hover:text-text"
-              }`}
+              aria-pressed={view === v}
+              className={view === v ? "on" : undefined}
             >
               {v}
             </button>
           ))}
         </div>
         <button
+          type="button"
           onClick={() => setUploadOpen(true)}
-          className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+          className="bj-ghost"
         >
           Upload
         </button>
         <Link
           href={`/admin/library?project=${selectedProjectId}`}
-          className="text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+          className="bj-ghost"
         >
           Import from NAS →
         </Link>
         <button
+          type="button"
           onClick={() => setFoldersDialogOpen(true)}
-          className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-2"
+          className="bj-ghost"
         >
           Folders{folders.length > 0 ? ` (${folders.length})` : ""}
         </button>
         {folders.length > 0 && (
           <>
-            <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">
+            <span className="bj-mono">
               Folder
             </span>
             <select
@@ -463,7 +465,7 @@ export function AdminMediaClient({
                 setFolderFilterId(e.target.value);
                 setSelectedIds(new Set());
               }}
-              className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+              className="bj-in"
             >
               <option value="ALL">All</option>
               <option value="UNSORTED">Unsorted</option>
@@ -493,7 +495,7 @@ export function AdminMediaClient({
           {/* §10: five stat tiles replaced by one line. They spent a whole row restating
           what the table shows, and the fifth ("Workers online: 1") was a hardcoded
           literal — it never reflected anything. */}
-          <div className="flex items-center gap-2.5 flex-wrap text-[13px] text-muted mb-4">
+          <div className="flex items-center gap-2.5 flex-wrap bj-mono mb-4">
             <span>{rows.length} files</span>
             <span className="w-1 h-1 rounded-full bg-dim" />
             <span className="tabular-nums">{formatBytes(totalBytes)}</span>
@@ -505,7 +507,7 @@ export function AdminMediaClient({
             {generating > 0 && (
               <>
                 <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb">{generating} generating</span>
+                <span style={{ color: "var(--accent)" }}>{generating} generating</span>
               </>
             )}
             {failed > 0 && (
@@ -516,7 +518,7 @@ export function AdminMediaClient({
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap mb-5">
+          <div className="bj-filters">
             {[
               { id: "ALL", label: `All ${byFolder.length}` },
               ...Object.keys(formatCounts)
@@ -525,12 +527,10 @@ export function AdminMediaClient({
             ].map((c) => (
               <button
                 key={c.id}
+                type="button"
                 onClick={() => setFormatFilter(c.id)}
-                className={`cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2 border ${
-                  formatFilter === c.id
-                    ? "bg-text text-bg border-text"
-                    : "border-line2 text-muted hover:text-text"
-                }`}
+                aria-pressed={formatFilter === c.id}
+                className={formatFilter === c.id ? "on" : undefined}
               >
                 {c.label}
               </button>
@@ -539,11 +539,9 @@ export function AdminMediaClient({
               <button
                 onClick={() => setFormatFilter("NEEDS_WEEK")}
                 title="Client-visible files with no delivery week — invisible to the calendar and the weekly Slack post"
-                className={`cursor-pointer text-[11px] font-semibold uppercase tracking-wide px-3.5 py-2 border ${
-                  formatFilter === "NEEDS_WEEK"
-                    ? "bg-accentb text-bg border-accentb"
-                    : "border-accentb/60 text-accentb hover:border-accentb"
-                }`}
+                type="button"
+                aria-pressed={formatFilter === "NEEDS_WEEK"}
+                className={`red${formatFilter === "NEEDS_WEEK" ? " on" : ""}`}
               >
                 Needs week {needsWeekCount}
               </button>
@@ -680,9 +678,9 @@ export function AdminMediaClient({
             </div>
           )}
 
-          <div className="border border-line">
+          <div className="border-t border-[var(--text)]">
             <div
-              className="hidden md:grid gap-3.5 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold items-center"
+              className="hidden md:grid gap-3.5 px-5 py-3.5 border-b border-line bj-mono items-center"
               style={{
                 gridTemplateColumns: "24px 96px 2.4fr 1fr 1fr 1.4fr 56px",
               }}

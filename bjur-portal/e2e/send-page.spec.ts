@@ -73,7 +73,7 @@ test("a closed link says so rather than 404ing at whoever was sent it", async ({
 
   await page.reload();
   await expect(page.getByTestId("send-closed")).toContainText("This link is closed.");
-  await expect(page.getByText("hello@bjurmedia.nyc")).toBeVisible();
+  await expect(page.getByText("hi@bjur.nyc")).toBeVisible();
   await expect(page.getByTestId("send-dropzone")).toHaveCount(0);
 
   // The API refuses too, not just the page — the shell is a courtesy, not the gate.

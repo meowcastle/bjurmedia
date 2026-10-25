@@ -9,9 +9,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("project list shows the client's own projects", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
-  await expect(page.getByText("Spring Campaign 2026")).toBeVisible();
-  await expect(page.getByText("Product Launch — Aera")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /^Your projects,/ })).toBeVisible();
+  // Scoped to the table: v13's Latest section and waiting bar name projects too.
+  const rows = page.getByTestId("project-row");
+  await expect(rows.getByText("Spring Campaign 2026")).toBeVisible();
+  await expect(rows.getByText("Product Launch — Aera")).toBeVisible();
 });
 
 test("project detail: filters, photo viewer, and favorites", async ({ page }) => {

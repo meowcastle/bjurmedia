@@ -1,6 +1,12 @@
-// Ported from prototypes/Client Onboarding Email.dc.html. Built as a plain HTML
-// string (not JSX->render) — email clients need literal inline style="" attributes,
-// and Next's bundler disallows react-dom/server imports from route-reachable modules.
+// Welcome: sent when a client login is created, and again (as `reason: "reset"`) when
+// staff reset that login's password. Both carry a temporary password, which is why they
+// share a template: the credential table is the point of each.
+//
+// Plain HTML string, not JSX->render: email clients need literal inline style=""
+// attributes, and Next's bundler disallows react-dom/server imports from route-reachable
+// modules. The layout lives in shell.tsx.
+
+import { renderShell, firstName } from "@/emails/shell";
 
 export type OnboardingEmailProps = {
   clientName: string;
@@ -13,6 +19,10 @@ export type OnboardingEmailProps = {
    */
   signInEmail: string;
   tempPassword: string;
+  /** "reset" when staff issued a new temporary password to an existing login. */
+  reason?: "welcome" | "reset";
+  /** Absolute URL of the client's logo, when they have one. */
+  logoUrl?: string | null;
   /** Omit for a plain seat/account welcome with no delivery attached yet. */
   delivery?: {
     projectTitle: string;
@@ -24,124 +34,61 @@ export type OnboardingEmailProps = {
   };
 };
 
-function esc(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function statCell(value: number, label: string, accent: boolean, last: boolean) {
-  return `
-    <div style="flex:1;padding:18px 16px;${last ? "" : "border-right:1px solid #dcd8d1;"}">
-      <div style="font-size:26px;font-weight:900;color:${accent ? "#ec3013" : "#17161a"};letter-spacing:-.02em">${value}</div>
-      <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6e6b66;font-weight:600;margin-top:4px">${label}</div>
-    </div>`;
-}
-
-function credRow(label: string, value: string, last: boolean) {
-  return `
-    <div style="display:flex;justify-content:space-between;gap:12px;padding:14px 16px;${last ? "" : "border-bottom:1px solid #dcd8d1;"}">
-      <span style="font-size:13px;color:#6e6b66">${label}</span>
-      <span style="font-size:13px;color:#17161a;font-family:ui-monospace,Menlo,monospace">${esc(value)}</span>
-    </div>`;
-}
-
 export function renderOnboardingEmailHtml({
   clientName,
   recipientName,
   portalUrl,
   signInEmail,
   tempPassword,
+  reason = "welcome",
+  logoUrl,
   delivery,
 }: OnboardingEmailProps): string {
-  const heroKicker = delivery ? `New files · ${esc(clientName)}` : `Welcome · ${esc(clientName)}`;
-  const heroHeadline = delivery
-    ? `Your ${esc(delivery.projectTitle)} files are ready.`
-    : "Your Bjur Media portal access is ready.";
-  const heroBody = delivery
-    ? `Hi ${esc(recipientName)} — your final photo and video files are live in the Bjur Media client portal. Stream everything in-browser and download the masters at full resolution whenever you're ready.`
-    : `Hi ${esc(recipientName)} — you now have access to the Bjur Media client portal for ${esc(clientName)}. Sign in below to view your files as they're ready.`;
+  const base = portalUrl.replace(/\/$/, "");
+  const host = base.replace(/^https?:\/\//, "");
+  const hi = `Hi ${firstName(recipientName)}.`;
 
-  const preheader = delivery
-    ? `Your ${esc(delivery.projectTitle)} files are ready to view and download.`
-    : `Your Bjur Media portal login is ready.`;
+  const kicker =
+    reason === "reset"
+      ? `New password · ${clientName}`
+      : delivery
+        ? `New files · ${clientName}`
+        : `Welcome · ${clientName}`;
+  const headline =
+    reason === "reset"
+      ? "Your password has been reset."
+      : delivery
+        ? `Your ${delivery.projectTitle} files are ready.`
+        : "Your portal login is ready.";
+  const body =
+    reason === "reset"
+      ? `${hi} We set a new temporary password on your Bjur client portal login for ${clientName}. Sign in with it below and choose your own.`
+      : delivery
+        ? `${hi} You now have a login to the Bjur client portal for ${clientName}, and your ${delivery.projectTitle} files are already in it. Stream them in the browser, or download the masters at full resolution whenever you like.`
+        : `${hi} You now have a login to the Bjur client portal for ${clientName}. Sign in to review cuts, leave notes on the frame and download your files as they land.`;
 
-  const statsBlock = delivery
-    ? `
-    <div style="padding:0 40px 30px">
-      <div style="display:flex;border:1px solid #dcd8d1">
-        ${statCell(delivery.reels, "Reels", false, false)}
-        ${statCell(delivery.films, "Films", false, false)}
-        ${statCell(delivery.stills, "Stills", false, false)}
-        ${statCell(delivery.braw, "BRAW", true, true)}
-      </div>
-    </div>`
-    : "";
-
-  const expiryBlock =
-    delivery?.expiresAt != null
-      ? `
-    <div style="padding:24px 40px;border-top:1px solid #dcd8d1;background:#0f0f11">
-      <div style="display:flex;gap:11px;align-items:flex-start">
-        <div style="width:6px;height:6px;border-radius:50%;background:#ec3013;margin-top:6px;flex:none"></div>
-        <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:0">This project is available until <strong style="color:#17161a;font-weight:700">${esc(delivery.expiresAt)}</strong>.</p>
-      </div>
-    </div>`
-      : "";
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;background:#eeebe5;font-family:'SF Mono',Menlo,Consolas,monospace;-webkit-font-smoothing:antialiased">
-<div style="background:#eeebe5;padding:44px 20px;min-height:100vh">
-  <div style="max-width:600px;margin:0 auto 14px;font-size:11px;letter-spacing:.04em;color:#8a877f">${preheader}</div>
-
-  <div style="max-width:600px;margin:0 auto;background:#f6f4f0;border:1px solid #dcd8d1">
-    <div style="height:3px;background:#ec3013"></div>
-
-    <div style="padding:26px 40px;border-bottom:1px solid #dcd8d1;display:flex;align-items:center;gap:11px">
-      <div style="width:14px;height:14px;background:#ec3013"></div>
-      <span style="font-weight:900;font-size:16px;color:#17161a">BJUR</span>
-      <span style="font-weight:600;letter-spacing:.32em;font-size:12px;color:#6e6b66">MEDIA</span>
-    </div>
-
-    <div style="padding:40px 40px 30px">
-      <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#ec3013;font-weight:700;margin-bottom:16px">${heroKicker}</div>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.05;font-weight:400;color:#17161a;margin:0 0 16px">${heroHeadline}</h1>
-      <p style="font-size:15px;line-height:1.65;color:#4a4844;margin:0">${heroBody}</p>
-    </div>
-
-    ${statsBlock}
-
-    <div style="padding:0 40px 34px">
-      <a href="${portalUrl}" style="display:block;text-align:center;background:#17161a;color:#f6f4f0;font-size:12px;padding:16px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none">View your projects</a>
-    </div>
-
-    <div style="padding:0 40px 36px">
-      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6e6b66;font-weight:700;margin-bottom:12px">Your sign-in</div>
-      <div style="border:1px solid #dcd8d1;background:#f6f4f0">
-        ${credRow("Portal", portalUrl.replace(/^https?:\/\//, ""), false)}
-        ${credRow("Email", signInEmail, false)}
-        ${credRow("Temporary password", tempPassword, true)}
-      </div>
-      <p style="font-size:12px;line-height:1.6;color:#6e6b66;margin:12px 0 0">You'll be asked to set your own password on first sign-in. This temporary password expires in 7 days.</p>
-    </div>
-
-    ${expiryBlock}
-
-    <div style="padding:26px 40px;border-top:1px solid #dcd8d1">
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
-        <div style="width:11px;height:11px;background:#ec3013"></div>
-        <span style="font-weight:900;font-size:13px;color:#17161a">BJUR</span>
-        <span style="font-weight:600;letter-spacing:.3em;font-size:10px;color:#6e6b66">MEDIA</span>
-      </div>
-      <p style="font-size:11px;line-height:1.7;color:#6e6b66;margin:0">Questions about your project? Reply to this email or reach us at <a href="mailto:hello@bjur.media" style="color:#ff5a3c">hello@bjur.media</a>.<br>Bjur Media · Video production · New York</p>
-    </div>
-  </div>
-
-  <div style="max-width:600px;margin:16px auto 0;text-align:center;font-size:11px;color:#3a3a3d;line-height:1.6">Sent by Bjur Media<br>You received this because a project was shared with you.</div>
-</div>
-</body>
-</html>`;
+  return renderShell({
+    preheader:
+      reason === "reset" ? "A new temporary password for the portal." : "Your portal login is ready.",
+    logoUrl,
+    kicker,
+    headline,
+    body,
+    factsTitle: "Your login",
+    facts: [
+      { label: "Sign in with", value: signInEmail },
+      { label: "Temporary password", value: tempPassword, mono: true },
+      { label: "Portal", value: host },
+      ...(delivery?.expiresAt ? [{ label: "Available until", value: delivery.expiresAt }] : []),
+    ],
+    cta: { label: "Sign in", url: `${base}/login` },
+    note:
+      reason === "reset"
+        ? "You will be asked to choose your own password when you sign in. If you did not ask for this, reply to this email."
+        : "You will be asked to choose your own password the first time. Your login is just for you; if someone else on your team needs one, reply to this email.",
+    unsubscribe:
+      reason === "reset"
+        ? "You are receiving this because your client portal password was reset."
+        : "You are receiving this because Bjur set up a client portal login for you.",
+  });
 }

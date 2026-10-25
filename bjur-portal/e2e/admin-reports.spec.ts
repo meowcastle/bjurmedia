@@ -19,9 +19,9 @@ test("client attribution report: renders correct seeded counts and handles the z
   await expect(page.getByRole("heading", { name: "Halcyon Films" })).toBeVisible();
 
   // Halcyon Films' seeded assets, confirmed directly against the DB: exactly one
-  // each of Reel/Film/Still. Stat tiles are `.bg-s1.border.border-line` — specific
-  // enough to only ever match the leaf tile divs, never an ancestor grid wrapper.
-  const tile = (label: string) => page.locator("div.bg-s1.border.border-line").filter({ hasText: label });
+  // each of Reel/Film/Still. Stat tiles carry data-testid="report-tile" (v13 dropped the
+  // card styling the old selector keyed on), which only ever matches the leaf tiles.
+  const tile = (label: string) => page.getByTestId("report-tile").filter({ hasText: label });
   await expect(tile("Reels delivered")).toHaveText(/^1/);
   await expect(tile("Films delivered")).toHaveText(/^1/);
   await expect(tile("Stills delivered")).toHaveText(/^1/);

@@ -44,7 +44,7 @@ const UNMARKABLE =
 
 function markFilter(style: MarkStyle, hasFont: boolean) {
   if (style !== "preview" || !hasFont) return null;
-  return `drawtext=fontfile=${WATERMARK_FONT}:text='BJUR MEDIA . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`;
+  return `drawtext=fontfile=${WATERMARK_FONT}:text='BJUR . PREVIEW':fontcolor=white@0.13:fontsize=42:x=mod(t*40\\,w)-200:y=h/2:box=0`;
 }
 
 /**

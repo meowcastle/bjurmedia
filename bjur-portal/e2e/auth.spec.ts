@@ -4,9 +4,11 @@ import { loginAsClient, loginAsAdmin } from "./helpers";
 test.describe("client auth", () => {
   test("logs in and out", async ({ page }) => {
     await loginAsClient(page);
-    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /^Your projects,/ })).toBeVisible();
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    // v13: sign out sits in the account menu behind the initials, as for staff.
+    await page.getByRole("button", { name: /^Menu for / }).click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL("/login");
   });
 
@@ -33,7 +35,7 @@ test.describe("client auth", () => {
 test.describe("admin auth", () => {
   test("logs in and out", async ({ page }) => {
     await loginAsAdmin(page);
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Today." })).toBeVisible();
 
     // Sign out sits behind the account menu now, so signing out is two steps.
     await page.getByRole("button", { name: /^Menu for / }).click();

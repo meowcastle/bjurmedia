@@ -6,14 +6,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AdminIntakeBlock, type IntakeBatch, type IntakeLink } from "@/components/AdminIntakeBlock";
-import { Button } from "@/components/ui/Button";
 import { AddSeatDialog } from "@/components/AddSeatDialog";
 import { ResetSeatPasswordDialog } from "@/components/ResetSeatPasswordDialog";
 import { SeatAccessDialog } from "@/components/SeatAccessDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { UploadDialog } from "@/components/UploadDialog";
-import { lighten } from "@/lib/color";
-import { initials } from "@/lib/initials";
+import { ClientLogo } from "@/components/ClientLogo";
 
 type ProjectAccessGrant = { projectId: string; role: string };
 type Seat = {
@@ -46,6 +44,7 @@ type ClientInfo = {
   autoCaption: boolean;
   footageUploads: boolean;
   logoUrl: string | null;
+  logoColor: string | null;
 };
 
 type TopPost = {
@@ -176,57 +175,34 @@ export function AdminClientDetailClient({
   ].filter(Boolean) as string[];
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1400px] mx-auto bjfade">
-      <Link
-        href="/admin/clients"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6"
-      >
-        ← All clients
-      </Link>
-
-      <div className="flex items-end justify-between gap-6 flex-wrap border-b-2 border-line2 pb-6 mb-9">
-        <div className="flex items-center gap-4">
-          <div
-            className="w-14 h-14 flex-none grid place-items-center overflow-hidden bg-s3"
-            style={
-              !logoUrl
-                ? {
-                    background: `linear-gradient(135deg, ${accentColor}, ${lighten(accentColor, 0.6)})`,
-                  }
-                : undefined
-            }
-          >
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
-              <img
-                src={logoUrl}
-                alt=""
-                className="w-full h-full object-contain bg-bg"
-              />
-            ) : (
-              <span className="text-lg font-black text-bg">
-                {initials(client.name)}
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div className="min-w-0">
+          <Link href="/admin/clients" className="bj-mono inline-flex items-center gap-2 min-h-[30px] hover:!text-[var(--text)]">
+            ← All clients
+          </Link>
+          <div className="flex items-center gap-4 mt-3">
+            <ClientLogo client={{ name: client.name, logoUrl, logoColor: client.logoColor }} size={56} />
+            <div className="min-w-0">
+              <h1 className="bj-big !mt-0">{client.name}</h1>
+              <span className="bj-mono block mt-2">
+                {seats.length} login{seats.length === 1 ? "" : "s"} · {projects.length} project
+                {projects.length === 1 ? "" : "s"}
+                {!active && <span className="bj-pill ml-2">Disabled</span>}
               </span>
-            )}
-          </div>
-          <div>
-            <h1 className="bj-serif text-4xl font-normal">{client.name}</h1>
-            {!active && (
-              <span className="inline-block mt-2.5 text-[10px] font-extrabold uppercase tracking-[.06em] text-dim border border-line2 px-[7px] py-[3px]">
-                Disabled
-              </span>
-            )}
+            </div>
           </div>
         </div>
+        <div className="acts">
         {/* Set once per client and rarely touched again, so they wait behind one
             disclosure instead of sharing the header with the name. */}
         <details className="group relative" data-testid="client-settings">
-          <summary className="list-none cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 select-none">
+          <summary className="bj-ghost list-none select-none">
             Settings
           </summary>
-          <div className="absolute right-0 z-20 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-s2 border border-line2 p-4 flex flex-col gap-3.5 shadow-2">
+          <div className="absolute right-0 max-[1000px]:left-0 max-[1000px]:right-auto z-20 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-s1 border border-line [border-radius:3px!important] p-4 flex flex-col gap-3.5 shadow-2">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted w-20 flex-none">
+            <span className="bj-mono w-20 flex-none">
               Logo URL
             </span>
             <input
@@ -237,7 +213,7 @@ export function AdminClientDetailClient({
               }
               placeholder="https://…"
               disabled={savingLogo}
-              className="flex-1 min-w-0 bg-bg border border-line2 text-text text-[12px] font-mono px-2.5 py-2 outline-none focus:border-accent disabled:opacity-40"
+              className="bj-in flex-1 min-w-0 font-mono !text-[12px] disabled:opacity-40"
             />
             {logoUrl && (
               <button
@@ -253,7 +229,7 @@ export function AdminClientDetailClient({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-muted w-20 flex-none">
+            <span className="bj-mono w-20 flex-none">
               Accent
             </span>
             <input
@@ -283,7 +259,7 @@ export function AdminClientDetailClient({
                   void toggleStatus();
                 }}
                 disabled={busy}
-                className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-3.5 py-2 disabled:opacity-40"
+                className="bj-cta"
               >
                 {busy ? "Disabling…" : "Confirm disable"}
               </button>
@@ -300,44 +276,49 @@ export function AdminClientDetailClient({
               // direction and stays one click.
               onClick={active ? () => setConfirmingDisable(true) : toggleStatus}
               disabled={busy}
-              className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3.5 py-2 disabled:opacity-40"
+              className="bj-ghost disabled:opacity-40"
             >
               {active ? "Disable client" : "Enable client"}
             </button>
           )}
           </div>
         </details>
-      </div>
+        </div>
+      </section>
 
-      <div className="flex items-end justify-between mb-4">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
-          Logins
-        </h2>
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">
+        Logins<b>{seats.length}</b>
+      </span>
+      <div className="min-w-0">
+      <div className="flex items-end justify-end mb-3">
         <button
+          type="button"
           onClick={() => setSeatDialogOpen(true)}
-          className="cursor-pointer text-xs font-semibold text-muted hover:text-text border border-dashed border-line2 hover:border-text px-3.5 py-2"
+          className="bj-ghost"
         >
           + Add login
         </button>
       </div>
       {seatError && (
-        <div className="text-xs text-accentb font-semibold mb-3">
+        <div className="text-[14px] text-accent font-semibold mb-3">
           {seatError}
         </div>
       )}
-      <div className="border border-line mb-9">
+      <div className="border-t border-line">
         {seats.map((u) => (
           <div
             key={u.id}
             data-testid={`seat-row-${u.id}`}
-            className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
-            style={{ gridTemplateColumns: "2.1fr .9fr 1fr 3.5rem 21rem" }}
+            className="flex flex-col gap-2.5 py-4 border-b border-line md:grid md:gap-4 md:items-center"
+            style={{ gridTemplateColumns: "2.1fr .9fr 1fr 3.5rem 24rem" }}
           >
             <div className="md:contents">
               <div className="min-w-0">
-                <span className="text-[13px] font-semibold">{u.name}</span>
+                <span className="text-[16px] font-semibold">{u.name}</span>
                 <div
-                  className="text-xs text-dim font-mono mt-0.5 truncate"
+                  className="bj-mono mt-1 truncate"
+                  style={{ textTransform: "none" }}
                   title={u.email}
                 >
                   {u.email}
@@ -346,18 +327,18 @@ export function AdminClientDetailClient({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
               <span
-                className="text-[11px] font-bold tracking-wide uppercase"
+                className="bj-mono"
                 style={{ color: ROLE_COLOR[u.role] }}
               >
                 {u.role}
               </span>
-              <span className="text-[11px] text-dim">
+              <span className="bj-mono">
                 {u.projectAccess.length === 0
                   ? "All projects"
                   : `${u.projectAccess.length} project${u.projectAccess.length !== 1 ? "s" : ""}`}
               </span>
-              <span className="text-[11px] text-dim md:text-right">
-                <span className="md:hidden text-dim">Last login · </span>
+              <span className="bj-mono md:text-right">
+                <span className="md:hidden">Last login · </span>
                 {u.lastLoginAt
                   ? new Date(u.lastLoginAt).toLocaleDateString("en-US", {
                       month: "short",
@@ -371,20 +352,20 @@ export function AdminClientDetailClient({
             <div className="flex flex-wrap items-center gap-2 justify-start md:justify-end">
               {confirmingRemoveSeat === u.id ? (
                 <>
-                  <span className="text-[11px] text-muted">Revoke access?</span>
+                  <span className="text-[14px] text-muted">Revoke access?</span>
                   <button
                     onClick={() => {
                       haptic(20);
                       void removeSeat(u);
                     }}
                     disabled={removingSeat === u.id}
-                    className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                    className="bj-cta"
                   >
                     {removingSeat === u.id ? "Removing…" : "Confirm remove"}
                   </button>
                   <button
                     onClick={() => setConfirmingRemoveSeat(null)}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                    className="bj-ghost"
                   >
                     Cancel
                   </button>
@@ -393,13 +374,13 @@ export function AdminClientDetailClient({
                 <>
                   <button
                     onClick={() => setAccessDialogFor(u)}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                    className="bj-ghost bj-sm"
                   >
                     Manage access
                   </button>
                   <button
                     onClick={() => setResetDialogFor(u)}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                    className="bj-ghost bj-sm"
                   >
                     Reset password
                   </button>
@@ -408,7 +389,7 @@ export function AdminClientDetailClient({
                       setSeatError("");
                       setConfirmingRemoveSeat(u.id);
                     }}
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5"
+                    className="bj-ghost bj-sm"
                   >
                     Remove
                   </button>
@@ -423,29 +404,29 @@ export function AdminClientDetailClient({
           </EmptyState>
         )}
       </div>
+      </div>
+      </section>
 
       {/* §10c. Which delivered files are actually performing — the question a
           retainer conversation opens with. No change-vs-last-period figure: only the
           current viewCount is stored, so a delta would have to be invented. */}
       {topPosts.length > 0 && (
-        <div className="mb-9" data-testid="top-posts">
-          <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
-            <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
-              Top posts · last 30 days
-            </h2>
+        <section className="bj-sx" data-testid="top-posts">
+          <span className="bj-mono bj-lab">
+            Top posts · last 30 days
             {postsSyncedAt && (
-              <span className="text-[11px] text-dim">
+              <span className="block mt-2">
                 synced {new Date(postsSyncedAt).toISOString().slice(0, 10)}
               </span>
             )}
-          </div>
-          <div className="shadow-1 border border-line bg-s1">
+          </span>
+          <div className="min-w-0">
             {topPosts.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center gap-4 px-5 py-3.5 border-b border-line last:border-b-0 flex-wrap"
+                className="flex items-center gap-4 py-3.5 border-b border-line flex-wrap"
               >
-                <span className="text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5 flex-none">
+                <span className="bj-pill flex-none">
                   {p.platform}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -454,59 +435,66 @@ export function AdminClientDetailClient({
                       href={p.permalink}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[13px] font-semibold text-text hover:text-accentb truncate block"
+                      className="text-[15px] font-semibold text-text hover:text-accent truncate block"
                     >
                       {p.title} ↗
                     </a>
                   ) : (
-                    <span className="text-[13px] font-semibold truncate block">
+                    <span className="text-[15px] font-semibold truncate block">
                       {p.title}
                     </span>
                   )}
-                  <div className="text-[11px] text-dim truncate">
+                  <div className="bj-mono mt-1 truncate" style={{ textTransform: "none" }}>
                     {p.handle} ·{" "}
                     {new Date(p.postedAt).toISOString().slice(0, 10)}
                   </div>
                 </div>
                 <div className="text-right flex-none">
-                  <div className="text-[15px] font-black tabular-nums">
+                  <div className="text-[18px] font-bold tracking-[-0.02em] tabular-nums">
                     {p.views.toLocaleString("en-US")}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wide text-dim">
+                  <div className="bj-mono">
                     views
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* One line, not a column of cards. What is switched on for this client is worth
           knowing at a glance; changing it is rare enough to be a trip to Integrations,
           which is now the only place any of it is edited. */}
-      <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-semibold uppercase tracking-[.08em] text-dim mb-9 -mt-4">
-        <span className={`w-1.5 h-1.5 ${integrationParts.length ? "bg-success" : "bg-line2"}`} />
+      <section className="bj-sx">
+        <span className="bj-mono bj-lab">Integrations</span>
+      <div className="flex items-center gap-2.5 flex-wrap bj-mono">
+        <span className={`bj-dot${integrationParts.length ? " ok" : ""}`} />
         <span data-testid="integrations-line">
           {integrationParts.length ? integrationParts.join(" · ") : "No integrations"}
         </span>
-        <Link href="/admin/integrations" className="text-text hover:text-accent">
+        <Link href="/admin/integrations" className="bj-link !normal-case !tracking-normal" style={{ color: "var(--text)" }}>
           {integrationParts.length ? "Manage →" : "Add →"}
         </Link>
       </div>
+      </section>
 
-      <div className="flex items-end justify-between mb-4">
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-muted">
-          Projects
-        </h2>
-        <Button onClick={() => setNewProjectOpen(true)}>+ New project</Button>
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">
+        Projects<b>{projects.length}</b>
+      </span>
+      <div className="min-w-0">
+      <div className="flex items-end justify-end mb-3">
+        <button type="button" className="bj-cta" onClick={() => setNewProjectOpen(true)}>
+          + New project
+        </button>
       </div>
-      <div className="border border-line">
+      <div className="border-t border-line">
         {projects.map((p) => (
           <div
             key={p.id}
             data-testid={`project-row-${p.id}`}
-            className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
+            className="flex flex-col gap-2.5 py-4 border-b border-line md:grid md:gap-4 md:items-center"
             style={{ gridTemplateColumns: "2.1fr .9fr 1fr 1.1fr auto" }}
           >
             <div className="md:contents">
@@ -515,17 +503,17 @@ export function AdminClientDetailClient({
                     owes and what has been sent to it all live there now. */}
                 <Link
                   href={`/admin/projects/${p.id}`}
-                  className="font-semibold text-sm hover:text-accent"
+                  className="font-semibold text-[16px] hover:text-accent inline-flex items-center min-h-[30px]"
                 >
                   {p.title}
                 </Link>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] md:contents">
-              <span className="text-muted">{p.assetCount} files</span>
+              <span className="bj-mono">{p.assetCount} files</span>
               {/* What each project is, visible from the list rather than only by
                   opening it. Set at creation and never changes. */}
-              <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-muted border border-line2 px-[7px] py-[3px]">
+              <span className="bj-pill justify-self-start">
                 {p.type === "CALENDAR" ? "Calendar" : p.type === "FILM" ? "Film" : "Delivery"}
               </span>
               {/* One flag per project, in the order that decides what to do about it:
@@ -533,13 +521,13 @@ export function AdminClientDetailClient({
                   closes. Draft/Live is gone from here — it is automatic and says nothing
                   a person can act on. */}
               {p.paymentHold ? (
-                <span className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]">
+                <span className="bj-pill red justify-self-start">
                   Awaiting payment
                 </span>
               ) : null}
               {/* Labelled at every width: the column holds whichever date matters, and
                   a bare date could not say which one it was. */}
-              <span className="text-muted md:text-right">
+              <span className="bj-mono md:text-right">
                 {p.expiresAt
                   ? `Expires ${fmtDate(p.expiresAt)}`
                   : p.deliveredAt
@@ -550,7 +538,7 @@ export function AdminClientDetailClient({
             <div className="flex gap-2 justify-start md:justify-end">
               <button
                 onClick={() => setUploadingTo(p)}
-                className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5"
+                className="bj-ghost bj-sm"
               >
                 Upload
               </button>
@@ -561,6 +549,8 @@ export function AdminClientDetailClient({
           <EmptyState icon="projects">No projects yet.</EmptyState>
         )}
       </div>
+      </div>
+      </section>
 
       {/* What they have sent us, under what we are making for them. Both belong to the
           client; neither belongs to the other. */}

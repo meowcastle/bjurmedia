@@ -54,17 +54,21 @@ export function AdminFilmBlock({
   const active = reviewers.filter((r) => !r.revoked);
 
   return (
-    <div className="mt-10 grid md:grid-cols-2 gap-px bg-line2 border border-line2" data-testid="film-block">
+    <section className="bj-sx" data-testid="film-block">
+      <span className="bj-mono bj-lab">
+        Cuts<b>{cuts.length}</b>
+      </span>
+    <div className="grid md:grid-cols-2 gap-10 min-w-0">
       {/* Cuts */}
-      <div className="bg-s1 p-5" data-testid="film-cuts">
-        <div className="flex justify-between items-baseline pb-2.5 border-b border-line2">
-          <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
-            Cuts <span className="text-dim2">· {cuts.length}</span>
+      <div className="min-w-0" data-testid="film-cuts">
+        <div className="flex justify-between items-baseline pb-2.5 border-b border-line">
+          <span className="bj-mono ink">
+            Cuts · {cuts.length}
           </span>
           {cuts.length > 0 && (
             <Link
               href={`/admin/projects/${projectId}/review`}
-              className="text-[11px] font-semibold text-muted hover:text-text"
+              className="bj-link"
               data-testid="open-review"
             >
               Open review →
@@ -78,13 +82,13 @@ export function AdminFilmBlock({
           // things anyone is asked to sign off on — but that rule is invisible from here,
           // so say it rather than let the page imply the project is empty.
           hiddenCount > 0 ? (
-            <p className="text-[12px] text-muted leading-relaxed mt-3" data-testid="hidden-not-cut">
+            <p className="text-[14px] text-muted leading-relaxed mt-3" data-testid="hidden-not-cut">
               No cuts yet. {hiddenCount} file{hiddenCount === 1 ? " is" : "s are"} hidden from
               the client, and hidden files never become cuts — show{" "}
               {hiddenCount === 1 ? "it" : "one"} in Files above to make it cut 1.
             </p>
           ) : (
-            <p className="text-[12px] text-muted leading-relaxed mt-3">
+            <p className="text-[14px] text-muted leading-relaxed mt-3">
               No cuts yet. The first export you drop in the inbox becomes cut 1, and every
               reviewer is emailed to watch it.
             </p>
@@ -96,8 +100,8 @@ export function AdminFilmBlock({
               return (
                 <div key={c.id} className="py-3 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="bj-serif text-[17px]">Cut {c.version}</div>
-                    <div className="text-[11px] text-muted truncate">
+                    <div className="text-[16px] font-semibold">Cut {c.version}</div>
+                    <div className="bj-mono mt-1 truncate">
                       {c.noteCount > 0
                         ? `${c.noteCount} note${c.noteCount === 1 ? "" : "s"}${
                             c.authors.length ? ` from ${c.authors.join(", ")}` : ""
@@ -105,7 +109,7 @@ export function AdminFilmBlock({
                         : when(c.sentAt) || "Not sent yet"}
                     </div>
                   </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-[.06em] whitespace-nowrap">
+                  <span className="bj-mono whitespace-nowrap">
                     {c.approvedAt ? (
                       <span style={{ color: "var(--success)" }}>Approved</span>
                     ) : !c.sentAt ? (
@@ -126,10 +130,10 @@ export function AdminFilmBlock({
       </div>
 
       {/* Reviewers */}
-      <div className="bg-s1 p-5">
-        <div className="flex justify-between items-baseline pb-2.5 border-b border-line2">
-          <span className="text-[11px] tracking-[0.1em] uppercase text-dim">
-            Reviewers <span className="text-dim2">· {active.length}</span>
+      <div className="min-w-0">
+        <div className="flex justify-between items-baseline pb-2.5 border-b border-line">
+          <span className="bj-mono ink">
+            Reviewers · {active.length}
           </span>
         </div>
 
@@ -137,8 +141,8 @@ export function AdminFilmBlock({
           {active.map((r) => (
             <div key={r.id} className="py-3 flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[13px] truncate">{r.name || r.email}</div>
-                <div className="text-[11px] text-muted truncate flex items-baseline gap-2">
+                <div className="text-[15px] truncate">{r.name || r.email}</div>
+                <div className="text-[12px] text-muted truncate flex items-baseline gap-2">
                   <span className="truncate">
                     {r.kind === "SEAT" ? "Login" : "Guest link"}
                     {r.role ? ` · ${r.role}` : ""}
@@ -146,7 +150,7 @@ export function AdminFilmBlock({
                   {r.link && <CopyGuestLink link={r.link} />}
                 </div>
               </div>
-              <span className="text-[10.5px] whitespace-nowrap">
+              <span className="bj-mono whitespace-nowrap">
                 {r.sentOnLatest > 0 ? (
                   <span style={{ color: "var(--success)" }}>
                     Sent {r.sentOnLatest} note{r.sentOnLatest === 1 ? "" : "s"}
@@ -168,11 +172,12 @@ export function AdminFilmBlock({
           <AddGuestReviewer projectId={projectId} />
         </div>
 
-        <p className="text-[11px] text-dim2 leading-relaxed mt-3">
+        <p className="text-[13px] text-muted leading-relaxed mt-3">
           Client logins review automatically. Guests get a link and give their name once; no
           login, no downloads.
         </p>
       </div>
     </div>
+    </section>
   );
 }

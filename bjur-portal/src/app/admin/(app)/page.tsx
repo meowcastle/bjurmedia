@@ -1,7 +1,28 @@
+import { statfs } from "fs/promises";
 import { db } from "@/lib/db";
-import { timeAgo, formatDate, formatBytes, formatViews, isRecentlyActive } from "@/lib/format";
-import { summarizeActivity } from "@/lib/activityFeed";
+import { timeAgo, formatDate, formatBytes, isRecentlyActive } from "@/lib/format";
+import { summarizeActivity, plainActivity } from "@/lib/activityFeed";
+import { MEDIA_ROOT } from "@/lib/media";
 import { AdminDashboardClient } from "@/components/AdminDashboardClient";
+import type { ClientMark } from "@/components/ClientLogo";
+
+// What a row needs to show a client the v13 way: its logo, or initials on its colour.
+const MARK = { name: true, logoUrl: true, logoColor: true } as const;
+const mark = (c: { name: string; logoUrl: string | null; logoColor: string | null }): ClientMark => ({
+  name: c.name,
+  logoUrl: c.logoUrl,
+  logoColor: c.logoColor,
+});
+
+/** Free space on the media volume, or null where it can't be read (the row is left out). */
+async function freeSpace(): Promise<string | null> {
+  try {
+    const s = await statfs(MEDIA_ROOT);
+    return formatBytes(Number(s.bavail) * Number(s.bsize));
+  } catch {
+    return null;
+  }
+}
 
 // Worker status, queue depth, and recent activity are only meaningful live — a cached
 // render could show "offline" long after the worker came back, or vice versa.
@@ -42,15 +63,22 @@ export default async function AdminDashboardPage() {
     : null;
   const workerOnline = !!heartbeat && isRecentlyActive(heartbeat.lastSeen, HEARTBEAT_TIMEOUT_MS);
 
-  const [socialAccountErrors, topSocialPosts] = await Promise.all([
+  // The System column: worker, Slack, social insights, storage. Each from what the portal
+  // already records; a row with nothing real behind it is left out rather than guessed.
+  const [socialAccountErrors, socialAccountCount, slack, storageFree, covers] = await Promise.all([
     db.socialAccount.findMany({ where: { lastSyncError: { not: null } }, include: { client: true } }),
-    db.socialPost.findMany({
-      where: { assetId: { not: null }, viewCount: { gt: 0 } },
-      orderBy: { viewCount: "desc" },
-      take: 3,
-      include: { asset: { include: { project: { include: { client: true } } } } },
+    db.socialAccount.count(),
+    db.slackConfig.findUnique({ where: { id: 1 } }),
+    freeSpace(),
+    // The still beside each recent project: its newest client-visible file with a thumbnail.
+    db.asset.findMany({
+      where: { projectId: { in: recentProjects.map((p) => p.id) }, internal: false, thumbRelPath: { not: null } },
+      orderBy: { createdAt: "desc" },
+      distinct: ["projectId"],
+      select: { id: true, projectId: true },
     }),
   ]);
+  const coverByProject = new Map(covers.map((c) => [c.projectId, c.id]));
 
   // §9 "Needs attention". Two sources, both of which clear themselves once acted on —
   // a card that cannot go quiet is one people stop reading.
@@ -68,7 +96,7 @@ export default async function AdminDashboardPage() {
       },
       orderBy: { expiresAt: "asc" },
       take: 5,
-      include: { client: { select: { name: true } } },
+      include: { client: { select: MARK } },
     }),
     // Projects on the board are the ones with a posting schedule, so an asset there
     // with no delivery week is a file nobody has decided a date for — invisible to both
@@ -98,7 +126,7 @@ export default async function AdminDashboardPage() {
             name: true,
             contentTitle: true,
             projectId: true,
-            project: { select: { title: true, client: { select: { name: true } } } },
+            project: { select: { title: true, client: { select: MARK } } },
           },
         },
       },
@@ -114,7 +142,7 @@ export default async function AdminDashboardPage() {
             name: true,
             contentTitle: true,
             projectId: true,
-            project: { select: { title: true, client: { select: { name: true } } } },
+            project: { select: { title: true, client: { select: MARK } } },
           },
         },
       },
@@ -136,7 +164,7 @@ export default async function AdminDashboardPage() {
                 name: true,
                 contentTitle: true,
                 projectId: true,
-                project: { select: { title: true, client: { select: { name: true } } } },
+                project: { select: { title: true, client: { select: MARK } } },
               },
             },
           },
@@ -173,7 +201,7 @@ export default async function AdminDashboardPage() {
     take: 6,
     include: {
       request: { select: { name: true } },
-      client: { select: { id: true, name: true } },
+      client: { select: { id: true, ...MARK } },
       submissions: { where: { status: "COMPLETE" }, select: { sizeBytes: true } },
     },
   });
@@ -181,7 +209,7 @@ export default async function AdminDashboardPage() {
   const unscheduledProjects = unscheduledRetainer.length
     ? await db.project.findMany({
         where: { id: { in: unscheduledRetainer.map((r) => r.projectId) } },
-        include: { client: { select: { name: true } } },
+        include: { client: { select: MARK } },
       })
     : [];
   const unscheduledCountByProject = new Map(
@@ -206,7 +234,7 @@ export default async function AdminDashboardPage() {
       contentTitle: true,
       weekOf: true,
       projectId: true,
-      project: { select: { title: true } },
+      project: { select: { title: true, client: { select: MARK } } },
     },
   });
 
@@ -222,6 +250,7 @@ export default async function AdminDashboardPage() {
             kind: "drafts" as const,
             subject: `${pendingDrafts} draft${pendingDrafts === 1 ? "" : "s"} waiting`,
             body: "Follow-ups the agent wrote for you to read before they go out",
+            client: null,
             href: "/admin/inbox",
             action: "Open inbox",
           },
@@ -231,7 +260,8 @@ export default async function AdminDashboardPage() {
       id: `cut-ready-${r.id}`,
       kind: "cut-ready" as const,
       subject: `${r.asset.project.title} · cut ${r.version} is up`,
-      body: `${r.asset.project.client.name} — answer the notes on cut ${r.version - 1}, then send`,
+      body: `${r.asset.project.client.name} · answer the notes on cut ${r.version - 1}, then send`,
+      client: mark(r.asset.project.client),
       href: `/admin/projects/${r.asset.projectId}/review`,
       action: "Answer notes",
     })),
@@ -241,7 +271,8 @@ export default async function AdminDashboardPage() {
       subject: `${first.review.asset.project.title} · cut ${first.review.version}`,
       body: `${first.reviewer.name}${first.reviewer.role ? ` · ${first.reviewer.role}` : ""} sent ${
         notes.length
-      } note${notes.length === 1 ? "" : "s"} — “${notes[notes.length - 1].body}”`,
+      } note${notes.length === 1 ? "" : "s"}: “${notes[notes.length - 1].body}”`,
+      client: mark(first.review.asset.project.client),
       href: `/admin/projects/${first.review.asset.projectId}/review`,
       action: "Open review",
     })),
@@ -250,6 +281,7 @@ export default async function AdminDashboardPage() {
       kind: "approved" as const,
       subject: `${r.approvedBy?.name ?? "A reviewer"} approved cut ${r.version}`,
       body: `${r.asset.project.client.name} · ${r.asset.project.title}`,
+      client: mark(r.asset.project.client),
       href: `/admin/projects/${r.asset.projectId}`,
       action: "Open project",
     })),
@@ -262,7 +294,8 @@ export default async function AdminDashboardPage() {
         subject: `Footage in · ${b.name}${from}`,
         // The client, not a project. A batch does not know what it will be cut into, and
         // pretending otherwise is what sent a fortnight of rushes into a review job.
-        body: `${b.client.name} — ${b.submissions.length} file${
+        client: mark(b.client),
+        body: `${b.client.name} · ${b.submissions.length} file${
           b.submissions.length === 1 ? "" : "s"
         } · ${formatBytes(bytes)}`,
         href: `/admin/clients/${b.client.id}`,
@@ -279,6 +312,7 @@ export default async function AdminDashboardPage() {
         day: "numeric",
         timeZone: "UTC",
       })} · needs your approval again`,
+      client: mark(a.project.client),
       href: `/admin/media?project=${a.projectId}&asset=${a.id}`,
       action: "Open board",
     })),
@@ -287,6 +321,7 @@ export default async function AdminDashboardPage() {
       kind: "expiry" as const,
       subject: `${p.title} expires ${formatDate(p.expiresAt)}`,
       body: p.client.name,
+      client: mark(p.client),
       href: `/admin/projects/${p.id}`,
       action: "Open",
     })),
@@ -295,6 +330,7 @@ export default async function AdminDashboardPage() {
       kind: "unscheduled" as const,
       subject: `${unscheduledCountByProject.get(p.id) ?? 0} files with no delivery week`,
       body: `${p.client.name} · ${p.title}`,
+      client: mark(p.client),
       href: `/admin/media?project=${p.id}`,
       action: "Schedule",
     })),
@@ -302,17 +338,18 @@ export default async function AdminDashboardPage() {
 
   const summarizedActivity = summarizeActivity(recentActivity).slice(0, 8);
 
-
-  const statusColor: Record<string, string> = {
-    LIVE: "#2ec36b",
-    DRAFT: "var(--accentb)",
-  };
+  // "Wednesday, October 22", in the studio's own time zone.
+  const dateLine = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "America/New_York",
+  });
 
   return (
     <AdminDashboardClient
-      stats={[
-        { value: String(activeClients), label: "Active clients" },
-      ]}
+      dateLine={dateLine}
+      activeClients={activeClients}
       attention={attention}
       workerOnline={workerOnline}
       queueCount={queueCount}
@@ -321,34 +358,29 @@ export default async function AdminDashboardPage() {
       activity={summarizedActivity.map((a) => ({
         id: a.id,
         who: a.actor,
-        action: a.action,
-        when: timeAgo(a.createdAt),
-        dot: a.actor === "Worker" ? "var(--muted)" : "#2ec36b",
+        action: plainActivity(a.action),
+        // "8m", not "8m ago": the column already reads as time.
+        when: timeAgo(a.createdAt).replace(/ ago$/, ""),
       }))}
       recentDeliveries={recentProjects.map((p) => ({
         id: p.id,
         title: p.title,
-        client: p.client.name,
-        count: `${p.assets.length} files`,
-        delivered: formatDate(p.deliveredAt),
-        statusColor: statusColor[p.status] ?? "var(--dim)",
+        client: mark(p.client),
+        coverAssetId: coverByProject.get(p.id) ?? null,
+        count: `${p.assets.length} file${p.assets.length === 1 ? "" : "s"}`,
+        delivered: p.deliveredAt
+          ? p.deliveredAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+          : "\u2014",
       }))}
       clients={clients.map((c) => ({ id: c.id, name: c.name, hasSlackChannel: c.channel !== null }))}
-      socialErrors={socialAccountErrors.map((a) => ({
-        id: a.id,
-        clientName: a.client.name,
-        platform: a.platform === "INSTAGRAM" ? "Instagram" : "YouTube",
-        error: a.lastSyncError!,
-      }))}
-      topSocialPosts={topSocialPosts
-        .filter((p) => p.asset)
-        .map((p) => ({
-          id: p.id,
-          assetName: p.asset!.name,
-          clientName: p.asset!.project.client.name,
-          projectId: p.asset!.projectId,
-          views: formatViews(p.viewCount),
-        }))}
+      system={{
+        slack: slack?.connected ? (slack.workspace ?? "Connected") : null,
+        socialAccounts: socialAccountCount,
+        socialErrors: socialAccountErrors.map(
+          (a) => `${a.client.name} · ${a.platform === "INSTAGRAM" ? "Instagram" : "YouTube"}: ${a.lastSyncError}`
+        ),
+        storageFree,
+      }}
     />
   );
 }

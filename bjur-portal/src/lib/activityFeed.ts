@@ -19,7 +19,7 @@ export function summarizeActivity(rows: RawActivity[]): RawActivity[] {
     result.push({
       id: `proxy-batch-${batch.latest.getTime()}`,
       actor: "Worker",
-      action: `finished ${batch.count} ${batch.count === 1 ? "proxy" : "proxies"}`,
+      action: `finished ${batch.count} ${batch.count === 1 ? "preview" : "previews"}`,
       createdAt: batch.latest,
     });
     batch = null;
@@ -38,4 +38,21 @@ export function summarizeActivity(rows: RawActivity[]): RawActivity[] {
   flush();
 
   return result;
+}
+
+/**
+ * The feed in the distill vocabulary (v13 §3.5). Rows are stored as they were written,
+ * some of them long before the words changed, so the wording is settled here at display
+ * time rather than by rewriting history: "added" not "auto-ingested", "preview" not
+ * "proxy", "while payment is pending" not "while awaiting payment", and file names in
+ * curly quotes as on the boards.
+ */
+export function plainActivity(action: string): string {
+  return action
+    .replace(/^auto-ingested "([^"]*)" in /, 'added "$1" to ')
+    .replace(/while awaiting payment/g, "while payment is pending")
+    .replace(/^Proxy generation failed for /, "Preview failed for ")
+    .replace(/\bfinished proxies for\b/g, "finished previews for")
+    .replace(/\bfinished proxy for\b/g, "finished the preview for")
+    .replace(/"([^"]*)"/g, "\u201c$1\u201d");
 }

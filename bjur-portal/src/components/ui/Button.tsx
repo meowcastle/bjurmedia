@@ -3,14 +3,13 @@ import { ButtonHTMLAttributes, forwardRef } from "react";
 type Variant = "primary" | "secondary" | "ghost";
 
 /*
- * v2 buttons. Primary is an ink fill that inverts the page — near-black on paper,
- * near-white on the dark portal — and takes the accent on hover. The accent stays a
- * pointing device (kickers, links, the hover state) rather than the resting colour of
- * every confirm button, which is what let it stop meaning anything.
+ * v13 buttons, as bjur.nyc: primary is a shu fill with white type, secondary a rule
+ * outline that inks on hover, ghost a plain text button. Shu is the only action colour,
+ * so a client's own colour never reaches a button.
  */
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-text text-bg hover:bg-accent hover:text-bg",
-  secondary: "bg-transparent text-text border border-line2 hover:border-text",
+  primary: "bg-accent text-white hover:bg-accentb",
+  secondary: "bg-transparent text-text shadow-[inset_0_0_0_1px_var(--line)] hover:shadow-[inset_0_0_0_1px_var(--text)]",
   ghost: "bg-transparent text-muted hover:text-text",
 };
 
@@ -28,7 +27,7 @@ export const Button = forwardRef<
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`relative px-5 py-3 text-sm font-bold uppercase tracking-wide transition-[color,background-color,border-color,transform] duration-(--dur-1) ease-std active:translate-y-px active:scale-[.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:scale-100 ${variantClasses[variant]} ${className}`}
+      className={`relative px-4 py-[11px] text-sm font-semibold [border-radius:3px!important] transition-[color,background-color,box-shadow,transform] duration-(--dur-1) ease-std active:translate-y-px active:scale-[.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:scale-100 ${variantClasses[variant]} ${className}`}
       {...props}
     >
       <span className={loading ? "invisible" : undefined}>{children}</span>

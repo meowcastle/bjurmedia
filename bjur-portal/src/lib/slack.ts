@@ -29,7 +29,7 @@ export async function postSlackEvent(opts: {
     await fetch(config.webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel, username: "Bjur Media", blocks: opts.blocks }),
+      body: JSON.stringify({ channel, username: "Bjur", blocks: opts.blocks }),
     });
   } catch (err) {
     await db.activity.create({

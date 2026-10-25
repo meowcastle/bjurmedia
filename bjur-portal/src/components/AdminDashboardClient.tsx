@@ -1,51 +1,49 @@
 "use client";
 
-import { EmptyState } from "@/components/ui/EmptyState";
 import { CountUp } from "@/components/ui/CountUp";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { NewClientDialog } from "@/components/NewClientDialog";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
-import { IconPlay } from "@/components/ui/Icon";
+import { ClientLogo, type ClientMark } from "@/components/ClientLogo";
 
-type Stat = { value: string; label: string };
-type ActivityRow = { id: string; who: string; action: string; when: string; dot: string };
+type ActivityRow = { id: string; who: string; action: string; when: string };
 type DeliveryRow = {
   id: string;
   title: string;
-  client: string;
+  client: ClientMark;
+  coverAssetId: string | null;
   count: string;
   delivered: string;
-  statusColor: string;
 };
 type ClientOption = { id: string; name: string; hasSlackChannel: boolean };
-type SocialErrorRow = { id: string; clientName: string; platform: string; error: string };
-type TopSocialPostRow = { id: string; assetName: string; clientName: string; projectId: string; views: string };
+type SystemState = {
+  /** The Slack workspace when connected, null when not. */
+  slack: string | null;
+  socialAccounts: number;
+  socialErrors: string[];
+  /** Free space on the media volume, null where it can't be read. */
+  storageFree: string | null;
+};
 
 type AttentionRow = {
   id: string;
   kind: "expiry" | "unscheduled" | "cut-ready" | "notes-in" | "approved" | "landed" | "caption-edited" | "drafts";
   subject: string;
   body: string;
+  client: ClientMark | null;
   href: string;
   action: string;
 };
 
-const ATTENTION_DOT: Record<AttentionRow["kind"], string> = {
-  "cut-ready": "var(--warn)",
-  "notes-in": "var(--accentb)",
-  approved: "var(--success)",
-  expiry: "var(--accentb)",
-  unscheduled: "var(--muted)",
-  landed: "var(--success)",
-  "caption-edited": "var(--warn)",
-  drafts: "var(--accentb)",
-};
-
+/**
+ * Studio, Today (PortalAdmin13). The date and "Today.", four numbers, then the label-grid
+ * sections: what needs you, what happened, and the latest projects.
+ */
 export function AdminDashboardClient({
-  stats,
+  dateLine,
+  activeClients,
   attention,
   workerOnline,
   queueCount,
@@ -54,10 +52,10 @@ export function AdminDashboardClient({
   activity,
   recentDeliveries,
   clients,
-  socialErrors,
-  topSocialPosts,
+  system,
 }: {
-  stats: Stat[];
+  dateLine: string;
+  activeClients: number;
   attention: AttentionRow[];
   workerOnline: boolean;
   queueCount: number;
@@ -66,187 +64,204 @@ export function AdminDashboardClient({
   activity: ActivityRow[];
   recentDeliveries: DeliveryRow[];
   clients: ClientOption[];
-  socialErrors: SocialErrorRow[];
-  topSocialPosts: TopSocialPostRow[];
+  system: SystemState;
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<"client" | "project" | null>(null);
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-10 max-w-[1400px] mx-auto bjfade">
-      <div className="flex items-end justify-between gap-5 flex-wrap mb-7">
-        <h1 className="bj-serif text-4xl font-normal">Dashboard</h1>
-        <div className="flex gap-2.5">
-          <Button variant="secondary" onClick={() => setDialog("client")}>
-            + Client
-          </Button>
-          <Button onClick={() => setDialog("project")}>+ New project</Button>
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div>
+          <span className="bj-mono">{dateLine}</span>
+          <h1 className="bj-big">Today.</h1>
         </div>
-      </div>
+        <div className="acts">
+          <button type="button" className="bj-ghost" onClick={() => setDialog("client")}>
+            + Client
+          </button>
+          <button type="button" className="bj-cta" onClick={() => setDialog("project")}>
+            + New project
+          </button>
+        </div>
+      </section>
 
-      <div className="grid gap-3.5 mb-7 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
-        {stats.map((s) => (
-          <div key={s.label} className="shadow-1 bg-s1 border border-line p-5">
-            <div className="text-[34px] font-black tracking-tight tabular-nums"><CountUp value={s.value} /></div>
-            <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1.5">
-              {s.label}
-            </div>
-          </div>
-        ))}
-
-        {/* §9: the worker's own row becomes the fifth stat, so its state reads at the
-            same glance as the rest instead of in a bar of its own. */}
-        <div className="shadow-1 bg-s1 border border-line p-5 max-[1100px]:col-span-full">
-          <div className="flex items-baseline gap-3">
-            <span className={`text-[34px] font-black tracking-tight tabular-nums ${queueCount > 0 ? "text-accentb" : ""}`}>
-              <CountUp value={queueCount} />
-            </span>
+      <div className="bj-stats">
+        <div>
+          <b>
+            <CountUp value={activeClients} />
+          </b>
+          <span className="bj-mono">Active clients</span>
+        </div>
+        <div>
+          <b className={attention.length > 0 ? "red" : undefined}>
+            <CountUp value={attention.length} />
+          </b>
+          <span className="bj-mono">Needs you</span>
+        </div>
+        <div>
+          <b>
+            <CountUp value={queueCount} />
             {failedCount > 0 && failedHref && (
-              <Link href={failedHref} className="text-sm font-bold text-accent hover:underline">
+              <Link href={failedHref} className="bj-stats-fail">
                 {failedCount} failed
               </Link>
             )}
-          </div>
-          <div className="flex items-center gap-2 text-[11px] tracking-wide uppercase text-muted font-semibold mt-1.5">
-            <span className={`w-1.5 h-1.5 flex-none ${workerOnline ? "bg-success" : "bg-dim"}`} />
-            In queue · worker {workerOnline ? "online" : "offline"}
-          </div>
+          </b>
+          <span className="bj-mono">In the queue</span>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 min-[1000px]:grid-cols-[1.5fr_1fr] gap-5 items-start mb-7">
         <div>
-        {attention.length > 0 && (
-          <div className="border border-line mb-5">
-            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold flex items-center gap-2">
-              Needs attention
-              <span className="text-accentb tabular-nums">{attention.length}</span>
-            </div>
-            {attention.map((a, i) => (
-              <div
-                key={a.id}
-                data-testid={`attention-${a.kind}`}
-                className="bj-row flex items-center gap-3 px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s3 transition-colors"
-                style={{ "--i": i } as React.CSSProperties}
-              >
-                {/* The only dots that pulse: these rows are waiting on someone. */}
-                <span className="w-2 h-2 flex-none bjpulse" style={{ background: ATTENTION_DOT[a.kind] }} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-bold truncate">{a.subject}</span>
-                  {/* A client's note is the whole reason the row is here, so it wraps.
-                      Everything else is a one-line summary and still truncates. */}
-                  <span
-                    className={`block text-[11px] text-muted ${
-                      a.kind === "notes-in" ? "leading-relaxed" : "truncate"
-                    }`}
-                  >
-                    {a.body}
+          <b className={workerOnline ? "ok" : "off"}>{workerOnline ? "On" : "Off"}</b>
+          <span className="bj-mono">Worker · {workerOnline ? "online" : "offline"}</span>
+        </div>
+      </div>
+
+      {attention.length > 0 && (
+        <section className="bj-sx">
+          <span className="bj-mono bj-lab">Needs you</span>
+          <div>
+            {attention.map((a) => (
+              <div key={a.id} data-testid={`attention-${a.kind}`} className="bj-att">
+                <div>
+                  <b className="bj-cl">
+                    {a.client && <ClientLogo client={a.client} size={22} />}
+                    <span>{a.subject}</span>
+                    <span className="bj-dot red" aria-hidden />
+                  </b>
+                  {/* A client's note is the whole reason the row is here, so it reads as
+                      prose. Everything else is a one-line summary in mono. */}
+                  <span className={a.kind === "notes-in" ? "bj-att-note" : "bj-mono"}>{a.body}</span>
+                </div>
+                <Link href={a.href} className="bj-cta">
+                  {a.action} <i aria-hidden>→</i>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="bj-sx">
+        <span className="bj-mono bj-lab">Activity</span>
+        <div className="bj-two">
+          {activity.length > 0 ? (
+            <ul className="bj-feed">
+              {activity.map((a) => (
+                <li key={a.id}>
+                  <span>
+                    <b>{a.who}</b> {a.action}
                   </span>
-                </span>
-                <Link
-                  href={a.href}
-                  className="flex-none text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-3 py-1.5"
-                >
-                  {a.action}
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="border border-line">
-          <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
-            Recent activity
-          </div>
-          {activity.map((a, i) => (
-            <div
-              key={a.id}
-              className="bj-row flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s3 transition-colors"
-              style={{ "--i": i } as React.CSSProperties}
-            >
-              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-none" style={{ background: a.dot }} />
-              <div className="flex-1 min-w-0 text-[13px]">
-                <span className="font-bold">{a.who}</span> {a.action}
-              </div>
-              <span className="text-[11px] text-dim whitespace-nowrap">{a.when}</span>
-            </div>
-          ))}
-          {activity.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm text-muted">No activity yet.</div>
+                  <span className="bj-mono">{a.when}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="bj-adm-empty">No activity yet.</p>
           )}
-        </div>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          <div className="border border-line">
-            <div className="px-5 py-3.5 border-b-2 border-line2 text-[11px] tracking-wide uppercase text-muted font-bold">
-              Social insights
+          <div>
+            <span className="bj-mono ink">System</span>
+            <div className="bj-sys">
+              <div>
+                <span>Worker</span>
+                <span className="bj-mono">
+                  <span className={`bj-dot${workerOnline ? " ok" : ""}`} />
+                  {workerOnline ? "Online" : "Offline"} · {queueCount} queued
+                </span>
+              </div>
+              <div>
+                <span>Slack</span>
+                {system.slack ? (
+                  <span className="bj-mono">
+                    <span className="bj-dot ok" />
+                    {system.slack}
+                  </span>
+                ) : (
+                  <Link className="bj-link" href="/admin/integrations">
+                    Connect Slack
+                  </Link>
+                )}
+              </div>
+              <div>
+                <span>Social insights</span>
+                {system.socialErrors.length > 0 ? (
+                  <Link
+                    className="bj-mono bj-sys-err"
+                    href="/admin/integrations"
+                    title={system.socialErrors.join("\n")}
+                  >
+                    <span className="bj-dot red" />
+                    {system.socialErrors.length} sync failed
+                  </Link>
+                ) : system.socialAccounts > 0 ? (
+                  <span className="bj-mono">
+                    <span className="bj-dot ok" />
+                    {system.socialAccounts} account{system.socialAccounts === 1 ? "" : "s"}
+                  </span>
+                ) : (
+                  <Link className="bj-link" href="/admin/integrations">
+                    Connect an account
+                  </Link>
+                )}
+              </div>
+              {system.storageFree && (
+                <div>
+                  <span>Storage</span>
+                  <span className="bj-mono">{system.storageFree} free</span>
+                </div>
+              )}
             </div>
-            {socialErrors.map((e) => (
-              <div key={e.id} className="px-5 py-3.5 border-b border-line last:border-b-0">
-                <div className="text-[13px] font-semibold text-accentb">
-                  ⚠ {e.clientName} · {e.platform}
-                </div>
-                <div className="text-xs text-muted mt-1 truncate" title={e.error}>
-                  Sync failed: {e.error}
-                </div>
-              </div>
-            ))}
-            {topSocialPosts.map((p) => (
-              <Link
-                key={p.id}
-                href={`/admin/media?project=${p.projectId}`}
-                className="block px-5 py-3.5 border-b border-line last:border-b-0 hover:bg-s1"
-              >
-                <div className="text-[13px] font-semibold truncate">{p.assetName}</div>
-                <div className="text-xs text-muted mt-1">
-                  {p.clientName} · <span className="text-accentb inline-flex items-center gap-1"><IconPlay fill="currentColor" /> {p.views} views</span>
-                </div>
-              </Link>
-            ))}
-            {socialErrors.length === 0 && topSocialPosts.length === 0 && (
-              <div className="px-5 py-8 text-center text-sm text-muted">
-                Connect an account in{" "}
-                <Link href="/admin/integrations" className="text-text hover:text-accent">
-                  Integrations
-                </Link>
-                .
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="border border-line">
-        <div
-          className="grid gap-4 px-5 py-3.5 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
-          style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr" }}
-        >
-          <span>Recent projects</span>
-          <span>Client</span>
-          <span>Files</span>
-          <span className="text-right">Delivered</span>
-        </div>
-        {recentDeliveries.map((r, i) => (
-          <Link
-            key={r.id}
-            href={`/admin/projects/${r.id}`}
-            className="bj-row grid gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center hover:bg-s3 transition-colors"
-            style={{ gridTemplateColumns: "2.2fr 1.4fr 1fr 1.1fr", "--i": i } as React.CSSProperties}
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: r.statusColor }} />
-              <span className="text-sm font-semibold">{r.title}</span>
-            </div>
-            <span className="text-[13px] text-muted">{r.client}</span>
-            <span className="text-[13px] text-muted">{r.count}</span>
-            <span className="text-[13px] text-muted text-right">{r.delivered}</span>
-          </Link>
-        ))}
-        {recentDeliveries.length === 0 && (
-          <EmptyState icon="projects" className="px-5 py-8">No projects yet.</EmptyState>
+      <section className="bj-sx">
+        <span className="bj-mono bj-lab">Recent projects</span>
+        {recentDeliveries.length > 0 ? (
+          <div className="bj-tblw">
+            <table className="bj-tbl">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Client</th>
+                  <th className="hide">Files</th>
+                  <th className="r">Delivered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentDeliveries.map((r) => (
+                  <tr key={r.id} className="row" onClick={() => router.push(`/admin/projects/${r.id}`)}>
+                    <td>
+                      <div className="bj-thumbs">
+                        {r.coverAssetId ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- auth-gated thumbnail route
+                          <img src={`/api/assets/${r.coverAssetId}/thumb`} alt="" loading="lazy" />
+                        ) : (
+                          <span className="ph" aria-hidden />
+                        )}
+                        <div className="t">
+                          <Link href={`/admin/projects/${r.id}`}>
+                            <b>{r.title}</b>
+                          </Link>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="bj-cl">
+                        <ClientLogo client={r.client} size={20} />
+                        <span className="bj-mono">{r.client.name}</span>
+                      </span>
+                    </td>
+                    <td className="num hide">{r.count}</td>
+                    <td className="num r">{r.delivered}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="bj-adm-empty">No projects yet.</p>
         )}
-      </div>
+      </section>
 
       {dialog === "client" && (
         <NewClientDialog onClose={() => setDialog(null)} onCreated={() => router.refresh()} />

@@ -7,18 +7,19 @@ import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
 import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutReady";
 import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
+import { renderOutreachEmailHtml } from "@/emails/outreach";
 
 function mailFrom() {
-  return process.env.MAIL_FROM || process.env.SMTP_FROM || "Bjur Media <hello@bjur.media>";
+  return process.env.MAIL_FROM || process.env.SMTP_FROM || "Bjur <hi@bjur.nyc>";
 }
 
 /**
  * Where client replies should land. The From address is a sending identity with no
- * mailbox behind it, so without this a client hitting "reply" gets a bounce. Unset
- * means no header is added, which is the old behaviour.
+ * mailbox behind it, so without this a client hitting "reply" gets a bounce. Defaults
+ * to the studio inbox; REPLY_TO overrides.
  */
 function replyTo() {
-  return process.env.REPLY_TO?.trim() || undefined;
+  return process.env.REPLY_TO?.trim() || "hi@bjur.nyc";
 }
 
 /**
@@ -91,9 +92,12 @@ async function sendMail(opts: { to: string; subject: string; html: string }) {
 
 export async function sendOnboardingEmail(to: string, props: OnboardingEmailProps) {
   const html = renderOnboardingEmailHtml(props);
-  const subject = props.delivery
-    ? `Your ${props.delivery.projectTitle} files are ready`
-    : `Your Bjur Media portal access is ready`;
+  const subject =
+    props.reason === "reset"
+      ? "Your portal password has been reset"
+      : props.delivery
+        ? `Your ${props.delivery.projectTitle} files are ready`
+        : "Your portal login is ready";
   return sendMail({ to, subject, html });
 }
 
@@ -121,17 +125,11 @@ export async function sendNotesInEmail(to: string, props: NotesInEmailProps) {
 }
 
 /**
- * A CRM email a person approved (lib/crm/agents.ts). Deliberately plain — it reads as a
- * note from the studio, not a template — so the body is the approved text, escaped, with
- * its line breaks kept.
+ * A CRM email a person approved (lib/crm/agents.ts). The approved text as paragraphs on
+ * the shared card (emails/outreach.tsx), escaped, with its line breaks kept.
  */
 export async function sendOutreachEmail(to: string, subject: string, body: string) {
-  const esc = (t: string) =>
-    t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#17161a;max-width:560px">${esc(body)
-    .split(/\n{2,}/)
-    .map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, "<br>")}</p>`)
-    .join("")}</div>`;
+  const html = renderOutreachEmailHtml(subject, body);
   const result = await sendMail({ to, subject, html });
   if (!result.sent) throw new Error("No mail transport is configured.");
   return result;

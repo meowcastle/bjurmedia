@@ -45,44 +45,46 @@ export function AdminTeamClient({
   }
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[820px] mx-auto bjfade">
-      <div className="flex items-end justify-between gap-4 flex-wrap border-b-2 border-line2 pb-6 mb-9">
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
         <div>
-          <h1 className="bj-serif text-2xl font-normal">Team</h1>
-          <div className="text-[13px] text-muted mt-1.5">
-            Admin logins with full access.
-          </div>
+          <span className="bj-mono">Admin logins with full access.</span>
+          <h1 className="bj-big">Team.</h1>
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="cursor-pointer whitespace-nowrap text-xs font-semibold text-muted hover:text-text border border-dashed border-line2 hover:border-text px-3.5 py-2"
-        >
-          + Add admin
-        </button>
-      </div>
+        <div className="acts">
+          <button type="button" onClick={() => setAddOpen(true)} className="bj-ghost">
+            + Add admin
+          </button>
+        </div>
+      </section>
 
-      {error && <div className="text-xs text-accentb mb-4 font-semibold">{error}</div>}
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">
+        Admins<b>{admins.length}</b>
+      </span>
+      <div className="min-w-0">
+      {error && <div className="text-[14px] text-accent mb-4 font-semibold">{error}</div>}
 
-      <div className="border border-line">
+      <div>
         {admins.map((a) => {
           const isSelf = a.id === currentUserId;
           const isLast = admins.length === 1;
           return (
             <div
               key={a.id}
-              className="flex flex-col gap-2.5 px-4 py-4 border-b border-line last:border-b-0 md:grid md:gap-4 md:px-5 md:items-center"
+              className="flex flex-col gap-2.5 py-4 border-b border-line md:grid md:gap-4 md:items-center"
               style={{ gridTemplateColumns: "1.6fr 1fr 18rem" }}
             >
               <div className="md:contents">
                 <div className="min-w-0">
-                  <span className="text-[13px] font-semibold">{a.name}</span>
-                  {isSelf && <span className="text-[11px] text-dim"> · you</span>}
-                  <div className="text-xs text-dim font-mono mt-0.5 truncate" title={a.email}>
+                  <span className="text-[16px] font-semibold">{a.name}</span>
+                  {isSelf && <span className="text-[14px] text-muted"> · you</span>}
+                  <div className="bj-mono mt-1 truncate" style={{ textTransform: "none" }} title={a.email}>
                     {a.email}
                   </div>
                 </div>
-                <span className="text-[11px] text-dim md:text-right">
-                  <span className="text-dim">Last login · </span>
+                <span className="bj-mono md:text-right">
+                  <span>Last login · </span>
                   {shortDate(a.lastLoginAt)}
                 </span>
               </div>
@@ -91,17 +93,17 @@ export function AdminTeamClient({
               <div className="flex flex-wrap items-center gap-2 justify-start md:justify-end">
                 {confirmingId === a.id ? (
                   <>
-                    <span className="text-[11px] text-muted">Revoke access?</span>
+                    <span className="text-[14px] text-muted">Revoke access?</span>
                     <button
                       onClick={() => removeAdmin(a)}
                       disabled={removingId === a.id}
-                      className="cursor-pointer text-[11px] font-semibold text-accentb hover:text-text border border-accentb px-2.5 py-1.5"
+                      className="bj-cta"
                     >
                       {removingId === a.id ? "Removing…" : "Confirm remove"}
                     </button>
                     <button
                       onClick={() => setConfirmingId(null)}
-                      className="cursor-pointer text-[11px] font-semibold text-muted hover:text-text px-2.5 py-1.5"
+                      className="bj-ghost"
                     >
                       Cancel
                     </button>
@@ -120,7 +122,7 @@ export function AdminTeamClient({
                           ? "Add another admin before removing this one."
                           : undefined
                     }
-                    className="cursor-pointer text-[11px] font-semibold text-muted hover:text-accentb border border-line2 hover:border-accentb px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-muted disabled:hover:border-line2"
+                    className="bj-ghost disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Remove
                   </button>
@@ -131,11 +133,13 @@ export function AdminTeamClient({
         })}
       </div>
 
-      <div className="text-[11px] text-dim mt-4">
+      <div className="text-[14px] text-muted mt-4 leading-relaxed max-w-[64ch]">
         Removing an admin signs them out everywhere and blocks sign-in. Their login is kept, so
-        anything they granted or uploaded still shows their name — adding the same email back
+        anything they granted or uploaded still shows their name. Adding the same email back
         reinstates the login with a fresh temp password.
       </div>
+      </div>
+      </section>
 
       {addOpen && (
         <AddAdminDialog

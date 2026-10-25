@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { initials } from "@/lib/initials";
-import { lighten } from "@/lib/color";
+import { ClientLogo } from "@/components/ClientLogo";
 
-const DEFAULT_ACCENT = "#ec3013";
 
 export type ClientAccountRow = {
   id: string;
@@ -39,7 +37,7 @@ function Platform({
   if (!state) {
     return (
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[9px] font-bold tracking-wide text-dim border border-line2 px-1.5 py-0.5 flex-none">
+        <span className="bj-pill flex-none">
           {tag}
         </span>
         <span className="text-[11px] text-dim">Not connected</span>
@@ -48,7 +46,7 @@ function Platform({
   }
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-[9px] font-bold tracking-wide text-accentb border border-accent/40 px-1.5 py-0.5 flex-none">
+      <span className="bj-pill ok flex-none">
         {tag}
       </span>
       <span className="text-[11px] text-text truncate">
@@ -89,37 +87,27 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
   ).length;
 
   return (
-    <div
-      className="px-10 pb-12 max-w-[820px] mx-auto -mt-6"
-      data-testid="client-accounts"
-    >
-      <div className="mb-5">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">
-          Connections
-        </div>
-        <h1 className="bj-serif text-[26px] font-normal">
-          Client accounts
-        </h1>
-        <p className="text-[13px] text-muted mt-2">
+    <div className="bj-adm" data-testid="client-accounts">
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">Client accounts</span>
+      <div className="min-w-0">
+        <p className="text-[15px] text-body mb-4 max-w-[60ch]">
           Nothing publishes or reports views for a client until their Instagram
           or YouTube account is connected.
         </p>
-      </div>
-
-      <div className="shadow-1 border border-line bg-s1">
-        <div className="flex items-center gap-3 flex-wrap px-5 py-3 border-b border-line">
-          <span className="text-[12px] font-semibold tabular-nums">
+        <div className="flex items-center gap-3 flex-wrap pb-3 border-b border-line">
+          <span className="bj-mono ink tabular-nums">
             {connected} of {rows.length} clients connected
           </span>
           {failing > 0 && (
-            <span className="text-[11px] font-semibold text-accentb border border-accent/40 px-2 py-0.5">
+            <span className="bj-pill red">
               {failing} needs reconnecting
             </span>
           )}
         </div>
 
         {rows.length === 0 ? (
-          <div className="px-5 py-6 text-[13px] text-muted">
+          <div className="py-6 text-[14px] text-muted">
             No active clients yet.
           </div>
         ) : (
@@ -127,41 +115,14 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
             <div
               key={c.id}
               data-testid={`account-row-${c.id}`}
-              className="flex items-center gap-4 px-5 py-3.5 border-b border-line last:border-b-0 flex-wrap"
+              className="flex items-center gap-4 py-3.5 border-b border-line flex-wrap"
             >
-              {/* Same avatar treatment as the clients list — logo if the client has
-                  one, otherwise initials on their own accent. */}
-              <div
-                className="w-9 h-9 grid place-items-center overflow-hidden flex-none"
-                style={
-                  c.logoUrl
-                    ? { background: "var(--s3)" }
-                    : {
-                        background: `linear-gradient(135deg, ${c.accentColor ?? DEFAULT_ACCENT}, ${lighten(
-                          c.accentColor ?? DEFAULT_ACCENT,
-                          0.6,
-                        )})`,
-                      }
-                }
-              >
-                {c.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- arbitrary external brand logo, not a static asset Next can optimize
-                  <img
-                    src={c.logoUrl}
-                    alt=""
-                    className="w-full h-full object-contain bg-bg"
-                  />
-                ) : (
-                  <span className="text-[11px] font-black text-bg">
-                    {initials(c.name)}
-                  </span>
-                )}
-              </div>
+              <ClientLogo client={{ name: c.name, logoUrl: c.logoUrl, logoColor: c.accentColor }} size={36} />
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-semibold truncate">
+                <div className="text-[15px] font-semibold truncate">
                   {c.name}
                 </div>
-                <div className="text-[11px] text-dim truncate">
+                <div className="bj-mono truncate mt-0.5" style={{ textTransform: "none" }}>
                   {c.channel || "No Slack channel set"}
                 </div>
               </div>
@@ -171,7 +132,7 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
               </div>
               <Link
                 href={`/admin/clients/${c.id}`}
-                className="text-[11px] font-semibold text-muted hover:text-text border border-line2 hover:border-text px-2.5 py-1.5 flex-none"
+                className="bj-ghost flex-none"
               >
                 {c.instagram || c.youtube ? "Manage" : "Connect"}
               </Link>
@@ -179,6 +140,7 @@ export function AdminClientAccounts({ rows }: { rows: ClientAccountRow[] }) {
           ))
         )}
       </div>
+      </section>
     </div>
   );
 }

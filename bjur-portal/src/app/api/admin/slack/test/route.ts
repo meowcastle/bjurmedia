@@ -19,11 +19,11 @@ export async function POST() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         channel: config.defaultChannel,
-        username: "Bjur Media",
+        username: "Bjur",
         blocks: [
           {
             type: "section",
-            text: { type: "mrkdwn", text: ":wave: Test message from the Bjur Media admin panel." },
+            text: { type: "mrkdwn", text: ":wave: Test message from the Bjur portal." },
           },
         ],
       }),

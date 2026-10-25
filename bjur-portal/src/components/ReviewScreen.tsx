@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Seal } from "@/components/ui/Seal";
+import { ClientLogo, type ClientMark } from "@/components/ClientLogo";
+import { initials } from "@/lib/initials";
 
 /**
  * The review screen: one component, two modes.
@@ -14,8 +18,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * scrubber, the note list — are identical, and the two screens drifting apart is how a
  * timestamp ends up meaning one thing to the client and another to the person cutting.
  *
- * Always dark, no portal nav. A guest reaching this from a link has no account and should
- * see a player, not a product.
+ * No portal nav. A guest reaching this from a link has no account and should see a player,
+ * not a product. v13 (design/v13/PortalReview13): a page in the bjur.nyc look, themed like
+ * the rest of the portal; styles in src/app/v13/review.css.
  */
 
 export type ReviewMode = "client" | "studio";
@@ -53,6 +58,8 @@ export type ScreenCut = {
 export type ReviewScreenProps = {
   mode: ReviewMode;
   clientName: string;
+  /** The client logo for the header (seal x logo); not shown to staff. */
+  clientLogo?: ClientMark | null;
   projectTitle: string;
   assetTitle: string;
   /** Where the wordmark goes. Omitted for a guest, who has no portal to go back to. */
@@ -102,6 +109,7 @@ function timecode(sec: number, fps: number | null) {
 export function ReviewScreen({
   mode,
   clientName,
+  clientLogo = null,
   projectTitle,
   assetTitle,
   backHref,
@@ -305,95 +313,123 @@ export function ReviewScreen({
     }
   }
 
+
   const markLabel = (n: ScreenNote) =>
     n.timeSec == null ? "General" : mode === "studio" ? timecode(n.timeSec, cut?.fps ?? null) : clock(n.timeSec);
 
-  return (
-    <div
-      data-testid="review-screen"
-      className="fixed inset-0 bg-black text-white flex flex-col"
-      style={{ colorScheme: "dark" }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 lg:gap-4 px-4 lg:px-5 py-2.5 lg:py-3 border-b border-white/12 flex-wrap shrink-0">
-        {backHref ? (
-          // The only way off this screen. It is a fixed-inset overlay with no portal nav
-          // behind it, so without this the back button is the browser's and nothing else.
-          <Link
-            href={backHref}
-            data-testid="review-back"
-            className="bj-serif text-[19px] leading-none text-white/80 hover:text-white"
-            title="Back to the project"
-          >
-            Bjur Media
-          </Link>
-        ) : (
-          <span className="bj-serif text-[19px] leading-none">Bjur Media</span>
-        )}
+  // v13 markup only from here down: the state, timing and keys above are unchanged.
+  const drafts = visible.filter((n) => !n.sentAt);
+  const sentVisible = visible.filter((n) => n.sentAt);
+  const canCompose = mode === "client" && !!viewer && isLatest && !approved;
+  const prevVersion = (cut?.version ?? 2) - 1;
+  const cutTitle = cut?.title ?? assetTitle;
+  const sameAsProject = cutTitle.trim().toLowerCase() === projectTitle.trim().toLowerCase();
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  const backLine = (
+    <>
+      {sameAsProject ? null : <>{projectTitle} · </>}
+      <span data-testid="asset-title">{cutTitle}</span>
+    </>
+  );
+
+  const noteRow = (n: ScreenNote) => {
+    const mine = n.authorId === viewer?.id;
+    return (
+      <div
+        key={n.id}
+        data-testid={`note-${n.id}`}
+        className={`bj-rv-note ${n.sentAt ? "sent" : ""} ${mode === "studio" ? "tc" : ""}`}
+      >
+        <button type="button" className="t" onClick={() => n.timeSec != null && seek(n.timeSec)}>
+          {markLabel(n)}
+        </button>
         <div className="min-w-0">
-          <div className="text-[12px] font-mono truncate" data-testid="asset-title">
-            {cut?.title ?? assetTitle}
-          </div>
-          <div className="text-[10.5px] font-mono text-white/45 truncate">
-            {clientName} · {projectTitle}
-          </div>
+          <p>{n.body}</p>
+          <span className="bj-mono by">
+            {!n.sentAt ? (
+              <>
+                <span>You · not sent</span>
+                <button type="button" onClick={() => void onDeleteNote(n.id)}>
+                  Delete
+                </button>
+              </>
+            ) : (
+              <span>
+                {n.authorName}
+                {mine ? " (you)" : ""} · sent{" "}
+                {new Date(n.sentAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+          </span>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 flex-wrap" data-testid="cut-tabs">
+      </div>
+    );
+  };
+
+  const showClientFoot =
+    mode === "client" && isLatest && (approved || myDrafts.length > 0 || !!viewer?.canApprove);
+
+  return (
+    <ReviewShell
+      testId="review-screen"
+      mode={mode}
+      clientName={clientName}
+      clientLogo={clientLogo}
+      brandHref={mode === "studio" ? "/admin" : backHref}
+      viewerName={viewer?.name ?? null}
+      viewerRole={viewer?.role ?? null}
+    >
+      <section className="bj-rv-head">
+        <div className="min-w-0">
+          {backHref ? (
+            // The only way off this screen besides the seal: a page of its own, with no
+            // portal nav, so the browser's back button is not the only exit.
+            <Link
+              href={backHref}
+              data-testid="review-back"
+              className="bj-mono bj-rv-back"
+              title={mode === "studio" ? "Back to the project" : "Back to your projects"}
+            >
+              ← {backLine}
+            </Link>
+          ) : (
+            <span className="bj-mono bj-rv-back">{backLine}</span>
+          )}
+          <h1 className="bj-mid">
+            {clientName} · {projectTitle}, cut {cut?.version}
+          </h1>
+        </div>
+        <div className="bj-rv-cuts" role="tablist" aria-label="Cuts" data-testid="cut-tabs">
           {cuts.map((c) => {
             const active = c.id === cut?.id;
             const unsent = !c.sentAt;
+            const tag = c.approvedAt ? "Approved" : unsent ? "Not sent yet" : c.id === latest?.id ? "Latest" : "";
             return (
               <button
                 key={c.id}
                 type="button"
+                role="tab"
+                aria-selected={active}
                 disabled={unsent && mode === "client"}
                 onClick={() => onSelectCut(c.id)}
                 data-testid={`cut-tab-${c.version}`}
-                className={`px-2.5 py-1.5 text-[10.5px] font-mono uppercase tracking-[.08em] border ${
-                  active ? "border-white text-white" : "border-white/20 text-white/55 hover:text-white"
-                } ${unsent ? "border-dashed" : ""}`}
+                className={`${active ? "on" : ""} ${unsent ? "unsent" : ""}`}
               >
                 Cut {c.version}
-                <span className="block text-[9px] tracking-normal text-white/40 normal-case">
-                  {c.approvedAt ? "Approved" : unsent ? "Not sent yet" : c.id === latest?.id ? "Latest" : ""}
-                </span>
+                {tag ? ` · ${tag}` : ""}
               </button>
             );
           })}
         </div>
-        {viewer && (
-          <div className="text-[10.5px] font-mono text-white/45 whitespace-nowrap">
-            {viewer.name}
-            {viewer.role ? ` · ${viewer.role}` : ""}
-          </div>
-        )}
-      </div>
+      </section>
 
-      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        {/* Player.
-            On a phone this is a fixed slice of the viewport rather than flex-1. Sharing
-            the column with the notes list meant the list won and the video collapsed to
-            300x150 — a review screen whose one job is watching the cut. Desktop keeps the
-            row layout, where flex-1 is the right answer. */}
-        <div className="shrink-0 lg:flex-1 lg:min-h-0 flex flex-col">
-          <div
-            ref={playerRef}
-            data-testid="player-area"
-            className="relative h-[42vh] lg:h-auto lg:flex-1 lg:min-h-0 grid place-items-center bg-black p-2 lg:p-3"
-          >
-            <span className="absolute top-4 left-5 text-[10.5px] font-mono uppercase tracking-[.1em] text-white/55 z-10">
-              Cut {cut?.version}
-            </span>
-            {mode === "studio" && (
-              <span
-                className="absolute top-4 right-5 text-[11px] font-mono text-white/70 z-10 tabular-nums"
-                data-testid="smpte"
-              >
-                {timecode(elapsed, cut?.fps ?? null)}
-              </span>
-            )}
+      <section className="bj-rv">
+        <div className="min-w-0">
+          {/* The player. On a phone it is a fixed slice of the viewport rather than 16:9,
+              so the frame keeps real height above the notes. */}
+          <div ref={playerRef} data-testid="player-area" className="bj-rv-player">
             {cut && (
-               
               <video
                 ref={videoRef}
                 key={cut.assetId}
@@ -403,185 +439,204 @@ export function ReviewScreen({
                 onTimeUpdate={(e) => setElapsed(e.currentTarget.currentTime)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
-                className="max-w-full max-h-full cursor-pointer"
-                style={{ maxWidth: 1180 }}
+                className="bj-rv-video"
                 data-testid="review-video"
               />
             )}
+            <span className="bj-rv-tc" data-testid={mode === "studio" ? "smpte" : "timecode"}>
+              {mode === "studio" ? timecode(elapsed, cut?.fps ?? null) : timecode(elapsed, cut?.fps ?? null).slice(3)}
+            </span>
             <button
               type="button"
               onClick={toggleFullscreen}
               aria-label={isFull ? "Exit fullscreen" : "Fullscreen"}
               data-testid="fullscreen"
-              className={`absolute ${mode === "studio" ? "top-12" : "top-4"} right-4 z-10 w-11 h-11 lg:w-9 lg:h-9 grid place-items-center border border-white/40 lg:border-white/25 hover:border-white bg-black/70 lg:bg-black/50 text-white hover:text-white cursor-pointer text-[15px] lg:text-[13px]`}
+              className="bj-rv-fs"
             >
               {isFull ? "⤡" : "⤢"}
             </button>
             {overlay && (
-              <div
-                data-testid="frame-note"
-                className="absolute bottom-5 left-5 max-w-[60%] bg-black/75 border border-white/15 px-3 py-2 z-10"
-              >
-                <div className="text-[10.5px] font-mono text-white/50">{markLabel(overlay)}</div>
-                <div className="text-[13px] leading-snug">{overlay.body}</div>
+              <div data-testid="frame-note" className="bj-rv-frame-note">
+                <div className="t">{markLabel(overlay)}</div>
+                <div>{overlay.body}</div>
               </div>
             )}
           </div>
 
-          {/* Transport */}
-          <div className="px-4 lg:px-5 py-2.5 lg:py-3 border-t border-b lg:border-b-0 border-white/12 flex items-center gap-3 lg:gap-4 shrink-0">
+          {/* Transport: round play, the timeline with its markers, the clock. */}
+          <div className="bj-rv-transport">
             <button
               type="button"
               onClick={toggle}
               aria-label={playing ? "Pause" : "Play"}
               data-testid="play"
-              className="w-[38px] h-[38px] grid place-items-center border border-white/25 hover:border-white cursor-pointer flex-none"
+              className="bj-rv-pp"
             >
-              {playing ? "❚❚" : "▶"}
+              {playing ? (
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                  <rect x="2" y="1.5" width="2.6" height="9" fill="currentColor" />
+                  <rect x="7.4" y="1.5" width="2.6" height="9" fill="currentColor" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                  <path d="M3 1.5v9l7.5-4.5z" fill="currentColor" />
+                </svg>
+              )}
             </button>
-            <span className="text-[11px] font-mono text-white/60 tabular-nums whitespace-nowrap">
-              {mode === "studio"
-                ? `${timecode(elapsed, cut?.fps ?? null)} / ${timecode(duration, cut?.fps ?? null)}`
-                : `${clock(elapsed)} / ${clock(duration)}`}
-            </span>
             <div
-              className="relative flex-1 h-[26px] cursor-pointer"
+              className="bj-rv-track"
               data-testid="scrubber"
               onClick={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
                 if (duration) seek(((e.clientX - r.left) / r.width) * duration);
               }}
             >
-              <span className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/15" />
-              <span
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/70"
-                style={{ width: duration ? `${(elapsed / duration) * 100}%` : 0 }}
-              />
-              {/* Markers. Colour says whose and how far along: filled is sent, hollow is a
-                  draft only this viewer can see, small and dim is the previous cut. */}
+              <span className="ln" />
+              <span className="pl" style={{ width: duration ? `${(elapsed / duration) * 100}%` : 0 }} />
+              {/* Markers: shu is a note not sent yet, ash is sent; the cut before is smaller. */}
               {[
                 ...visible.map((n) => ({ n, old: false })),
                 ...previousNotes.map((n) => ({ n, old: true })),
               ]
                 .filter(({ n }) => n.timeSec != null && duration > 0)
                 .map(({ n, old }) => {
-                  const mine = n.authorId === viewer?.id;
-                  const isDraft = !n.sentAt;
                   const active = Math.abs((n.timeSec ?? 0) - elapsed) < 0.35;
-                  const size = old ? 6 : active ? 10 : 8;
                   return (
                     <button
                       key={`${old ? "p" : "c"}-${n.id}`}
                       type="button"
                       title={`${markLabel(n)} · ${n.body}`}
+                      aria-label={`Note at ${markLabel(n)}`}
                       data-testid={`marker-${n.id}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (n.timeSec != null) seek(n.timeSec);
                       }}
-                      className="absolute top-0 -translate-x-1/2"
+                      className={`bj-rv-mk ${old ? "old" : !n.sentAt ? "draft" : ""} ${active ? "on" : ""}`}
                       style={{ left: `${((n.timeSec ?? 0) / duration) * 100}%` }}
-                    >
-                      <span className="block w-px h-[9px] bg-white/25 mx-auto" />
-                      <span
-                        className="block"
-                        style={{
-                          width: size,
-                          height: size,
-                          background: old ? "transparent" : isDraft ? "transparent" : "var(--accent)",
-                          border: `1px solid ${old ? "var(--dim)" : "var(--accent)"}`,
-                          opacity: old ? 0.6 : mine || mode === "studio" ? 1 : 0.75,
-                        }}
-                      />
-                    </button>
+                    />
                   );
                 })}
+              <span className="hd" style={{ left: duration ? `${(elapsed / duration) * 100}%` : 0 }} />
             </div>
+            <span className="bj-mono bj-rv-time">
+              {mode === "studio"
+                ? `${timecode(elapsed, cut?.fps ?? null)} / ${timecode(duration, cut?.fps ?? null)}`
+                : `${clock(elapsed)} / ${clock(duration)}`}
+            </span>
           </div>
+
+          {canCompose && (
+            <div className="bj-rv-composer">
+              <span data-testid="stamp" className={`bj-rv-at ${lockedAt != null ? "on" : ""}`}>
+                @ {clock(lockedAt ?? elapsed)}
+              </span>
+              <input
+                ref={composerRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onFocus={focusComposer}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void addNote();
+                  }
+                  if (e.key === "Escape") {
+                    setDraft("");
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder="Add a note at this moment"
+                aria-label="Add a note at this moment"
+                data-testid="composer"
+              />
+              <button
+                type="button"
+                onClick={() => void addNote()}
+                disabled={!draft.trim() || busy}
+                data-testid="add-note"
+                className="bj-ghost bj-rv-add"
+              >
+                Add ↵
+              </button>
+            </div>
+          )}
+
+          {mode === "client" && !isLatest && (
+            <div className="bj-rv-elsewhere">
+              Notes go on the latest cut.{" "}
+              <button type="button" className="bj-link" onClick={() => latest && onSelectCut(latest.id)}>
+                Go to cut {latest?.version}
+              </button>
+            </div>
+          )}
+
+          <p className="bj-mono bj-rv-keys">
+            {canCompose
+              ? "Space play · N note · ← → one second · M next note"
+              : "Space play · ← → one second · M next note"}
+          </p>
         </div>
 
-        {/* Notes */}
-        <div className="flex-1 min-h-0 lg:flex-none w-full lg:w-[380px] lg:min-w-[340px] lg:border-l border-white/12 flex flex-col">
-          <div className="px-5 pt-4 pb-3 border-b border-white/12">
-            <div className="bj-serif text-[19px] leading-none">Notes</div>
-            <div className="text-[10.5px] font-mono uppercase tracking-[.1em] text-white/45 mt-1.5">
-              Cut {cut?.version} ·{" "}
-              {mode === "client"
-                ? `${myDrafts.length} unsent`
-                : `${sentNotes.length} note${sentNotes.length === 1 ? "" : "s"}`}
+        <aside className="bj-rv-notes" aria-label="Notes">
+          <div className="bj-rv-list">
+            <div className="bj-rv-h">
+              {mode === "client" ? (
+                <>
+                  <span className="bj-mono ink">Your notes · {myDrafts.length} not sent</span>
+                  <span className="bj-mono">Only you see these</span>
+                </>
+              ) : (
+                <>
+                  <span className="bj-mono ink">Notes · cut {cut?.version}</span>
+                  <span className="bj-mono">{plural(sentNotes.length, "note")}</span>
+                </>
+              )}
             </div>
             {sentBanner && (
-              <div data-testid="sent-banner" className="mt-3 text-[12px] leading-relaxed text-white/60">
+              <p data-testid="sent-banner" className="bj-mono bj-rv-banner">
                 {sentBanner}
-              </div>
+              </p>
             )}
             {mode === "studio" && unanswered > 0 && (
-              <div data-testid="answer-banner" className="mt-3 text-[12px] leading-relaxed text-white/60">
-                Cut {(cut?.version ?? 1)} uploaded. Answer each note on cut {(cut?.version ?? 2) - 1}. They
-                go out in the cut {cut?.version} email.
-              </div>
+              <p data-testid="answer-banner" className="bj-rv-banner">
+                Cut {cut?.version ?? 1} uploaded. Answer each note on cut {(cut?.version ?? 2) - 1}. They go
+                out in the cut {cut?.version} email.
+              </p>
             )}
-          </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
             {visible.length === 0 && (
-              <div className="px-5 py-6 text-[12px] text-white/40">
+              <p className="bj-rv-empty">
                 {mode === "client"
                   ? "Nothing yet. Pause where something needs changing and write it down."
                   : "No notes on this cut yet."}
-              </div>
+              </p>
             )}
-            {visible.map((n) => {
-              const mine = n.authorId === viewer?.id;
-              return (
-                <div
-                  key={n.id}
-                  data-testid={`note-${n.id}`}
-                  className="px-5 py-3.5 border-b border-white/8 hover:bg-white/[.03]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => n.timeSec != null && seek(n.timeSec)}
-                    className="text-[11px] font-mono text-white/50 hover:text-white cursor-pointer tabular-nums"
-                    style={{ minWidth: mode === "studio" ? 88 : 44, textAlign: "left" }}
-                  >
-                    {markLabel(n)}
-                  </button>
-                  <div className="text-[13px] leading-snug mt-1">{n.body}</div>
-                  <div className="mt-1.5 text-[10.5px] font-mono text-white/40 flex items-center gap-2">
-                    {!n.sentAt ? (
-                      <>
-                        <span>Draft · only you</span>
-                        <button
-                          type="button"
-                          onClick={() => void onDeleteNote(n.id)}
-                          className="text-white/40 hover:text-white cursor-pointer underline"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    ) : (
-                      <span>
-                        {n.authorName}
-                        {mine ? " (you)" : ""} · sent{" "}
-                        {new Date(n.sentAt).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+
+            {mode === "client" ? (
+              <>
+                {drafts.map(noteRow)}
+                {sentVisible.length > 0 && (
+                  <>
+                    <div className="bj-rv-h sub">
+                      <span className="bj-mono">Sent on cut {cut?.version}</span>
+                      <span className="bj-mono">{plural(sentVisible.length, "note")}</span>
+                    </div>
+                    {sentVisible.map(noteRow)}
+                  </>
+                )}
+              </>
+            ) : (
+              visible.map(noteRow)
+            )}
 
             {/* The previous cut, and what was done about each note. In studio mode these
                 are the rows being answered; in client mode they are the receipt. */}
             {previousNotes.length > 0 && (
-              <div className="mt-2">
-                <div className="px-5 py-2.5 text-[10.5px] font-mono uppercase tracking-[.1em] text-white/40 border-y border-white/10">
-                  Cut {(cut?.version ?? 2) - 1} notes ·{" "}
-                  {previousNotes.filter((n) => n.outcome === "CHANGED").length} changed
+              <>
+                <div className="bj-rv-h sub">
+                  <span className="bj-mono">From cut {prevVersion}</span>
+                  <span className="bj-mono">{plural(previousNotes.length, "note")}</span>
                 </div>
                 {previousNotes.map((n) => (
                   <PreviousNote
@@ -593,140 +648,142 @@ export function ReviewScreen({
                     onAnswer={onAnswerNote}
                   />
                 ))}
-              </div>
+              </>
             )}
           </div>
 
-          {/* Composer / footer */}
-          <div className="border-t border-white/12 px-5 py-4">
-            {mode === "client" && viewer && isLatest && !approved && (
-              <div className="flex items-center gap-2 mb-3 flex-wrap sm:flex-nowrap">
-                <span
-                  data-testid="stamp"
-                  className="text-[11px] font-mono px-2 py-1.5 border"
-                  style={{
-                    borderColor: lockedAt != null ? "var(--accent)" : "rgba(255,255,255,.2)",
-                    color: lockedAt != null ? "var(--accent)" : "rgba(255,255,255,.55)",
-                  }}
-                >
-                  @ {clock(lockedAt ?? elapsed)}
-                </span>
-                <input
-                  ref={composerRef}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onFocus={focusComposer}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void addNote();
-                    }
-                    if (e.key === "Escape") {
-                      setDraft("");
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  placeholder="What needs changing?"
-                  data-testid="composer"
-                  className="flex-1 min-w-[140px] bg-transparent border border-white/20 focus:border-white/60 outline-none px-3 py-2 text-[16px] sm:text-[13px]"
-                />
-                <button
-                  type="button"
-                  onClick={() => void addNote()}
-                  disabled={!draft.trim() || busy}
-                  data-testid="add-note"
-                  className="text-[10.5px] font-mono uppercase tracking-[.08em] border border-white/25 hover:border-white px-3 py-2 cursor-pointer disabled:opacity-40 disabled:cursor-default"
-                >
-                  Add ↵
-                </button>
-              </div>
-            )}
+          {/* Pinned at the bottom of the column: send, or approve. */}
+          {(showClientFoot || mode === "studio") && (
+            <div className="bj-rv-send">
+              {mode === "client" && isLatest && approved && (
+                <div data-testid="approved-state" className="bj-rv-approved">
+                  <span>
+                    <span className="bj-dot ok" />
+                    Cut {cut?.version} approved{cut?.approvedByName ? ` by ${cut.approvedByName}` : ""}
+                  </span>
+                  {viewer?.canApprove && (
+                    <button type="button" className="bj-link" onClick={() => void onUndoApprove()}>
+                      Undo
+                    </button>
+                  )}
+                </div>
+              )}
 
-            {mode === "client" && !isLatest && (
-              <div className="text-[12px] text-white/50 border border-dashed border-white/20 px-3 py-2.5 text-center">
-                Notes go on the latest cut.{" "}
-                <button
-                  type="button"
-                  onClick={() => latest && onSelectCut(latest.id)}
-                  className="underline cursor-pointer hover:text-white"
-                >
-                  Go to cut {latest?.version}
-                </button>
-              </div>
-            )}
-
-            {mode === "client" && isLatest && approved && (
-              <div
-                data-testid="approved-state"
-                className="flex items-center justify-between gap-3 text-[12px]"
-              >
-                <span style={{ color: "var(--success)" }}>
-                  ● Cut {cut?.version} approved{cut?.approvedByName ? ` by ${cut.approvedByName}` : ""}
-                </span>
-                {viewer?.canApprove && (
-                  <button
-                    type="button"
-                    onClick={() => void onUndoApprove()}
-                    className="underline text-white/60 hover:text-white cursor-pointer"
-                  >
-                    Undo
-                  </button>
-                )}
-              </div>
-            )}
-
-            {mode === "client" && isLatest && !approved && myDrafts.length > 0 && (
-              <>
+              {mode === "client" && isLatest && !approved && myDrafts.length > 0 && (
                 <button
                   type="button"
                   onClick={() => void send()}
                   disabled={busy}
                   data-testid="send-notes"
-                  className="w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-50"
-                  style={{ background: "var(--accent)", color: "#0b0b0c" }}
+                  className="bj-cta"
                 >
-                  Send {myDrafts.length} note{myDrafts.length === 1 ? "" : "s"}
+                  Send {plural(myDrafts.length, "note")} to Bjur <i>→</i>
                 </button>
-              </>
-            )}
+              )}
 
-            {mode === "client" && isLatest && !approved && myDrafts.length === 0 && viewer?.canApprove && (
-              <>
-                {sentNotes.length === 0 && (
-                  <p className="mb-2 text-[11.5px] text-white/45">Nothing to change?</p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void onApprove()}
-                  disabled={busy}
-                  data-testid="approve"
-                  className="w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-50"
-                  style={
-                    sentNotes.length === 0
-                      ? { background: "var(--accent)", color: "#0b0b0c" }
-                      : { border: "1px solid var(--accent)", color: "var(--accent)" }
-                  }
-                >
-                  Approve cut {cut?.version}
-                </button>
-              </>
-            )}
+              {mode === "client" && isLatest && !approved && myDrafts.length === 0 && viewer?.canApprove && (
+                <div className="or">
+                  <p>No changes needed?</p>
+                  <button
+                    type="button"
+                    onClick={() => void onApprove()}
+                    disabled={busy}
+                    data-testid="approve"
+                    className="bj-ghost"
+                  >
+                    Approve cut {cut?.version}
+                  </button>
+                </div>
+              )}
 
-            {mode === "studio" && (
-              <StudioFooter
-                unanswered={unanswered}
-                total={previousNotes.length}
-                version={cut?.version ?? 1}
-                unsent={!cut?.sentAt}
-                approved={approved}
-                approvedByName={cut?.approvedByName ?? null}
-                markerExportHref={markerExportHref}
-                onPreviewRelease={onPreviewRelease}
-              />
-            )}
-          </div>
+              {mode === "studio" && (
+                <StudioFooter
+                  unanswered={unanswered}
+                  total={previousNotes.length}
+                  version={cut?.version ?? 1}
+                  unsent={!cut?.sentAt}
+                  approved={approved}
+                  approvedByName={cut?.approvedByName ?? null}
+                  markerExportHref={markerExportHref}
+                  onPreviewRelease={onPreviewRelease}
+                />
+              )}
+            </div>
+          )}
+        </aside>
+      </section>
+    </ReviewShell>
+  );
+}
+
+/**
+ * The page around the review: the seal and who on the left, the theme on the right, the
+ * footer at the end. Shared with the empty and guest-name screens so all of them are one
+ * frame. No portal links: a guest has no portal, and a client leaves by the back link.
+ */
+export function ReviewShell({
+  mode,
+  clientName,
+  clientLogo = null,
+  brandHref,
+  viewerName = null,
+  viewerRole = null,
+  testId,
+  children,
+}: {
+  mode: ReviewMode;
+  clientName: string;
+  /** The client logo for the header (seal x logo); not shown to staff. */
+  clientLogo?: ClientMark | null;
+  /** Where the seal goes. Omitted for a guest. */
+  brandHref?: string;
+  viewerName?: string | null;
+  viewerRole?: string | null;
+  testId?: string;
+  children: React.ReactNode;
+}) {
+  const who = (
+    <>
+      <Seal />
+      {mode !== "studio" && clientLogo && (
+        <>
+          <span className="x" aria-hidden="true">&times;</span>
+          <ClientLogo client={clientLogo} size={34} />
+        </>
+      )}
+      <span className="who">
+        <span className="bj-mono ink">{mode === "studio" ? "Studio" : "Client portal"}</span>
+        <span className="bj-mono">{mode === "studio" ? "Client portal admin" : clientName}</span>
+      </span>
+    </>
+  );
+  return (
+    <div data-testid={testId} className="bj-page bj-rv-page">
+      <nav className="bj-nav bj-rv-nav" aria-label="Primary">
+        {brandHref ? (
+          <Link className="bj-brand" href={brandHref}>
+            {who}
+          </Link>
+        ) : (
+          <span className="bj-brand">{who}</span>
+        )}
+        <div className="r">
+          <ThemeToggle portal={mode === "studio" ? "admin" : "client"} />
+          {viewerName && (
+            <span className="bj-me" title={`${viewerName}${viewerRole ? ` · ${viewerRole}` : ""}`}>
+              {initials(viewerName)}
+            </span>
+          )}
         </div>
-      </div>
+      </nav>
+      {children}
+      <footer className="bj-foot bj-rv-foot">
+        <span>Bjur · Brooklyn, NY</span>
+        <a className="c" href="mailto:hi@bjur.nyc">
+          hi@bjur.nyc
+        </a>
+        <span className="rr">portal.bjur.nyc</span>
+      </footer>
     </div>
   );
 }
@@ -759,66 +816,53 @@ function PreviousNote({
   }
 
   return (
-    <div className="px-5 py-3.5 border-b border-white/8" data-testid={`prev-note-${note.id}`}>
-      <button
-        type="button"
-        onClick={onSeek}
-        className="text-[11px] font-mono text-white/40 hover:text-white cursor-pointer tabular-nums"
-      >
+    <div className={`bj-rv-note sent ${mode === "studio" ? "tc" : ""}`} data-testid={`prev-note-${note.id}`}>
+      <button type="button" className="t" onClick={onSeek}>
         {label}
       </button>
-      <div className="text-[13px] leading-snug mt-1 text-white/80">{note.body}</div>
-      <div className="mt-1 text-[10.5px] font-mono text-white/35">{note.authorName}</div>
+      <div className="min-w-0">
+        <p>{note.body}</p>
+        <span className="bj-mono by">{note.authorName}</span>
 
-      {mode === "studio" && onAnswer ? (
-        <div className="mt-2.5">
-          <div className="flex gap-0">
-            {(["CHANGED", "KEPT"] as const).map((o) => (
-              <button
-                key={o}
-                type="button"
-                onClick={() => void answer(o)}
-                disabled={saving}
-                data-testid={`answer-${o.toLowerCase()}-${note.id}`}
-                className="text-[10px] font-mono uppercase tracking-[.06em] px-2.5 py-1.5 border cursor-pointer disabled:opacity-50"
-                style={
-                  note.outcome === o
-                    ? {
-                        borderColor: o === "CHANGED" ? "var(--success)" : "rgba(255,255,255,.5)",
-                        color: o === "CHANGED" ? "var(--success)" : "#fff",
-                      }
-                    : { borderColor: "rgba(255,255,255,.18)", color: "rgba(255,255,255,.5)" }
-                }
-              >
-                {o === "CHANGED" ? "Changed" : "Kept as is"}
-              </button>
-            ))}
+        {mode === "studio" && onAnswer ? (
+          <div>
+            <div className="bj-rv-ans">
+              {(["CHANGED", "KEPT"] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => void answer(o)}
+                  disabled={saving}
+                  aria-pressed={note.outcome === o}
+                  data-testid={`answer-${o.toLowerCase()}-${note.id}`}
+                  className={`${note.outcome === o ? "on" : ""} ${o === "CHANGED" ? "ok" : ""}`}
+                >
+                  {o === "CHANGED" ? "Changed" : "Kept as is"}
+                </button>
+              ))}
+            </div>
+            <input
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              onBlur={() => note.outcome && void answer(note.outcome)}
+              placeholder={
+                note.outcome === "KEPT" ? "Why it stays (reviewers read this)" : "What you did (optional)"
+              }
+              data-testid={`response-${note.id}`}
+              className="bj-rv-answer"
+            />
           </div>
-          <input
-            value={response}
-            onChange={(e) => setResponse(e.target.value)}
-            onBlur={() => note.outcome && void answer(note.outcome)}
-            placeholder={
-              note.outcome === "KEPT" ? "Why it stays (reviewers read this)" : "What you did (optional)"
-            }
-            data-testid={`response-${note.id}`}
-            className="mt-2 w-full bg-transparent border border-white/15 focus:border-white/50 outline-none px-2.5 py-1.5 text-[12px]"
-          />
-        </div>
-      ) : (
-        note.outcome && (
-          <div className="mt-1.5 text-[10.5px] font-mono uppercase tracking-[.06em]">
-            <span style={{ color: note.outcome === "CHANGED" ? "var(--success)" : "rgba(255,255,255,.45)" }}>
-              {note.outcome === "CHANGED" ? "Changed" : "Kept as is"}
-            </span>
-            {note.response ? (
-              <span className="text-white/45 normal-case tracking-normal"> · {note.response}</span>
-            ) : note.outcome === "CHANGED" ? (
-              <span className="text-white/45 normal-case tracking-normal"> · Done.</span>
-            ) : null}
-          </div>
-        )
-      )}
+        ) : (
+          note.outcome && (
+            <div className="bj-rv-resp">
+              <span className={`bj-pill ${note.outcome === "CHANGED" ? "ok" : ""}`}>
+                {note.outcome === "CHANGED" ? "Changed" : "Kept as is"}
+              </span>{" "}
+              {note.response ? note.response : note.outcome === "CHANGED" ? "Done." : null}
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }
@@ -844,9 +888,14 @@ function StudioFooter({
 }) {
   if (approved) {
     return (
-      <div data-testid="studio-approved" className="text-[12px]">
-        <span style={{ color: "var(--success)" }}>● Approved{approvedByName ? ` by ${approvedByName}` : ""}</span>
-        <p className="mt-1.5 text-white/45 text-[11.5px]">Deliver the master from the project page.</p>
+      <div data-testid="studio-approved" className="bj-rv-studio">
+        <span className="bj-rv-approved">
+          <span>
+            <span className="bj-dot ok" />
+            Approved{approvedByName ? ` by ${approvedByName}` : ""}
+          </span>
+        </span>
+        <p className="bj-rv-small">Deliver the master from the project page.</p>
       </div>
     );
   }
@@ -856,34 +905,27 @@ function StudioFooter({
   if (unsent) {
     const done = total - unanswered;
     return (
-      <div data-testid="studio-release">
-        <div className="flex items-center justify-between text-[11px] font-mono text-white/55">
-          <span>
+      <div data-testid="studio-release" className="bj-rv-studio">
+        <div className="bj-rv-progress">
+          <span className="bj-mono ink">
             {done} of {total} answered
           </span>
-          <span>Cut {version}</span>
+          <span className="bj-mono">Cut {version}</span>
         </div>
-        <span className="block h-[3px] bg-white/12 mt-2">
-          <span
-            className="block h-full transition-[width]"
-            style={{
-              width: total ? `${(done / total) * 100}%` : "100%",
-              background: "var(--success)",
-            }}
-          />
+        <span className="bj-rv-bar">
+          <span style={{ width: total ? `${(done / total) * 100}%` : "100%" }} />
         </span>
         <button
           type="button"
           onClick={onPreviewRelease}
           disabled={unanswered > 0}
           data-testid="preview-release"
-          className="mt-3 w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-40 disabled:cursor-default"
-          style={{ background: "var(--accent)", color: "#0b0b0c" }}
+          className="bj-cta"
         >
-          Preview cut {version} email
+          Preview cut {version} email <i>→</i>
         </button>
         {unanswered > 0 && (
-          <p className="mt-2 text-[11.5px] text-white/45">
+          <p className="bj-rv-small">
             Answer {unanswered} more note{unanswered === 1 ? "" : "s"} to continue.
           </p>
         )}
@@ -892,11 +934,9 @@ function StudioFooter({
   }
 
   return (
-    <div data-testid="studio-markers">
-      <div className="text-[10.5px] font-mono uppercase tracking-[.1em] text-white/45 mb-2">
-        Markers for your edit
-      </div>
-      <div className="flex gap-2 flex-wrap">
+    <div data-testid="studio-markers" className="bj-rv-studio">
+      <span className="bj-mono">Markers for your edit</span>
+      <div className="bj-rv-exports">
         {markerExportHref &&
           (
             [
@@ -905,18 +945,13 @@ function StudioFooter({
               ["Copy (text)", "txt"],
             ] as const
           ).map(([label, fmt]) => (
-            <a
-              key={fmt}
-              href={`${markerExportHref}?format=${fmt}`}
-              className="text-[10.5px] font-mono uppercase tracking-[.06em] border border-white/25 hover:border-white px-2.5 py-1.5"
-            >
+            <a key={fmt} href={`${markerExportHref}?format=${fmt}`} className="bj-ghost">
               {label}
             </a>
           ))}
       </div>
-      <p className="mt-2.5 text-[11.5px] leading-relaxed text-white/45">
-        Next you&apos;ll answer each note. Every reviewer gets cut {version + 1} and your answers in
-        one email.
+      <p className="bj-rv-small">
+        Next you&apos;ll answer each note. Every reviewer gets cut {version + 1} and your answers in one email.
       </p>
     </div>
   );

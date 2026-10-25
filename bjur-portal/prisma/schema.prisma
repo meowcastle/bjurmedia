@@ -9,26 +9,46 @@ generator client {
 
 // ── Orgs & users ───────────────────────────────────────────
 model Client {
-  id             String       @id @default(cuid())
-  name           String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
-  username       String       @unique // login handle for the org
-  status         ClientStatus @default(ACTIVE)
-  accentColor    String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
-  logoUrl        String? // brand logo, admin-set — null = initials fallback
+  id                   String       @id @default(cuid())
+  name                 String // "SSH", "57.NYC", "SUYINSAMA", "Halcyon Films"
+  username             String       @unique // login handle for the org
+  status               ClientStatus @default(ACTIVE)
+  accentColor          String? // hex, e.g. "#ec3013" — overrides the default brand red in this client's portal. Null = default.
+  logoUrl              String? // brand logo — null = initials fallback. Set by src/lib/logos (served from /api/logos/:id)
+  /**
+   * Automatic logos (v13 handoff §4). The worker's [logos] job looks for a logo on the
+   * client's website (websiteDomain, else the first non-webmail login's email domain),
+   * then their Instagram and YouTube handles, then Brandfetch, and saves the first good
+   * one to the media volume. A logo staff upload by hand is locked: the job leaves it.
+   */
+  websiteDomain        String? // "hitmeupnyc.com" — tried before any login's email domain
+  instagramHandle      String? // "57.nyc", no @ — Business Discovery only sees business/creator accounts
+  youtubeHandle        String? // "@thesshnyc"
+  logoSource           String? // "domain:hitmeupnyc.com", "instagram:@57.nyc", "youtube:@x", "brandfetch", "upload", "seed"
+  logoFetchedAt        DateTime? // when the current logo was saved
+  logoCheckedAt        DateTime? // the job's last attempt, found or not — drives the monthly recheck
+  logoCheckRequestedAt DateTime? // set on create/edit/"Refresh logo"; the worker picks it up on its next tick
+  logoLocked           Boolean      @default(false) // hand-uploaded: the job never overwrites it
+  /**
+   * The most saturated mid-tone colour in the logo, or ash. The 3px accent on admin rows
+   * and the ground behind initials — never buttons, which is why this is not accentColor
+   * (that one re-themes the client's whole portal, actions included).
+   */
+  logoColor            String?
   // approval policy. Required by default: publishing to a client's own channels
   // without their sign-off is the failure nobody forgives.
   // Draft captions from the audio. Off by default: this sends the client's audio to a
   // third party, which is a decision to make per client rather than a default.
-  autoCaption    Boolean      @default(false)
+  autoCaption          Boolean      @default(false)
   /**
    * This client's house style, in their own words — structure, tone, sign-off, hashtag
    * habits. Fed to the drafter as instructions. Without it the model writes generic
    * social copy that reads like nobody in particular.
    */
-  captionStyle   String?
-  createdAt      DateTime     @default(now())
-  users          User[]
-  projects       Project[]
+  captionStyle         String?
+  createdAt            DateTime     @default(now())
+  users                User[]
+  projects             Project[]
   /**
    * Whether this client's seats can upload footage from the portal.
    * Off unless switched on, per client. Moving intake to the client accidentally handed
@@ -37,7 +57,7 @@ model Client {
    * Independent of send links: revoking this does not close a link somebody already has,
    * and having no link does not stop a seat the studio has trusted.
    */
-  footageUploads Boolean      @default(false)
+  footageUploads       Boolean      @default(false)
 
   // Intake hangs here now, not off a project: footage arrives for a client, and what it
   // is eventually cut into is a separate question the sender never has to answer.

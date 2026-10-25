@@ -1,0 +1,168 @@
+/* v13 admin screens (design/v13). Imported from globals.css. */
+
+/* The page: the header's 40px gutter, 16px on a phone, with no width cap so sections
+   line up under the header's seal and toggle as on the boards. */
+.bj-adm { padding: 0 40px 24px; min-width: 0; }
+.bj-adm-empty { margin: 0; padding: 4px 0; font-size: 14px; color: var(--muted); }
+
+/* Title row: a mono line over the headline, actions bottom right. */
+.bj-adm-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 40px; align-items: end; padding: 56px 0 32px; }
+.bj-adm-top .bj-big, .bj-adm-top .bj-mid { margin-top: 14px; }
+.bj-adm-top .acts { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.bj-adm-top .bj-back { display: inline-block; margin-bottom: 14px; }
+
+/* Four numbers under an ink rule. */
+.bj-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--text); margin-bottom: 8px; }
+.bj-stats > div { padding: 18px 20px 22px 0; min-width: 0; }
+.bj-stats > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+.bj-stats b { display: flex; align-items: baseline; gap: 12px; font-size: 40px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.bj-stats b.red { color: var(--accent); }
+.bj-stats b.ok { color: var(--success); }
+.bj-stats b.off { color: var(--muted); }
+.bj-stats > div > .bj-mono { display: block; margin-top: 8px; }
+.bj-stats-fail { font: 400 11px var(--font-plex-mono), ui-monospace, monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); border-bottom: 1px solid currentColor; }
+
+/* Needs you: title with a red dot, a mono sub-line, the action on the right. */
+.bj-att { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.bj-att:first-child { padding-top: 0; }
+.bj-att > div { min-width: 0; }
+.bj-att b { font-weight: 600; font-size: 16px; line-height: 1.3; }
+.bj-att b .bj-dot { margin: 0 0 0 2px; }
+.bj-att > div > span { display: block; margin-top: 4px; }
+.bj-att-note { font-size: 14px; line-height: 1.5; color: var(--body); }
+.bj-cl { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* Activity: the feed left, System right. */
+.bj-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 48px; }
+.bj-feed { list-style: none; margin: 0; padding: 0; }
+.bj-feed li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.4; color: var(--body); }
+.bj-feed li:first-child { padding-top: 0; }
+.bj-feed li > span:first-child { overflow-wrap: anywhere; }
+.bj-feed li b { color: var(--text); font-weight: 500; }
+.bj-sys { display: grid; gap: 10px; margin-top: 10px; font-size: 14px; }
+.bj-sys > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.bj-sys > div > :last-child { text-align: right; min-width: 0; }
+.bj-sys-err { color: var(--accent); }
+
+/* Recent projects: the title links too, for keyboards and middle-clicks. */
+.bj-tbl .t a { color: inherit; }
+.bj-tbl .t a:hover b { color: var(--accent); }
+
+/* Clients: All / Active / Off. Mono, 2px corners; the current one inks. */
+.bj-filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.bj-filters button {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 2px !important;
+  cursor: pointer;
+  transition: color var(--dur-1), border-color var(--dur-1);
+}
+.bj-filters button:hover { color: var(--text); }
+.bj-filters button.on { border-color: var(--text); color: var(--text); }
+
+/* A client row: logo or initials, the name over its handle, and its colour as a 3px
+   inset on the first cell. The colour is for this accent only, never a button. */
+.bj-cname { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.bj-cname > div { min-width: 0; }
+.bj-cname b { display: block; font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bj-cname a { color: inherit; }
+.bj-cname a:hover b { color: var(--accent); }
+.bj-cname .bj-mono { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; }
+.bj-tbl tr.bj-acc td:first-child { box-shadow: inset 3px 0 0 var(--acc, var(--line)); padding-left: 16px; }
+.bj-tbl tr.off td { opacity: 0.45; }
+.bj-tbl tr.off td.menu { opacity: 1; }
+.bj-tbl td.menu { width: 1%; padding-left: 12px; }
+.bj-src { display: inline-flex; align-items: center; gap: 8px; }
+.bj-src i { width: 10px; height: 10px; border-radius: 2px !important; display: block; flex: none; }
+.bj-status-on { color: var(--success); }
+
+/* Generic admin sections (pipeline, inbox, reports, integrations, team, library, media,
+   client and project detail): the old bordered cards keep their markup and read as
+   label-grid panels: a 1px ink rule on top, no box, a mono header. */
+.bj-panel { border-top: 1px solid var(--text); padding: 20px 0 32px; }
+.bj-panel > .bj-mono:first-child, .bj-panel-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.bj-h2 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+
+@media (max-width: 1000px) {
+  .bj-two { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .bj-stats { grid-template-columns: 1fr 1fr; }
+  .bj-stats > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .bj-stats > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .bj-adm-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .bj-adm { padding: 0 16px 20px; }
+  .bj-adm-top { padding: 32px 0 24px; }
+  .bj-stats b { font-size: 32px; }
+  .bj-att { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bj-att > .bj-cta { justify-self: start; }
+  .bj-tbl tr.bj-acc td:first-child { padding-left: 12px; }
+  .bj-cname { gap: 10px; }
+}
+
+/* 30px tap targets on a phone (e2e/mobile-layout): text links and chips grow to the
+   height a finger needs without changing how they read. */
+.bj-adm .bj-link { display: inline-block; line-height: 28px; padding-bottom: 1px; }
+.bj-stats-fail, .bj-sys-err { display: inline-flex; align-items: center; min-height: 30px; }
+.bj-filters button { min-height: 30px; }
+.bj-tbl .t a, .bj-cname a { display: inline-flex; align-items: center; min-height: 30px; max-width: 100%; }
+/* The clients table takes the width it has: the name column absorbs the rest and truncates. */
+.bj-ctbl td:first-child { width: 100%; max-width: 0; }
+.bj-ctbl th:not(:first-child), .bj-ctbl td:not(:first-child) { white-space: nowrap; }
+@media (max-width: 420px) {
+  /* At phone width the green dot carries "Active" alone, so the name keeps its room. */
+  .bj-ctbl .bj-status-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .bj-ctbl .bj-dot { margin-right: 0; }
+}
+
+/* Pipeline: stage columns under a rule, deals as outlined cards (3px corners). */
+.bj-stage { border-top: 1px solid var(--line); }
+.bj-stage.over { border-top-color: var(--accent); }
+.bj-deal { background: var(--s1); box-shadow: inset 0 0 0 1px var(--line); border-radius: 3px !important; }
+.bj-deal:hover { box-shadow: inset 0 0 0 1px var(--text); }
+.bj-deal select { min-height: 30px; }
+
+/* A plain admin input: a 1px rule that inks on focus, 3px corners. */
+.bj-in {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 3px !important;
+  font: 400 14px var(--font-archivo), system-ui, sans-serif;
+  padding: 9px 12px;
+  min-height: 40px;
+  outline: none;
+  transition: border-color var(--dur-1);
+}
+.bj-in:focus { border-color: var(--text); }
+.bj-in::placeholder { color: var(--muted); }
+
+/* An outlined panel, as the boards' receipts: 1px rule, 3px corners, no fill or shadow. */
+.bj-card { box-shadow: inset 0 0 0 1px var(--line); border-radius: 3px !important; background: none; }
+
+/* Library: the archive tree beside the register panel; stacked on a phone. */
+.bj-lib { grid-template-columns: minmax(0, 1fr) 340px; }
+@media (max-width: 1000px) { .bj-lib { grid-template-columns: minmax(0, 1fr); } .bj-lib .sticky { position: static; } }
+.bj-filters button.red { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); }
+.bj-filters button.red.on { border-color: var(--accent); }
+
+/* A smaller secondary button for row actions: still 32px tall for a finger. */
+.bj-ghost.bj-sm { font-size: 13px; padding: 7px 11px; min-height: 32px; }
+
+/* Project details: four facts in a row, rule-separated, with mono labels. */
+.bj-facts > div { padding: 4px 20px 16px 0; min-width: 0; border-bottom: 1px solid var(--line); }
+.bj-facts > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+@media (max-width: 767px) {
+  .bj-facts > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .bj-facts > div:nth-child(n + 3) { padding-top: 14px; }
+}
+/* Project file tiles: a still with the name and a mono state under it. */
+.bj-tile { background: none; }
+.bj-tile > span:first-child { background: var(--s2); }
+.bj-tile:hover > span:last-child > span:first-child { color: var(--accent); }

@@ -12,35 +12,35 @@ test("the email field is labelled Email and the URL chip is gone", async ({ page
 });
 
 /**
- * The page is the logo, "Sign in", two fields, a button and Forgot?. The headline, blurb,
- * NAS credit, "Secure connection" and the admin link told a client nothing they needed.
+ * PortalLogin13: the stamped seal, "Client portal", the headline, one line, the form and
+ * the note about logins. NAS credits, "Secure connection" and the admin link stay gone.
  */
-test("the login page is only what signing in needs", async ({ page }) => {
+test("the login page is the v13 column", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
-  for (const gone of ["Secure connection", "Your work,", "Synology", "Welcome back", "Admin sign in"]) {
+  await expect(page.getByRole("heading", { name: /Your work,\s*ready when you are\./ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Sign in/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ask us" })).toHaveAttribute("href", "mailto:hi@bjur.nyc");
+  for (const gone of ["Secure connection", "Synology", "Welcome back", "Admin sign in", "Bjur Media"]) {
     await expect(page.getByText(gone)).toHaveCount(0);
   }
 });
 
-test("Show reveals the password and Hide puts it back", async ({ page }) => {
-  await page.goto("/login");
-  const password = page.getByLabel("Password");
-  await password.fill("hunter2");
-
-  await expect(password).toHaveAttribute("type", "password");
-  await page.getByRole("button", { name: "Show" }).click();
-  await expect(password).toHaveAttribute("type", "text");
-  await page.getByRole("button", { name: "Hide" }).click();
-  await expect(password).toHaveAttribute("type", "password");
-});
-
-test("Forgot? tells the client the studio has been notified", async ({ page }) => {
+test("Forgot password tells the client the studio has been notified", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Email").fill("sasha@ssh.studio");
-  await page.getByRole("button", { name: "Forgot?" }).click();
-  await expect(page.getByText(/told Bjur Media you need a reset/)).toBeVisible();
+  await page.getByRole("button", { name: "Forgot password" }).click();
+  await expect(page.getByText(/let the studio know you need a reset/)).toBeVisible();
+});
+
+test("the moved notice shows only for visits through the old address", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByText(/moved from portal\.justinbjur\.com/)).toHaveCount(0);
+  await page.goto("/login?from=jb");
+  await expect(page.getByText("We've moved from portal.justinbjur.com. Same login.")).toBeVisible();
+  // An old project link lands on sign in with the flag kept.
+  await page.goto("/p/anything?from=jb");
+  await expect(page).toHaveURL(/\/login\?from=jb$/);
+  await expect(page.getByText(/moved from portal\.justinbjur\.com/)).toBeVisible();
 });
 
 /**

@@ -57,8 +57,8 @@ export function AdminSearchBox() {
   const isOpen = open && query.trim().length > 0;
 
   return (
-    <div ref={boxRef} className="relative w-[150px] md:w-[220px] lg:w-[300px]">
-      <div className="flex items-center gap-2 bg-bg border border-line2 focus-within:border-accent px-3 py-2.5 md:py-2">
+    <div ref={boxRef} className="relative w-[220px] lg:w-[260px]">
+      <div className="flex items-center gap-2 bg-transparent border border-line focus-within:border-text px-2.5 py-[7px] [border-radius:2px!important]">
         <IconSearch className="text-dim text-sm" />
         <input
           ref={inputRef}

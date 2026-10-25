@@ -89,6 +89,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         accentColor: client.accentColor,
         hasSlackChannel: channel !== null,
         logoUrl: client.logoUrl,
+        logoColor: client.logoColor,
         // The one quiet line under the header, assembled here so the page can stay a
         // list: what is switched on for this client, and where to go to change it.
         slackChannel: channel?.channel ?? null,

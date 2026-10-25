@@ -473,7 +473,7 @@ export function CaptionEditor({
             <div className="flex items-center justify-between border border-line2 px-3.5 py-3 text-[10.5px] uppercase tracking-[.1em]">
               <span>Checked</span>
               <span className="text-dim">
-                {meta.captionEditedBy === "ADMIN" ? "Bjur Media" : "You"}
+                {meta.captionEditedBy === "ADMIN" ? "Bjur" : "You"}
                 {meta.captionEditedAt ? ` · ${shortDate(meta.captionEditedAt)}` : ""}
               </span>
             </div>

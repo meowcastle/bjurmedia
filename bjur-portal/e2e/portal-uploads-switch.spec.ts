@@ -50,7 +50,7 @@ test.describe("switched on", () => {
   test("the tab names the client and the page works", async ({ page }) => {
     setSwitch(true);
     await page.goto("/");
-    await expect(page.getByTestId("nav-send")).toContainText("Upload footage");
+    await expect(page.getByTestId("nav-send")).toContainText("send footage");
     await page.goto("/send");
     // Whose footage, not just "send us" — the portal serves several clients.
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Upload footage for");

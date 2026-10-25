@@ -77,42 +77,32 @@ export function StudioReviewClient({
       />
 
       {error && (
-        <div
-          data-testid="studio-error"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] bg-white text-black text-[12.5px] px-4 py-2.5 max-w-[90vw]"
-        >
+        <div data-testid="studio-error" className="bj-rv-toast" role="status">
           {error}
         </div>
       )}
 
       {confirming && cut && (
-        <div className="fixed inset-0 z-[70] bg-black/80 grid place-items-center px-5" data-testid="release-preview">
-          <div className="bg-[#0f0f10] border border-white/15 max-w-[520px] w-full p-6 text-white">
-            <div className="text-[10.5px] font-mono uppercase tracking-[.1em] text-white/45">
-              Cut {cut.version} email
-            </div>
-            <div className="bj-serif text-[24px] mt-1.5">Send to every reviewer?</div>
-            <p className="text-[13px] leading-relaxed text-white/60 mt-3">
+        <div className="fixed inset-0 z-[70] bg-black/70 grid place-items-center px-4" data-testid="release-preview">
+          <div className="bj-rv-dialog" role="dialog" aria-modal="true" aria-labelledby="release-title">
+            <span className="bj-mono">Cut {cut.version} email</span>
+            <h2 id="release-title">Send to every reviewer?</h2>
+            <p>
               They each get their own link and the full list of {reviewerCount} note
               {reviewerCount === 1 ? "" : "s"} from cut {cut.version - 1} with what you did about
               each. This is the only time those answers travel, and it cannot be recalled.
             </p>
-            <div className="flex gap-2 mt-5">
+            <div className="row">
               <button
                 type="button"
                 onClick={() => void release()}
                 disabled={sending}
                 data-testid="confirm-release"
-                className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-50"
-                style={{ background: "var(--accent)", color: "#0b0b0c" }}
+                className="bj-cta"
               >
-                {sending ? "Sending…" : "Send it"}
+                {sending ? "Sending…" : "Send it"} <i>→</i>
               </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                className="px-4 py-2.5 text-[12px] text-white/60 hover:text-white cursor-pointer"
-              >
+              <button type="button" onClick={() => setConfirming(false)} className="bj-ghost">
                 ← Back to notes
               </button>
             </div>

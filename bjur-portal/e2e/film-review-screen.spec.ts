@@ -27,15 +27,17 @@ test("a seat reviews the latest cut", async ({ page }) => {
 test("a draft is private, and sending is what makes it real", async ({ page }) => {
   await page.goto("/p/p2/review");
 
-  // Sasha's own seeded draft is visible to her, and marked as hers alone.
-  await expect(page.getByTestId("review-screen")).toContainText("Draft · only you");
+  // Sasha's own seeded draft is visible to her, and marked as hers alone (v13 wording:
+  // the column says "Only you see these", the note says "You · not sent").
+  await expect(page.getByTestId("review-screen")).toContainText("Only you see these");
+  await expect(page.getByTestId("review-screen")).toContainText("You · not sent");
 
   await page.getByTestId("composer").fill("Colour on the second verse feels warm");
   await page.getByTestId("add-note").click();
   await expect(page.getByTestId("review-screen")).toContainText("Colour on the second verse");
 
   // The send button counts what is actually unsent.
-  await expect(page.getByTestId("send-notes")).toContainText(/Send \d+ notes?$/);
+  await expect(page.getByTestId("send-notes")).toContainText(/Send \d+ notes? to Bjur/);
 });
 
 test("focusing the composer pauses and locks the timestamp", async ({ page }) => {

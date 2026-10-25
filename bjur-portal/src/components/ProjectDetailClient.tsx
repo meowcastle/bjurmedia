@@ -18,7 +18,7 @@ import type { ReelCopy, CopyPatch } from "@/components/CaptionEditor";
 import { captionState, type CaptionState } from "@/lib/captionState";
 import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { fileStamp, formatViews, formatBytes } from "@/lib/format";
-import { IconPlay, IconHeart } from "@/components/ui/Icon";
+import { IconHeart } from "@/components/ui/Icon";
 import { PhoneSaveButtons, phoneSaveAvailable, usePhoneSave } from "@/components/PhoneSave";
 
 
@@ -48,26 +48,18 @@ const FORMAT_DEFS: [string, string][] = [
   ["Master", "Master"],
 ];
 
-function colsFor(format: string) {
-  if (format === "Reel") return "repeat(auto-fill,minmax(180px,1fr))";
-  if (format === "Still") return "repeat(auto-fill,minmax(270px,1fr))";
-  return "repeat(auto-fill,minmax(340px,1fr))";
+/** Tile width per group: vertical tiles sit narrower than wide ones, as on the board.
+ * A group of nothing but wide files gets wider columns so a 16:9 frame is not a strip. */
+function colsFor(items: { orientation: string }[]) {
+  return items.every((a) => a.orientation !== "portrait")
+    ? "repeat(auto-fill,minmax(300px,1fr))"
+    : "repeat(auto-fill,minmax(220px,1fr))";
 }
 
-/** The browser does the transfer, so the zip lands in Downloads with the browser's own
- * progress as soon as the first byte arrives. It used to be read into a blob in the page
- * first, which kept a multi-gigabyte gallery out of Downloads until the very end, and
- * on a phone or a big project the tab ran out of memory and nothing landed at all. */
-function DownloadButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="cursor-pointer inline-flex items-center gap-2 font-bold text-[13px] text-bg bg-text hover:bg-accent px-5 py-3.5"
-    >
-      {label}
-    </button>
-  );
-}
+/* The zips are handed to the browser (an <a> or a form POST), so the download lands in
+ * Downloads with the browser's own progress as soon as the first byte arrives. It used
+ * to be read into a blob in the page first, which kept a multi-gigabyte gallery out of
+ * Downloads until the very end, and on a phone the tab ran out of memory. */
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
@@ -130,7 +122,7 @@ function bucketByWeek(items: Asset[], folderBase: string): Group[] {
         label,
         count: `${weekItems.length} file${weekItems.length > 1 ? "s" : ""}`,
         folder: `${folderBase}/${label.replace(/\s+/g, "-")}`,
-        cols: "repeat(auto-fill,minmax(190px,1fr))",
+        cols: colsFor(weekItems),
         items: weekItems,
       };
     });
@@ -155,6 +147,8 @@ export function ProjectDetailClient({
     paymentHold: boolean;
     /** Where a posted week went, named in the note on a locked caption. */
     slackChannel: string | null;
+    /** The studio opened footage uploads for this client: the header offers /send. */
+    footageUploads?: boolean;
     folders: { id: string; name: string }[];
   };
   assets: Asset[];
@@ -376,7 +370,7 @@ export function ProjectDetailClient({
               label: "Favorites",
               count: `${items.length} file${items.length > 1 ? "s" : ""}`,
               folder: project.path,
-              cols: "repeat(auto-fill,minmax(220px,1fr))",
+              cols: colsFor(items),
               items,
             },
           ]
@@ -399,7 +393,7 @@ export function ProjectDetailClient({
         label: sec.name == null ? d[1] : byFormat.length > 1 ? `${sec.name} · ${d[1]}` : sec.name,
         count: `${items.length} file${items.length > 1 ? "s" : ""}`,
         folder: `${project.path}/${sec.key ? `${sec.key}/` : ""}${d[0]}`,
-        cols: colsFor(d[0]),
+        cols: colsFor(items),
         items,
       }));
     });
@@ -485,22 +479,25 @@ export function ProjectDetailClient({
 
   function renderGroup(grp: Group) {
     return (
-      <motion.div
+      <motion.section
         layout
         key={grp.folder}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: DUR[2], ease: EASE_OUT }}
-        className="mb-9"
+        className="bj-sx"
+        data-testid="file-group"
       >
-        <div className="flex items-baseline gap-3 border-b border-line pb-2.5 mb-4">
-          <span className="text-[15px] font-extrabold">{grp.label}</span>
-          <span className="text-[11px] text-muted">
-            {grp.summary ?? `${grp.count} · ${formatBytes(bytesOf(grp.items))}`}
+        {/* The folder's name, its count in Archivo under it, then its size. */}
+        <span className="bj-mono bj-lab">
+          <span data-testid="group-name">{grp.label}</span>
+          <b>{grp.items.length}</b>
+          <span className="bj-mono sz" data-testid="group-size">
+            {grp.summary ?? formatBytes(bytesOf(grp.items))}
           </span>
-        </div>
+        </span>
         <div
-          className="grid gap-4 items-start"
+          className={`bj-tiles${selected.size > 0 ? " sel" : ""}`}
           style={{ gridTemplateColumns: grp.cols }}
         >
           {grp.items.map((a, i) => (
@@ -520,70 +517,64 @@ export function ProjectDetailClient({
             />
           ))}
         </div>
-      </motion.div>
+      </motion.section>
     );
   }
 
+  const fileCount = scoped.length;
+
   return (
-    <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-32 max-w-[1500px] mx-auto bjfade">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-text mb-6 py-2.5 -my-2.5"
-      >
+    <div className="bj-cpage bj-project bjfade">
+      <Link href="/" className="bj-back bj-mono">
         ← All projects
       </Link>
 
-      <div className="flex items-end justify-between gap-6 flex-wrap border-b-2 border-line2 pb-6 mb-2">
-        <div>
-          <h1 className="bj-serif text-[28px] sm:text-4xl font-normal mb-3.5">
-            {project.title}
-          </h1>
-          <div className="flex items-center gap-4 text-[13px] text-muted flex-wrap">
-            <span>Delivered {fmtDate(project.deliveredAt)}</span>
+      <section className="bj-phead">
+        <div className="min-w-0">
+          <h1 className="bj-big">{project.title}</h1>
+          <div className="meta">
+            <span className="bj-mono">Delivered {fmtDate(project.deliveredAt)}</span>
+            <span className="bj-mono">
+              {fileCount} file{fileCount === 1 ? "" : "s"} · {formatBytes(totalBytes)}
+            </span>
             {project.expiresAt && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb font-semibold">
-                  Available until {fmtDate(project.expiresAt)}
-                </span>
-              </>
+              <span className="bj-mono ink">Available until {fmtDate(project.expiresAt)}</span>
             )}
-            {/* The one place payment is mentioned. It was this, a sentence under the
-                header and another in the download sheet — three for one fact. */}
+            {totalSocialPosts > 0 && (
+              <span className="bj-mono">
+                {formatViews(totalViews)} views across {totalSocialPosts} post
+                {totalSocialPosts > 1 ? "s" : ""}
+              </span>
+            )}
+            {/* The one place payment is mentioned, with the reason on hover. */}
             {project.paymentHold && (
               <span
                 data-testid="hold-pill"
                 title="Downloads carry a watermark until the invoice is paid."
-                className="text-[10px] font-extrabold uppercase tracking-[.06em] text-accentb border border-accentb px-[7px] py-[3px]"
+                className="bj-pill red"
               >
                 Awaiting payment
               </span>
             )}
-            {totalSocialPosts > 0 && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-dim" />
-                <span className="text-accentb font-semibold">
-                  <IconPlay fill="currentColor" /> {formatViews(totalViews)}{" "}
-                  views across {totalSocialPosts} post
-                  {totalSocialPosts > 1 ? "s" : ""}
-                </span>
-              </>
-            )}
           </div>
         </div>
-        {/* One primary action. Sending footage back is the rarer errand and reads as a
-            text link under it, not a second button competing with Download all. Only on
-            two-way projects, and with no disabled state when off — an affordance that
-            cannot be used is worse than none. */}
-        <div className="flex flex-col items-stretch sm:items-end gap-2.5">
-          {canDownload && (
-            <DownloadButton
-              label={`Download all · ${formatBytes(totalBytes)}`}
-              onClick={downloadAll}
-            />
-          )}
-        </div>
-      </div>
+        {(project.footageUploads || canDownload) && (
+          <div className="acts">
+            {/* Only where the studio has opened footage uploads for this client; off,
+                there is no /send to go to, so no button either. */}
+            {project.footageUploads && (
+              <Link href="/send" className="bj-ghost">
+                ↑ Send footage
+              </Link>
+            )}
+            {canDownload && (
+              <button type="button" onClick={downloadAll} className="bj-cta">
+                ↓ Download all <span className="sz">· {formatBytes(totalBytes)}</span>
+              </button>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* §13. Only for projects that actually have posts — a delivery of stills has
           nothing to approve and should not grow a tab strip saying so. */}
@@ -598,57 +589,38 @@ export function ProjectDetailClient({
       )}
 
       <div hidden={scheduled.length > 0 && postsView !== "files"}>
-        <div className="flex items-center justify-between gap-4 flex-wrap my-6">
-          <div className="flex items-center gap-4 flex-wrap min-w-0 w-full sm:w-auto">
-            <div className="bj-chips flex sm:inline-flex max-w-full border border-line2">
-              {filters.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFilter(f.id)}
-                  data-testid={`filter-${f.id}`}
-                  className={`relative cursor-pointer text-xs font-semibold uppercase tracking-wide px-4 py-2.5 min-h-11 sm:min-h-0 border-l border-line2 first:border-l-0 ${
-                    filter === f.id ? "text-bg" : "text-muted"
-                  }`}
-                >
-                  {filter === f.id && (
-                    <motion.div
-                      layoutId="filterPill"
-                      className="absolute inset-0 bg-text z-0"
-                      transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 40,
-                      }}
-                    />
-                  )}
-                  <span className="relative z-10 inline-flex items-center gap-1.5">
-                    {f.icon}
-                    {f.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="bj-chips bj-chiprow" role="group" aria-label="Show">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              data-testid={`filter-${f.id}`}
+              aria-pressed={filter === f.id}
+              className={`bj-chip${filter === f.id ? " on" : ""}`}
+            >
+              {f.icon}
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {groups.map(renderGroup)}
 
         {filter === "CHECK" && groups.length === 0 && (
-          <div data-testid="captions-all-checked" className="text-[12.5px] text-dim py-[60px] text-center">
+          <div data-testid="captions-all-checked" className="bj-empty bj-mono">
             Nothing left to check. Every caption this week has been read.
           </div>
         )}
 
         {filter === "FAV" && groups.length === 0 && (
-          <div className="border border-line px-6 py-16 text-center mt-0.5">
-            <div className="text-2xl text-dim mb-3 flex justify-center">
-              <IconHeart />
+          <section className="bj-sx">
+            <span className="bj-mono bj-lab">Favorites</span>
+            <div className="bj-empty">
+              <b>No favorites yet</b>
+              <p>Tap the heart on any file to add it here.</p>
             </div>
-            <div className="text-[15px] font-bold mb-1.5">No favorites yet</div>
-            <div className="text-[13px] text-muted">
-              Tap the heart on any still to add it to this collection.
-            </div>
-          </div>
+          </section>
         )}
       </div>
 
@@ -675,49 +647,43 @@ export function ProjectDetailClient({
         />
       )}
 
-      {/* §3 selection bar. Replaces swapping the header button's label, which put the
-          count somewhere the eye is not while selecting, and gave no way to clear or
-          favourite a selection without scrolling back up. */}
+      {/* The selection bar (PortalProject13): an ink bar that slides up on DownloadSheet's
+          curve with the count and size, Clear, and Download. */}
       {canDownload && bar.mounted && (
-        <div
-          className={`fixed inset-x-0 bottom-0 sm:inset-x-10 sm:bottom-6 z-40 ${bar.leaving ? "bj-bar-out" : "bj-bar-in"}`}
-        >
-          <div className="bg-s2 border border-line2 px-4 sm:px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-3 flex items-center gap-3 sm:gap-4 flex-wrap">
-            <span className="text-sm font-extrabold tabular-nums">
-              {selected.size} selected
-            </span>
-            <span className="text-[13px] text-muted tabular-nums">
-              {formatBytes(bytesOf(selectedAssets))}
-            </span>
-            <div className="flex-1" />
+        <div className={`bj-selbar ${bar.leaving ? "is-out" : "is-in"}`} data-testid="selection-bar">
+          <b className="tabular-nums">{selected.size} selected</b>
+          <span className="bj-mono tabular-nums">{formatBytes(bytesOf(selectedAssets))}</span>
+          <span className="sp" />
+          <button type="button" onClick={() => setSelected(new Set())} className="lnk">
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set(visibleIds))}
+            className="lnk"
+            hidden={allVisibleSelected}
+          >
+            Select all
+          </button>
+          {phoneSave ? (
+            <PhoneSaveButtons
+              assets={selectedAssets.map((a) => ({ id: a.id, kind: a.kind, name: a.name }))}
+              onSaveToFiles={downloadSelected}
+            />
+          ) : (
             <button
-              onClick={() => setSelected(new Set())}
-              className="cursor-pointer text-[11px] font-semibold uppercase text-muted hover:text-text"
+              type="button"
+              onClick={downloadSelected}
+              className="bj-cta"
+              // The bar already says how many and how big; the name says it again for
+              // anyone who reaches the button without reading the bar.
+              aria-label={`Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
             >
-              Clear
+              ↓ Download
             </button>
-            <button
-              onClick={() => setSelected(new Set(visibleIds))}
-              className="cursor-pointer text-[11px] font-semibold uppercase text-muted hover:text-text"
-              hidden={allVisibleSelected}
-            >
-              Select all
-            </button>
-            {phoneSave ? (
-              <PhoneSaveButtons
-                assets={selectedAssets.map((a) => ({ id: a.id, kind: a.kind, name: a.name }))}
-                onSaveToFiles={downloadSelected}
-              />
-            ) : (
-              <DownloadButton
-                label={`↓ Download ${selected.size} · ${formatBytes(bytesOf(selectedAssets))}`}
-                onClick={downloadSelected}
-              />
-            )}
-          </div>
+          )}
         </div>
       )}
-
     </div>
   );
 }

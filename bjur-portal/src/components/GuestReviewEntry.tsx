@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
 import { REVIEW_TOKEN_HEADER } from "@/lib/reviewToken";
-import type { ScreenCut, ScreenNote } from "@/components/ReviewScreen";
+import { ReviewShell, type ScreenCut, type ScreenNote } from "@/components/ReviewScreen";
 
 type Loaded =
   | { empty: true; clientName: string; projectTitle: string; viewerName: string }
@@ -57,49 +57,47 @@ export function GuestReviewEntry({
 
   if (needsName) {
     return (
-      <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
-        <div className="w-full max-w-[360px]">
-          <div className="bj-serif text-[26px]">Bjur Media</div>
-          <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-1.5">
+      <ReviewShell mode="client" clientName={data.clientName}>
+        <section className="bj-rv-solo">
+          <span className="bj-mono">
             {data.clientName} · {data.projectTitle}
-          </div>
-          <label htmlFor="guest-name" className="block mt-6 text-[10px] uppercase tracking-[.1em] text-white/45">
-            Your name
+          </span>
+          <h1 className="bj-mid">{data.projectTitle}</h1>
+          <label className="fld" htmlFor="guest-name">
+            <span className="bj-mono">Your name</span>
+            <input
+              id="guest-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void save()}
+              autoFocus
+              autoComplete="name"
+              data-testid="guest-name"
+            />
           </label>
-          <input
-            id="guest-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void save()}
-            autoFocus
-            data-testid="guest-name"
-            className="mt-2 w-full bg-transparent border border-white/25 focus:border-white outline-none px-3 py-2.5 text-[14px]"
-          />
           <button
             type="button"
             onClick={() => void save()}
             disabled={!name.trim() || saving}
             data-testid="guest-continue"
-            className="mt-3 w-full py-2.5 text-[12px] font-semibold uppercase tracking-[.08em] cursor-pointer disabled:opacity-40"
-            style={{ background: "var(--accent)", color: "#0b0b0c" }}
+            className="bj-cta"
           >
-            Watch the cut
+            Watch the cut <i>→</i>
           </button>
-        </div>
-      </div>
+        </section>
+      </ReviewShell>
     );
   }
 
   if (data.empty) {
     return (
-      <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
-        <div className="max-w-sm text-center">
-          <div className="bj-serif text-[26px]">{data.projectTitle}</div>
-          <p className="text-[13px] leading-relaxed text-white/60 mt-4">
-            No cut yet. You&apos;ll get an email when there is one.
-          </p>
-        </div>
-      </div>
+      <ReviewShell mode="client" clientName={data.clientName}>
+        <section className="bj-rv-solo">
+          <span className="bj-mono">{data.clientName}</span>
+          <h1 className="bj-mid">{data.projectTitle}</h1>
+          <p className="bj-lead">No cut yet. You&apos;ll get an email when there is one.</p>
+        </section>
+      </ReviewShell>
     );
   }
 

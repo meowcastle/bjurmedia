@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendDeliveryEmail } from "@/lib/mailer";
 
 /**
@@ -76,7 +77,7 @@ async function sendForProject(project: {
   expiresAt: Date | null;
   deliveryPendingSince: Date | null;
   deliveryPendingAt: Date | null;
-  client: { name: string };
+  client: { name: string; logoUrl: string | null };
 }) {
   const since = project.deliveryPendingSince ?? project.deliveryPendingAt!;
 
@@ -115,7 +116,7 @@ async function sendForProject(project: {
   const isUpdate = assets.every((a) => a.createdAt < since);
 
   const recipients = await recipientsFor(project);
-  const portalUrl = process.env.PORTAL_URL ?? "https://portal.bjur.media";
+  const portalUrl = process.env.PORTAL_URL ?? "https://portal.bjur.nyc";
   const projectUrl = `${portalUrl.replace(/\/$/, "")}/p/${project.id}`;
 
   if (recipients.length === 0) {
@@ -151,6 +152,7 @@ async function sendForProject(project: {
     try {
       await sendDeliveryEmail(r.email, {
         clientName: project.client.name,
+        logoUrl: emailLogoUrl(project.client.logoUrl),
         recipientName: r.name,
         projectTitle: project.title,
         projectUrl,
@@ -200,7 +202,7 @@ export async function flushPendingDeliveries() {
       status: "LIVE",
       deliveryPendingAt: { not: null, lte: cutoff },
     },
-    include: { client: { select: { name: true } } },
+    include: { client: { select: { name: true, logoUrl: true } } },
   });
 
   for (const project of due) {

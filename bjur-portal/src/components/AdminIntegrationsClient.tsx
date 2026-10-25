@@ -108,48 +108,52 @@ export function AdminIntegrationsClient({
   }
 
   return (
-    <div className="px-6 md:px-10 py-11 max-w-[1100px] mx-auto bjfade">
-      <div className="flex justify-between items-end gap-6 flex-wrap pb-7 border-b border-line2 mb-9">
-        <h1 className="bj-serif text-[36px] sm:text-[48px] font-light leading-none tracking-tight">
-          Integrations
-        </h1>
-        <div className="text-[11px] text-dim flex gap-2 items-center">
-          <span className={`w-1.5 h-1.5 ${config.connected ? "bg-success" : "bg-line2"}`} />
-          {config.connected
-            ? `${config.workspace ?? "Slack"} · connected`
-            : "Slack not connected"}
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div>
+          <span className="bj-mono">
+            <span className={`bj-dot${config.connected ? " ok" : ""}`} />
+            {config.connected
+              ? `${config.workspace ?? "Slack"} · connected`
+              : "Slack not connected"}
+          </span>
+          <h1 className="bj-big">Integrations.</h1>
         </div>
-      </div>
-
+      </section>
 
       {!config.connected && (
-        <div className="shadow-1 border border-line bg-s1 p-5 mb-9 flex items-end gap-4 flex-wrap">
-          <div className="flex-1 min-w-[280px]">
-            <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-2">
-              Connect Slack
-            </div>
+        <section className="bj-sx">
+          <span className="bj-mono bj-lab">Connect Slack</span>
+          <div className="flex items-end gap-3 flex-wrap max-w-[720px]">
             <input
               value={webhookDraft}
               onChange={(e) => setWebhookDraft(e.target.value)}
               placeholder="https://hooks.slack.com/services/…"
               aria-label="Slack webhook URL"
-              className="w-full bg-bg border border-line2 text-[13px] font-mono px-3.5 py-2.5 outline-none focus:border-accent"
+              className="bj-in flex-1 min-w-[240px] font-mono"
             />
+            <button
+              type="button"
+              onClick={connect}
+              disabled={connecting || !webhookDraft.trim()}
+              className="bj-cta"
+            >
+              {connecting ? "Connecting…" : "Connect"}
+            </button>
           </div>
-          <button
-            onClick={connect}
-            disabled={connecting || !webhookDraft.trim()}
-            className="cursor-pointer font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-4 py-2.5 disabled:opacity-50"
-          >
-            {connecting ? "Connecting…" : "Connect"}
-          </button>
-        </div>
+        </section>
       )}
+
+      <section className="bj-sx">
+        <span className="bj-mono bj-lab">
+          Clients<b>{rows.length}</b>
+        </span>
+        <div className="min-w-0">
 
       {/* The column headings only exist where there are columns. Under 768px each client
           becomes a stacked block instead — a five-column table on a phone is a horizontal
           scrollbar with a table hidden inside it. */}
-      <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_170px_180px_120px_auto] gap-4 text-[10px] tracking-[0.1em] uppercase text-dim pb-2.5 border-b border-line2">
+      <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_170px_180px_120px_auto] gap-4 bj-mono pb-2.5 border-b border-line">
         <span>Client</span>
         <span>Slack</span>
         <span>Accounts</span>
@@ -166,10 +170,10 @@ export function AdminIntegrationsClient({
           data-testid={`integration-row-${r.id}`}
           className="grid gap-3 md:gap-4 md:items-center md:grid-cols-[minmax(0,1fr)_170px_180px_120px_auto] py-4 border-b border-line"
         >
-          <span className="flex gap-3 items-center text-sm">
+          <span className="flex gap-3 items-center text-[15px] font-semibold">
             <span
-              className="w-2 h-2 flex-none"
-              style={{ background: r.accentColor ?? "var(--accent)" }}
+              className="w-2.5 h-2.5 flex-none [border-radius:2px!important]"
+              style={{ background: r.accentColor ?? "var(--muted)" }}
             />
             {r.name}
           </span>
@@ -179,19 +183,19 @@ export function AdminIntegrationsClient({
               defaultValue={r.channel}
               onBlur={(e) => saveChannel(r.id, e.target.value)}
               aria-label={`Slack channel for ${r.name}`}
-              className="w-full bg-s1 border border-line text-[11.5px] font-mono px-2.5 py-[7px] outline-none focus:border-text"
+              className="bj-in w-full font-mono !text-[12px]"
             />
           ) : (
             <button
               onClick={() => saveChannel(r.id, `#${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}-content`)}
               data-testid={`add-channel-${r.id}`}
-              className="cursor-pointer text-[10.5px] tracking-[.06em] uppercase text-dim border border-dashed border-line2 hover:text-text hover:border-text px-2.5 py-[7px]"
+              className="bj-ghost justify-self-start"
             >
               + Channel
             </button>
           )}
 
-          <span className={`text-[11px] ${r.accounts ? "text-body" : "text-dim"}`}>
+          <span className={`bj-mono ${r.accounts ? "ink" : ""}`} style={{ textTransform: "none" }}>
             {r.accounts || "Not connected"}
           </span>
 
@@ -200,8 +204,8 @@ export function AdminIntegrationsClient({
             aria-pressed={r.autoCaption}
             aria-label={`AI captions for ${r.name}`}
             data-testid={`captions-${r.id}`}
-            className={`cursor-pointer inline-flex gap-2.5 items-center text-[10px] tracking-[.06em] uppercase justify-self-start min-h-[32px] py-2 ${
-              r.autoCaption ? "text-muted" : "text-dim2"
+            className={`cursor-pointer inline-flex gap-2.5 items-center bj-mono justify-self-start min-h-[32px] py-2 ${
+              r.autoCaption ? "ink" : ""
             }`}
           >
             <Knob on={r.autoCaption} />
@@ -210,39 +214,43 @@ export function AdminIntegrationsClient({
 
           <Link
             href={`/admin/clients/${r.id}`}
-            className="inline-flex items-center min-h-[32px] py-2 text-[10.5px] tracking-[.06em] uppercase text-dim hover:text-text justify-self-start md:justify-self-auto"
+            className="bj-link justify-self-start md:justify-self-auto"
           >
             Open →
           </Link>
         </div>
       ))}
+        </div>
+      </section>
 
       {config.connected && (
-        <div className="mt-10 grid md:grid-cols-2 gap-px bg-line2 border border-line2">
-          <div className="bg-s1 px-6 py-[22px]">
-            <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3">
+        <section className="bj-sx">
+          <span className="bj-mono bj-lab">Slack</span>
+        <div className="grid md:grid-cols-2 gap-10">
+          <div>
+            <div className="bj-mono mb-3">
               Default channel
             </div>
             <input
               defaultValue={config.defaultChannel}
               onBlur={(e) => patch({ defaultChannel: e.target.value })}
               aria-label="Default channel"
-              className="w-full bg-bg border border-line2 text-sm font-mono px-3.5 py-2.5 outline-none focus:border-accent"
+              className="bj-in w-full font-mono"
             />
-            <div className="text-xs text-dim mt-2.5 leading-relaxed">
+            <div className="text-[14px] text-muted mt-2.5 leading-relaxed">
               Used for any client with no channel of their own.
             </div>
             <button
               onClick={sendTest}
-              className="cursor-pointer mt-3.5 text-[10.5px] tracking-[.06em] uppercase font-semibold border border-line2 hover:border-text px-3 py-2"
+              className="bj-ghost mt-3.5"
             >
               Send test
             </button>
             {testMsg && <div className="text-xs text-muted mt-2.5">{testMsg}</div>}
           </div>
 
-          <div className="bg-s1 px-6 py-[22px]">
-            <div className="text-[11px] tracking-[0.1em] uppercase text-dim mb-3">
+          <div>
+            <div className="bj-mono mb-3">
               Post to Slack when
             </div>
             {(
@@ -258,12 +266,13 @@ export function AdminIntegrationsClient({
                 aria-pressed={config[key]}
                 className="cursor-pointer w-full flex items-center justify-between gap-4 py-2.5 border-t border-line text-left"
               >
-                <span className="text-xs text-body">{label}</span>
+                <span className="text-[14px] text-body">{label}</span>
                 <Knob on={config[key]} />
               </button>
             ))}
           </div>
         </div>
+        </section>
       )}
     </div>
   );

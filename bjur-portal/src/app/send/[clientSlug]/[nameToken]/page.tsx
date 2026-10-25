@@ -33,7 +33,7 @@ export default async function SendPage({
   // shell with a sentence — the person holding it was given it by someone, and a bare
   // 404 tells them they did something wrong when they did not.
   if (!request) {
-    return <SendPageClient state="missing" clientName="Bjur Media" token="" />;
+    return <SendPageClient state="missing" clientName="Bjur" token="" />;
   }
 
   const state = stateOf(request);

@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { loadStudioReviewScreen } from "@/lib/reviewScreenData";
+import Link from "next/link";
 import { StudioReviewClient } from "@/components/StudioReviewClient";
+import { ReviewShell } from "@/components/ReviewScreen";
+import { themeScript } from "@/lib/theme";
 
 /**
  * Studio mode. Outside the admin (app) group on purpose: the review screen takes the whole
@@ -17,22 +20,28 @@ export default async function StudioReviewPage({ params }: { params: Promise<{ i
 
   if (data.empty) {
     return (
-      <div className="fixed inset-0 bg-black text-white grid place-items-center px-6">
-        <div className="max-w-sm text-center">
-          <div className="bj-serif text-[26px]">{data.projectTitle}</div>
-          <div className="text-[11px] font-mono uppercase tracking-[.1em] text-white/45 mt-2">
-            {data.clientName}
-          </div>
-          <p className="text-[13px] leading-relaxed text-white/60 mt-5">
-            No cuts yet. The first export you drop in the inbox becomes cut 1.
-          </p>
-          <a href={`/admin/projects/${id}`} className="inline-block mt-5 text-[12px] underline text-white/60 hover:text-white">
-            ← Back to the project
-          </a>
-        </div>
-      </div>
+      <>
+        <script dangerouslySetInnerHTML={{ __html: themeScript("admin") }} />
+        <ReviewShell mode="studio" clientName={data.clientName} brandHref="/admin">
+          <section className="bj-rv-solo">
+            <Link href={`/admin/projects/${id}`} className="bj-mono" data-testid="review-back">
+              ← Back to the project
+            </Link>
+            <h1 className="bj-mid">
+              {data.clientName} · {data.projectTitle}
+            </h1>
+            <p className="bj-lead">No cuts yet. The first export you drop in the inbox becomes cut 1.</p>
+          </section>
+        </ReviewShell>
+      </>
     );
   }
 
-  return <StudioReviewClient mode="studio" backHref={`/admin/projects/${id}`} {...data} />;
+  return (
+    <>
+      {/* Outside the admin (app) layout, so the theme is stamped here. */}
+      <script dangerouslySetInnerHTML={{ __html: themeScript("admin") }} />
+      <StudioReviewClient mode="studio" backHref={`/admin/projects/${id}`} {...data} />
+    </>
+  );
 }

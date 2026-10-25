@@ -31,7 +31,8 @@ test("folders render as their own sections after unfiled files", async ({ browse
     expect(moved.ok()).toBeTruthy();
 
     await page.reload();
-    const headings = page.locator("span.font-extrabold.text-\\[15px\\]");
+    // v13: each group is a label-grid section, its name in the mono label.
+    const headings = page.getByTestId("group-name");
     await expect(headings.filter({ hasText: name })).toHaveCount(1);
     // The unfiled reels keep the plain heading and come first; the dropdown is gone.
     const labels = await headings.allTextContents();
@@ -39,7 +40,7 @@ test("folders render as their own sections after unfiled files", async ({ browse
     await expect(page.getByRole("combobox")).toHaveCount(0);
 
     // The folder's section holds that reel, and the Reels section no longer does.
-    const section = page.locator("div.mb-9", { has: page.getByText(name, { exact: true }) });
+    const section = page.getByTestId("file-group").filter({ has: page.getByText(name, { exact: true }) });
     await expect(section.getByText("SSH_Reel_BTS")).toHaveCount(1);
   } finally {
     await api.delete(`/api/admin/folders/${folder.id}`);

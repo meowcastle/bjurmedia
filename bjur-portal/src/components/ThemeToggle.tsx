@@ -50,9 +50,10 @@ export function ThemeToggle({ portal }: { portal: Portal }) {
       onClick={toggle}
       data-testid="theme-toggle"
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      className="cursor-pointer text-[10.5px] uppercase tracking-[.1em] font-bold text-muted hover:text-text px-2.5 py-2"
+      className="bj-tg"
     >
-      {theme === "dark" ? "\u263c Light" : "\u263e Dark"}
+      {/* Names the theme it switches to, as the bjur.nyc toggle does. */}
+      {theme === "dark" ? "light" : "dark"}
     </button>
   );
 }

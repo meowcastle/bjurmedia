@@ -1,0 +1,299 @@
+/* v13 client screens (design/v13). Imported from globals.css.
+ *
+ * Client home (PortalProjects13) and a project's files (PortalProject13). The shared
+ * parts (.bj-sx, .bj-cta, .bj-pill, .bj-tbl ...) live at the end of globals.css; this is
+ * only what those two boards add. Radius needs !important: globals squares everything
+ * with an !important reset, and the boards round buttons (3px), chips (2px) and pills.
+ */
+
+/* Page frame: the header's own gutter (40px, 16px on a phone), so the content lines up
+   under the seal. */
+.bj-cpage { padding: 0 40px 48px; box-sizing: border-box; min-width: 0; }
+
+/* ---------- Client home ---------- */
+
+.bj-hello {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 40px;
+  align-items: end;
+  padding: 64px 0 40px;
+}
+.bj-hello .bj-big { margin-top: 14px; }
+
+/* A cut waiting: the one shu-outlined panel on the page. */
+.bj-wait {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 3px !important;
+  margin-bottom: 44px;
+}
+.bj-wait b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.bj-wait p { margin: 3px 0 0; color: var(--body); font-size: 14px; }
+.bj-wait .n { font: 700 34px/1 var(--font-archivo), system-ui, sans-serif; color: var(--accent); letter-spacing: -0.04em; }
+
+/* Latest: still left, words right, the whole block one target through a stretched link. */
+.bj-latest {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: end;
+}
+.bj-latest .im { aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: var(--s2); }
+.bj-latest .im img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity var(--dur-2), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bj-latest:hover .im img { transform: scale(1.02); }
+.bj-latest h2 { margin: 10px 0 12px; font-size: clamp(28px, 3vw, 44px); font-weight: 700; letter-spacing: -0.04em; line-height: 1; text-wrap: balance; }
+.bj-latest .bj-lead { margin: 0; }
+.bj-latest .meta { display: flex; flex-wrap: wrap; gap: 14px 24px; margin: 22px 0 26px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bj-latest .meta b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.bj-latest .meta span { display: block; margin-top: 4px; }
+.bj-latest .go { position: static; }
+.bj-latest .go::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+/* The lift would make the button the containing block and shrink the stretched target
+   under the pointer, so on this one button only the arrow moves. */
+.bj-latest .go:hover { transform: none; }
+.bj-latest:hover .go i { transform: translateX(3px); }
+
+/* All projects. */
+.bj-projtbl .bj-thumbs .ph { position: relative; overflow: hidden; }
+.bj-projtbl .bj-thumbs .ph img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bj-projtbl .ttl { display: block; font-weight: 600; line-height: 22px; padding: 4px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bj-projtbl .t span { margin-top: 0; }
+.bj-projtbl tr.row:hover .ttl { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.bj-projtbl .arr { width: 24px; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bj-projtbl tr.row:hover .arr { transform: translateX(3px); }
+.bj-projtbl tr.row > td:first-child { max-width: 0; width: 46%; }
+
+.bj-listtools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.bj-find {
+  flex: 1;
+  min-width: 200px;
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font: 15px var(--font-archivo), system-ui, sans-serif;
+  padding: 8px 0;
+  min-height: 36px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.bj-find:focus { border-color: var(--text); }
+.bj-find::placeholder { color: var(--muted); }
+
+.bj-empty { padding: 28px 0; color: var(--muted); font-size: 14px; }
+.bj-empty b { display: block; color: var(--text); font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.bj-empty p { margin: 0; }
+
+/* Mono chips, 2px radius: the sort on home and the filters on a project. */
+.bj-chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 28px; }
+.bj-listtools .bj-chips { display: flex; gap: 6px; }
+.bj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 2px !important;
+  color: var(--muted);
+  font: 400 11px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 12px;
+  min-height: 32px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-1), border-color var(--dur-1), background-color var(--dur-1);
+}
+.bj-chip:hover { color: var(--text); border-color: var(--text); }
+.bj-chip.on { background: var(--text); border-color: var(--text); color: var(--bg); }
+
+/* ---------- Project ---------- */
+
+.bj-back { display: inline-block; margin: 34px 0 12px; padding: 10px 0; transition: color var(--dur-1); }
+.bj-back:hover { color: var(--text); }
+.bj-phead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 40px;
+  align-items: end;
+  padding-bottom: 36px;
+}
+.bj-phead .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin-top: 16px; }
+.bj-phead .acts { display: flex; gap: 12px; align-items: center; }
+.bj-phead .bj-cta .sz { opacity: 0.7; font-weight: 400; }
+
+/* The count under a folder's label, then its size in mono. */
+.bj-sx > .bj-lab .sz { display: block; margin-top: 4px; }
+
+.bj-tiles { display: grid; gap: 24px 16px; align-items: start; }
+
+.bj-tile { position: relative; min-width: 0; }
+.bj-tile .im {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: var(--s2);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.bj-tile.wide .im { aspect-ratio: 16 / 9; }
+.bj-tile .im img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity var(--dur-2), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bj-tile .im:hover img { transform: scale(1.03); }
+.bj-tile.on .im { box-shadow: 0 0 0 2px var(--accent); }
+
+/* The round check: shows on hover, stays while anything is selected, always on touch. */
+.bj-tile .ck {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  color: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+/* A bigger hit area than the 22px circle, without a bigger circle. */
+.bj-tile .ck::before { content: ""; position: absolute; inset: -9px; }
+.bj-tile .im:hover .ck, .bj-tiles.sel .ck, .bj-tile .ck:focus-visible { opacity: 1; }
+.bj-tile .ck:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bj-tile.on .ck { background: var(--accent); border-color: var(--accent); color: #fff; opacity: 1; }
+
+.bj-tile .hrt {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 4;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  background: rgba(0, 0, 0, 0.35);
+  border: 0;
+  border-radius: 50% !important;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+.bj-tile .hrt:hover { background: rgba(0, 0, 0, 0.6); }
+.bj-tile .im:hover .hrt, .bj-tile .hrt:focus-visible, .bj-tile.fav .hrt { opacity: 1; }
+.bj-tile.fav .hrt { color: var(--accent); }
+
+.bj-tile .dur, .bj-tile .vw {
+  position: absolute;
+  bottom: 10px;
+  z-index: 3;
+  font: 10px var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 7px;
+  border-radius: 999px !important;
+  white-space: nowrap;
+}
+.bj-tile .dur { right: 10px; }
+.bj-tile .vw { left: 10px; display: inline-flex; align-items: center; gap: 4px; }
+
+.bj-tile .cap { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 10px; cursor: pointer; }
+.bj-tile .cap b { min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bj-tile .cap .kind { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+
+@media (hover: none) {
+  .bj-tile .ck, .bj-tile .hrt { opacity: 1; }
+}
+
+/* The selection bar: ink, sticky to the bottom, up on DownloadSheet's curve. */
+.bj-selbar {
+  position: fixed;
+  left: 40px;
+  right: 40px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  background: var(--text);
+  color: var(--bg);
+  padding: 12px 12px 12px 20px;
+  border-radius: 3px !important;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+.bj-selbar.is-in { animation: bj-selbar-in 0.35s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.bj-selbar.is-out { animation: bj-selbar-out 0.2s cubic-bezier(0.32, 0.72, 0, 1) both; pointer-events: none; }
+@keyframes bj-selbar-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bj-selbar-out { from { transform: none; opacity: 1; } to { transform: translateY(12px); opacity: 0; } }
+.bj-selbar b { font-weight: 600; font-size: 15px; }
+.bj-selbar .bj-mono { color: inherit; opacity: 0.7; }
+.bj-selbar .sp { flex: 1; }
+.bj-selbar .lnk {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: 14px var(--font-archivo), system-ui, sans-serif;
+  opacity: 0.8;
+  cursor: pointer;
+  min-height: 32px;
+  padding: 0 4px;
+}
+.bj-selbar .lnk:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.bj-selbar .lnk[hidden] { display: none; }
+/* Phone save sits on ink here, so its two buttons take the bar's colours. */
+.bj-selbar [data-testid="save-to-photos"] { background: var(--accent); color: #fff; border-radius: 3px !important; }
+.bj-selbar [data-testid="save-to-files"] { color: var(--bg); border-color: color-mix(in srgb, var(--bg) 35%, transparent); border-radius: 3px !important; }
+.bj-selbar [data-testid="phone-save"] .text-muted { color: inherit; opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bj-selbar.is-in, .bj-selbar.is-out { animation: none; }
+  .bj-tile .im img, .bj-latest .im img { transition: opacity var(--dur-2); transform: none; }
+}
+
+/* ---------- Phone ---------- */
+
+@media (max-width: 900px) {
+  .bj-cpage { padding: 0 16px 40px; }
+  .bj-hello { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 36px 0 28px; }
+  .bj-hello .bj-ghost { justify-self: start; }
+  .bj-wait { grid-template-columns: auto minmax(0, 1fr); margin-bottom: 32px; }
+  .bj-wait .bj-cta { grid-column: 1 / -1; justify-content: center; }
+  .bj-latest { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .bj-latest .go { display: flex; justify-content: center; }
+  .bj-projtbl tr.row > td:first-child { width: 100%; }
+  .bj-projtbl .t .bj-mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .bj-back { margin-top: 18px; }
+  .bj-phead { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-bottom: 28px; }
+  .bj-phead .acts { flex-direction: column; align-items: stretch; }
+  .bj-phead .acts > * { justify-content: center; }
+  /* Two across on a phone, whatever the group's own columns are. */
+  .bj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 18px 10px; }
+  .bj-tile .cap { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .bj-tile .cap b { max-width: 100%; }
+
+  .bj-selbar > .bj-cta { flex-basis: 100%; justify-content: center; }
+  .bj-selbar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); padding: 12px 12px 12px 16px; }
+}
+@media (max-width: 639px) {
+  .bj-chiprow { flex-wrap: nowrap; }
+}
+.bj-project { padding-bottom: 110px; }

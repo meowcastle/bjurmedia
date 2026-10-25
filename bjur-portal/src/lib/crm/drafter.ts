@@ -48,7 +48,7 @@ export function crmDraftingConfigured() {
 /** Overridable per deployment; the skill's default for new work otherwise. */
 const MODEL = process.env.CRM_MODEL || "claude-opus-5-5";
 
-const RULES = `You write on behalf of Bjur Media, a small Brooklyn based video production studio.
+const RULES = `You write on behalf of Bjur, a small Brooklyn based video production studio.
 
 Rules that never bend:
 - Write only from the facts you are given. Never invent a name, date, price, figure,

@@ -163,8 +163,8 @@ export function SendPageClient({
             <div className="text-[15px] text-body">This link is closed.</div>
             <div className="text-[11.5px] text-dim leading-[1.7] mt-2">
               Ask for a new one at{" "}
-              <a href="mailto:hello@bjurmedia.nyc" className="text-muted border-b border-line2">
-                hello@bjurmedia.nyc
+              <a href="mailto:hi@bjur.nyc" className="text-muted border-b border-line2">
+                hi@bjur.nyc
               </a>
             </div>
           </div>

@@ -22,7 +22,7 @@ function page(body: string, status = 200) {
   return new NextResponse(
     `<!DOCTYPE html><html><head><meta charset="utf-8">
      <meta name="viewport" content="width=device-width,initial-scale=1">
-     <title>Bjur Media</title></head>
+     <title>Bjur</title></head>
      <body style="margin:0;${CARD};min-height:100vh;display:grid;place-items:center;padding:24px">
        <div style="max-width:460px;width:100%;background:#141416;border:1px solid #2a2a2e">
          <div style="height:3px;background:#ec3013"></div>

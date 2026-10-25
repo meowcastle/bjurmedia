@@ -241,13 +241,20 @@ export function AdminLibraryClient({
   }
 
   return (
-    <div className="px-10 py-12 max-w-[1400px] mx-auto bjfade">
-      <h1 className="bj-serif text-[34px] font-normal mb-6">Library</h1>
+    <div className="bj-adm bjfade">
+      <section className="bj-adm-top">
+        <div>
+          <span className="bj-mono">Footage already on the NAS</span>
+          <h1 className="bj-big">Library.</h1>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-[1fr_340px] gap-5 items-start">
-        <div className="border border-line">
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b-2 border-line2 text-[11px] font-mono text-muted">
-            <span className="text-dim">▸</span> {archiveRoot}
+      <section className="bj-sx">
+      <span className="bj-mono bj-lab">Archive</span>
+      <div className="bj-lib grid gap-10 items-start min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-line bj-mono" style={{ textTransform: "none" }}>
+            <span>▸</span> {archiveRoot}
           </div>
           {rootEntries.map((e) => (
             <TreeNode
@@ -269,15 +276,15 @@ export function AdminLibraryClient({
           )}
         </div>
 
-        <div className="shadow-1 border border-line bg-s1 sticky top-[var(--header-h,92px)]">
+        <div className="bj-card sticky top-[var(--header-h,92px)]">
           <div className="p-5 border-b border-line">
-            <div className="text-[10.5px] tracking-wide uppercase text-muted font-bold mb-3">
+            <div className="bj-mono mb-3">
               Register to project
             </div>
             <select
               value={targetProject}
               onChange={(e) => setTargetProject(e.target.value)}
-              className="w-full bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none mb-3"
+              className="bj-in w-full mb-3"
             >
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -288,7 +295,7 @@ export function AdminLibraryClient({
             <div className="flex items-center justify-between gap-3 mt-2">
               <div>
                 <div className="text-[13px] font-semibold">Auto-map from path</div>
-                <div className="text-[11px] text-dim mt-0.5 max-w-[190px]">
+                <div className="text-[13px] text-muted mt-0.5 max-w-[190px]">
                   Auto-detect date & format
                 </div>
               </div>
@@ -305,23 +312,24 @@ export function AdminLibraryClient({
           </div>
           <div className="p-5">
             <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-[32px] font-black tracking-tight tabular-nums">{picked.size}</span>{" "}
-              <span className="text-xs text-muted">file(s) selected</span>
+              <span className="text-[40px] font-bold tracking-[-0.04em] leading-none tabular-nums">{picked.size}</span>{" "}
+              <span className="bj-mono">file(s) selected</span>
             </div>
             {error && <div className="text-xs text-accentb mb-3 font-semibold">{error}</div>}
             <button
               onClick={runPreview}
               disabled={!picked.size || !targetProject || loading}
-              className="w-full cursor-pointer font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-0 py-3.5 disabled:opacity-50"
+              className="bj-cta w-full justify-center"
             >
               {loading ? "Working…" : "Preview import"}
             </button>
-            <div className="mt-3 text-[11px] text-dim leading-relaxed">
-              Registered in place · masters stay put · proxies + thumbnails queued to the worker.
+            <div className="mt-3 text-[13px] text-muted leading-relaxed">
+              Registered in place · masters stay put · previews and thumbnails queued to the worker.
             </div>
           </div>
         </div>
       </div>
+      </section>
 
       {preview && (
         <Dialog
@@ -362,14 +370,14 @@ export function AdminLibraryClient({
             <div className="p-5 flex justify-end gap-2.5 border-t border-line2">
               <button
                 onClick={previewExit.close}
-                className="cursor-pointer text-[13px] font-semibold text-muted hover:text-text border border-line2 px-4 py-2.5"
+                className="bj-ghost"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmImport}
                 disabled={loading || preview.length === 0}
-                className="cursor-pointer font-bold text-[13px] text-bg bg-accent hover:bg-accentb px-5 py-2.5 disabled:opacity-50"
+                className="bj-cta"
               >
                 {loading ? "Registering…" : `Register ${preview.length} file(s)`}
               </button>

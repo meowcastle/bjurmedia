@@ -69,6 +69,7 @@ export default async function ProjectDetailPage({
         expiresAt: project.expiresAt?.toISOString() ?? null,
         paymentHold: project.paymentHold,
         slackChannel,
+        footageUploads: project.client.footageUploads,
         folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
       }}
       totalViews={totalViews}

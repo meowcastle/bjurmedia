@@ -72,7 +72,8 @@ test.describe("the switcher", () => {
   test("the switched-to client's projects are the ones listed", async ({ page }) => {
     await page.goto("/");
     // Left on Halcyon by the previous test; its project is Brand Anthem.
-    await expect(page.getByText("Brand Anthem — Delivery")).toBeVisible();
+    // Scoped to the table: v13's Latest section names the same project above it.
+    await expect(page.getByTestId("project-row").getByText("Brand Anthem — Delivery")).toBeVisible();
     await expect(page.getByText("Spring Campaign 2026")).toHaveCount(0);
   });
 
@@ -116,7 +117,7 @@ test.describe("after being removed from one client", () => {
     // Her session was pointed at Halcyon when the membership was revoked. It must not
     // strand her on a client she can no longer see, and it must not sign her out —
     // deactivating the account would have cut her off from SSH too.
-    await expect(page.getByText("Spring Campaign 2026")).toBeVisible();
+    await expect(page.getByTestId("project-row").getByText("Spring Campaign 2026")).toBeVisible();
     await expect(page.getByText("Brand Anthem — Delivery")).toHaveCount(0);
 
     // One client left, so the switcher stops offering a choice it cannot honour.

@@ -40,7 +40,7 @@ export default async function AdminIntegrationsPage() {
         clientRows={clients.map((c) => ({
           id: c.id,
           name: c.name,
-          accentColor: c.accentColor,
+          accentColor: c.logoColor ?? c.accentColor,
           channel: channelByClient.get(c.id)?.channel ?? "",
           // The handles, not a count: "@57nyc · @57NYCtv" answers "which account is this
           // posting as", which is the question anyone actually has here.
@@ -56,7 +56,7 @@ export default async function AdminIntegrationsPage() {
           id: c.id,
           name: c.name,
           channel: channelByClient.get(c.id)?.channel ?? "",
-          accentColor: c.accentColor,
+          accentColor: c.logoColor ?? c.accentColor,
           logoUrl: c.logoUrl,
           instagram: platformState(c.id, "INSTAGRAM"),
           youtube: platformState(c.id, "YOUTUBE"),

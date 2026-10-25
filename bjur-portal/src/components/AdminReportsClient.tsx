@@ -57,18 +57,24 @@ export function AdminReportsClient({
   const accent = report?.accentColor ?? DEFAULT_ACCENT;
 
   return (
-    <div className="px-4 sm:px-6 md:px-10 py-8 md:py-12 max-w-[1100px] mx-auto bjfade print:px-0 print:py-0 print:max-w-none">
-      <div className="print:hidden mb-6">
-        <div className="text-[11px] tracking-[0.2em] uppercase text-accent font-bold mb-2.5">Reports</div>
-        <h1 className="bj-serif text-[34px] font-normal mb-6">Report</h1>
+    <div className="bj-adm bjfade print:px-0 print:py-0 print:max-w-none">
+      <div className="print:hidden">
+        <section className="bj-adm-top">
+          <div>
+            <span className="bj-mono">Attribution · {clients.length} client{clients.length === 1 ? "" : "s"}</span>
+            <h1 className="bj-big">Reports.</h1>
+          </div>
+        </section>
 
+        <section className="bj-sx">
+        <span className="bj-mono bj-lab">Report on</span>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">Client</span>
+          <span className="bj-mono">Client</span>
           <select
             aria-label="Client"
             value={selectedClientId ?? ""}
             onChange={(e) => e.target.value && navigate(e.target.value, fromDraft, toDraft)}
-            className="bg-bg border border-line2 px-3.5 py-2.5 text-[13px] text-text outline-none"
+            className="bj-in"
           >
             <option value="" disabled>
               Select a client…
@@ -82,121 +88,118 @@ export function AdminReportsClient({
 
           {selectedClientId && report && (
             <>
-              <span className="text-[11px] tracking-wide uppercase text-muted font-semibold ml-2">From</span>
+              <span className="bj-mono ml-2">From</span>
               <input
                 aria-label="From"
                 type="date"
                 value={fromDraft}
                 onChange={(e) => setFromDraft(e.target.value)}
                 onBlur={() => navigate(selectedClientId, fromDraft, toDraft)}
-                className="bg-bg border border-line2 px-2.5 py-2 text-[13px] text-text outline-none focus:border-accent"
+                className="bj-in"
               />
-              <span className="text-[11px] tracking-wide uppercase text-muted font-semibold">To</span>
+              <span className="bj-mono">To</span>
               <input
                 aria-label="To"
                 type="date"
                 value={toDraft}
                 onChange={(e) => setToDraft(e.target.value)}
                 onBlur={() => navigate(selectedClientId, fromDraft, toDraft)}
-                className="bg-bg border border-line2 px-2.5 py-2 text-[13px] text-text outline-none focus:border-accent"
+                className="bj-in"
               />
-              <button
-                onClick={() => window.print()}
-                className="cursor-pointer text-[11px] font-semibold text-bg bg-accent hover:bg-accentb px-3.5 py-2.5 ml-auto"
-              >
+              <button type="button" onClick={() => window.print()} className="bj-cta ml-auto">
                 Print / Save as PDF
               </button>
             </>
           )}
         </div>
+        </section>
       </div>
 
       {!report && (
-        <div className="border border-line px-6 py-16 text-center">
-          <div className="text-sm text-muted">Select a client to generate an attribution report.</div>
-        </div>
+        <section className="bj-sx">
+          <span className="bj-mono bj-lab">Report</span>
+          <p className="bj-adm-empty">Select a client to generate an attribution report.</p>
+        </section>
       )}
 
       {report && (
         <div className="report-print-scope">
-          <div className="border-t-4 mb-6" style={{ borderColor: accent }}>
+          <div className="border-t-[3px] mb-6" style={{ borderColor: accent }}>
             <div className="pt-6">
-              <div className="text-[11px] tracking-[0.2em] uppercase font-bold mb-2" style={{ color: accent }}>
-                Bjur Media · Attribution Report
-              </div>
-              <h2 className="text-[28px] font-black tracking-tight mb-1">{report.clientName}</h2>
-              <div className="text-[13px] text-muted">
+              <div className="bj-mono mb-3">Bjur · Attribution report</div>
+              <h2 className="bj-mid mb-2">{report.clientName}</h2>
+              <div className="bj-mono">
                 {formatDate(report.from)} – {formatDate(report.to)}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8">
+          <div className="bj-stats mb-8">
             {FORMATS.map((fmt) => (
-              <div key={fmt} className="shadow-1 bg-s1 border border-line px-4 py-4">
-                <div className="text-[26px] font-black tracking-tight tabular-nums">{report.totalsByFormat[fmt] ?? 0}</div>
-                <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1">{fmt}s delivered</div>
+              <div key={fmt} data-testid="report-tile">
+                <b>{report.totalsByFormat[fmt] ?? 0}</b>
+                <span className="bj-mono">{fmt}s delivered</span>
               </div>
             ))}
-            <div className="shadow-1 bg-s1 border border-line px-4 py-4">
-              <div className="text-[26px] font-black tracking-tight tabular-nums">{Math.round(report.publishRate * 100)}%</div>
-              <div className="text-[11px] tracking-wide uppercase text-muted font-semibold mt-1" title="Files that went live">
+            <div data-testid="report-tile">
+              <b>{Math.round(report.publishRate * 100)}%</b>
+              <span className="bj-mono" title="Files that went live">
                 Publish rate
-              </div>
+              </span>
             </div>
           </div>
 
           {report.platformStats.length > 0 && (
-            <div className="mb-8">
-              <div className="text-[13px] font-extrabold uppercase tracking-wide mb-3">Performance by platform</div>
-              <div className="border border-line">
-                <div
-                  className="hidden md:grid gap-4 px-5 py-3 border-b-2 border-line2 text-[10.5px] tracking-wide uppercase text-muted font-bold"
-                  style={{ gridTemplateColumns: "1.4fr 1fr 1fr 1fr" }}
-                >
-                  <span>Platform</span>
-                  <span>Posts</span>
-                  <span>Total views</span>
-                  <span>Median views</span>
-                </div>
-                {report.platformStats.map((p) => (
-                  <div
-                    key={p.platform}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 px-5 py-3.5 border-b border-line last:border-b-0 text-[13px]"
-                  >
-                    <span className="font-semibold">{PLATFORM_LABEL[p.platform] ?? p.platform}</span>
-                    <span className="text-muted">{p.postCount}</span>
-                    <span className="text-muted tabular-nums">{formatViews(p.totalViews)}</span>
-                    <span className="text-muted tabular-nums">{formatViews(Math.round(p.medianViews))}</span>
-                  </div>
-                ))}
+            <section className="bj-sx">
+              <span className="bj-mono bj-lab">Performance by platform</span>
+              <div className="bj-tblw">
+                <table className="bj-tbl">
+                  <thead>
+                    <tr>
+                      <th>Platform</th>
+                      <th>Posts</th>
+                      <th>Total views</th>
+                      <th className="hide r">Median views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.platformStats.map((p) => (
+                      <tr key={p.platform}>
+                        <td className="font-semibold">{PLATFORM_LABEL[p.platform] ?? p.platform}</td>
+                        <td className="num">{p.postCount}</td>
+                        <td className="num">{formatViews(p.totalViews)}</td>
+                        <td className="num hide r">{formatViews(Math.round(p.medianViews))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </section>
           )}
 
           {report.topAssets.length > 0 && (
-            <div className="mb-8">
-              <div className="text-[13px] font-extrabold uppercase tracking-wide mb-3">Top performing content</div>
-              <div className="border border-line">
+            <section className="bj-sx">
+              <span className="bj-mono bj-lab">Top performing content</span>
+              <div>
                 {report.topAssets.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3.5 px-5 py-3.5 border-b border-line last:border-b-0">
-                    <div className="w-14 h-14 bg-s3 flex-none overflow-hidden relative">
+                  <div key={a.id} className="flex items-center gap-3.5 py-3.5 border-b border-line">
+                    <div className="w-16 h-10 bg-s2 flex-none overflow-hidden relative">
                       {a.thumbRelPath && (
                         <FadeImg src={`/api/assets/${a.id}/thumb`} className="absolute inset-0 w-full h-full object-cover" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold truncate">{a.name}</div>
-                      <div className="text-[11px] text-dim">{a.platforms.map((p) => PLATFORM_LABEL[p] ?? p).join(" · ")}</div>
+                      <div className="text-[15px] font-semibold truncate">{a.name}</div>
+                      <div className="bj-mono mt-1">{a.platforms.map((p) => PLATFORM_LABEL[p] ?? p).join(" · ")}</div>
                     </div>
                     <div className="text-right flex-none">
-                      <div className="text-[15px] font-black tabular-nums">{formatViews(a.totalViews)}</div>
+                      <div className="bj-mono ink">{formatViews(a.totalViews)}</div>
                       {a.permalink && (
                         <a
                           href={a.permalink}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[10px] text-accentb print:hidden"
+                          className="bj-link print:hidden"
                         >
                           View post ↗
                         </a>
@@ -205,14 +208,14 @@ export function AdminReportsClient({
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {report.weeklyTrend.length > 1 && (
-            <div>
-              <div className="text-[13px] font-extrabold uppercase tracking-wide mb-3">Weekly trend</div>
+            <section className="bj-sx">
+              <span className="bj-mono bj-lab">Weekly trend</span>
               <WeeklyTrendChart weeks={report.weeklyTrend} accent={accent} />
-            </div>
+            </section>
           )}
         </div>
       )}
@@ -225,10 +228,10 @@ function WeeklyTrendChart({ weeks, accent }: { weeks: WeekBucket[]; accent: stri
   const maxViews = Math.max(1, ...weeks.map((w) => w.views));
 
   return (
-    <div className="border border-line px-5 py-5 flex flex-col gap-5">
+    <div className="flex flex-col gap-5 min-w-0">
       <BarRow label="Delivered" weeks={weeks} valueOf={(w) => w.delivered} max={maxDelivered} format={String} accent={accent} />
       <BarRow label="Views" weeks={weeks} valueOf={(w) => w.views} max={maxViews} format={formatViews} accent={accent} />
-      <div className="flex gap-2 text-[10px] text-dim">
+      <div className="flex gap-2 bj-mono" style={{ fontSize: 10 }}>
         {weeks.map((w) => (
           <div key={w.weekStart} className="flex-1 text-center truncate">
             {formatDate(w.weekStart)}
@@ -256,7 +259,7 @@ function BarRow({
 }) {
   return (
     <div>
-      <div className="text-[10px] tracking-wide uppercase text-dim font-bold mb-1.5">{label}</div>
+      <div className="bj-mono mb-1.5">{label}</div>
       <div className="flex items-end gap-2 h-20">
         {weeks.map((w) => {
           const v = valueOf(w);
