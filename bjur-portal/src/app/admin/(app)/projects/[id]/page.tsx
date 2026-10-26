@@ -99,6 +99,8 @@ export default async function AdminProjectPage({ params }: { params: Promise<{ i
       project={{
         id: project.id,
         title: project.title,
+        description: project.description,
+        viewCount: project.viewCount,
         type: project.type,
         paymentHold: project.paymentHold,
         deliveredAt: project.deliveredAt?.toISOString() ?? null,

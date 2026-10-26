@@ -5,12 +5,14 @@ import { useState } from "react";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
 import { REVIEW_TOKEN_HEADER } from "@/lib/reviewToken";
 import { ReviewShell, type ScreenCut, type ScreenNote } from "@/components/ReviewScreen";
+import type { ClientMark } from "@/components/ClientLogo";
 
 type Loaded =
-  | { empty: true; clientName: string; projectTitle: string; viewerName: string }
+  | { empty: true; clientName: string; clientLogo: ClientMark; projectTitle: string; viewerName: string }
   | {
       empty: false;
       clientName: string;
+      clientLogo: ClientMark;
       projectTitle: string;
       assetTitle: string;
       cuts: ScreenCut[];
@@ -57,7 +59,7 @@ export function GuestReviewEntry({
 
   if (needsName) {
     return (
-      <ReviewShell mode="client" clientName={data.clientName}>
+      <ReviewShell mode="client" clientName={data.clientName} clientLogo={data.clientLogo}>
         <section className="bj-rv-solo">
           <span className="bj-mono">
             {data.clientName} · {data.projectTitle}
@@ -91,7 +93,7 @@ export function GuestReviewEntry({
 
   if (data.empty) {
     return (
-      <ReviewShell mode="client" clientName={data.clientName}>
+      <ReviewShell mode="client" clientName={data.clientName} clientLogo={data.clientLogo}>
         <section className="bj-rv-solo">
           <span className="bj-mono">{data.clientName}</span>
           <h1 className="bj-mid">{data.projectTitle}</h1>

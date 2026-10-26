@@ -20,6 +20,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data: Record<string, unknown> = {};
 
   if (typeof body.title === "string" && body.title.trim()) data.title = body.title.trim();
+  if (body.description !== undefined) {
+    if (body.description !== null && typeof body.description !== "string") {
+      return NextResponse.json({ error: "description must be text" }, { status: 400 });
+    }
+    // One line on the client's home, so it is kept to one line's worth.
+    data.description = body.description?.replace(/\s+/g, " ").trim().slice(0, 160) || null;
+  }
   if (body.deliveredAt !== undefined) {
     data.deliveredAt = body.deliveredAt ? new Date(body.deliveredAt) : null;
   }

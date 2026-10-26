@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectDetailClient } from "@/components/ProjectDetailClient";
 import { getProjectAccess } from "@/lib/projectAccess";
+import { CountView } from "@/components/CountView";
 
 export default async function ProjectDetailPage({
   params,
@@ -59,58 +60,62 @@ export default async function ProjectDetailPage({
   const slackChannel = project.client.channel?.channel || slack?.defaultChannel || null;
 
   return (
-    <ProjectDetailClient
-      project={{
-        id: project.id,
-        title: project.title,
-        path: project.path,
-        clientName: project.client.name,
-        deliveredAt: project.deliveredAt?.toISOString() ?? null,
-        expiresAt: project.expiresAt?.toISOString() ?? null,
-        paymentHold: project.paymentHold,
-        slackChannel,
-        footageUploads: project.client.footageUploads,
-        folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
-      }}
-      totalViews={totalViews}
-      totalSocialPosts={totalPosts}
-      assets={project.assets.map((a) => ({
-        id: a.id,
-        kind: a.kind,
-        format: a.format,
-        orientation: a.orientation,
-        name: a.name,
-        dims: a.dims,
-        durationSec: a.durationSec,
-        // Serialised: sizeBytes is a BigInt, which does not survive the RSC boundary.
-        sizeBytes: a.sizeBytes.toString(),
-        createdAt: a.createdAt.toISOString(),
-        updatedAt: a.updatedAt.toISOString(),
-        weekOf: a.weekOf?.toISOString() ?? null,
-        folderId: a.folderId,
-        thumbReady: a.thumbRelPath != null,
-        contentTitle: a.contentTitle,
-        caption: a.caption,
-        captionYT: a.captionYT,
-        captionSource: a.captionSource,
-        transcriptStatus: a.transcriptStatus,
-        postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
-        captionEditedBy: a.captionEditedBy,
-        captionEditedAt: a.captionEditedAt?.toISOString() ?? null,
-        transcript: a.transcript,
-        transcriptSegments: Array.isArray(a.transcriptSegments)
-          ? (a.transcriptSegments as { start: number; text: string }[])
-          : null,
-        publishAt: a.publishAt?.toISOString() ?? null,
-        publishIg: a.publishIg,
-        publishYt: a.publishYt,
-        publishState: a.publishState,
-        viewCount: a.socialPosts.length
-          ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
-          : null,
-      }))}
-      initialFavorites={favorites.map((f) => f.assetId)}
-      role={access.role}
-    />
+    <>
+      <CountView projectId={project.id} />
+      <ProjectDetailClient
+        project={{
+          id: project.id,
+          title: project.title,
+          path: project.path,
+          clientName: project.client.name,
+          deliveredAt: project.deliveredAt?.toISOString() ?? null,
+          expiresAt: project.expiresAt?.toISOString() ?? null,
+          paymentHold: project.paymentHold,
+          slackChannel,
+          footageUploads: project.client.footageUploads,
+          folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
+          viewCount: project.viewCount,
+        }}
+        totalViews={totalViews}
+        totalSocialPosts={totalPosts}
+        assets={project.assets.map((a) => ({
+          id: a.id,
+          kind: a.kind,
+          format: a.format,
+          orientation: a.orientation,
+          name: a.name,
+          dims: a.dims,
+          durationSec: a.durationSec,
+          // Serialised: sizeBytes is a BigInt, which does not survive the RSC boundary.
+          sizeBytes: a.sizeBytes.toString(),
+          createdAt: a.createdAt.toISOString(),
+          updatedAt: a.updatedAt.toISOString(),
+          weekOf: a.weekOf?.toISOString() ?? null,
+          folderId: a.folderId,
+          thumbReady: a.thumbRelPath != null,
+          contentTitle: a.contentTitle,
+          caption: a.caption,
+          captionYT: a.captionYT,
+          captionSource: a.captionSource,
+          transcriptStatus: a.transcriptStatus,
+          postedToSlackAt: a.postedToSlackAt?.toISOString() ?? null,
+          captionEditedBy: a.captionEditedBy,
+          captionEditedAt: a.captionEditedAt?.toISOString() ?? null,
+          transcript: a.transcript,
+          transcriptSegments: Array.isArray(a.transcriptSegments)
+            ? (a.transcriptSegments as { start: number; text: string }[])
+            : null,
+          publishAt: a.publishAt?.toISOString() ?? null,
+          publishIg: a.publishIg,
+          publishYt: a.publishYt,
+          publishState: a.publishState,
+          viewCount: a.socialPosts.length
+            ? a.socialPosts.reduce((sum, p) => sum + p.viewCount, 0)
+            : null,
+        }))}
+        initialFavorites={favorites.map((f) => f.assetId)}
+        role={access.role}
+      />
+    </>
   );
 }

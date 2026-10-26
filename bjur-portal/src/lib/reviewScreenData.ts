@@ -110,7 +110,7 @@ export async function loadReviewScreen(projectId: string, reviewerId: string) {
   return {
     empty: false as const,
     clientName: project.client.name,
-      clientLogo: project.client,
+    clientLogo: project.client,
     projectTitle: project.title,
     assetTitle: current.asset.contentTitle || current.asset.name,
     cuts,
@@ -209,7 +209,7 @@ export async function loadStudioReviewScreen(projectId: string) {
   return {
     empty: false as const,
     clientName: project.client.name,
-      clientLogo: project.client,
+    clientLogo: project.client,
     projectTitle: project.title,
     assetTitle: current.asset.contentTitle || current.asset.name,
     cuts,

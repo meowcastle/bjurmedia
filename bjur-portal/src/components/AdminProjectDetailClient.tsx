@@ -18,6 +18,8 @@ type FileRow = ProxyViewerAsset & {
 type ProjectRow = {
   id: string;
   title: string;
+  description: string | null;
+  viewCount: number;
   type: "DELIVERY" | "CALENDAR" | "FILM";
   paymentHold: boolean;
   deliveredAt: string | null;
@@ -100,6 +102,7 @@ export function AdminProjectDetailClient({
   const revertingRef = useRef(false);
 
   const [title, setTitle] = useState(project.title);
+  const [description, setDescription] = useState(project.description ?? "");
   const [delivered, setDelivered] = useState(toDateInput(project.deliveredAt));
   const [expires, setExpires] = useState(toDateInput(project.expiresAt));
 
@@ -216,6 +219,33 @@ export function AdminProjectDetailClient({
           data-testid="project-title"
           className="bj-big bg-transparent w-full outline-none border-b border-transparent focus:border-line mb-3"
         />
+        {/* The one line under the title on the client's home (Latest). Empty shows the file counts. */}
+        <input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          onBlur={() => {
+            if (revertingRef.current) {
+              revertingRef.current = false;
+              return;
+            }
+            const next = description.trim();
+            if (next === (project.description ?? "")) return;
+            patch({ description: next || null }, next ? "Description saved" : "Description cleared");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") {
+              revertingRef.current = true;
+              setDescription(project.description ?? "");
+              e.currentTarget.blur();
+            }
+          }}
+          maxLength={160}
+          placeholder="One line for the client's home, like “Short-form edit with a color pass.”"
+          aria-label="Project description"
+          data-testid="project-description"
+          className="bj-lead bg-transparent w-full outline-none border-b border-transparent focus:border-line mb-3 placeholder:text-muted"
+        />
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="bj-pill" data-testid="project-type">
             {project.type === "CALENDAR"
@@ -224,6 +254,11 @@ export function AdminProjectDetailClient({
                 ? "Film"
                 : "Delivery"}
           </span>
+          {project.viewCount > 0 && (
+            <span className="bj-mono" data-testid="project-views">
+              Viewed {project.viewCount} {project.viewCount === 1 ? "time" : "times"}
+            </span>
+          )}
 
         </div>
       </div>

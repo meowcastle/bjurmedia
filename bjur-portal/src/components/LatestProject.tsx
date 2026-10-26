@@ -6,7 +6,7 @@ import type { ProjectListItem } from "@/components/ProjectListClient";
 
 export type LatestProjectData = ProjectListItem & {
   fileCount: number;
-  /** One line from the counts: "3 videos and 1 still." */
+  /** The studio's description, or one line from the counts: "3 videos and 1 still." */
   line: string;
   /** The third number: a master's dimensions over its codec, or counts when unknown. */
   format: { value: string; label: string };

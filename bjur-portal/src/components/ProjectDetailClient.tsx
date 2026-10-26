@@ -150,6 +150,8 @@ export function ProjectDetailClient({
     /** The studio opened footage uploads for this client: the header offers /send. */
     footageUploads?: boolean;
     folders: { id: string; name: string }[];
+    /** Opens by client logins, once per tab session. */
+    viewCount: number;
   };
   assets: Asset[];
   initialFavorites: string[];
@@ -539,6 +541,11 @@ export function ProjectDetailClient({
             </span>
             {project.expiresAt && (
               <span className="bj-mono ink">Available until {fmtDate(project.expiresAt)}</span>
+            )}
+            {project.viewCount > 0 && (
+              <span className="bj-mono" data-testid="project-views">
+                Viewed {project.viewCount} {project.viewCount === 1 ? "time" : "times"}
+              </span>
             )}
             {totalSocialPosts > 0 && (
               <span className="bj-mono">

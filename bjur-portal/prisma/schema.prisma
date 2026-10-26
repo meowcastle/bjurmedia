@@ -159,6 +159,12 @@ model Project {
    */
   type ProjectType @default(DELIVERY)
 
+  /// One line the studio writes for the client home's Latest ("Short-form edit with a
+  /// color pass, cut for vertical and square."). Null falls back to the file counts.
+  description String?
+  /// Times a client login has opened the project page, once per browser tab session.
+  viewCount   Int     @default(0)
+
   /**
    * Payment hold — the only switch that still flips after creation, because it describes
    * where the job has got to rather than what the job is.

@@ -129,7 +129,7 @@ export default async function ProjectListPage() {
     latest = {
       ...item,
       fileCount: latestRaw.assets.length,
-      line: contentsLine(item.videoCount, item.photoCount),
+      line: latestRaw.description || contentsLine(item.videoCount, item.photoCount),
       format,
     };
   }
