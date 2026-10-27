@@ -21,6 +21,9 @@
 
 set -eu
 
+# sudo resets PATH; Synology keeps docker-compose in /usr/local/bin.
+export PATH=/usr/local/bin:$PATH
+
 cd "$(dirname "$0")"
 
 DB=data/bjur.db
