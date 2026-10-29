@@ -44,6 +44,9 @@ COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml
 COPY --from=build /app/worker.ts ./worker.ts
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+# One-off maintenance (remark.ts and friends) runs here with `docker-compose exec worker`,
+# so it ships with the image rather than being copied in after every deploy.
+COPY --from=build /app/scripts ./scripts
 
 # Migrations deliberately do NOT run here. This container starting is not a moment
 # when the database is quiet: the web container holds SQLite connections open in WAL

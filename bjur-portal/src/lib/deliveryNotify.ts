@@ -49,9 +49,12 @@ export async function markDeliveryPending(projectId: string) {
  * rather than re-deriving the rule.
  */
 async function recipientsFor(project: { id: string; clientId: string }) {
+  // Membership, not User.clientId: that column is the login's first client and nothing
+  // keeps it current, so anyone added to a client later (or belonging to two) was
+  // never mailed. ClientMember is what sign-in and project access go by.
   const users = await db.user.findMany({
     where: {
-      clientId: project.clientId,
+      clientMemberships: { some: { clientId: project.clientId } },
       deactivatedAt: null,
       notifyDelivery: true,
     },

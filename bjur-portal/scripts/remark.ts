@@ -14,8 +14,7 @@ import { DERIVED_ROOT } from "../src/lib/media";
  *
  * Assets still PENDING or GENERATING are left alone: the current worker is marking them.
  *
- * Usage (on the NAS):
- *   sudo docker cp scripts/remark.ts bjur-portal-worker-1:/app/scripts/remark.ts
+ * Usage (on the NAS, from /volume2/docker/bjurmedia/bjur-portal):
  *   sudo docker-compose exec worker npx tsx scripts/remark.ts "Snatam"        # dry run
  *   sudo docker-compose exec worker npx tsx scripts/remark.ts "Snatam" --go   # do it
  */
