@@ -32,6 +32,9 @@ const KIND_LABEL: Record<string, string> = {
   FOLLOW_UP: "Follow-up",
   PAYMENT_NUDGE: "Payment reminder",
   NEXT_STEP: "Next step",
+  REVIEW_NUDGE: "Notes nudge",
+  CHECK_IN: "Check-in",
+  REFERRAL_ASK: "Referral ask",
 };
 
 const STATE_STYLE: Record<string, string> = {

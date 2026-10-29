@@ -1,5 +1,13 @@
 import "dotenv/config";
-import { draftStalledFollowUps, postWeeklyDigest, sendApprovedDrafts } from "./src/lib/crm/agents";
+import {
+  addIdleClientTasks,
+  draftRepeatBusiness,
+  draftReviewNudges,
+  draftStalledFollowUps,
+  postPunchLists,
+  postWeeklyDigest,
+  sendApprovedDrafts,
+} from "./src/lib/crm/agents";
 import { mkdirSync } from "fs";
 import { rm } from "fs/promises";
 import { createServer } from "http";
@@ -480,12 +488,27 @@ function startCrmSchedulers() {
     const r = await postWeeklyDigest();
     if (r.posted) console.log("[crm] posted the Monday brief");
   }, SCHEDULER_POLL_MS);
+  // Phase 4: review nudges and punch lists (Module 6), repeat business (Module 7).
+  guardedInterval("crm-reviews", async () => {
+    const n = await draftReviewNudges();
+    const p = await postPunchLists();
+    if (n.drafted || n.tasked || p.posted) {
+      console.log(`[crm] ${n.drafted} notes nudge(s), ${n.tasked} task(s), ${p.posted} punch list(s)`);
+    }
+  }, SCHEDULER_POLL_MS);
+  guardedInterval("crm-repeat", async () => {
+    const r = await draftRepeatBusiness();
+    const i = await addIdleClientTasks();
+    if (r.drafted || r.tasked || i.tasked) {
+      console.log(`[crm] ${r.drafted} repeat-business draft(s), ${r.tasked + i.tasked} task(s)`);
+    }
+  }, SCHEDULER_POLL_MS);
   guardedInterval("crm-sender", async () => {
     const r = await sendApprovedDrafts();
     if (r.sent) console.log(`[crm] sent ${r.sent} approved draft(s)`);
   }, SCHEDULER_POLL_MS);
   console.log(
-    `[crm] follow-ups, Monday brief and sender checking every ${SCHEDULER_POLL_MS}ms — ` +
+    `[crm] follow-ups, notes nudges, punch lists, repeat business, Monday brief and sender checking every ${SCHEDULER_POLL_MS}ms — ` +
       `drafting ${process.env.ANTHROPIC_API_KEY ? "on" : "off (tasks only)"}, mail ${process.env.DELIVERY_EMAILS === "live" ? "LIVE" : "dry run"}`,
   );
 }

@@ -524,6 +524,14 @@ model Review {
    * Set when the next cut is sent.
    */
   supersededAt DateTime?
+  /**
+   * When the CRM drafted a "any notes yet?" nudge for this cut. One per cut, ever.
+   */
+  nudgedAt     DateTime?
+  /**
+   * Notes sent up to this moment are already in a Slack punch list.
+   */
+  punchListAt  DateTime?
   createdAt    DateTime     @default(now())
   notes        ReviewNote[]
 

@@ -40,7 +40,7 @@ export type ReviewMailDeps = {
  * Where a given reviewer watches. Seats go through the portal with their session; a guest
  * has only their token, and that link is the entire extent of their access.
  */
-function watchUrl(
+export function watchUrl(
   projectId: string,
   reviewer: { kind: string; token: string | null }
 ) {

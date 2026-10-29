@@ -10,7 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
  * be short and general.
  */
 
-export type OutreachKind = "FOLLOW_UP" | "PAYMENT_NUDGE" | "NEXT_STEP";
+export type OutreachKind = "FOLLOW_UP" | "PAYMENT_NUDGE" | "NEXT_STEP" | "REVIEW_NUDGE" | "CHECK_IN" | "REFERRAL_ASK";
 
 export type OutreachInput = {
   kind: OutreachKind;
@@ -36,9 +36,17 @@ export type DigestInput = {
   cutsAwaiting: { title: string; version: number; days: number }[];
 };
 
+export type PunchListInput = {
+  project: string;
+  cut: number;
+  notes: { reviewer: string; at: string | null; body: string }[];
+};
+
 export type CrmDrafter = {
   outreach: (input: OutreachInput) => Promise<Outreach>;
   digest: (input: DigestInput) => Promise<string>;
+  /** Optional: without it the punch list is the notes as written, which is fine. */
+  punchList?: (input: PunchListInput) => Promise<string>;
 };
 
 export function crmDraftingConfigured() {
@@ -65,6 +73,12 @@ const OUTREACH_GUIDE: Record<OutreachKind, string> = {
     "A gentle reminder that the delivered work is waiting and the clean, unwatermarked files unlock once the invoice is settled. Kind, never accusing. Two to four sentences. No amounts.",
   NEXT_STEP:
     "A short note after finished, paid work: glad it went well, and an open offer to help with whatever comes next. Do not propose a specific project unless the notes name one. Two to four sentences.",
+  REVIEW_NUDGE:
+    "A light note to someone reviewing a cut we sent: is there anything they would like changed, or does it work as is. No pressure and no deadline. Do not include a link; one is added below your text. Two or three sentences.",
+  CHECK_IN:
+    "A friendly check-in a couple of months after finished work: how has the piece been landing, and is anything coming up we could help with. Do not propose a specific project unless the notes name one. Two to four sentences.",
+  REFERRAL_ASK:
+    "A short thank-you for working together, with a soft ask: if they know anyone who could use a small studio like ours, we would be glad of the introduction. Easy to ignore, never needy. Two to four sentences.",
 };
 
 // An org-level key has to name the workspace to bill against, as in captionDraft.ts; a
@@ -120,6 +134,20 @@ export const claudeCrmDrafter: CrmDrafter = {
       },
     );
     return { subject: out.subject.trim(), body: out.body.trim() };
+  },
+
+  async punchList(input) {
+    const out = await jsonCall<{ list: string }>(
+      `${RULES}\n\nYou are turning a client's review notes on a cut into the studio's own punch list for Slack: one "•" line per change to make, in timecode order, keeping each timecode. Merge duplicates, keep the reviewer's meaning exactly, drop pleasantries. No new requests that are not in the notes.`,
+      `${input.project}, cut ${input.cut}.\n\nNotes:\n${JSON.stringify(input.notes, null, 2)}`,
+      {
+        type: "object",
+        properties: { list: { type: "string" } },
+        required: ["list"],
+        additionalProperties: false,
+      },
+    );
+    return out.list.trim();
   },
 
   async digest(input) {
