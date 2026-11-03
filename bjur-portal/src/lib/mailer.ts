@@ -6,6 +6,7 @@ import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/s
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
 import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutReady";
+import { renderReviewGuideEmailHtml, type ReviewGuideEmailProps } from "@/emails/reviewGuide";
 import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
 import { renderOutreachEmailHtml } from "@/emails/outreach";
 
@@ -115,6 +116,10 @@ export async function sendCutReadyEmail(to: string, props: CutReadyEmailProps) {
     subject: `${props.title} · cut ${props.version} is ready`,
     html: renderCutReadyEmailHtml(props),
   });
+}
+
+export async function sendReviewGuideEmail(to: string, props: ReviewGuideEmailProps) {
+  return sendMail({ to, subject: "How to leave notes on your cut", html: renderReviewGuideEmailHtml(props) });
 }
 
 export async function sendNotesInEmail(to: string, props: NotesInEmailProps) {

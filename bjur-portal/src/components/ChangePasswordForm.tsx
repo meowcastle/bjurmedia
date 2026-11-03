@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ redirectTo = "/" }: { redirectTo?: string }) {
   const router = useRouter();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -36,7 +36,7 @@ export function ChangePasswordForm() {
       setLoading(false);
       return;
     }
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   }
 

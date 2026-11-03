@@ -19,7 +19,12 @@ export default async function ClientReviewPage({
 }) {
   const { projectId } = await params;
   const session = await getSessionUser();
-  if (!session?.clientId) redirect("/login");
+  // This page sits outside the portal layout, so it does that layout's two checks itself,
+  // and both keep the way back here: a cut-ready link opened signed out, or with a
+  // temporary password, ends on this screen rather than the project list.
+  const back = encodeURIComponent(`/p/${projectId}/review`);
+  if (!session?.clientId) redirect(`/login?next=${back}`);
+  if (session.mustChangePassword) redirect(`/change-password?next=${back}`);
 
   const project = await db.project.findUnique({ where: { id: projectId } });
   if (!project || project.type !== "FILM") notFound();

@@ -304,7 +304,10 @@ export async function ingestFile(absPath: string) {
     });
   }
 
-  await markDeliveryPending(project.id);
+  // A Film project's cuts wait until the studio releases them (reviews.ts), and the
+  // cut-ready mail sent on release is their announcement. A delivery mail here would tell
+  // the client about a draft fifteen minutes after it landed in the inbox.
+  if (project.type !== "FILM") await markDeliveryPending(project.id);
 
   const verb = existing ? "replaced" : "auto-ingested";
 

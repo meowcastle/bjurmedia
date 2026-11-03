@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { emailLogoUrl } from "@/lib/emailLogo";
-import { sendDeliveryEmail } from "@/lib/mailer";
+import { sendDeliveryEmail, sendOnboardingEmail } from "@/lib/mailer";
+import { resetSeatPassword } from "@/lib/clients";
 
 /**
  * How long a project must go without a new asset before its delivery email fires.
@@ -153,6 +154,34 @@ async function sendForProject(project: {
   let sent = 0;
   for (const r of recipients) {
     try {
+      // Never signed in: the project link would land on a sign-in form they have no
+      // password for, so they get the welcome with this delivery inside it and a fresh
+      // temporary password (the old one is hashed and cannot be re-sent). Only here, in
+      // the live branch, so a dry run never resets anyone's password.
+      if (r.lastLoginAt == null && !r.isAdmin) {
+        const { tempPassword } = await resetSeatPassword(r.id);
+        await sendOnboardingEmail(r.email, {
+          clientName: project.client.name,
+          logoUrl: emailLogoUrl(project.client.logoUrl),
+          recipientName: r.name,
+          portalUrl,
+          signInEmail: r.email,
+          tempPassword,
+          delivery: {
+            projectTitle: project.title,
+            reels: counts.reels,
+            films: counts.films,
+            stills: counts.stills,
+            braw: 0,
+            expiresAt: fmtDate(project.expiresAt),
+          },
+        });
+        await db.activity.create({
+          data: { actor: "Mailer", action: `issued first-login password to ${r.email} with ${project.title}` },
+        });
+        sent++;
+        continue;
+      }
       await sendDeliveryEmail(r.email, {
         clientName: project.client.name,
         logoUrl: emailLogoUrl(project.client.logoUrl),

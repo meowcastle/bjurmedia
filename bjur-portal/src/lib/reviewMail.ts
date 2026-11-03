@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
 import { emailLogoUrl } from "@/lib/emailLogo";
-import { sendCutReadyEmail, sendNotesInEmail } from "@/lib/mailer";
-import type { CutReadyNote } from "@/emails/cutReady";
+import { sendCutReadyEmail, sendNotesInEmail, sendReviewGuideEmail } from "@/lib/mailer";
+import { resetSeatPassword } from "@/lib/clients";
+import { isLive } from "@/lib/deliveryNotify";
+import { canApprove } from "@/lib/reviewAccess";
+import type { CutReadyEmailProps, CutReadyNote } from "@/emails/cutReady";
 
 /**
  * Mail for the cut loop: a released cut out to every reviewer, a sent batch back to us.
@@ -33,8 +36,49 @@ export function timeLabel(sec: number | null) {
 
 export type ReviewMailDeps = {
   sendCutReady: typeof sendCutReadyEmail;
+  sendReviewGuide: typeof sendReviewGuideEmail;
   sendNotesIn: typeof sendNotesInEmail;
+  issuePassword: typeof resetSeatPassword;
 };
+
+/**
+ * A seat that has never signed in gets its login inside the cut-ready mail, or the review
+ * link lands on a sign-in form they have no password for. The welcome mail may be long
+ * gone and its password was temporary anyway, and passwords are hashed, so the only thing
+ * to send is a fresh temporary one (resetSeatPassword, which also forces a change).
+ *
+ * Every cut, not just the first: each mail to a never-signed-in seat works on its own,
+ * and the newest one in their inbox is always the one that works. Only when the mail
+ * really goes out, though. A dry run that reset the password would leave the seat with
+ * one nobody will ever see.
+ */
+async function firstLogin(
+  reviewer: { kind: string; userId: string | null },
+  projectId: string,
+  version: number,
+  issue: typeof resetSeatPassword
+): Promise<CutReadyEmailProps["login"]> {
+  if (reviewer.kind !== "SEAT" || !reviewer.userId) return undefined;
+  const user = await db.user.findUnique({ where: { id: reviewer.userId } });
+  if (!user || user.deactivatedAt || user.isAdmin || user.lastLoginAt != null) return undefined;
+
+  if (!isLive()) {
+    await db.activity.create({
+      data: { actor: "Mailer", action: `(dry run) would include first-login details for ${user.email}` },
+    });
+    return undefined;
+  }
+
+  const { tempPassword } = await issue(user.id);
+  await db.activity.create({
+    data: { actor: "Mailer", action: `issued first-login password to ${user.email} with cut ${version}` },
+  });
+  return {
+    signInEmail: user.email,
+    tempPassword,
+    signInUrl: `${portalUrl()}/login?next=${encodeURIComponent(`/p/${projectId}/review`)}`,
+  };
+}
 
 /**
  * Where a given reviewer watches. Seats go through the portal with their session; a guest
@@ -71,6 +115,8 @@ export async function notifyCutReady(
   only?: string[]
 ) {
   const send = deps.sendCutReady ?? sendCutReadyEmail;
+  const sendGuide = deps.sendReviewGuide ?? sendReviewGuideEmail;
+  const issue = deps.issuePassword ?? resetSeatPassword;
   try {
     const cut = await db.review.findUnique({
       where: { id: reviewId },
@@ -122,23 +168,61 @@ export async function notifyCutReady(
       return { sent: 0 };
     }
 
+    const clientName = cut.asset.project.client.name;
+    const logoUrl = emailLogoUrl(cut.asset.project.client.logoUrl);
+
     let sent = 0;
+    let guides = 0;
     for (const reviewer of reviewers) {
+      const reviewUrl = watchUrl(projectId, reviewer);
+      const approves = await canApprove(reviewer);
       await send(reviewer.email, {
-        clientName: cut.asset.project.client.name,
-        logoUrl: emailLogoUrl(cut.asset.project.client.logoUrl),
+        clientName,
+        logoUrl,
         version: cut.version,
         title: cut.asset.contentTitle || cut.asset.name,
         projectTitle: cut.asset.project.title,
         note: cut.note,
         notes,
-        reviewUrl: watchUrl(projectId, reviewer),
+        reviewUrl,
         recipientName: reviewer.name,
         accent: cut.asset.project.client.accentColor ?? undefined,
+        login: await firstLogin(reviewer, projectId, cut.version, issue),
+        canApprove: approves,
       });
       sent += 1;
+
+      // The guide, once per reviewer, straight after the first cut they actually receive,
+      // so the cut stays the newest thing in their inbox. Its own try: a guide that fails
+      // is logged and the next reviewer still gets their cut.
+      if (reviewer.guideSentAt == null) {
+        try {
+          if (!isLive()) {
+            await db.activity.create({
+              data: { actor: "Mailer", action: `(dry run) would send the review guide to ${reviewer.email}` },
+            });
+          } else {
+            await sendGuide(reviewer.email, {
+              clientName,
+              logoUrl,
+              recipientName: reviewer.name,
+              projectTitle: cut.asset.project.title,
+              version: cut.version,
+              reviewUrl,
+              isGuest: reviewer.kind === "GUEST",
+              canApprove: approves,
+            });
+            await db.reviewer.update({ where: { id: reviewer.id }, data: { guideSentAt: new Date() } });
+            guides += 1;
+          }
+        } catch (err) {
+          await db.activity.create({
+            data: { actor: "Mailer", action: `failed to send the review guide to ${reviewer.email}: ${(err as Error).message}` },
+          });
+        }
+      }
     }
-    return { sent, notes: notes.length };
+    return { sent, guides, notes: notes.length };
   } catch (err) {
     console.error("[review-mail] cut-ready failed:", (err as Error).message);
     return { sent: 0 };

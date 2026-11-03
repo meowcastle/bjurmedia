@@ -578,6 +578,11 @@ model Reviewer {
   token        String?      @unique
   lastOpenedAt DateTime?
   /**
+   * The one-time "how reviews work" mail (emails/reviewGuide.tsx). Null until it goes out
+   * with the first cut this reviewer actually receives.
+   */
+  guideSentAt  DateTime?
+  /**
    * Revoked guests 404; deactivated seats are revoked rather than deleted.
    */
   revokedAt    DateTime?

@@ -15,6 +15,7 @@ import path from "node:path";
 import { renderOnboardingEmailHtml, type OnboardingEmailProps } from "@/emails/onboarding";
 import { renderDeliveryEmailHtml, type DeliveryEmailProps } from "@/emails/delivery";
 import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutReady";
+import { renderReviewGuideEmailHtml, type ReviewGuideEmailProps } from "@/emails/reviewGuide";
 import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
 import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/released";
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
@@ -65,6 +66,43 @@ const cutReady: CutReadyEmailProps = {
   ],
   reviewUrl: `${PORTAL}/p/hurt/review`,
   logoUrl: LOGO,
+};
+
+/** Cut 1 to a seat that has never signed in: the login rides in the mail. */
+const cutReadyFirstLogin: CutReadyEmailProps = {
+  ...cutReady,
+  clientName: "Suyin",
+  recipientName: "Cansu Aydin",
+  version: 1,
+  title: "Gumi x Miku Hair",
+  projectTitle: "Gumi x Miku Hair",
+  notes: [],
+  reviewUrl: `${PORTAL}/p/gumi-x-miku-hair/review`,
+  canApprove: true,
+  login: {
+    signInEmail: "cansu@suyinsama.com",
+    tempPassword: "kite-paper-4471",
+    signInUrl: `${PORTAL}/login?next=${encodeURIComponent("/p/gumi-x-miku-hair/review")}`,
+  },
+};
+
+const guideSeat: ReviewGuideEmailProps = {
+  clientName: "Suyin",
+  recipientName: "Cansu Aydin",
+  projectTitle: "Gumi x Miku Hair",
+  version: 1,
+  reviewUrl: `${PORTAL}/p/gumi-x-miku-hair/review`,
+  isGuest: false,
+  canApprove: true,
+  logoUrl: LOGO,
+};
+
+const guideGuest: ReviewGuideEmailProps = {
+  ...guideSeat,
+  recipientName: "Tom Reyes",
+  reviewUrl: `${PORTAL}/r/3f9a0c`,
+  isGuest: true,
+  canApprove: false,
 };
 
 const notesIn: NotesInEmailProps = {
@@ -145,6 +183,9 @@ const previews: Preview[] = [
   { name: "delivery", subject: `Your ${delivery.projectTitle} files are ready`, html: renderDeliveryEmailHtml(delivery), send: (to, m) => m.sendDeliveryEmail(to, sendable(delivery)) },
   { name: "delivery-update", subject: `${delivery.projectTitle} has been updated`, html: renderDeliveryEmailHtml({ ...delivery, isUpdate: true }), send: (to, m) => m.sendDeliveryEmail(to, sendable({ ...delivery, isUpdate: true })) },
   { name: "cut-ready", subject: `${cutReady.title} · cut ${cutReady.version} is ready`, html: renderCutReadyEmailHtml(cutReady), send: (to, m) => m.sendCutReadyEmail(to, sendable(cutReady)) },
+  { name: "cut-ready-first-login", subject: `${cutReadyFirstLogin.title} · cut 1 is ready`, html: renderCutReadyEmailHtml(cutReadyFirstLogin), send: (to, m) => m.sendCutReadyEmail(to, sendable(cutReadyFirstLogin)) },
+  { name: "review-guide", subject: "How to leave notes on your cut", html: renderReviewGuideEmailHtml(guideSeat), send: (to, m) => m.sendReviewGuideEmail(to, sendable(guideSeat)) },
+  { name: "review-guide-guest", subject: "How to leave notes on your cut", html: renderReviewGuideEmailHtml(guideGuest), send: (to, m) => m.sendReviewGuideEmail(to, sendable(guideGuest)) },
   { name: "notes-in", subject: `[Bjur] ${notesIn.reviewerName} sent 2 notes on Hurt · cut 5`, html: renderNotesInEmailHtml(notesIn), send: (to, m) => m.sendNotesInEmail(to, notesIn) },
   { name: "approved", subject: `[Bjur] ${approved.reviewerName} approved Hurt · cut 5`, html: renderNotesInEmailHtml(approved), send: (to, m) => m.sendNotesInEmail(to, approved) },
   { name: "released", subject: `Your ${released.projectTitle} files are ready`, html: renderReleasedEmailHtml(released), send: (to, m) => m.sendReleasedEmail(to, sendable(released)) },

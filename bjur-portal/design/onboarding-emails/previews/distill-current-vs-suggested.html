@@ -1,0 +1,184 @@
+<title>Review Email Distill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the portal's own email look (paper, card, shu rule, mono labels) — current vs suggested side by side, one pair per email. */
+:root{
+  --paper:#F4F1E8; --card:#FBF9F3; --rule:#D9D3C4; --ink:#1A1A1A; --sumi:#3A3934; --ash:#7A776E; --shu:#C8371F;
+  --cut-bg:#F6DCD5; --cut-fg:#8E2A17; --add-bg:#DCEBD6; --add-fg:#2C5A22;
+  --sans:Archivo,'Helvetica Neue',Arial,sans-serif; --mono:'IBM Plex Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#1B1A17; --card:#24221E; --rule:#3B3833; --ink:#EEEAE0; --sumi:#C9C4B8; --ash:#8F8A7E; --shu:#E2573D;
+  --cut-bg:#4A2219; --cut-fg:#F2B4A6; --add-bg:#24391F; --add-fg:#B9DDAE; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#1B1A17; --card:#24221E; --rule:#3B3833; --ink:#EEEAE0; --sumi:#C9C4B8; --ash:#8F8A7E; --shu:#E2573D;
+  --cut-bg:#4A2219; --cut-fg:#F2B4A6; --add-bg:#24391F; --add-fg:#B9DDAE; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:40px}
+h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;margin:0;text-wrap:balance}
+h2{font-size:21px;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.lbl{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ash)}
+.kick{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--shu)}
+.lede{color:var(--sumi);max-width:68ch;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash);font-weight:500}
+td.n{font-family:var(--mono);white-space:nowrap}
+.tw{overflow-x:auto;border-top:1px solid var(--ink)}
+.good{color:var(--add-fg);font-weight:600}
+.strip{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1px solid var(--rule);background:var(--card);padding:8px 12px;font-size:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;min-width:0}
+.chip small{color:var(--ash);font-size:12.5px;flex-basis:100%}
+del{background:var(--cut-bg);color:var(--cut-fg);text-decoration:line-through;text-decoration-thickness:1px}
+ins{background:var(--add-bg);color:var(--add-fg);text-decoration:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:820px){.pair{grid-template-columns:1fr}}
+.mail{background:var(--card);border:1px solid var(--rule);border-top:3px solid var(--shu);min-width:0}
+.mail .tag{padding:10px 22px;border-bottom:1px solid var(--rule)}
+.mail .in{padding:20px 22px 22px;display:grid;gap:10px}
+.mail .hd{font-size:22px;line-height:1.1;font-weight:700;letter-spacing:-.03em}
+.mail p{margin:0;color:var(--sumi)}
+.facts{border-top:1px solid var(--ink)}
+.facts div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.facts span:first-child{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ash)}
+.mono{font-family:var(--mono)}
+.step{border-bottom:1px solid var(--rule);padding:8px 0;font-size:14px}
+.step .lbl{display:block;margin-bottom:2px}
+.btn{display:inline-block;background:var(--shu);color:#fff;font-weight:600;padding:10px 16px;border-radius:3px;font-size:14px;justify-self:start}
+.btn del,.btn ins{color:inherit;background:rgba(255,255,255,.18)}
+.small{font-size:13px;color:var(--ash)}
+.box{border:1px solid var(--rule);padding:9px 11px;font-family:var(--mono);font-size:12px;color:var(--sumi)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+ol{margin:0;padding-left:20px;display:grid;gap:6px}
+section{min-width:0}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="kick">UX distill · portal emails · Nov 3 2026</div>
+    <h1>Review Email Distill</h1>
+    <p class="lede">Two new emails: cut ready with first-login details, and the one-time review guide. I cut every line that repeated something the headline, the button or the other email already says. Every review-screen function a reader can use is still named. Current copy is on the left with the cut words <del>struck</del>; the distilled version is on the right, with new or changed words <ins>marked</ins>.</p>
+  </header>
+
+  <section>
+    <h2>Scorecard</h2>
+    <div class="tw"><table>
+      <tr><th>Measure</th><th>Before</th><th>After</th></tr>
+      <tr><td>Words, cut-ready + login</td><td class="n">120</td><td class="n good">86</td></tr>
+      <tr><td>Words, review guide (owner / guest)</td><td class="n">279 / 286</td><td class="n good">162 / 168</td></tr>
+      <tr><td>Times “cut 1 is up” is stated in the cut-ready email</td><td class="n">5</td><td class="n good">3</td></tr>
+      <tr><td>Lines explaining the login</td><td class="n">2</td><td class="n good">1</td></tr>
+      <tr><td>“Only you see your notes” across the first-time flow</td><td class="n">2</td><td class="n good">1</td></tr>
+      <tr><td>Shortcuts stated twice in the guide (Space, N)</td><td class="n">2</td><td class="n good">0</td></tr>
+      <tr><td>Intro sentences before the guide’s steps</td><td class="n">3</td><td class="n good">1</td></tr>
+      <tr><td>Count lines (“Four steps”)</td><td class="n">1</td><td class="n good">0</td></tr>
+      <tr><td>“Approve” offered to people who can’t approve</td><td class="n">yes</td><td class="n good">no</td></tr>
+      <tr><td>Review-screen functions with a visible name</td><td class="n">9</td><td class="n good">9</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Vocabulary</h2>
+    <div class="strip">
+      <div class="chip"><del>The first cut is up</del> <del>is waiting for you</del> → headline only<small>Same fact as the headline; it stays there.</small></div>
+      <div class="chip"><del>Cut · 1 of 1</del> → removed<small>The headline and the button already carry the cut number.</small></div>
+      <div class="chip"><del>Four steps</del> → removed<small>The numbering already shows it’s a sequence.</small></div>
+      <div class="chip"><del>Your login is just for you</del> → removed<small>The welcome email already says this.</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Kept distinctions</h2>
+    <div class="strip">
+      <div class="chip">“Add a note at this moment” · “General note”<small>Different things in the portal: a note pinned to a second vs. one about the whole cut.</small></div>
+      <div class="chip">“Approve” · “Sign-off”<small>Only owners can approve (reviewAccess.canApprove). Everyone else is told the owner signs off.</small></div>
+      <div class="chip">login · personal link<small>A client seat signs in; a guest’s link is their only access and needs no password.</small></div>
+      <div class="chip">“Only you see these” · “Send notes to Bjur”<small>A note is a private draft until it’s sent.</small></div>
+      <div class="chip">changed · kept as is<small>The two answers a note can get; the next cut’s email shows them.</small></div>
+      <div class="chip">login (noun) · sign in (verb)<small>The account vs. the action. Same use as the existing welcome email.</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>1 · Cut ready, first sign-in</h2>
+    <div class="pair">
+      <div class="mail"><div class="tag lbl">Current</div><div class="in">
+        <div class="kick">For your review · Momentos - irl</div>
+        <div class="hd">Momentos Sizzle, cut 1 is ready for your notes.</div>
+        <p>Hi Danny. <del>The first cut is up.</del> Leave notes right on the video, or approve it if it is good to go.</p>
+        <p><del>You have not signed in to the portal yet, so your login is below. You will choose your own password the first time.</del></p>
+        <div class="facts"><div><span>Project</span><span>Sizzle reel — Oct 1st performance</span></div><div><span><del>Cut</del></span><span><del>1 of 1</del></span></div><div><span>Length</span><span>1:32</span></div><div><span>Sign in with</span><span>danny@loomenes.com</span></div><div><span>Temporary password</span><span class="mono">kite-paper-4471</span></div></div>
+        <span class="btn">Sign in and review cut 1 →</span>
+        <p class="small"><del>Your login is just for you. Only you see your notes until you press Send.</del></p>
+      </div></div>
+      <div class="mail"><div class="tag lbl">Suggested</div><div class="in">
+        <div class="kick">For your review · Momentos - irl</div>
+        <div class="hd">Momentos Sizzle, cut 1 is ready for your notes.</div>
+        <p>Hi Danny. Leave notes right on the video, or approve it if it is good to go.</p>
+        <p><ins>Your login is below. You choose your own password when you sign in.</ins></p>
+        <div class="facts"><div><span>Project</span><span>Sizzle reel — Oct 1st performance</span></div><div><span>Length</span><span>1:32</span></div><div><span>Sign in with</span><span>danny@loomenes.com</span></div><div><span>Temporary password</span><span class="mono">kite-paper-4471</span></div></div>
+        <span class="btn">Sign in and review cut 1 →</span>
+        <p class="small">Non-owners see: “Leave notes right on the video<ins>.</ins>” with no approve clause.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · How reviews work, sent once</h2>
+    <div class="pair">
+      <div class="mail"><div class="tag lbl">Current</div><div class="in">
+        <div class="kick">How reviews work · Momentos - irl</div>
+        <div class="hd">Leaving notes on your cut takes a minute.</div>
+        <p>Hi Danny. <del>Cut 1 of Sizzle reel — Oct 1st performance is waiting for you. Here is how the review screen works, so your notes land exactly where you mean them.</del></p>
+        <p><del>Sign in with your portal login and the cut opens in your project.</del></p>
+        <div class="facts"><div><span><del>Four steps</del></span><span></span></div></div>
+        <div class="step"><del><span class="lbl">01 · Watch it through</span>Press play (or Space) and watch once before writing anything. Full screen is in the corner.</del></div>
+        <div class="step"><span class="lbl"><del>02 · Note on the frame</del></span><del>Pause where something should change and</del> choose “Add a note at this moment”<del>, or press N. The note is pinned to that second, so we see exactly what you saw.</del> For <del>anything about</del> the whole cut, leave a General note.</div>
+        <div class="step"><span class="lbl"><del>03 · Send them together</del></span><del>Your notes are drafts while you write them: the panel says “Only you see these”. When you are done, press “Send notes to Bjur” (it counts them for you). They arrive as one batch, so we work from the full picture.</del></div>
+        <div class="step"><span class="lbl"><del>04 · Or approve it</del></span>Nothing to change? Press “Approve cut 1”<del> instead. That is how we know it is final.</del></div>
+        <div class="box">Space play / pause · N note here · ← → one second · M next note</div>
+        <span class="btn">Open cut 1 →</span>
+        <p class="small"><del>Every note gets an answer. The next cut's email lists each one with what we did about it:</del> changed, or kept as is and why.</p>
+      </div></div>
+      <div class="mail"><div class="tag lbl">Suggested</div><div class="in">
+        <div class="kick">How reviews work · Momentos - irl</div>
+        <div class="hd">Leaving notes on your cut takes a minute.</div>
+        <p>Hi Danny. <ins>Three things to know before you open cut 1.</ins></p>
+        <div class="step"><span class="lbl"><ins>01 · Note the moment</ins></span><ins>Pause and</ins> choose “Add a note at this moment”. <ins>It is pinned to that second.</ins> For the whole cut, leave a General note.</div>
+        <div class="step"><span class="lbl"><ins>02 · Send together</ins></span><ins>Notes stay private (“Only you see these”) until you press “Send notes to Bjur”. They arrive as one batch.</ins></div>
+        <div class="step"><span class="lbl"><ins>03 · Approve</ins></span>Nothing to change? Press “Approve cut 1”.</div>
+        <div class="box">Space play / pause · N note here · ← → one second · M next note</div>
+        <span class="btn">Open cut 1 →</span>
+        <p class="small"><ins>We answer every note in the next cut's email:</ins> changed, or kept as is and why.</p>
+        <p class="small">Guests: the intro reads <ins>“No account needed: the link in your email is yours and works for every cut.”</ins> Non-owners: step 03 is <ins>“Sign-off · Your project owner approves the final cut.”</ins></p>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div>
+      <h2>The six laws</h2>
+      <ol>
+        <li><b>One word.</b> No retired phrasing in either template.</li>
+        <li><b>Label-sufficient.</b> No line repeats the headline, button or shortcut box.</li>
+        <li><b>One fact, one place.</b> Drafts are explained in the guide, the login in the cut email.</li>
+        <li><b>Tier.</b> No inbox, proxy or hashing words; “temporary password” only.</li>
+        <li><b>Reversible.</b> No destructive actions in either email.</li>
+        <li><b>No lost meaning.</b> All 9 review functions still named.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Order of work</h2>
+      <div class="tw"><table>
+        <tr><th>#</th><th>Step</th></tr>
+        <tr><td class="n">1</td><td>Pass canApprove into the cut-ready email (a meaning fix: non-owners stop being offered Approve)</td></tr>
+        <tr><td class="n">2</td><td>Drop in the distilled cutReady.tsx and reviewGuide.tsx</td></tr>
+        <tr><td class="n">3</td><td>Re-render previews and re-count this scorecard</td></tr>
+        <tr><td class="n">4</td><td>Ship with the wiring in HANDOFF.md</td></tr>
+      </table></div>
+    </div>
+  </section>
+</div>

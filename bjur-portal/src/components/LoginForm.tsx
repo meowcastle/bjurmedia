@@ -70,7 +70,14 @@ export function LoginForm({
         setLoading(false);
         return;
       }
-      router.push(redirectTo);
+      const data = await res.json().catch(() => ({}));
+      // A temporary password is changed first, then the visitor carries on to where the
+      // link was taking them (the review screen, from a cut-ready mail).
+      router.push(
+        portal === "client" && data.mustChangePassword
+          ? `/change-password${redirectTo !== "/" ? `?next=${encodeURIComponent(redirectTo)}` : ""}`
+          : redirectTo
+      );
       router.refresh();
     } catch {
       setError("Something went wrong. Try again.");

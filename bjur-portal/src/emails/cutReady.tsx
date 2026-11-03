@@ -43,6 +43,19 @@ export type CutReadyEmailProps = {
   logoUrl?: string | null;
   /** Kept for callers; v13 has one action colour, so it no longer tints anything. */
   accent?: string;
+  /**
+   * A seat that has never signed in. notifyCutReady issues a fresh temporary password
+   * (the old one is hashed and cannot be re-sent) and the mail carries it, so the review
+   * link is not a dead end at a login form they have no password for. Guests never get
+   * this: their tokenized link is the whole of their access.
+   */
+  login?: { signInEmail: string; tempPassword: string; signInUrl: string };
+  /**
+   * Only owners see "Approve" on the review screen (reviewAccess.canApprove). Pass false
+   * for everyone else so the mail does not offer a button they will not find. Undefined
+   * keeps the old wording for callers not yet updated.
+   */
+  canApprove?: boolean;
 };
 
 const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
@@ -51,6 +64,7 @@ const word = (n: number) => (n <= 10 ? WORDS[n] : String(n));
 /** "Your notes from cut 4 are answered inside: two changed, one kept as is." */
 function answered(version: number, notes: CutReadyNote[]) {
   const changed = notes.filter((n) => n.outcome === "CHANGED").length;
+
   const kept = notes.length - changed;
   if (notes.length === 1) {
     return `Your note from cut ${version - 1} is answered inside: ${changed ? "changed" : "kept as is"}.`;
@@ -86,24 +100,30 @@ export function renderCutReadyEmailHtml({
   recipientName,
   length,
   logoUrl,
+  login,
+  canApprove,
 }: CutReadyEmailProps): string {
   const hi = recipientName ? `Hi ${firstName(recipientName)}. ` : "";
-  const up = version === 1 ? "The first cut is up." : `Cut ${version} is up.`;
-  const summary = `${hi}${up}${notes.length ? ` ${answered(version, notes)}` : ""} Leave ${
-    version === 1 || notes.length === 0 ? "" : "new "
-  }notes right on the video, or approve it if it is good to go.`;
+  // The headline already says which cut is up; the body only adds what it does not.
+  const ask = `Leave ${version === 1 || notes.length === 0 ? "" : "new "}notes right on the video${
+    canApprove === false ? "." : ", or approve it if it is good to go."
+  }`;
+  const summary = `${hi}${notes.length ? `${answered(version, notes)} ` : ""}${ask}`;
 
   const changed = notes.filter((n) => n.outcome === "CHANGED").length;
+
+  // First time in: one line on why a password is here, and what happens to it.
+  const loginLine = login ? "Your login is below. You choose your own password when you sign in." : null;
+  const paragraphs = [summary, ...(note ? [note] : []), ...(loginLine ? [loginLine] : [])];
 
   return renderShell({
     preheader: `Cut ${version} of ${title} is ready to watch.`,
     logoUrl,
     kicker: `For your review · ${clientName}`,
     headline: `${title}, cut ${version} is ready for your notes.`,
-    body: note ? [summary, note] : summary,
+    body: paragraphs.length === 1 ? paragraphs[0] : paragraphs,
     facts: [
       { label: "Project", value: projectTitle },
-      { label: "Cut", value: `${version} of ${version}` },
       ...(length ? [{ label: "Length", value: length }] : []),
       ...(notes.length
         ? [
@@ -113,10 +133,19 @@ export function renderCutReadyEmailHtml({
             },
           ]
         : []),
+      ...(login
+        ? [
+            { label: "Sign in with", value: login.signInEmail },
+            { label: "Temporary password", value: login.tempPassword, mono: true },
+          ]
+        : []),
     ],
     itemsTitle: notes.length ? `Your notes on cut ${version - 1}` : undefined,
     items: notes.length ? notes.map(toItem) : undefined,
-    cta: { label: `Review cut ${version}`, url: reviewUrl },
-    note: "Only you see your notes until you press Send.",
+    cta: login
+      ? { label: `Sign in and review cut ${version}`, url: login.signInUrl }
+      : { label: `Review cut ${version}`, url: reviewUrl },
+    // First-login mail is followed by the review guide, which covers drafts; say it once.
+    note: login ? undefined : "Only you see your notes until you press Send.",
   });
 }

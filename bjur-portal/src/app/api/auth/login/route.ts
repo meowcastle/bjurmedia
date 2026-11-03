@@ -62,5 +62,7 @@ export async function POST(req: NextRequest) {
 
   await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-  return NextResponse.json({ ok: true });
+  // Said here so the form can carry ?next= through the password change; the layout's own
+  // redirect to /change-password would drop it.
+  return NextResponse.json({ ok: true, mustChangePassword: user.mustChangePassword });
 }
