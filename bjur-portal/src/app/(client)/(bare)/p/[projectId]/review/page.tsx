@@ -5,6 +5,7 @@ import { loadReviewScreen } from "@/lib/reviewScreenData";
 import Link from "next/link";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
 import { ReviewShell } from "@/components/ReviewScreen";
+import { canManagePeople } from "@/lib/projectPeople";
 
 /**
  * A seat reviewing a Film project.
@@ -47,10 +48,11 @@ export default async function ClientReviewPage({
 
   const data = await loadReviewScreen(projectId, reviewer.id);
   if (!data) notFound();
+  const peopleHref = (await canManagePeople(session, project)) ? `/p/${projectId}?people=1` : undefined;
 
   if (data.empty) {
     return (
-      <ReviewShell mode="client" clientName={data.clientName} brandHref="/" viewerName={session.name}>
+      <ReviewShell mode="client" clientName={data.clientName} brandHref="/" viewerName={session.name} peopleHref={peopleHref}>
         <section className="bj-rv-solo">
           <Link href="/" className="bj-mono" data-testid="review-back">
             ← All projects
@@ -65,5 +67,5 @@ export default async function ClientReviewPage({
     );
   }
 
-  return <ReviewScreenClient mode="client" backHref="/" {...data} />;
+  return <ReviewScreenClient mode="client" backHref="/" peopleHref={peopleHref} {...data} />;
 }

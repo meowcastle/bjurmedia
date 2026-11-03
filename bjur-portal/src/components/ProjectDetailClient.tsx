@@ -20,6 +20,7 @@ import { mondayOfWeek as mondayOfWeekDate } from "@/lib/weeks";
 import { fileStamp, formatViews, formatBytes } from "@/lib/format";
 import { IconHeart } from "@/components/ui/Icon";
 import { PhoneSaveButtons, phoneSaveAvailable, usePhoneSave } from "@/components/PhoneSave";
+import { ProjectPeopleDialog } from "@/components/ProjectPeopleDialog";
 
 
 type Asset = TileAsset & {
@@ -135,6 +136,8 @@ export function ProjectDetailClient({
   role,
   totalViews,
   totalSocialPosts,
+  canManagePeople = false,
+  openPeople = false,
 }: {
   project: {
     id: string;
@@ -152,13 +155,19 @@ export function ProjectDetailClient({
     folders: { id: string; name: string }[];
     /** Opens by client logins, once per tab session. */
     viewCount: number;
+    isFilm?: boolean;
   };
   assets: Asset[];
   initialFavorites: string[];
   role: "OWNER" | "DOWNLOADER" | "VIEWER";
   totalViews: number;
   totalSocialPosts: number;
+  /** An owner of this project: the header offers People (lib/projectPeople.ts). */
+  canManagePeople?: boolean;
+  /** Arrived from the review screen's People link (?people=1). */
+  openPeople?: boolean;
 }) {
+  const [peopleOpen, setPeopleOpen] = useState(canManagePeople && openPeople);
   // Local, because captions are edited in place: a save updates the tile line and the
   // "to check" count without a reload.
   const [assets, setAssets] = useState(initialAssets);
@@ -565,8 +574,13 @@ export function ProjectDetailClient({
             )}
           </div>
         </div>
-        {(project.footageUploads || canDownload) && (
+        {(project.footageUploads || canDownload || canManagePeople) && (
           <div className="acts">
+            {canManagePeople && (
+              <button type="button" onClick={() => setPeopleOpen(true)} className="bj-ghost" data-testid="people-open">
+                People
+              </button>
+            )}
             {/* Only where the studio has opened footage uploads for this client; off,
                 there is no /send to go to, so no button either. */}
             {project.footageUploads && (
@@ -582,6 +596,15 @@ export function ProjectDetailClient({
           </div>
         )}
       </section>
+
+      {peopleOpen && (
+        <ProjectPeopleDialog
+          projectId={project.id}
+          projectTitle={project.title}
+          isFilm={!!project.isFilm}
+          onClose={() => setPeopleOpen(false)}
+        />
+      )}
 
       {/* §13. Only for projects that actually have posts — a delivery of stills has
           nothing to approve and should not grow a tab strip saying so. */}

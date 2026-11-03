@@ -64,6 +64,8 @@ export type ReviewScreenProps = {
   assetTitle: string;
   /** Where the wordmark goes. Omitted for a guest, who has no portal to go back to. */
   backHref?: string;
+  /** Owners only: the project's People sheet, to bring their own team onto the review. */
+  peopleHref?: string;
   /** Newest last. Studio sees an unsent cut; clients never do. */
   cuts: ScreenCut[];
   activeCutId: string;
@@ -113,6 +115,7 @@ export function ReviewScreen({
   projectTitle,
   assetTitle,
   backHref,
+  peopleHref,
   cuts,
   activeCutId,
   onSelectCut,
@@ -395,6 +398,7 @@ export function ReviewScreen({
       clientName={clientName}
       clientLogo={clientLogo}
       brandHref={mode === "studio" ? "/admin" : backHref}
+      peopleHref={mode === "client" ? peopleHref : undefined}
       viewerName={viewer?.name ?? null}
       viewerRole={viewer?.role ?? null}
     >
@@ -775,6 +779,7 @@ export function ReviewShell({
   brandHref,
   viewerName = null,
   viewerRole = null,
+  peopleHref,
   testId,
   children,
 }: {
@@ -786,6 +791,7 @@ export function ReviewShell({
   brandHref?: string;
   viewerName?: string | null;
   viewerRole?: string | null;
+  peopleHref?: string;
   testId?: string;
   children: React.ReactNode;
 }) {
@@ -815,6 +821,11 @@ export function ReviewShell({
           <span className="bj-brand">{who}</span>
         )}
         <div className="r">
+          {peopleHref && (
+            <Link href={peopleHref} className="bj-mono bj-rv-people" data-testid="review-people">
+              People
+            </Link>
+          )}
           <ThemeToggle portal={mode === "studio" ? "admin" : "client"} />
           {viewerName && (
             <span className="bj-me" title={`${viewerName}${viewerRole ? ` · ${viewerRole}` : ""}`}>

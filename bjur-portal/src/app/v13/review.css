@@ -454,3 +454,7 @@ p.bj-mono.bj-rv-banner { font-size: 11px; color: var(--text); }
   .bj-rv-send .or { flex-wrap: wrap; }
   .bj-rv-dialog .row > * { flex: 1 1 100%; justify-content: center; }
 }
+
+/* An owner's way to bring their own team onto the review (lib/projectPeople.ts). */
+.bj-rv-people { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 2px; margin-right: 12px; }
+.bj-rv-people:hover { border-bottom-color: var(--text); }

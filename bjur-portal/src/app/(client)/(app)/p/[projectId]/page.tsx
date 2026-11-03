@@ -4,13 +4,17 @@ import { db } from "@/lib/db";
 import { ProjectDetailClient } from "@/components/ProjectDetailClient";
 import { getProjectAccess } from "@/lib/projectAccess";
 import { CountView } from "@/components/CountView";
+import { canManagePeople } from "@/lib/projectPeople";
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ people?: string }>;
 }) {
   const { projectId } = await params;
+  const { people } = await searchParams;
   const session = await getSessionUser();
   if (!session?.clientId) redirect("/login");
 
@@ -75,7 +79,10 @@ export default async function ProjectDetailPage({
           footageUploads: project.client.footageUploads,
           folders: project.folders.map((f) => ({ id: f.id, name: f.name })),
           viewCount: project.viewCount,
+          isFilm: project.type === "FILM",
         }}
+        canManagePeople={await canManagePeople(session, project)}
+        openPeople={people === "1"}
         totalViews={totalViews}
         totalSocialPosts={totalPosts}
         assets={project.assets.map((a) => ({
