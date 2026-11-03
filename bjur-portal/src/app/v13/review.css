@@ -202,6 +202,7 @@ a.bj-rv-back:hover { color: var(--text); }
   transition: border-color var(--dur-1) var(--ease-std);
 }
 .bj-rv-composer:focus-within { border-color: var(--text); }
+.bj-rv-err { margin: 8px 0 0; color: var(--accent); font-size: 14px; }
 .bj-rv-at {
   font: 400 12px var(--font-plex-mono), ui-monospace, monospace;
   color: var(--muted);

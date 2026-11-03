@@ -49,3 +49,14 @@ test("focusing the composer pauses and locks the timestamp", async ({ page }) =>
   // drifted to while you typed.
   await expect(stamp).toHaveText(/@ \d+:\d\d/);
 });
+
+test("a note the server refuses says so and keeps what was typed", async ({ page }) => {
+  await page.goto("/p/p2/review");
+  await page.route("**/api/reviews/*/notes", (route) =>
+    route.request().method() === "POST" ? route.fulfill({ status: 409 }) : route.continue()
+  );
+  await page.getByTestId("composer").fill("This one does not land");
+  await page.getByTestId("add-note").click();
+  await expect(page.getByTestId("note-error")).toHaveText(/closed for notes/);
+  await expect(page.getByTestId("composer")).toHaveValue("This one does not land");
+});

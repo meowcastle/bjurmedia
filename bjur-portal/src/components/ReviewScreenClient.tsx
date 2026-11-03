@@ -38,9 +38,15 @@ export function ReviewScreenClient({
   };
   const cutId = props.initialCutId;
 
+  /**
+   * Throws when the server says no, so the screen can keep what was typed and say why.
+   * It used to refresh either way: a refused note cleared the box and simply never
+   * appeared, which looked exactly like a note that saved and then vanished.
+   */
   async function call(path: string, init?: RequestInit) {
-    await fetch(path, { headers, ...init });
+    const res = await fetch(path, { headers, ...init }).catch(() => null);
     router.refresh();
+    if (!res?.ok) throw new Error(refusal(res?.status));
   }
 
   return (
@@ -64,4 +70,10 @@ export function ReviewScreenClient({
       onUndoApprove={() => call(`/api/reviews/${cutId}/approve`, { method: "DELETE" })}
     />
   );
+}
+
+function refusal(status: number | undefined) {
+  if (status === 409) return "This cut is closed for notes. Reload the page to see the latest cut.";
+  if (status === 403 || status === 401) return "This page is signed out. Sign in again, or open the link from your latest email.";
+  return "That did not save. Check your connection and try again.";
 }

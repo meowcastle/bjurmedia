@@ -140,6 +140,8 @@ export function ReviewScreen({
   const [busy, setBusy] = useState(false);
   const [isFull, setIsFull] = useState(false);
   const [sentBanner, setSentBanner] = useState<string | null>(null);
+  /** Why the last add or send was refused. The typed note stays in the box. */
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const cut = cuts.find((c) => c.id === activeCutId) ?? cuts[cuts.length - 1];
   const latest = cuts.filter((c) => c.sentAt).slice(-1)[0] ?? cuts[cuts.length - 1];
@@ -289,12 +291,15 @@ export function ReviewScreen({
     const body = draft.trim();
     if (!body || busy) return;
     setBusy(true);
+    setSaveError(null);
     try {
       await onAddNote(lockedAt ?? elapsed, body);
       setDraft("");
       // Re-lock to where the video sits now, so a second thought about the same moment
       // does not silently attach itself to the first note's timestamp.
       setLockedAt(videoRef.current?.currentTime ?? elapsed);
+    } catch (err) {
+      setSaveError((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -303,11 +308,14 @@ export function ReviewScreen({
   async function send() {
     if (!myDrafts.length || busy) return;
     setBusy(true);
+    setSaveError(null);
     try {
       await onSendNotes();
       setSentBanner(
         `Notes sent · ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
       );
+    } catch (err) {
+      setSaveError((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -560,6 +568,11 @@ export function ReviewScreen({
                 Add ↵
               </button>
             </div>
+          )}
+          {canCompose && saveError && (
+            <p className="err bj-rv-err" role="alert" data-testid="note-error">
+              {saveError}
+            </p>
           )}
 
           {mode === "client" && !isLatest && (
