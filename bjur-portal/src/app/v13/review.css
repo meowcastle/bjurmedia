@@ -203,6 +203,24 @@ a.bj-rv-back:hover { color: var(--text); }
 }
 .bj-rv-composer:focus-within { border-color: var(--text); }
 .bj-rv-err { margin: 8px 0 0; color: var(--accent); font-size: 14px; }
+.bj-rv-unsent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 3px !important;
+}
+.bj-rv-unsent p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--body); }
+.bj-rv-unsent p b { color: var(--text); font-weight: 600; }
+.bj-rv-unsent .bj-cta { flex: none; }
+.bj-rv-sent { margin: 12px 0 0; font-size: 11px; color: var(--text); }
+@media (max-width: 640px) {
+  .bj-rv-unsent { flex-direction: column; align-items: stretch; }
+  .bj-rv-unsent .bj-cta { justify-content: center; }
+}
 .bj-rv-at {
   font: 400 12px var(--font-plex-mono), ui-monospace, monospace;
   color: var(--muted);

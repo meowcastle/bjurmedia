@@ -60,3 +60,13 @@ test("a note the server refuses says so and keeps what was typed", async ({ page
   await expect(page.getByTestId("note-error")).toHaveText(/closed for notes/);
   await expect(page.getByTestId("composer")).toHaveValue("This one does not land");
 });
+
+test("unsent notes get a send bar right under the composer", async ({ page }) => {
+  await page.goto("/p/p2/review");
+  // Sasha has a seeded draft, so the bar is already up, counting the same drafts as the
+  // button in the notes column.
+  const bar = page.getByTestId("unsent-bar");
+  await expect(bar).toContainText(/\d+ notes? not sent yet/);
+  const count = (await page.getByTestId("send-notes").textContent())!.match(/Send (\d+)/)![1];
+  await expect(page.getByTestId("send-notes-bar")).toContainText(`Send ${count} note`);
+});

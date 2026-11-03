@@ -154,6 +154,16 @@ export function ReviewScreen({
     [notes, viewer?.id]
   );
   const sentNotes = useMemo(() => notes.filter((n) => n.sentAt), [notes]);
+
+  // Drafts reach nobody until they are sent, and a reviewer who closes the tab thinking
+  // they were done leaves the studio with nothing. The browser asks before leaving.
+  const hasUnsent = mode === "client" && myDrafts.length > 0;
+  useEffect(() => {
+    if (!hasUnsent) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasUnsent]);
   const unanswered = useMemo(
     () => (mode === "studio" ? previousNotes.filter((n) => !n.outcome).length : 0),
     [mode, previousNotes]
@@ -572,6 +582,30 @@ export function ReviewScreen({
           {canCompose && saveError && (
             <p className="err bj-rv-err" role="alert" data-testid="note-error">
               {saveError}
+            </p>
+          )}
+
+          {/* Right under the composer, where the reviewer is already looking: the send
+              button in the notes column was easy to miss, and an unsent note reaches no one. */}
+          {canCompose && myDrafts.length > 0 && (
+            <div className="bj-rv-unsent" data-testid="unsent-bar" role="status">
+              <p>
+                <b>{plural(myDrafts.length, "note")} not sent yet.</b> We see them once you send.
+              </p>
+              <button
+                type="button"
+                onClick={() => void send()}
+                disabled={busy}
+                data-testid="send-notes-bar"
+                className="bj-cta"
+              >
+                Send {plural(myDrafts.length, "note")} to Bjur <i>→</i>
+              </button>
+            </div>
+          )}
+          {canCompose && myDrafts.length === 0 && sentBanner && (
+            <p className="bj-mono bj-rv-sent" data-testid="sent-confirm" role="status">
+              {sentBanner}. We have them.
             </p>
           )}
 
