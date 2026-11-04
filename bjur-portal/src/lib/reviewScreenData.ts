@@ -215,6 +215,10 @@ export async function loadStudioReviewScreen(projectId: string) {
     cuts,
     initialCutId: current.id,
     notes: (await sentOnly(current.id)).map(toScreenNote),
+    // Which cut each list hangs off: an answer is saved against the note's own cut,
+    // never whichever tab happens to be open.
+    notesCutId: current.id,
+    previousCutId: previous?.id ?? null,
     previousNotes: previous ? (await sentOnly(previous.id)).map(toScreenNote) : [],
     // Staff are not reviewers. Null here is what stops the composer and the approve
     // button ever rendering in studio mode.

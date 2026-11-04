@@ -55,6 +55,41 @@ test.describe("studio", () => {
     sql(`UPDATE ReviewNote SET response='${before.replace(/'/g, "''")}' WHERE id='${noteId}';`);
   });
 
+  test("Changed saves on a note from the cut before", async ({ page }) => {
+    // The open tab is cut 2; the note lives on cut 1. Saving it against the tab was the bug.
+    const cut1 = sql("SELECT r.id FROM Review r JOIN Asset a ON a.id=r.assetId WHERE a.projectId='p2' AND r.version=1;");
+    const noteId = sql(`SELECT id FROM ReviewNote WHERE reviewId='${cut1}' AND sentAt IS NOT NULL LIMIT 1;`);
+    const before = sql(`SELECT COALESCE(outcome,'') || '|' || COALESCE(response,'') FROM ReviewNote WHERE id='${noteId}';`);
+    try {
+      sql(`UPDATE ReviewNote SET outcome=NULL, answeredAt=NULL WHERE id='${noteId}';`);
+      await page.goto("/admin/projects/p2/review");
+      await page.getByTestId(`answer-changed-${noteId}`).click();
+      await expect(page.getByTestId("studio-error")).toHaveCount(0);
+      await expect.poll(() => sql(`SELECT outcome FROM ReviewNote WHERE id='${noteId}';`)).toBe("CHANGED");
+    } finally {
+      const [outcome, response] = before.split("|");
+      sql(
+        `UPDATE ReviewNote SET outcome=${outcome ? `'${outcome}'` : "NULL"}, response=${response ? `'${response.replace(/'/g, "''")}'` : "NULL"} WHERE id='${noteId}';`
+      );
+    }
+  });
+
+  test("a note on the cut reviewers are watching can be answered before the next one lands", async ({ page }) => {
+    const cut2 = sql("SELECT r.id FROM Review r JOIN Asset a ON a.id=r.assetId WHERE a.projectId='p2' AND r.version=2;");
+    const reviewerId = sql("SELECT id FROM Reviewer WHERE projectId='p2' LIMIT 1;");
+    const note = `zz-cur-${Date.now()}`;
+    sql(
+      `INSERT INTO ReviewNote (id, reviewId, reviewerId, body, timeSec, sentAt, createdAt, updatedAt) VALUES ('${note}','${cut2}','${reviewerId}','warmer on the wide',4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);`
+    );
+    try {
+      await page.goto("/admin/projects/p2/review");
+      await page.getByTestId(`answer-changed-${note}`).click();
+      await expect.poll(() => sql(`SELECT outcome FROM ReviewNote WHERE id='${note}';`)).toBe("CHANGED");
+    } finally {
+      sql(`DELETE FROM ReviewNote WHERE id='${note}';`);
+    }
+  });
+
   test("an unanswered round does not hold the next cut", async ({ request }) => {
     // A third, unsent cut, with the current round's note left unanswered.
     const assetId = sql("SELECT id FROM Asset WHERE projectId='p2' AND kind='VIDEO' LIMIT 1;");

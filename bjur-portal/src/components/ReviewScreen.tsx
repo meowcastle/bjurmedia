@@ -678,7 +678,23 @@ export function ReviewScreen({
                 )}
               </>
             ) : (
-              visible.map(noteRow)
+              // Studio: the notes on the cut reviewers are watching can be answered now,
+              // so the answers are ready to travel in the next cut's email the moment it
+              // lands (it sends itself).
+              visible.map((n) =>
+                n.sentAt && onAnswerNote ? (
+                  <PreviousNote
+                    key={n.id}
+                    note={n}
+                    label={markLabel(n)}
+                    mode={mode}
+                    onSeek={() => n.timeSec != null && seek(n.timeSec)}
+                    onAnswer={onAnswerNote}
+                  />
+                ) : (
+                  noteRow(n)
+                )
+              )
             )}
 
             {/* The previous cut, and what was done about each note. In studio mode these

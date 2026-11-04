@@ -20,6 +20,8 @@ export function StudioReviewClient({
   notes: ScreenNote[];
   previousNotes: ScreenNote[];
   initialCutId: string;
+  notesCutId: string;
+  previousCutId: string | null;
 }) {
   const router = useRouter();
   const [activeCutId, setActiveCutId] = useState(props.initialCutId);
@@ -31,7 +33,11 @@ export function StudioReviewClient({
   const answeredCount = props.previousNotes.filter((n) => n.outcome).length;
 
   async function answer(noteId: string, outcome: "CHANGED" | "KEPT", response: string) {
-    const res = await fetch(`/api/admin/reviews/${activeCutId}/notes/${noteId}`, {
+    // The note's own cut. Using the open tab sent cut 2's answers to cut 3, and the
+    // server, rightly, found no such note there.
+    const onPrevious = props.previousNotes.some((n) => n.id === noteId);
+    const cutId = onPrevious ? props.previousCutId : props.notesCutId;
+    const res = await fetch(`/api/admin/reviews/${cutId}/notes/${noteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ outcome, response }),
