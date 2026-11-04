@@ -44,13 +44,19 @@ export function LoginForm({
   }, []);
 
   async function requestReset() {
+    if (!email.trim()) {
+      setResetSent(false);
+      setError("Type your email above, then press Forgot password.");
+      return;
+    }
+    setError("");
     // Fire and forget: the endpoint answers the same either way, so there is nothing
     // to branch on and nothing useful to say about a failure.
     setResetSent(true);
     await fetch("/api/auth/forgot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, next: redirectTo }),
     }).catch(() => {});
   }
 
@@ -134,7 +140,7 @@ export function LoginForm({
             <button type="button" className="bj-link forgot" onClick={requestReset}>Forgot password</button>
             {resetSent && (
               <p className="sent" role="status">
-                We&apos;ve let the studio know you need a reset. You&apos;ll get an email from us shortly.
+                If {email} has a login, we&apos;ve emailed it a link to choose a new password. It works for 30 minutes.
               </p>
             )}
           </form>

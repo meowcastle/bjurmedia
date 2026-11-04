@@ -21,6 +21,12 @@ import { renderReleasedEmailHtml, type ReleasedEmailProps } from "@/emails/relea
 import { renderExpiryEmailHtml, type ExpiryEmailProps } from "@/emails/expiry";
 import { renderStaffAlertEmailHtml, type StaffAlertEmailProps } from "@/emails/staffAlert";
 import { renderOutreachEmailHtml } from "@/emails/outreach";
+import {
+  renderPasswordChangedEmailHtml,
+  renderPasswordLinkEmailHtml,
+  type PasswordChangedEmailProps,
+  type PasswordLinkEmailProps,
+} from "@/emails/passwordLink";
 
 const OUT = path.join(process.cwd(), ".email-preview");
 const SEAL_URL = "https://portal.bjur.nyc/email/seal.png";
@@ -37,6 +43,21 @@ const welcome: OnboardingEmailProps = {
 };
 
 const reset: OnboardingEmailProps = { ...welcome, tempPassword: "salt-river-0932", reason: "reset" };
+
+const passwordLink: PasswordLinkEmailProps = {
+  clientName: "Suyin",
+  recipientName: "Cansu Aydin",
+  signInEmail: "cansu@suyinsama.com",
+  resetUrl: `${PORTAL}/reset/0000000000000000000000000000000000000000000000000000000000000000`,
+  logoUrl: LOGO,
+};
+
+const passwordChanged: PasswordChangedEmailProps = {
+  clientName: "Suyin",
+  recipientName: "Cansu Aydin",
+  portalUrl: PORTAL,
+  logoUrl: LOGO,
+};
 
 const delivery: DeliveryEmailProps = {
   clientName: "Suyin",
@@ -180,6 +201,8 @@ type Preview = {
 const previews: Preview[] = [
   { name: "welcome", subject: "Your portal login is ready", html: renderOnboardingEmailHtml(welcome), send: (to, m) => m.sendOnboardingEmail(to, sendable(welcome)) },
   { name: "password-reset", subject: "Your portal password has been reset", html: renderOnboardingEmailHtml(reset), send: (to, m) => m.sendOnboardingEmail(to, sendable(reset)) },
+  { name: "forgot-link", subject: "Reset your portal password", html: renderPasswordLinkEmailHtml(passwordLink), send: (to, m) => m.sendPasswordLinkEmail(to, sendable(passwordLink)) },
+  { name: "forgot-changed", subject: "Your portal password was changed", html: renderPasswordChangedEmailHtml(passwordChanged), send: (to, m) => m.sendPasswordChangedEmail(to, sendable(passwordChanged)) },
   { name: "delivery", subject: `Your ${delivery.projectTitle} files are ready`, html: renderDeliveryEmailHtml(delivery), send: (to, m) => m.sendDeliveryEmail(to, sendable(delivery)) },
   { name: "delivery-update", subject: `${delivery.projectTitle} has been updated`, html: renderDeliveryEmailHtml({ ...delivery, isUpdate: true }), send: (to, m) => m.sendDeliveryEmail(to, sendable({ ...delivery, isUpdate: true })) },
   { name: "cut-ready", subject: `${cutReady.title} · cut ${cutReady.version} is ready`, html: renderCutReadyEmailHtml(cutReady), send: (to, m) => m.sendCutReadyEmail(to, sendable(cutReady)) },

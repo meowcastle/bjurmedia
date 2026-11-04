@@ -105,6 +105,7 @@ model User {
   approvedAssets     Asset[]         @relation("AssetApprovals")
   reviewerSeats      Reviewer[]
   clientMemberships  ClientMember[]
+  passwordResets     PasswordReset[]
 
   @@index([clientId])
 }
@@ -646,6 +647,20 @@ model Favorite {
   asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@id([userId, assetId])
+}
+
+/// A "forgot password" link. Only a hash of the token is kept, so the table alone never
+/// lets anyone in. Good once, for 30 minutes; asking again replaces any unused link.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Session {

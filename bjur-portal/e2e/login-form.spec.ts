@@ -25,11 +25,11 @@ test("the login page is the v13 column", async ({ page }) => {
   }
 });
 
-test("Forgot password tells the client the studio has been notified", async ({ page }) => {
+test("Forgot password tells the client a link is on its way", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Email").fill("sasha@ssh.studio");
   await page.getByRole("button", { name: "Forgot password" }).click();
-  await expect(page.getByText(/let the studio know you need a reset/)).toBeVisible();
+  await expect(page.getByText(/emailed it a link to choose a new password/)).toBeVisible();
 });
 
 test("the moved notice shows only for visits through the old address", async ({ page }) => {

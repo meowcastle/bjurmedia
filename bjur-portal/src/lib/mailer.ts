@@ -9,6 +9,12 @@ import { renderCutReadyEmailHtml, type CutReadyEmailProps } from "@/emails/cutRe
 import { renderReviewGuideEmailHtml, type ReviewGuideEmailProps } from "@/emails/reviewGuide";
 import { renderNotesInEmailHtml, type NotesInEmailProps } from "@/emails/notesIn";
 import { renderOutreachEmailHtml } from "@/emails/outreach";
+import {
+  renderPasswordChangedEmailHtml,
+  renderPasswordLinkEmailHtml,
+  type PasswordChangedEmailProps,
+  type PasswordLinkEmailProps,
+} from "@/emails/passwordLink";
 
 function mailFrom() {
   return process.env.MAIL_FROM || process.env.SMTP_FROM || "Bjur <hi@bjur.nyc>";
@@ -100,6 +106,14 @@ export async function sendOnboardingEmail(to: string, props: OnboardingEmailProp
         ? `Your ${props.delivery.projectTitle} files are ready`
         : "Your portal login is ready";
   return sendMail({ to, subject, html });
+}
+
+export async function sendPasswordLinkEmail(to: string, props: PasswordLinkEmailProps) {
+  return sendMail({ to, subject: "Reset your portal password", html: renderPasswordLinkEmailHtml(props) });
+}
+
+export async function sendPasswordChangedEmail(to: string, props: PasswordChangedEmailProps) {
+  return sendMail({ to, subject: "Your portal password was changed", html: renderPasswordChangedEmailHtml(props) });
 }
 
 export async function sendDeliveryEmail(to: string, props: DeliveryEmailProps) {
