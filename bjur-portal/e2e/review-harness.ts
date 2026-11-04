@@ -190,19 +190,34 @@ async function main() {
   const cut2 = await openReview(cut2Asset.id);
   check("a re-export opens cut 2", cut2?.version === 2, `version=${cut2?.version}`);
 
-  const blocked = await releaseCut(cut2!.id);
+  const nowOk = await releaseCut(cut2!.id);
+  check("cut 2 goes out with a note on cut 1 unanswered", nowOk.ok === true);
+
+  const mailed: { notes: { body: string }[] }[] = [];
+  const capture = {
+    sendCutReady: async (_to: string, props: { notes: { body: string }[] }) => {
+      mailed.push(props);
+      return { ok: true } as never;
+    },
+  };
+  await notifyCutReady(cut2!.id, capture as never);
   check(
-    "cut 2 will not go out with a note unanswered",
-    blocked.ok === false && blocked.error === "unanswered",
-    `error=${blocked.ok ? "none" : blocked.error}`
+    "and the unanswered note stays out of the email",
+    mailed.length > 0 && mailed.every((m) => m.notes.length === 0),
+    `notes=${mailed.map((m) => m.notes.length).join(",")}`
   );
 
   await db.reviewNote.update({
     where: { id: sentNote.id },
     data: { outcome: "KEPT", response: "It lands with the mix.", answeredAt: new Date() },
   });
-  const nowOk = await releaseCut(cut2!.id);
-  check("answering every note opens the gate", nowOk.ok === true);
+  mailed.length = 0;
+  await notifyCutReady(cut2!.id, capture as never);
+  check(
+    "an answered one is in it",
+    mailed.length > 0 && mailed.every((m) => m.notes.length === 1),
+    `notes=${mailed.map((m) => m.notes.length).join(",")}`
+  );
 
   const cut1After = await db.review.findUniqueOrThrow({ where: { id: cut1!.id } });
   check("releasing cut 2 supersedes cut 1", cut1After.state === "SUPERSEDED");
@@ -289,6 +304,16 @@ async function main() {
     "but it is no longer what the studio owes",
     (await unsentCut(film.id))?.assetId !== hidden.id
   );
+
+  // --- a new cut goes out on its own ---------------------------------------------------
+  const { openAndSendCut } = await import("../src/lib/cutRelease");
+  const v9 = await mkAsset(film.id, "v9.mov");
+  const auto = await openAndSendCut(v9.id);
+  const autoRow = auto ? await db.review.findUnique({ where: { id: auto.id } }) : null;
+  check("a cut that lands is sent without anyone pressing Send", !!autoRow?.sentAt);
+  const masterFile = await mkAsset(film.id, "master.mov");
+  await db.asset.update({ where: { id: masterFile.id }, data: { internal: true } });
+  check("a hidden file sends nothing", (await openAndSendCut(masterFile.id)) === null);
 
   console.log(JSON.stringify(results));
 }

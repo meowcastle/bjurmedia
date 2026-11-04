@@ -60,10 +60,8 @@ export function newGuestToken() {
  * Called at proxy-ready rather than at ingest, because there is nothing to watch until
  * the proxy exists.
  *
- * Created **unsent**. This is the change that makes the loop work: the old model mailed
- * the client the instant a file appeared, so a reviewer could be watching cut 2 and
- * leaving notes before the studio had answered a single note on cut 1. Now the cut waits
- * until the studio has answered the previous round and pressed send.
+ * Created unsent; lib/cutRelease.ts sends it straight after, so a cut reaches reviewers
+ * as soon as there is something to play.
  *
  * Decides its own eligibility, like queueForCaptioning, so callers stay dumb. Idempotent
  * per version: the watcher can re-fire on the same file and still produce one cut.
@@ -94,7 +92,7 @@ export async function openReview(assetId: string) {
 
   const version = await nextVersion(asset.projectId);
 
-  // No mail here, on purpose. Reviewers hear about a cut when the studio releases it.
+  // No mail here: openAndSendCut does that, so the cut row exists before anyone is told.
   return db.review.create({
     data: { assetId, version, sourceGen: asset.reingestCount, state: "PENDING" },
   });
@@ -148,12 +146,10 @@ export async function notesAwaitingAnswer(projectId: string) {
 }
 
 /**
- * Release an unsent cut to its reviewers.
+ * Release an unsent cut to its reviewers, superseding the one they were on.
  *
- * Refuses while any sent note on the previous cut is unanswered — that gate is the
- * feature. The email is a list of every note with what was done about it, so sending
- * before they are answered would produce a half-empty message and quietly break the
- * promise the loop makes to reviewers.
+ * Notes on the previous cut do not have to be answered first. The answered ones travel
+ * in the email; the rest are left out of it.
  */
 export async function releaseCut(reviewId: string) {
   const cut = await db.review.findUnique({
@@ -164,12 +160,6 @@ export async function releaseCut(reviewId: string) {
   if (cut.sentAt) return { ok: false as const, error: "already-sent" as const };
 
   const previous = await currentCut(cut.asset.projectId);
-  if (previous) {
-    const unanswered = await db.reviewNote.count({
-      where: { reviewId: previous.id, sentAt: { not: null }, outcome: null },
-    });
-    if (unanswered > 0) return { ok: false as const, error: "unanswered" as const, unanswered };
-  }
 
   const now = new Date();
   await db.$transaction([

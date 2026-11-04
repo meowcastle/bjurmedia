@@ -6,7 +6,7 @@ import path from "path";
 import { db } from "@/lib/db";
 import { resolveMediaPath, DERIVED_ROOT } from "@/lib/media";
 import { queueForCaptioning } from "@/lib/captionPipeline";
-import { openReview } from "@/lib/reviews";
+import { openAndSendCut } from "@/lib/cutRelease";
 
 const execFileAsync = promisify(execFile);
 
@@ -443,11 +443,9 @@ export async function generateProxy(asset: AssetRow) {
     await queueForCaptioning(asset.id).catch(() => {});
 
     // Open the cut at the same moment, and for a related reason: there is nothing to
-    // review until something plays. It is created unsent and mails nobody — reviewers
-    // hear about a cut when the studio releases it, after answering the round before.
-    // openReview decides its own eligibility, so anything that is not a FILM project is
-    // unaffected.
-    await openReview(asset.id).catch(() => {});
+    // review until something plays. It goes to the reviewers straight away. openReview
+    // decides its own eligibility, so anything that is not a FILM project is unaffected.
+    await openAndSendCut(asset.id).catch(() => {});
 
     await db.activity.create({
       data: { actor: "Worker", action: `finished proxy for "${asset.name}"` },

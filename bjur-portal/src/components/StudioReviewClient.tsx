@@ -5,11 +5,10 @@ import { useState } from "react";
 import { ReviewScreen, type ReviewScreenProps, type ScreenCut, type ScreenNote } from "@/components/ReviewScreen";
 
 /**
- * The studio half: answer the previous cut's notes, then release the new one.
+ * The studio half: answer the previous cut's notes, and send a cut that has not gone out.
  *
- * Release goes through a confirm rather than straight out, because it is the one action
- * here that reaches people outside the building and cannot be taken back. The server
- * refuses an unanswered round regardless — this is a second pair of eyes, not the gate.
+ * Send goes through a confirm rather than straight out, because it is the one action
+ * here that reaches people outside the building and cannot be taken back.
  */
 export function StudioReviewClient({
   ...props
@@ -29,7 +28,7 @@ export function StudioReviewClient({
   const [sending, setSending] = useState(false);
 
   const cut = props.cuts.find((c) => c.id === activeCutId);
-  const reviewerCount = props.previousNotes.length;
+  const answeredCount = props.previousNotes.filter((n) => n.outcome).length;
 
   async function answer(noteId: string, outcome: "CHANGED" | "KEPT", response: string) {
     const res = await fetch(`/api/admin/reviews/${activeCutId}/notes/${noteId}`, {
@@ -88,9 +87,11 @@ export function StudioReviewClient({
             <span className="bj-mono">Cut {cut.version} email</span>
             <h2 id="release-title">Send to every reviewer?</h2>
             <p>
-              They each get their own link and the full list of {reviewerCount} note
-              {reviewerCount === 1 ? "" : "s"} from cut {cut.version - 1} with what you did about
-              each. This is the only time those answers travel, and it cannot be recalled.
+              They each get their own link
+              {answeredCount > 0
+                ? `, with the ${answeredCount} note${answeredCount === 1 ? "" : "s"} you answered on cut ${cut.version - 1}`
+                : ""}
+              . It cannot be recalled.
             </p>
             <div className="row">
               <button

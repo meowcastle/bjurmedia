@@ -651,8 +651,8 @@ export function ReviewScreen({
             )}
             {mode === "studio" && unanswered > 0 && (
               <p data-testid="answer-banner" className="bj-rv-banner">
-                Cut {cut?.version ?? 1} uploaded. Answer each note on cut {(cut?.version ?? 2) - 1}. They go
-                out in the cut {cut?.version} email.
+                Cut {cut?.version ?? 1} uploaded. Any note on cut {(cut?.version ?? 2) - 1} you answer goes out in
+                the cut {cut?.version} email. Answering is optional.
               </p>
             )}
 
@@ -958,8 +958,8 @@ function StudioFooter({
     );
   }
 
-  // A cut that has landed but not gone out: the only thing to do here is answer the
-  // previous round, and the button stays shut until every note has an outcome.
+  // A cut that has landed but not gone out. New cuts send themselves, so this is a cut
+  // whose send failed or one from before that. Answering notes first is optional.
   if (unsent) {
     const done = total - unanswered;
     return (
@@ -976,7 +976,6 @@ function StudioFooter({
         <button
           type="button"
           onClick={onPreviewRelease}
-          disabled={unanswered > 0}
           data-testid="preview-release"
           className="bj-cta"
         >
@@ -984,7 +983,7 @@ function StudioFooter({
         </button>
         {unanswered > 0 && (
           <p className="bj-rv-small">
-            Answer {unanswered} more note{unanswered === 1 ? "" : "s"} to continue.
+            {unanswered} note{unanswered === 1 ? "" : "s"} unanswered. Those stay out of the email.
           </p>
         )}
       </div>

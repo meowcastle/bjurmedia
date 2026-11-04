@@ -140,8 +140,9 @@ export async function notifyCutReady(
 
     const projectId = cut.asset.projectId;
 
-    // The previous cut's answered notes. Drafts are excluded here as everywhere: an
-    // unsent note is not part of the record and must never appear in anyone's mail.
+    // The previous cut's answered notes. Unanswered ones are left out rather than shown
+    // as ignored. Drafts are excluded here as everywhere: an unsent note is not part of
+    // the record and must never appear in anyone's mail.
     const previous = await db.review.findFirst({
       where: { asset: { projectId }, version: cut.version - 1 },
       select: { id: true },
@@ -149,7 +150,7 @@ export async function notifyCutReady(
     const notes: CutReadyNote[] = previous
       ? (
           await db.reviewNote.findMany({
-            where: { reviewId: previous.id, sentAt: { not: null } },
+            where: { reviewId: previous.id, sentAt: { not: null }, outcome: { not: null } },
             orderBy: [{ timeSec: "asc" }, { createdAt: "asc" }],
             include: { reviewer: { select: { name: true } } },
           })

@@ -5,9 +5,8 @@ import path from "node:path";
 /**
  * The studio half of the loop.
  *
- * The release gate gets the most attention because it is the promise the whole thing
- * rests on: reviewers are told every note gets answered in the next cut's email, and the
- * only thing making that true is the server refusing to send until they are.
+ * Answering notes is optional: a cut can go out with some of the last round unanswered,
+ * and only the answered ones travel in its email.
  */
 const DB = path.join(__dirname, "..", "prisma", "data", "e2e.db");
 const sql = (q: string) => execFileSync("sqlite3", [DB, q], { encoding: "utf-8" }).trim();
@@ -56,8 +55,8 @@ test.describe("studio", () => {
     sql(`UPDATE ReviewNote SET response='${before.replace(/'/g, "''")}' WHERE id='${noteId}';`);
   });
 
-  test("an unanswered round blocks the next cut", async ({ request }) => {
-    // A third, unsent cut, with the current round's note deliberately unanswered.
+  test("an unanswered round does not hold the next cut", async ({ request }) => {
+    // A third, unsent cut, with the current round's note left unanswered.
     const assetId = sql("SELECT id FROM Asset WHERE projectId='p2' AND kind='VIDEO' LIMIT 1;");
     const cut2 = sql(
       "SELECT r.id FROM Review r JOIN Asset a ON a.id=r.assetId WHERE a.projectId='p2' AND r.version=2;"
@@ -74,18 +73,10 @@ test.describe("studio", () => {
     );
 
     try {
-      const blocked = await request.post(`/api/admin/reviews/${cut3}/release`);
-      expect(blocked.status()).toBe(409);
-      expect((await blocked.json()).error).toMatch(/answer \d+ more note/i);
-
-      // Answer it, and the gate opens.
-      await request.patch(`/api/admin/reviews/${cut2}/notes/${note}`, {
-        data: { outcome: "CHANGED", response: "Done." },
-      });
       const ok = await request.post(`/api/admin/reviews/${cut3}/release`);
       expect(ok.status()).toBe(200);
       expect(sql(`SELECT sentAt IS NOT NULL FROM Review WHERE id='${cut3}';`)).toBe("1");
-      // Releasing supersedes the round it answers.
+      // Releasing supersedes the round before it.
       expect(sql(`SELECT state FROM Review WHERE id='${cut2}';`)).toBe("SUPERSEDED");
     } finally {
       sql(`DELETE FROM ReviewNote WHERE id='${note}';`);
