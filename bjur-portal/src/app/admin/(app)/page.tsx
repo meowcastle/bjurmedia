@@ -113,8 +113,8 @@ export default async function AdminDashboardPage() {
   //
   // "feedback" is gone with the old model. A note is no longer an answer to a cut — it is
   // one of several a reviewer sends in a batch, and what the studio owes back is the next
-  // cut with every note answered. So: a cut sitting unsent, batches that have arrived,
-  // and an approval that frees the master.
+  // cut. So: a cut that did not go out, batches still waiting on you, and an approval
+  // that frees the master.
   const [unsentCuts, approvedCuts, sentNotes] = await Promise.all([
     db.review.findMany({
       where: { sentAt: null, asset: { project: { type: "FILM" } } },
@@ -150,9 +150,10 @@ export default async function AdminDashboardPage() {
       },
     }),
     // Sent notes only, ever. A draft is private to its author and must not reach a staff
-    // surface even as a count on a feed.
+    // surface even as a count on a feed. And only while they still need you: answered, or
+    // on a cut a newer one has replaced, and the batch is done.
     db.reviewNote.findMany({
-      where: { sentAt: { not: null } },
+      where: { sentAt: { not: null }, outcome: null, review: { state: { not: "SUPERSEDED" } } },
       orderBy: { sentAt: "desc" },
       take: 30,
       include: {
@@ -273,18 +274,18 @@ export default async function AdminDashboardPage() {
       id: `cut-ready-${r.id}`,
       kind: "cut-ready" as const,
       subject: `${r.asset.project.title} · cut ${r.version} is up`,
-      body: `${r.asset.project.client.name} · answer the notes on cut ${r.version - 1}, then send`,
+      body: `${r.asset.project.client.name} · not sent to reviewers yet`,
       client: mark(r.asset.project.client),
       href: `/admin/projects/${r.asset.projectId}/review`,
-      action: "Answer notes",
+      action: "Open and send",
     })),
     ...noteBatches.map(({ first, notes }) => ({
       id: `notes-in-${first.reviewId}-${first.reviewerId}`,
       kind: "notes-in" as const,
       subject: `${first.review.asset.project.title} · cut ${first.review.version}`,
-      body: `${first.reviewer.name}${first.reviewer.role ? ` · ${first.reviewer.role}` : ""} sent ${
+      body: `${first.reviewer.name}${first.reviewer.role ? ` · ${first.reviewer.role}` : ""} · ${
         notes.length
-      } note${notes.length === 1 ? "" : "s"}: “${notes[notes.length - 1].body}”`,
+      } note${notes.length === 1 ? "" : "s"} to answer: “${notes[notes.length - 1].body}”`,
       client: mark(first.review.asset.project.client),
       href: `/admin/projects/${first.review.asset.projectId}/review`,
       action: "Open review",

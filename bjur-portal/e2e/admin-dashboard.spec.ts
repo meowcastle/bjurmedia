@@ -49,3 +49,37 @@ test("each attention row offers an action, not just a description", async ({ pag
   const rows = page.locator("a", { hasText: /^(Open|Schedule)\s*→?$/ });
   expect(await rows.count()).toBeGreaterThan(0);
 });
+
+test("a batch of notes leaves Needs you once answered, or once a newer cut replaces it", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const path = await import("node:path");
+  const DB = path.join(__dirname, "..", "prisma", "data", "e2e.db");
+  const sql = (q: string) => execFileSync("sqlite3", [DB, q], { encoding: "utf-8" }).trim();
+
+  const cut = (v: number) =>
+    sql(`SELECT r.id FROM Review r JOIN Asset a ON a.id=r.assetId WHERE a.projectId='p2' AND r.version=${v};`);
+  const reviewerId = sql("SELECT id FROM Reviewer WHERE projectId='p2' LIMIT 1;");
+  const stamp = Date.now();
+  const live = `zz-live-${stamp}`;
+  const old = `zz-old-${stamp}`;
+  const insert = (id: string, reviewId: string, body: string) =>
+    sql(
+      `INSERT INTO ReviewNote (id, reviewId, reviewerId, body, sentAt, createdAt, updatedAt) VALUES ('${id}','${reviewId}','${reviewerId}','${body}',${stamp},${stamp},${stamp});`
+    );
+  // Cut 1 is superseded in the seed: a note left on it is history.
+  insert(old, cut(1), `old round ${stamp}`);
+  insert(live, cut(2), `live round ${stamp}`);
+
+  try {
+    await page.goto("/admin");
+    await expect(page.getByText(`live round ${stamp}`)).toBeVisible();
+    await expect(page.getByText(`old round ${stamp}`)).toHaveCount(0);
+
+    sql(`UPDATE ReviewNote SET outcome='CHANGED', answeredAt=${stamp} WHERE id='${live}';`);
+    await page.reload();
+    await expect(page.locator(".bj-lab", { hasText: "Needs you" })).toBeVisible();
+    await expect(page.getByText(`live round ${stamp}`)).toHaveCount(0);
+  } finally {
+    sql(`DELETE FROM ReviewNote WHERE id IN ('${live}','${old}');`);
+  }
+});
