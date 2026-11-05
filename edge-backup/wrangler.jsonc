@@ -1,0 +1,25 @@
+// Outage cover for bjur.nyc and justinbjur.com, same idea as sweetdreams-edge.
+// Every request goes to the NAS first. Only when Cloudflare cannot reach it
+// does src/worker.js answer from a copy of the public pages, taken by
+// build.mjs on each deploy. Cloudflare builds it: root directory
+// `edge-backup`, build `node build.mjs`, deploy `npx wrangler deploy`.
+{
+  "name": "bjur-backup",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "bjur.nyc/*", "zone_name": "bjur.nyc" },
+    { "pattern": "www.bjur.nyc/*", "zone_name": "bjur.nyc" },
+    { "pattern": "justinbjur.com/*", "zone_name": "justinbjur.com" },
+    { "pattern": "www.justinbjur.com/*", "zone_name": "justinbjur.com" }
+  ],
+  "assets": {
+    "directory": "./dist",
+    // The Worker runs first on every path, so live traffic always reaches the NAS.
+    "run_worker_first": true,
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  }
+}
