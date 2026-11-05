@@ -72,7 +72,9 @@ for (const host of SITES) {
     if (ext === 'html' || ext === 'css' || ext === 'js') {
       const text = buf.toString('utf8');
       if (ext === 'html') {
-        for (const m of text.matchAll(/\s(?:href|src|content|poster|data-src)=["']([^"']+)["']/gi)) add(m[1], base);
+        for (const m of text.matchAll(/\s(?:href|src|poster|data-src)=["']([^"']+)["']/gi)) add(m[1], base);
+        // Meta tags only count when they hold an address (og:image and the like).
+        for (const m of text.matchAll(/\scontent=["']((?:https?:\/\/|\/)[^"']+)["']/gi)) add(m[1], base);
         for (const m of text.matchAll(/\ssrcset=["']([^"']+)["']/gi))
           for (const part of m[1].split(/,\s+/)) add(part.trim().split(/\s+/)[0], base);
       }
