@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AssetTile, type TileAsset } from "@/components/AssetTile";
+import { FileRow } from "@/components/FileRow";
+import { isFileOnly } from "@/lib/fileOnly";
 import {
   ClientPostsPanel,
   type ScheduledPost,
@@ -46,7 +48,10 @@ const FORMAT_DEFS: [string, string][] = [
   ["Reel", "Reels"],
   ["Film", "Films"],
   ["Still", "Stills"],
-  ["Master", "Master"],
+  // Raw camera originals and production audio — a RAW project's delivery, listed as
+  // file rows rather than tiles (FileRow.tsx).
+  ["Master", "Raw footage"],
+  ["Audio", "Audio"],
 ];
 
 /** Tile width per group: vertical tiles sit narrower than wide ones, as on the board.
@@ -254,13 +259,24 @@ export function ProjectDetailClient({
   const canDownload = role !== "VIEWER";
   const zipUrl = `/api/projects/${project.id}/download-all`;
 
+  // Raw originals and audio cannot carry a watermark, so a held project lists them but
+  // does not hand them over (paymentHold.ts, lockedUnderHold). They are left out of
+  // every selection, so neither the bar nor the zip promises a file the server will
+  // refuse. On a project with none of them this is all of `scoped`, unchanged.
+  const isLocked = useCallback(
+    (a: Asset) => project.paymentHold && isFileOnly(a),
+    [project.paymentHold],
+  );
+  const downloadable = useMemo(() => scoped.filter((a) => !isLocked(a)), [scoped, isLocked]);
+  const hasFileOnly = useMemo(() => scoped.some((a) => isFileOnly(a)), [scoped]);
+
   const phoneSave = usePhoneSave();
 
   function downloadAll() {
     // On a phone, Download all selects everything instead, so the bar can offer Photos
     // or Files — a zip alone never reaches the camera roll.
     if (phoneSaveAvailable()) {
-      setSelected(new Set(scoped.map((a) => a.id)));
+      setSelected(new Set(downloadable.map((a) => a.id)));
       return;
     }
     const a = document.createElement("a");
@@ -411,8 +427,8 @@ export function ProjectDetailClient({
   }, [filter, scoped, favorites, project.path, project.folders]);
 
   const visibleIds = useMemo(
-    () => groups.flatMap((g) => g.items.map((i) => i.id)),
-    [groups],
+    () => groups.flatMap((g) => g.items.filter((i) => !isLocked(i)).map((i) => i.id)),
+    [groups, isLocked],
   );
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
@@ -421,7 +437,8 @@ export function ProjectDetailClient({
   // (week or format buckets, current filter) rather than raw upload order, so swipe
   // navigation in the video/photo viewers matches what's on screen.
   const videoOrder = useMemo(
-    () => groups.flatMap((g) => g.items.filter((i) => i.kind === "VIDEO")),
+    // Raw originals are kind VIDEO too, but there is nothing for the viewer to play.
+    () => groups.flatMap((g) => g.items.filter((i) => i.kind === "VIDEO" && !isFileOnly(i))),
     [groups],
   );
   const videoNavItems = useMemo(
@@ -489,6 +506,10 @@ export function ProjectDetailClient({
   }
 
   function renderGroup(grp: Group) {
+    // Tiles first, exactly as before; raw originals and audio follow as a file list.
+    // Only Favorites can mix the two — every other group is a single format.
+    const tiles = grp.items.filter((a) => !isFileOnly(a));
+    const files = grp.items.filter((a) => isFileOnly(a));
     return (
       <motion.section
         layout
@@ -507,27 +528,47 @@ export function ProjectDetailClient({
             {grp.summary ?? formatBytes(bytesOf(grp.items))}
           </span>
         </span>
-        <div
-          className={`bj-tiles${selected.size > 0 ? " sel" : ""}`}
-          style={{ gridTemplateColumns: grp.cols }}
-        >
-          {grp.items.map((a, i) => (
-            <AssetTile
-              key={a.id}
-              asset={a}
-              index={i}
-              isNew={
-                lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)
-              }
-              selected={selected.has(a.id)}
-              favorite={favorites.has(a.id)}
-              onToggleSelect={() => toggleSelect(a.id)}
-              onToggleFavorite={() => toggleFavorite(a.id)}
-              onOpen={() => openAsset(a)}
-              footer={captionLine(a)}
-            />
-          ))}
-        </div>
+        {tiles.length > 0 && (
+          <div
+            className={`bj-tiles${selected.size > 0 ? " sel" : ""}`}
+            style={{ gridTemplateColumns: grp.cols }}
+          >
+            {tiles.map((a, i) => (
+              <AssetTile
+                key={a.id}
+                asset={a}
+                index={i}
+                isNew={
+                  lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)
+                }
+                selected={selected.has(a.id)}
+                favorite={favorites.has(a.id)}
+                onToggleSelect={() => toggleSelect(a.id)}
+                onToggleFavorite={() => toggleFavorite(a.id)}
+                onOpen={() => openAsset(a)}
+                footer={captionLine(a)}
+              />
+            ))}
+          </div>
+        )}
+        {files.length > 0 && (
+          <div className="bj-files" data-testid="file-list">
+            {files.map((a, i) => (
+              <FileRow
+                key={a.id}
+                asset={a}
+                index={i}
+                locked={isLocked(a)}
+                canDownload={canDownload}
+                isNew={lastVisit != null && new Date(a.createdAt) > new Date(lastVisit)}
+                selected={selected.has(a.id)}
+                favorite={favorites.has(a.id)}
+                onToggleSelect={() => toggleSelect(a.id)}
+                onToggleFavorite={() => toggleFavorite(a.id)}
+              />
+            ))}
+          </div>
+        )}
       </motion.section>
     );
   }
@@ -566,7 +607,11 @@ export function ProjectDetailClient({
             {project.paymentHold && (
               <span
                 data-testid="hold-pill"
-                title="Downloads carry a watermark until the invoice is paid."
+                title={
+                  hasFileOnly
+                    ? "Downloads carry a watermark, and raw footage and audio stay locked, until the invoice is paid."
+                    : "Downloads carry a watermark until the invoice is paid."
+                }
                 className="bj-pill red"
               >
                 Awaiting payment
@@ -588,9 +633,14 @@ export function ProjectDetailClient({
                 ↑ Send footage
               </Link>
             )}
-            {canDownload && (
+            {/* Hidden only when every file is locked — a held RAW delivery — where the
+                zip would refuse with 402 and the button could only ever fail. */}
+            {canDownload && downloadable.length > 0 && (
               <button type="button" onClick={downloadAll} className="bj-cta">
-                ↓ Download all <span className="sz">· {formatBytes(totalBytes)}</span>
+                ↓ Download all{" "}
+                <span className="sz">
+                  · {formatBytes(downloadable.length === scoped.length ? totalBytes : bytesOf(downloadable))}
+                </span>
               </button>
             )}
           </div>
@@ -695,9 +745,14 @@ export function ProjectDetailClient({
           >
             Select all
           </button>
-          {phoneSave ? (
+          {/* Raw originals and audio never go to Photos: the camera roll cannot hold
+              them, and a multi-gigabyte .braw would be read into the tab's memory first.
+              They stay in the selection and travel in the zip via Save to Files. */}
+          {phoneSave && selectedAssets.some((a) => !isFileOnly(a)) ? (
             <PhoneSaveButtons
-              assets={selectedAssets.map((a) => ({ id: a.id, kind: a.kind, name: a.name }))}
+              assets={selectedAssets.flatMap((a) =>
+                a.kind === "AUDIO" || isFileOnly(a) ? [] : [{ id: a.id, kind: a.kind, name: a.name }],
+              )}
               onSaveToFiles={downloadSelected}
             />
           ) : (

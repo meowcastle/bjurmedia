@@ -75,6 +75,7 @@ enum ProjectType {
   DELIVERY // a gallery of finished work
   CALENDAR // scheduled social posts, approved in Slack
   FILM // one piece, cut by cut, with timestamped notes from every reviewer
+  RAW // raw camera footage + production audio, handed over as files rather than a gallery
 }
 
 enum ClientStatus {
@@ -459,9 +460,13 @@ model Asset {
   @@index([transcriptStatus])
 }
 
+// AUDIO arrived with RAW projects: production sound (.wav and friends) delivered beside
+// the camera originals. It has no picture, so it gets no thumbnail, proxy or watermark —
+// see fileOnly.ts for everything that follows from that.
 enum AssetKind {
   PHOTO
   VIDEO
+  AUDIO
 }
 
 enum ProxyStatus {

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { resolveMediaPath, DERIVED_ROOT } from "@/lib/media";
 import { queueForCaptioning } from "@/lib/captionPipeline";
 import { openAndSendCut } from "@/lib/cutRelease";
+import { isFileOnly } from "@/lib/fileOnly";
 
 const execFileAsync = promisify(execFile);
 
@@ -347,10 +348,23 @@ async function generateVideoProxy(
 
 /**
  * Turns one PENDING Asset into a streamable proxy + poster thumbnail per ENCODING.md.
- * Stills only get a thumbnail. BRAW/raw masters (which stock ffmpeg can't decode) fail
- * gracefully with an explanatory Activity log — see ENCODING.md's BRAW note.
+ * Stills only get a thumbnail. Raw camera originals and audio get nothing (see below).
  */
 export async function generateProxy(asset: AssetRow) {
+  // Raw originals (which stock ffmpeg can't decode — ENCODING.md's BRAW note) and audio
+  // (no picture) have nothing to make. Ingest already lands them READY; this catches the
+  // other ways a row reaches PENDING — the library importer, a re-ingest, an admin
+  // regenerate. They used to run here and fail, one FAILED badge and one Activity line
+  // per clip, which on a card dump buried every real failure. READY with no renditions
+  // is the honest state, and it also means no marking, captioning or cut is queued.
+  if (isFileOnly(asset)) {
+    await db.asset.update({
+      where: { id: asset.id },
+      data: { proxyStatus: "READY", proxyProgress: null },
+    });
+    return;
+  }
+
   await db.asset.update({
     where: { id: asset.id },
     data: { proxyStatus: "GENERATING", proxyProgress: 0 },
@@ -498,6 +512,14 @@ function alreadyOnDisk(relPath: string | null): relPath is string {
  * ends up undownloadable rather than accidentally released.
  */
 export async function generateMarkedRenditions(asset: AssetRow) {
+  // Nothing can carry a mark here; a held project locks these instead (paymentHold.ts,
+  // lockedUnderHold). A row that got queued anyway — by hand, or before this check —
+  // goes back to NONE rather than FAILED, because nothing failed.
+  if (isFileOnly(asset)) {
+    await db.asset.update({ where: { id: asset.id }, data: { markStatus: "NONE" } });
+    return;
+  }
+
   try {
     await db.asset.update({ where: { id: asset.id }, data: { markStatus: "GENERATING" } });
 

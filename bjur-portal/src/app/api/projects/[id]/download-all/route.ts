@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { resolveDerivedPath, resolveMediaPath } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 import { getProjectAccess } from "@/lib/projectAccess";
-import { holdApplies, markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
+import { holdApplies, lockedUnderHold, markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
 import { storedZipSize } from "@/lib/zipSize";
 
 /** Same extension-swap as the single-file download: the marked copy is mp4/jpg. */
@@ -47,12 +47,19 @@ async function buildZipResponse(
   // whole gallery at once, so it fails closed, file by file.
   const watermark = holdApplies(project, session);
   const skipped: string[] = [];
+  let locked = 0;
 
   const entries: { path: string; name: string; size: number }[] = [];
   for (const asset of project.assets) {
     let relPath: string | null;
     let derived: boolean;
     if (watermark) {
+      // Raw originals and audio wait for payment rather than for the marker — there is no
+      // marked copy coming, so they are left out without counting as "not ready yet".
+      if (lockedUnderHold(asset)) {
+        locked++;
+        continue;
+      }
       if (!markedReady(asset)) {
         skipped.push(asset.name);
         continue;
@@ -79,6 +86,15 @@ async function buildZipResponse(
 
   if (watermark && skipped.length > 0) {
     console.warn(`[download-all] ${skipped.length} asset(s) not yet watermarked, omitted from zip`);
+  }
+
+  // A held RAW delivery is nothing but locked files, and an empty zip that downloads as
+  // a 22-byte "success" is worse than saying why. Same 402 and copy as a single file.
+  if (watermark && entries.length === 0 && locked > 0) {
+    return Response.json(
+      { error: "These files unlock once payment clears.", locked: true },
+      { status: 402 }
+    );
   }
 
   // Stored, not deflated. Video and photos are already compressed, so deflate saved

@@ -28,7 +28,7 @@ type ProjectRow = {
   status: string;
   deliveredAt: string | null;
   expiresAt: string | null;
-  type: "DELIVERY" | "CALENDAR" | "FILM";
+  type: "DELIVERY" | "CALENDAR" | "FILM" | "RAW";
   paymentHold: boolean;
   assetCount: number;
 };
@@ -514,7 +514,13 @@ export function AdminClientDetailClient({
               {/* What each project is, visible from the list rather than only by
                   opening it. Set at creation and never changes. */}
               <span className="bj-pill justify-self-start">
-                {p.type === "CALENDAR" ? "Calendar" : p.type === "FILM" ? "Film" : "Delivery"}
+                {p.type === "CALENDAR"
+                  ? "Calendar"
+                  : p.type === "FILM"
+                    ? "Film"
+                    : p.type === "RAW"
+                      ? "Raw"
+                      : "Delivery"}
               </span>
               {/* One flag per project, in the order that decides what to do about it:
                   money owed first, then footage you are waiting on, then the date it

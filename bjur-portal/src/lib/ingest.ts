@@ -8,12 +8,14 @@ import { db } from "@/lib/db";
 import { MEDIA_ROOT, INBOX_ROOT } from "@/lib/media";
 import { postSlackEvent } from "@/lib/slack";
 import { markDeliveryPending } from "@/lib/deliveryNotify";
+import { AUDIO_EXT as AUDIO_EXT_LIST, RAW_CAMERA_EXT, isFileOnly } from "@/lib/fileOnly";
 
 const execFileAsync = promisify(execFile);
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"]);
-const RAW_VIDEO_EXT = new Set([".braw", ".r3d", ".ari"]);
+const RAW_VIDEO_EXT = new Set<string>(RAW_CAMERA_EXT);
 const VIDEO_EXT = new Set([".mp4", ".mov", ".m4v", ...RAW_VIDEO_EXT]);
+const AUDIO_EXT = new Set<string>(AUDIO_EXT_LIST);
 
 const MONTH_ABBR: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
@@ -89,9 +91,28 @@ async function probeVideo(absPath: string) {
   };
 }
 
+/**
+ * Audio only needs its length. Same async, SIGKILL-on-timeout shape as probeVideo and
+ * for the same reason; a failed probe is not a failed ingest — a .wav with a header
+ * ffprobe dislikes is still a file the client is owed, it just lists without a duration.
+ */
+async function probeAudioDuration(absPath: string): Promise<number | null> {
+  try {
+    const { stdout } = await execFileAsync(
+      "ffprobe",
+      ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", absPath],
+      { encoding: "utf-8", timeout: 30_000, killSignal: "SIGKILL" }
+    );
+    const sec = parseFloat(stdout.trim());
+    return Number.isFinite(sec) ? Math.round(sec) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type Classification = {
-  kind: "PHOTO" | "VIDEO";
-  format: "Reel" | "Film" | "Still" | "Master";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
+  format: "Reel" | "Film" | "Still" | "Master" | "Audio";
   orientation: "landscape" | "portrait";
   dims: string | null;
   durationSec: number | null;
@@ -140,6 +161,20 @@ export async function classifyMedia(absPath: string): Promise<Classification> {
       durationSec,
       masterCodec: `${codecName.toUpperCase()} · ${humanSize(sizeBytes)}`,
       capturedAt,
+    };
+  }
+
+  if (AUDIO_EXT.has(ext)) {
+    // Production sound for a RAW delivery. No picture, so no orientation to speak of —
+    // "landscape" only because the column is required and it is the neutral value.
+    return {
+      kind: "AUDIO",
+      format: "Audio",
+      orientation: "landscape",
+      dims: null,
+      durationSec: await probeAudioDuration(absPath),
+      masterCodec: `${ext.slice(1).toUpperCase()} · ${humanSize(sizeBytes)}`,
+      capturedAt: null,
     };
   }
 
@@ -245,7 +280,23 @@ export async function ingestFile(absPath: string) {
   // Masters are working files. With licensing gone there is nothing a client can do
   // with one, so they stay in-house rather than appearing in a gallery as something to
   // scroll past and wonder about.
-  const internal = classification.format === "Master";
+  //
+  // The exception is a RAW project, whose whole point is handing the camera originals and
+  // the production sound over: there they are the delivery, listed as files and locked
+  // while the payment hold is on (paymentHold.ts, lockedUnderHold). Audio is only ever
+  // expected on a RAW project; anywhere else it is kept in-house like a Master, because a
+  // Delivery gallery has no slot for it and a client should not find a stray scratch
+  // track among their finals.
+  const deliveredAsFile = classification.format === "Master" || classification.kind === "AUDIO";
+  const internal = deliveredAsFile && project.type !== "RAW";
+
+  // Nothing to encode for a file-only asset (fileOnly.ts): ffmpeg cannot open a raw
+  // original, and audio has no picture. Marking it READY up front keeps it out of the
+  // proxy queue entirely, instead of queueing it only for a guaranteed failure and an
+  // Activity line per clip — 33 of them on one card dump. READY with no proxyRelPath or
+  // thumbRelPath is what "nothing to make" looks like; every serving route already
+  // answers 404 for a missing rendition rather than erroring.
+  const proxyStatus = isFileOnly({ kind: classification.kind, name: filename }) ? "READY" : "PENDING";
 
   // Same project + same destination path (i.e. same filename dropped again, an
   // updated re-export) should replace the existing asset in place, not duplicate it —
@@ -271,7 +322,7 @@ export async function ingestFile(absPath: string) {
           dims: classification.dims,
           durationSec: classification.durationSec,
           masterCodec: classification.masterCodec,
-          proxyStatus: "PENDING",
+          proxyStatus,
           proxyRelPath: null,
           thumbRelPath: null,
           proxyRes: null,
@@ -292,7 +343,7 @@ export async function ingestFile(absPath: string) {
           dims: classification.dims,
           durationSec: classification.durationSec,
           masterCodec: classification.masterCodec,
-          proxyStatus: "PENDING",
+          proxyStatus,
           internal,
         },
       });
@@ -307,6 +358,8 @@ export async function ingestFile(absPath: string) {
   // A Film project's cuts wait until the studio releases them (reviews.ts), and the
   // cut-ready mail sent on release is their announcement. A delivery mail here would tell
   // the client about a draft fifteen minutes after it landed in the inbox.
+  // RAW projects do get the mail: their files are final the moment they land, and the
+  // batch summary counts raw clips and audio files (deliveryNotify.ts).
   if (project.type !== "FILM") await markDeliveryPending(project.id);
 
   const verb = existing ? "replaced" : "auto-ingested";
@@ -326,7 +379,7 @@ export async function ingestFile(absPath: string) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `:package: *${existing ? "Updated files" : "New files"} — ${project.client.name}*\n*${project.title}*\n${filename} ${verb} · proxy generating`,
+          text: `:package: *${existing ? "Updated files" : "New files"} — ${project.client.name}*\n*${project.title}*\n${filename} ${verb} · ${proxyStatus === "READY" ? "file only, no preview" : "proxy generating"}`,
         },
       },
     ],

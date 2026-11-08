@@ -12,8 +12,8 @@ type PreviewRow = {
   path: string;
   name: string;
   size: string;
-  kind: "PHOTO" | "VIDEO";
-  format: "Reel" | "Film" | "Still" | "Master";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
+  format: "Reel" | "Film" | "Still" | "Master" | "Audio";
   orientation: "landscape" | "portrait";
   dims: string | null;
   durationSec: number | null;
@@ -195,7 +195,8 @@ export function AdminLibraryClient({
   function cycleFormat(path: string) {
     setPreview((rows) =>
       (rows ?? []).map((r) =>
-        r.path === path ? { ...r, format: FORMAT_CYCLE[(FORMAT_CYCLE.indexOf(r.format) + 1) % FORMAT_CYCLE.length] } : r
+        // Audio has one format; cycling it into "Reel" would file a .wav as a video.
+        r.path === path && r.kind !== "AUDIO" ? { ...r, format: FORMAT_CYCLE[(FORMAT_CYCLE.indexOf(r.format) + 1) % FORMAT_CYCLE.length] } : r
       )
     );
   }

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
 import { AdminFilmBlock, type CutRow, type ReviewerRow } from "@/components/AdminFilmBlock";
 import { AdminProxyViewer, type ProxyViewerAsset } from "@/components/AdminProxyViewer";
+import { isFileOnly } from "@/lib/fileOnly";
 
 type FileRow = ProxyViewerAsset & {
   thumbReady: boolean;
@@ -20,7 +21,7 @@ type ProjectRow = {
   title: string;
   description: string | null;
   viewCount: number;
-  type: "DELIVERY" | "CALENDAR" | "FILM";
+  type: "DELIVERY" | "CALENDAR" | "FILM" | "RAW";
   paymentHold: boolean;
   deliveredAt: string | null;
   expiresAt: string | null;
@@ -31,6 +32,11 @@ type ProjectRow = {
   hasSlackChannel: boolean;
 };
 
+
+function clock(sec: number) {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
 
 function toDateInput(iso: string | null) {
   return iso ? iso.slice(0, 10) : "";
@@ -167,8 +173,10 @@ export function AdminProjectDetailClient({
   const encoding = assets.filter(
     (a) => a.proxyStatus === "PENDING" || a.proxyStatus === "GENERATING"
   ).length;
+  // Raw originals and audio are never marked — a hold locks them instead — so they are
+  // not "awaiting watermark", and counting them would leave this line up for good.
   const markPending = assets.filter(
-    (a) => !a.internal && a.markStatus !== "READY" && a.proxyStatus === "READY"
+    (a) => !a.internal && a.markStatus !== "READY" && a.proxyStatus === "READY" && !isFileOnly(a)
   ).length;
 
 
@@ -252,7 +260,9 @@ export function AdminProjectDetailClient({
               ? "Social calendar"
               : project.type === "FILM"
                 ? "Film"
-                : "Delivery"}
+                : project.type === "RAW"
+                  ? "Raw footage"
+                  : "Delivery"}
           </span>
           {project.viewCount > 0 && (
             <span className="bj-mono" data-testid="project-views">
@@ -419,7 +429,18 @@ export function AdminProjectDetailClient({
                     />
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-[10px] tracking-[.1em] uppercase text-dim2">
-                      {a.proxyStatus === "FAILED" ? "No preview" : "Encoding…"}
+                      {isFileOnly(a)
+                        ? a.kind === "AUDIO"
+                          ? "Audio"
+                          : "Raw original"
+                        : a.proxyStatus === "FAILED"
+                          ? "No preview"
+                          : "Encoding…"}
+                    </span>
+                  )}
+                  {held && !a.internal && isFileOnly(a) && (
+                    <span className="absolute top-2 right-2 text-[9px] font-bold tracking-wide text-muted border border-line2 bg-bg/80 px-1.5 py-0.5">
+                      LOCKED
                     </span>
                   )}
                   {a.internal && (
@@ -436,15 +457,19 @@ export function AdminProjectDetailClient({
                 <span className="block pt-2.5 pb-1">
                   <span className="block text-[14px] truncate">{a.name}</span>
                   <span className="block bj-mono mt-1">
-                    {a.proxyStatus === "READY"
-                      ? [a.dims, a.proxyRes, a.size].filter(Boolean).join(" · ")
-                      : a.proxyStatus === "FAILED"
-                        ? "Proxy failed"
-                        : a.proxyStatus === "GENERATING"
-                          ? a.proxyProgress !== null
-                            ? `Encoding ${a.proxyProgress}%`
-                            : "Encoding now"
-                          : "Waiting to encode"}
+                    {isFileOnly(a)
+                      ? [a.masterCodec ?? a.size, a.durationSec ? clock(a.durationSec) : null]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : a.proxyStatus === "READY"
+                        ? [a.dims, a.proxyRes, a.size].filter(Boolean).join(" · ")
+                        : a.proxyStatus === "FAILED"
+                          ? "Proxy failed"
+                          : a.proxyStatus === "GENERATING"
+                            ? a.proxyProgress !== null
+                              ? `Encoding ${a.proxyProgress}%`
+                              : "Encoding now"
+                            : "Waiting to encode"}
                   </span>
                 </span>
               </button>

@@ -9,7 +9,7 @@ import { IconPlay } from "@/components/ui/Icon";
 export type ScheduledPost = {
   id: string;
   name: string;
-  kind: "PHOTO" | "VIDEO";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
   thumbReady: boolean;
   contentTitle: string | null;
   caption: string | null;

@@ -13,6 +13,7 @@ import { UploadDialog } from "@/components/UploadDialog";
 import { AdminMediaCalendar } from "@/components/AdminMediaCalendar";
 import { RowMenu, RowMenuItem } from "@/components/RowMenu";
 import { AdminProxyViewer } from "@/components/AdminProxyViewer";
+import { isFileOnly } from "@/lib/fileOnly";
 import { IconPlay, IconRetry, IconClose } from "@/components/ui/Icon";
 import {
   ManageFoldersDialog,
@@ -22,7 +23,7 @@ import {
 type Asset = {
   id: string;
   name: string;
-  kind: "PHOTO" | "VIDEO";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
   format: string;
   size: string;
   /** Decimal string — sizeBytes is a BigInt server-side. */
@@ -747,7 +748,8 @@ export function AdminMediaClient({
                           }
                         />
                       )}
-                      {a.kind === "VIDEO" && (
+                      {/* No play mark on a raw original: there is nothing to play. */}
+                      {a.kind === "VIDEO" && !isFileOnly(a) && (
                         <div className="absolute inset-0 grid place-items-center text-white/90 text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,.8)]">
                           <IconPlay fill="currentColor" />
                         </div>

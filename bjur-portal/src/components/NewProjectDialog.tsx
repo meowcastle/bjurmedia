@@ -6,12 +6,15 @@ import { IconCheck } from "@/components/ui/Icon";
 
 export type ClientOption = { id: string; name: string; hasSlackChannel: boolean };
 
-type ProjectType = "DELIVERY" | "CALENDAR" | "FILM";
+type ProjectType = "DELIVERY" | "CALENDAR" | "FILM" | "RAW";
 
 const TYPES: { id: ProjectType; label: string }[] = [
   { id: "DELIVERY", label: "Delivery" },
   { id: "FILM", label: "Film" },
   { id: "CALENDAR", label: "Social calendar" },
+  // Camera originals and production sound, listed as files. They lock rather than
+  // watermark while the project is awaiting payment (paymentHold.ts).
+  { id: "RAW", label: "Raw footage" },
 ];
 
 /**

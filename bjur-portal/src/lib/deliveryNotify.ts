@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendDeliveryEmail, sendOnboardingEmail } from "@/lib/mailer";
 import { resetSeatPassword } from "@/lib/clients";
+import { isRawCamera } from "@/lib/fileOnly";
 
 /**
  * How long a project must go without a new asset before its delivery email fires.
@@ -79,6 +80,7 @@ async function sendForProject(project: {
   clientId: string;
   title: string;
   expiresAt: Date | null;
+  paymentHold: boolean;
   deliveryPendingSince: Date | null;
   deliveryPendingAt: Date | null;
   client: { name: string; logoUrl: string | null };
@@ -93,7 +95,7 @@ async function sendForProject(project: {
       internal: false,
       OR: [{ createdAt: { gte: since } }, { lastReplacedAt: { gte: since } }],
     },
-    select: { format: true, createdAt: true },
+    select: { kind: true, name: true, format: true, createdAt: true },
   });
 
   const clearPending = () =>
@@ -109,14 +111,21 @@ async function sendForProject(project: {
     return;
   }
 
-  // No BRAW line any more: it counted masters offered for licence, and masters are
-  // internal now — the client never sees one, so announcing a count of them was only
-  // ever going to prompt a question with no answer.
+  // The old BRAW line counted masters offered for licence, and went when masters went
+  // internal. Raw clips are back only for RAW projects, where they *are* the delivery and
+  // ingest leaves them client-visible — internal ones are already filtered out above, so
+  // a Delivery project's in-house masters still never reach this count.
   const counts = {
     reels: assets.filter((a) => a.format === "Reel").length,
     films: assets.filter((a) => a.format === "Film").length,
     stills: assets.filter((a) => a.format === "Still").length,
+    raw: assets.filter((a) => isRawCamera(a.name)).length,
+    audio: assets.filter((a) => a.kind === "AUDIO").length,
   };
+  // Raw clips and audio are locked, not watermarked, while the hold is on
+  // (paymentHold.ts, lockedUnderHold). The mail says so, or the first thing the client
+  // does with it is tap a file that will not download and write in to ask why.
+  const held = project.paymentHold;
   const isUpdate = assets.every((a) => a.createdAt < since);
 
   const recipients = await recipientsFor(project);
@@ -141,7 +150,8 @@ async function sendForProject(project: {
         action:
           `(dry run) would email ${recipients.length} recipient(s) about ${project.title} ` +
           `(${project.client.name}): ${recipients.map((r) => r.email).join(", ")} — ` +
-          `${counts.reels} reels, ${counts.films} films, ${counts.stills} stills`,
+          `${counts.reels} reels, ${counts.films} films, ${counts.stills} stills, ` +
+          `${counts.raw} raw clips, ${counts.audio} audio files${held ? " (on hold)" : ""}`,
       },
     });
     await db.project.update({
@@ -172,7 +182,9 @@ async function sendForProject(project: {
             reels: counts.reels,
             films: counts.films,
             stills: counts.stills,
-            braw: 0,
+            raw: counts.raw,
+            audio: counts.audio,
+            held,
             expiresAt: fmtDate(project.expiresAt),
           },
         });
@@ -189,6 +201,7 @@ async function sendForProject(project: {
         projectTitle: project.title,
         projectUrl,
         counts,
+        held,
         isUpdate,
         expiresAt: fmtDate(project.expiresAt),
       });

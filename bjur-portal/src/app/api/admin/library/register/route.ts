@@ -10,8 +10,8 @@ import { markDeliveryPending } from "@/lib/deliveryNotify";
 type Item = {
   path: string;
   name: string;
-  kind: "PHOTO" | "VIDEO";
-  format: "Reel" | "Film" | "Still" | "Master";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
+  format: "Reel" | "Film" | "Still" | "Master" | "Audio";
   orientation: "landscape" | "portrait";
   dims?: string | null;
   durationSec?: number | null;

@@ -15,6 +15,8 @@ export type ProjectListItem = {
   expiresAt: string | null;
   photoCount: number;
   videoCount: number;
+  /** Production sound on a RAW project. */
+  audioCount?: number;
   coverAssetId: string | null;
   /** Files delivered this week. Above 0, the row says New. */
   newCount: number;
@@ -138,7 +140,7 @@ export function ProjectListClient({ projects }: { projects: ProjectListItem[] })
               </thead>
               <tbody>
                 {shown.map((p, i) => {
-                  const files = p.photoCount + p.videoCount;
+                  const files = p.photoCount + p.videoCount + (p.audioCount ?? 0);
                   const href = hrefFor(p);
                   return (
                     <tr

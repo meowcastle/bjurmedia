@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Portal } from "@/components/ui/Portal";
 import { IconClose, IconDownload } from "@/components/ui/Icon";
+import { isFileOnly } from "@/lib/fileOnly";
 
 export type ProxyViewerAsset = {
   id: string;
   name: string;
-  kind: "PHOTO" | "VIDEO";
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
   format: string;
   size: string;
   dims: string | null;
@@ -109,7 +110,11 @@ export function AdminProxyViewer({
   if (!asset) return null;
 
   const src = asset.kind === "VIDEO" ? `/api/assets/${asset.id}/proxy` : `/api/assets/${asset.id}/thumb`;
-  const hasPlayableProxy = asset.kind === "VIDEO" && asset.proxyStatus === "READY";
+  // Raw originals and audio are READY with nothing to show (fileOnly.ts). Without this
+  // the viewer would request a proxy that was never made, fail, and report it "missing
+  // on disk" — sending someone to Regenerate a file that has nothing to regenerate.
+  const fileOnly = isFileOnly(asset);
+  const hasPlayableProxy = asset.kind === "VIDEO" && asset.proxyStatus === "READY" && !fileOnly;
   // Queued counts as in-flight. Pressing Retry on a PENDING asset re-queues work the
   // worker is about to take, or has already taken and had overwritten underneath it.
   const inFlight = asset.proxyStatus === "PENDING" || asset.proxyStatus === "GENERATING";
@@ -125,7 +130,17 @@ export function AdminProxyViewer({
             max-h-full nothing to measure, so a vertical reel rendered at its full 1920px,
             ran off the bottom and widened this pane until the rail was pushed off-screen. */}
         <div className="relative flex-1 min-h-0 min-w-0 grid place-items-center p-4 lg:p-8">
-          {mediaFailed || (asset.kind === "VIDEO" && !hasPlayableProxy) ? (
+          {fileOnly ? (
+            <div className="text-center max-w-sm">
+              <div className="text-[13px] text-white/80 font-semibold">
+                {asset.kind === "AUDIO" ? "Audio file" : "Raw camera original"}
+              </div>
+              <div className="text-[12px] text-white/50 mt-2">
+                No preview. The client gets this as the original file, locked while the project
+                is awaiting payment.
+              </div>
+            </div>
+          ) : mediaFailed || (asset.kind === "VIDEO" && !hasPlayableProxy) ? (
             <div className="text-center max-w-sm">
               <div className="text-[13px] text-white/80 font-semibold">No proxy to preview</div>
               <div className="text-[12px] text-white/50 mt-2">
@@ -202,7 +217,9 @@ export function AdminProxyViewer({
                 // A failed load beats whatever the row says: the database claiming READY
                 // while the file will not stream is exactly the drift worth surfacing,
                 // and reprinting "1080p H.264" next to "no proxy to preview" hides it.
-                mediaFailed ? (
+                fileOnly ? (
+                  "None — delivered as the file"
+                ) : mediaFailed ? (
                   <span className="text-accentb">Missing on disk — regenerate</span>
                 ) : hasPlayableProxy ? (
                   (asset.proxyRes ?? "Ready")

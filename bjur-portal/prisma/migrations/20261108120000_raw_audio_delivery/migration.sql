@@ -1,0 +1,10 @@
+-- RAW projects and AUDIO assets.
+--
+-- Intentionally empty. Two enum values were added — ProjectType.RAW and AssetKind.AUDIO —
+-- and on SQLite Prisma stores enums as plain TEXT with no CHECK constraint (see how
+-- "Project"."type" and "Asset"."kind" were created in earlier migrations: TEXT NOT NULL,
+-- nothing else). The database already accepts the new strings; only the generated client
+-- needed to learn them. The folder exists so `migrate deploy` records the schema change
+-- and the migration history stays in step with schema.prisma.
+--
+-- This is an empty migration.

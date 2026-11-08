@@ -29,7 +29,11 @@ export type OnboardingEmailProps = {
     reels: number;
     films: number;
     stills: number;
-    braw: number;
+    /** Camera originals and production sound — RAW projects only. */
+    raw?: number;
+    audio?: number;
+    /** On a payment hold: raw clips and audio stay locked until it lifts. */
+    held?: boolean;
     expiresAt: string | null;
   };
 };
@@ -64,7 +68,11 @@ export function renderOnboardingEmailHtml({
     reason === "reset"
       ? `${hi} We set a new temporary password on your Bjur client portal login for ${clientName}. Sign in with it below and choose your own.`
       : delivery
-        ? `${hi} You now have a login to the Bjur client portal for ${clientName}, and your ${delivery.projectTitle} files are already in it. Stream them in the browser, or download the masters at full resolution whenever you like.`
+        ? `${hi} You now have a login to the Bjur client portal for ${clientName}, and your ${delivery.projectTitle} files are already in it. Stream them in the browser, or download the masters at full resolution whenever you like.${
+            delivery.held && (delivery.raw ?? 0) + (delivery.audio ?? 0) > 0
+              ? " Raw clips and audio files unlock for download once payment clears."
+              : ""
+          }`
         : `${hi} You now have a login to the Bjur client portal for ${clientName}. Sign in to review cuts, leave notes on the frame and download your files as they land.`;
 
   return renderShell({

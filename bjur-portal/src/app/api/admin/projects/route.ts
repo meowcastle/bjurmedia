@@ -16,7 +16,13 @@ export async function POST(req: NextRequest) {
   }
 
   const projectType =
-    type === "CALENDAR" ? "CALENDAR" : type === "FILM" ? "FILM" : "DELIVERY";
+    type === "CALENDAR"
+      ? "CALENDAR"
+      : type === "FILM"
+        ? "FILM"
+        : type === "RAW"
+          ? "RAW"
+          : "DELIVERY";
 
   // The Calendar+Review 400 is gone with the boolean: the combination it forbade cannot
   // be expressed any more, because a project is one type and Film is the one that reviews.

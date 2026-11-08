@@ -18,6 +18,12 @@ export type ReleasedEmailProps = {
   projectUrl: string;
   /** How many client-visible files are now clean. */
   fileCount: number;
+  /**
+   * How many of those were raw camera originals or audio — files a hold locks outright
+   * rather than watermarks (paymentHold.ts, lockedUnderHold). They were never marked, so
+   * "the watermarks are off" says nothing about them; they were unlocked.
+   */
+  unlockedCount?: number;
   expiresAt: string | null;
   /** Absolute URL of the client's logo, when they have one. */
   logoUrl?: string | null;
@@ -29,17 +35,43 @@ export function renderReleasedEmailHtml({
   projectTitle,
   projectUrl,
   fileCount,
+  unlockedCount = 0,
   expiresAt,
   logoUrl,
 }: ReleasedEmailProps): string {
   const plural = fileCount === 1 ? "file" : "files";
+
+  // A RAW delivery: every file was locked, none was ever watermarked, and nothing the
+  // client took earlier needs replacing — so no mention of marks at all.
+  if (unlockedCount > 0 && unlockedCount >= fileCount) {
+    return renderShell({
+      preheader: `Your ${projectTitle} files are unlocked and ready to download.`,
+      logoUrl,
+      kicker: `Thank you · ${clientName}`,
+      headline: `Your ${projectTitle} files are ready.`,
+      body: `Hi ${firstName(recipientName)}. Thank you for your purchase. All ${fileCount} ${plural} in ${projectTitle} are unlocked and yours to download.`,
+      facts: [
+        { label: "Project", value: projectTitle },
+        { label: "Files", value: `${fileCount} · unlocked` },
+        ...(expiresAt ? [{ label: "Available until", value: expiresAt }] : []),
+      ],
+      cta: { label: "Download your files", url: projectUrl },
+      unsubscribe:
+        "You are receiving this because you are an owner on this account and these files were just released to you.",
+    });
+  }
+
+  const unlockedLine =
+    unlockedCount > 0
+      ? ` The ${unlockedCount} raw and audio ${unlockedCount === 1 ? "file is" : "files are"} unlocked too.`
+      : "";
 
   return renderShell({
     preheader: `The watermarks are off. Your ${projectTitle} files are ready to download.`,
     logoUrl,
     kicker: `Thank you · ${clientName}`,
     headline: `Your ${projectTitle} files are ready.`,
-    body: `Hi ${firstName(recipientName)}. Thank you for your purchase. The watermarks are off, and all ${fileCount} ${plural} in ${projectTitle} are yours to download at full quality.`,
+    body: `Hi ${firstName(recipientName)}. Thank you for your purchase. The watermarks are off, and all ${fileCount} ${plural} in ${projectTitle} are yours to download at full quality.${unlockedLine}`,
     facts: [
       { label: "Project", value: projectTitle },
       { label: "Files", value: `${fileCount} · no watermark` },

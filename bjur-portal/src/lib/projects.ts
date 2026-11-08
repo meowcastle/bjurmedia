@@ -38,8 +38,11 @@ export async function createProject(opts: {
   clientId: string;
   title: string;
   expiresAt?: Date | null;
-  /** Fixed at creation. FILM carries the cut-and-notes loop that `review` used to. */
-  type?: "DELIVERY" | "CALENDAR" | "FILM";
+  /**
+   * Fixed at creation. FILM carries the cut-and-notes loop that `review` used to. RAW
+   * delivers camera originals and audio as client-visible files (ingest.ts).
+   */
+  type?: "DELIVERY" | "CALENDAR" | "FILM" | "RAW";
   /** FILM only: people with no seat who still review. They get a link, not an account. */
   guests?: { email: string; name?: string; role?: string }[];
 }) {

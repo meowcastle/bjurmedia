@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth";
+import { fileOnlyWhere, isFileOnly } from "@/lib/fileOnly";
 
 /**
  * Whether this viewer gets the watermarked renditions of this project.
@@ -38,6 +39,25 @@ export function markedDownloadRelPath(asset: {
 }
 
 /**
+ * Files a held project lists but does not hand over: raw camera originals and production
+ * audio (fileOnly.ts). Everything else on a hold is delivered at once with a mark burned
+ * in; these cannot carry one — ffmpeg cannot decode a BRAW, and a "watermark" on a .wav
+ * would be a voice-over ruining the take — so the only way to hold them is to not
+ * release them. The client sees every clip and how big it is, and the files unlock the
+ * moment the hold is lifted.
+ *
+ * Never queued for marking (queueProjectForMarking, generateProxy) and so never waiting
+ * on it: their markStatus stays NONE, and the routes answer 402 for them rather than the
+ * 409 "still being prepared" that would otherwise be true forever.
+ */
+export function lockedUnderHold(asset: { kind: string; name: string }) {
+  return isFileOnly(asset);
+}
+
+/** The single-download refusal for a locked file, shared so the copy reads the same everywhere. */
+export const LOCKED_UNDER_HOLD_MESSAGE = "This file unlocks once payment clears.";
+
+/**
  * True once this asset actually has the marked rendition a held project owes the client.
  * Kept separate from holdApplies because the two failure modes are different: the hold
  * being on is a policy, the renditions existing is a fact about the disk, and a route
@@ -60,8 +80,10 @@ export function markedReady(asset: {
  * generateProxy re-queues idempotently if it finishes afterwards.
  */
 export async function queueProjectForMarking(projectId: string) {
+  // Raw originals and audio are left at NONE: there is no marked copy to make, and a
+  // PENDING row would sit in the mark loop failing on every pass (lockedUnderHold).
   const { count } = await db.asset.updateMany({
-    where: { projectId, internal: false, markStatus: { in: ["NONE", "FAILED"] } },
+    where: { projectId, internal: false, markStatus: { in: ["NONE", "FAILED"] }, NOT: fileOnlyWhere },
     data: { markStatus: "PENDING" },
   });
   return count;
@@ -74,7 +96,9 @@ export async function queueProjectForMarking(projectId: string) {
 export async function markingProgress(projectId: string) {
   const rows = await db.asset.groupBy({
     by: ["markStatus"],
-    where: { projectId, internal: false },
+    // Locked files are never marked, so counting them would leave "ready" short of
+    // "total" for good and the admin waiting on a progress bar that cannot finish.
+    where: { projectId, internal: false, NOT: fileOnlyWhere },
     _count: true,
   });
   const by = Object.fromEntries(rows.map((r) => [r.markStatus, r._count])) as Record<string, number>;

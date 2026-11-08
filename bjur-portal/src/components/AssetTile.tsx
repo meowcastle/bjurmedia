@@ -10,7 +10,8 @@ import { IconCheck, IconHeart, IconPlay } from "@/components/ui/Icon";
 
 export type TileAsset = {
   id: string;
-  kind: "PHOTO" | "VIDEO";
+  /** AUDIO never reaches AssetTile — file-only assets render as a FileRow instead. */
+  kind: "PHOTO" | "VIDEO" | "AUDIO";
   format: string;
   orientation: string;
   name: string;

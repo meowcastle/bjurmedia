@@ -14,7 +14,13 @@ export type DeliveryEmailProps = {
   projectTitle: string;
   /** Deep link to this project's gallery, e.g. https://portal…/p/<id> */
   projectUrl: string;
-  counts: { reels: number; films: number; stills: number };
+  /** raw = camera originals (.braw/.r3d/.ari), audio = production sound. RAW projects only. */
+  counts: { reels: number; films: number; stills: number; raw?: number; audio?: number };
+  /**
+   * The project is on a payment hold. Only changes the copy when raw clips or audio are
+   * in the batch: those are locked until payment rather than watermarked.
+   */
+  held?: boolean;
   /** True when this batch replaced existing files rather than adding new ones. */
   isUpdate: boolean;
   expiresAt: string | null;
@@ -41,6 +47,8 @@ function landed(counts: DeliveryEmailProps["counts"]) {
     counts.reels ? count(counts.reels, "reel", "reels") : null,
     counts.films ? count(counts.films, "film", "films") : null,
     counts.stills ? count(counts.stills, "still", "stills") : null,
+    counts.raw ? count(counts.raw, "raw clip", "raw clips") : null,
+    counts.audio ? count(counts.audio, "audio file", "audio files") : null,
   ].filter((p): p is string => p != null);
   if (parts.length === 0) return null;
   const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
@@ -53,6 +61,7 @@ export function renderDeliveryEmailHtml({
   projectTitle,
   projectUrl,
   counts,
+  held = false,
   isUpdate,
   expiresAt,
   totalSize,
@@ -61,13 +70,28 @@ export function renderDeliveryEmailHtml({
   logoUrl,
 }: DeliveryEmailProps): string {
   const hi = `Hi ${firstName(recipientName)}.`;
-  const total = counts.reels + counts.films + counts.stills;
+  const fileOnly = (counts.raw ?? 0) + (counts.audio ?? 0);
+  const total = counts.reels + counts.films + counts.stills + fileOnly;
   const what = landed(counts);
   const verb = total === 1 ? "is" : "are";
 
+  // Raw clips and audio do not stream — there is no preview of either — so a batch of
+  // nothing else gets told to download, not to watch. On a hold they are locked rather
+  // than watermarked, and the mail says when they open up.
+  const allFileOnly = fileOnly > 0 && fileOnly === total;
+  const how = allFileOnly
+    ? "Download them from the project whenever you like."
+    : "Stream them in the browser, or download the masters at full resolution whenever you like.";
+  const lockedNote =
+    held && fileOnly > 0
+      ? allFileOnly
+        ? " They unlock for download once payment clears."
+        : " The raw clips and audio files unlock for download once payment clears."
+      : "";
+
   const body = isUpdate
-    ? `${hi} We updated the files in ${projectTitle}. Stream them in the browser, or download the masters at full resolution whenever you like.`
-    : `${hi} ${what ? `${what} ${verb} in your portal.` : "New files are in your portal."} Stream them in the browser, or download the masters at full resolution whenever you like.`;
+    ? `${hi} We updated the files in ${projectTitle}. ${how}${lockedNote}`
+    : `${hi} ${what ? `${what} ${verb} in your portal.` : "New files are in your portal."} ${how}${lockedNote}`;
 
   const delivered =
     deliveredAt ??

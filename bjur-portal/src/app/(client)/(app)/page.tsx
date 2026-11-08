@@ -13,10 +13,11 @@ function spacedDims(dims: string) {
 }
 
 /** "3 videos and 1 still." Said from the counts, never about the work itself. */
-function contentsLine(videos: number, stills: number) {
+function contentsLine(videos: number, stills: number, audio = 0) {
   const parts: string[] = [];
   if (videos) parts.push(`${videos} video${videos === 1 ? "" : "s"}`);
   if (stills) parts.push(`${stills} still${stills === 1 ? "" : "s"}`);
+  if (audio) parts.push(`${audio} audio file${audio === 1 ? "" : "s"}`);
   return parts.length ? `${parts.join(" and ")}.` : "No files yet.";
 }
 
@@ -97,6 +98,8 @@ export default async function ProjectListPage() {
     expiresAt: p.expiresAt?.toISOString() ?? null,
     photoCount: p.assets.filter((a) => a.kind === "PHOTO").length,
     videoCount: p.assets.filter((a) => a.kind === "VIDEO").length,
+    // RAW projects' production sound. Raw camera clips are kind VIDEO and count above.
+    audioCount: p.assets.filter((a) => a.kind === "AUDIO").length,
     coverAssetId: coverByProject.get(p.id) ?? null,
     newCount: newByProject.get(p.id) ?? 0,
     // BigInt cannot cross the RSC boundary; summed here and serialised.
@@ -123,13 +126,15 @@ export default async function ProjectListPage() {
       format = { value: spacedDims(still.dims), label: "Still" };
     } else if (item.videoCount) {
       format = { value: String(item.videoCount), label: item.videoCount === 1 ? "video" : "videos" };
+    } else if (item.audioCount) {
+      format = { value: String(item.audioCount), label: item.audioCount === 1 ? "audio file" : "audio files" };
     } else {
       format = { value: String(item.photoCount), label: item.photoCount === 1 ? "still" : "stills" };
     }
     latest = {
       ...item,
       fileCount: latestRaw.assets.length,
-      line: latestRaw.description || contentsLine(item.videoCount, item.photoCount),
+      line: latestRaw.description || contentsLine(item.videoCount, item.photoCount, item.audioCount),
       format,
     };
   }

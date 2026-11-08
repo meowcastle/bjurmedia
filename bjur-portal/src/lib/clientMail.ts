@@ -3,6 +3,7 @@ import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendExpiryEmail, sendReleasedEmail } from "@/lib/mailer";
 import { formatBytes } from "@/lib/format";
 import { isLive } from "@/lib/deliveryNotify";
+import { fileOnlyWhere } from "@/lib/fileOnly";
 
 function portalUrl() {
   return process.env.PORTAL_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
@@ -114,6 +115,11 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
     });
     if (!project) return { sent: 0 };
 
+    // Raw originals and audio were locked rather than watermarked; the mail says so.
+    const unlockedCount = await db.asset.count({
+      where: { projectId, internal: false, ...fileOnlyWhere },
+    });
+
     const owners = await db.clientMember.findMany({
       where: {
         clientId: project.clientId,
@@ -153,6 +159,7 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
         projectTitle: project.title,
         projectUrl: `${portalUrl()}/p/${project.id}`,
         fileCount: project._count.assets,
+        unlockedCount,
         expiresAt: project.expiresAt ? day(project.expiresAt) : null,
       });
     }

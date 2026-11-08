@@ -3,7 +3,12 @@ import { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { authorizeAssetAccess } from "@/lib/authz";
 import { resolveDerivedPath, resolveMediaPath, streamFile } from "@/lib/media";
-import { markedDownloadRelPath, markedReady } from "@/lib/paymentHold";
+import {
+  LOCKED_UNDER_HOLD_MESSAGE,
+  lockedUnderHold,
+  markedDownloadRelPath,
+  markedReady,
+} from "@/lib/paymentHold";
 import { db } from "@/lib/db";
 import { postSlackEvent } from "@/lib/slack";
 
@@ -23,6 +28,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "A license is required to download this master." }, { status: 403 });
     }
     return new Response(null, { status: auth.status });
+  }
+
+  // Raw originals and audio have no watermarked stand-in and never will, so on a hold they
+  // are simply not released yet. 402, not the 409 below: "try again in a few minutes"
+  // would be a promise nothing on the server is working to keep.
+  if (auth.watermark && lockedUnderHold(auth.asset)) {
+    return Response.json({ error: LOCKED_UNDER_HOLD_MESSAGE, locked: true }, { status: 402 });
   }
 
   // Payment hold: hand over the watermarked rendition in place of the master. If it is
