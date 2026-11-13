@@ -60,7 +60,13 @@ async function recipientsFor(project: { id: string; clientId: string }) {
       deactivatedAt: null,
       notifyDelivery: true,
     },
-    include: { projectMemberships: { select: { projectId: true } } },
+    // Only this client's rows: a restriction on another client says nothing about this one.
+    include: {
+      projectMemberships: {
+        where: { project: { clientId: project.clientId } },
+        select: { projectId: true },
+      },
+    },
   });
 
   return users.filter(

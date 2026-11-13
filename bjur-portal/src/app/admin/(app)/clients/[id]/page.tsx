@@ -25,7 +25,12 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         where: { user: { deactivatedAt: null } },
         orderBy: { createdAt: "asc" },
         include: {
-          user: { include: { projectMemberships: { select: { projectId: true, role: true } } } },
+          // This client's rows only, so the seat's access reads the way the portal applies it.
+          user: {
+            include: {
+              projectMemberships: { where: { project: { clientId: id } }, select: { projectId: true, role: true } },
+            },
+          },
         },
       },
       projects: {

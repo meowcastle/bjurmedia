@@ -18,8 +18,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target || target.clientId !== clientId) {
+  // Membership, not User.clientId: that column is only the seat's first client, so a seat
+  // that also belongs to this one could not have its access here edited at all.
+  const member = await db.clientMember.findUnique({ where: { userId_clientId: { userId, clientId } } });
+  if (!member) {
     return NextResponse.json({ error: "Login not found." }, { status: 404 });
   }
 
@@ -44,7 +46,9 @@ export async function PATCH(
   }
 
   await db.$transaction([
-    db.projectMember.deleteMany({ where: { userId } }),
+    // This client's rows only. Clearing every row the seat holds wiped its restrictions on
+    // its other clients, quietly widening it to every project there.
+    db.projectMember.deleteMany({ where: { userId, project: { clientId } } }),
     ...(projectAccess.length > 0
       ? [
           db.projectMember.createMany({

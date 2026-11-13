@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ReviewScreenClient } from "@/components/ReviewScreenClient";
 import { ReviewShell } from "@/components/ReviewScreen";
 import { canManagePeople } from "@/lib/projectPeople";
+import { switchToProjectClient } from "@/lib/projectAccess";
 
 /**
  * A seat reviewing a Film project.
@@ -30,6 +31,7 @@ export default async function ClientReviewPage({
   const project = await db.project.findUnique({ where: { id: projectId } });
   if (!project || project.type !== "FILM") notFound();
 
+  if (await switchToProjectClient(session, project)) redirect(`/p/${projectId}/review`);
   if (session.clientId !== project.clientId) notFound();
 
   const reviewer = await db.reviewer.findFirst({

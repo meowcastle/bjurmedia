@@ -56,7 +56,11 @@ export async function listProjectPeople(project: Project, viewerId: string): Pro
           name: true,
           email: true,
           lastLoginAt: true,
-          projectMemberships: { select: { projectId: true, role: true } },
+          // This client's rows only: a restriction elsewhere does not limit them here.
+          projectMemberships: {
+            where: { project: { clientId: project.clientId } },
+            select: { projectId: true, role: true },
+          },
         },
       },
     },
@@ -123,7 +127,7 @@ export async function addProjectPerson(
     where: { email },
     include: {
       clientMemberships: { select: { clientId: true } },
-      projectMemberships: { select: { projectId: true } },
+      projectMemberships: { where: { project: { clientId: project.clientId } }, select: { projectId: true } },
     },
   });
 

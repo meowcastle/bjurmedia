@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProjectDetailClient } from "@/components/ProjectDetailClient";
-import { getProjectAccess } from "@/lib/projectAccess";
+import { getProjectAccess, switchToProjectClient } from "@/lib/projectAccess";
 import { CountView } from "@/components/CountView";
 import { canManagePeople } from "@/lib/projectPeople";
 
@@ -32,6 +32,10 @@ export default async function ProjectDetailPage({
   });
 
   if (!project || project.status !== "LIVE") notFound();
+
+  // Their project, on another of their clients: switch to it and reload, so the header and
+  // every check below run under the client the link was for.
+  if (await switchToProjectClient(session, project)) redirect(`/p/${projectId}`);
 
   const access = await getProjectAccess(session, project);
   if (!access.allowed) {
