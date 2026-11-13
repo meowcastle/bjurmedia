@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { emailLogoUrl } from "@/lib/emailLogo";
 import { sendDeliveryEmail, sendOnboardingEmail } from "@/lib/mailer";
+import { guardProjectEmail } from "@/lib/linkGuard";
 import { resetSeatPassword } from "@/lib/clients";
 import { isRawCamera } from "@/lib/fileOnly";
 
@@ -44,13 +45,16 @@ export async function markDeliveryPending(projectId: string) {
 }
 
 /**
- * Who on this client should hear about this specific project. A login with no
- * ProjectMember rows is unrestricted and sees everything; a restricted one must hold
- * membership in this exact project. Getting this wrong would tell a project-scoped
- * client contact about work they can't open — so it mirrors getAccessibleProjectIds()
- * rather than re-deriving the rule.
+ * Who on this client should hear about this specific project: every opted-in seat whose
+ * link would actually open, decided by the same gate as the page (linkGuard.ts).
  */
-async function recipientsFor(project: { id: string; clientId: string }) {
+async function recipientsFor(project: {
+  id: string;
+  clientId: string;
+  status: string;
+  title: string;
+  client: { name: string };
+}) {
   // Membership, not User.clientId: that column is the login's first client and nothing
   // keeps it current, so anyone added to a client later (or belonging to two) was
   // never mailed. ClientMember is what sign-in and project access go by.
@@ -60,20 +64,19 @@ async function recipientsFor(project: { id: string; clientId: string }) {
       deactivatedAt: null,
       notifyDelivery: true,
     },
-    // Only this client's rows: a restriction on another client says nothing about this one.
-    include: {
-      projectMemberships: {
-        where: { project: { clientId: project.clientId } },
-        select: { projectId: true },
-      },
-    },
+    include: { clientMemberships: { where: { clientId: project.clientId }, select: { role: true } } },
   });
 
-  return users.filter(
-    (u) =>
-      u.projectMemberships.length === 0 ||
-      u.projectMemberships.some((m) => m.projectId === project.id)
-  );
+  // Whoever's link would open — the page's own gate, so a seat limited to other projects
+  // is dropped quietly. An owner who'd 404 is not expected, so that one is held back and
+  // the studio told.
+  const { reachable } = await guardProjectEmail({
+    project: { ...project, clientName: project.client.name },
+    recipients: users,
+    email: "new files",
+    expected: (u) => u.clientMemberships[0]?.role === "OWNER",
+  });
+  return reachable;
 }
 
 function fmtDate(d: Date | null) {
@@ -84,6 +87,7 @@ function fmtDate(d: Date | null) {
 async function sendForProject(project: {
   id: string;
   clientId: string;
+  status: string;
   title: string;
   expiresAt: Date | null;
   paymentHold: boolean;

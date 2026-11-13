@@ -7,7 +7,12 @@
 
 import { renderShell } from "@/emails/shell";
 
-export type StaffAlertKind = "publish-failed" | "token-expiring" | "submission-complete";
+export type StaffAlertKind =
+  | "publish-failed"
+  | "token-expiring"
+  | "submission-complete"
+  | "link-blocked"
+  | "access-audit";
 
 export type StaffAlertEmailProps = {
   kind: StaffAlertKind;
@@ -25,6 +30,8 @@ const KICKER: Record<StaffAlertKind, string> = {
   "publish-failed": "Publish failed",
   "token-expiring": "Action needed soon",
   "submission-complete": "Upload complete",
+  "link-blocked": "Email held back",
+  "access-audit": "Access check",
 };
 
 export function renderStaffAlertEmailHtml({

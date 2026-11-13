@@ -24,6 +24,7 @@ import { processCaptionQueue } from "./src/lib/captionPipeline";
 import { flushPendingDeliveries, DELIVERY_QUIET_MS } from "./src/lib/deliveryNotify";
 import { SESSION_TTL_MS } from "./src/lib/auth";
 import { processLogoQueue } from "./src/lib/logos";
+import { runAccessAudit } from "./src/lib/accessAudit";
 
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
 const POLL_MS = 4000;
@@ -381,6 +382,30 @@ function startCaptionScheduler() {
 // accrete forever. Piggybacks on the same SCHEDULER_POLL_MS poll rather than a
 // dedicated interval; a plain dateKey comparison (not a specific day/time like
 // the schedulers above) is enough to make this fire roughly once per day.
+// The nightly access check (accessAudit.ts): once a day, from 07:00 studio time, so a
+// finding is in the inbox at the start of the day rather than at 3am. It emails only when
+// the list of problems changes; the last list is held in memory, so a worker restart can
+// send the current list once more.
+function startAccessAuditScheduler() {
+  const tz = process.env.STUDIO_TZ || "America/New_York";
+  let ranOn: string | null = null;
+  let lastKey: string | null = null;
+
+  const tick = async () => {
+    const now = new Date();
+    const dateKey = now.toLocaleDateString("en-CA", { timeZone: tz });
+    const hour = Number(now.toLocaleString("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }));
+    if (ranOn === dateKey || hour < 7) return;
+    ranOn = dateKey;
+    const { issues, key } = await runAccessAudit(lastKey);
+    lastKey = key;
+    console.log(`[access] nightly check: ${issues.length} problem(s)`);
+  };
+
+  console.log(`[access] nightly access check from 07:00 ${tz}, checking every ${SCHEDULER_POLL_MS}ms`);
+  setInterval(() => tick().catch((err) => console.error("[access] check failed:", err)), SCHEDULER_POLL_MS);
+}
+
 function startSessionSweepScheduler() {
   let lastSweptOn: string | null = null;
 
@@ -535,6 +560,7 @@ startProxyLoop();
 startWeeklySocialSyncScheduler();
 startDeliveryMailScheduler();
 startSessionSweepScheduler();
+startAccessAuditScheduler();
 startPublishScheduler();
 startClientMailScheduler();
 startCaptionScheduler();

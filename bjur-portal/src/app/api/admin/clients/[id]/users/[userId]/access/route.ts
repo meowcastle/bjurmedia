@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { replaceClientLimits } from "@/lib/projectAccess";
 
 type ProjectAccessInput = { projectId: string; role: "OWNER" | "DOWNLOADER" | "VIEWER" };
 
@@ -45,18 +46,7 @@ export async function PATCH(
     }
   }
 
-  await db.$transaction([
-    // This client's rows only. Clearing every row the seat holds wiped its restrictions on
-    // its other clients, quietly widening it to every project there.
-    db.projectMember.deleteMany({ where: { userId, project: { clientId } } }),
-    ...(projectAccess.length > 0
-      ? [
-          db.projectMember.createMany({
-            data: projectAccess.map((p) => ({ userId, projectId: p.projectId, role: p.role })),
-          }),
-        ]
-      : []),
-  ]);
+  await replaceClientLimits(userId, clientId, projectAccess);
 
   return NextResponse.json({ ok: true });
 }

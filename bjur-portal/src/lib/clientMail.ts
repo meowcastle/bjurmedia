@@ -4,6 +4,7 @@ import { sendExpiryEmail, sendReleasedEmail } from "@/lib/mailer";
 import { formatBytes } from "@/lib/format";
 import { isLive } from "@/lib/deliveryNotify";
 import { fileOnlyWhere } from "@/lib/fileOnly";
+import { guardProjectEmail, type GuardDeps } from "@/lib/linkGuard";
 
 function portalUrl() {
   return process.env.PORTAL_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
@@ -16,6 +17,7 @@ function day(d: Date) {
 export type ClientMailDeps = {
   sendExpiry: typeof sendExpiryEmail;
   sendReleased: typeof sendReleasedEmail;
+  alert: GuardDeps["alert"];
 };
 
 /**
@@ -39,6 +41,7 @@ export async function sendExpiryReminders(now = new Date(), deps: Partial<Client
       expiresAt: true,
       expiryReminderSentFor: true,
       clientId: true,
+      status: true,
       client: { select: { name: true, logoUrl: true } },
       assets: { where: { internal: false }, select: { sizeBytes: true } },
     },
@@ -53,10 +56,27 @@ export async function sendExpiryReminders(now = new Date(), deps: Partial<Client
     // got the fortnight warning still gets the three-day one.
     if (project.expiryReminderSentFor !== null && project.expiryReminderSentFor <= threshold) continue;
 
-    const recipients = await db.user.findMany({
-      where: { clientId: project.clientId, isAdmin: false, deactivatedAt: null, notifyExpiry: true },
-      select: { email: true, name: true },
+    // Membership, not User.clientId (that column is only a seat's first client), and only
+    // the seats whose link would open: someone limited to other projects here isn't told
+    // this one is expiring.
+    const opted = await db.user.findMany({
+      where: {
+        clientMemberships: { some: { clientId: project.clientId } },
+        isAdmin: false,
+        deactivatedAt: null,
+        notifyExpiry: true,
+      },
+      select: { id: true, email: true, name: true },
     });
+    const { reachable: recipients } = await guardProjectEmail(
+      {
+        project: { ...project, clientName: project.client.name },
+        recipients: opted,
+        email: "expiry reminder",
+        expected: false,
+      },
+      deps
+    );
 
     // Marked regardless of whether anyone is listening, so a project with no opted-in
     // seats is not re-examined every single tick.
@@ -108,6 +128,7 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
         id: true,
         title: true,
         clientId: true,
+        status: true,
         expiresAt: true,
         client: { select: { name: true, logoUrl: true } },
         _count: { select: { assets: { where: { internal: false } } } },
@@ -126,14 +147,26 @@ export async function sendPaymentReleaseReceipt(projectId: string, deps: Partial
         role: "OWNER",
         user: { isAdmin: false, deactivatedAt: null },
       },
-      select: { user: { select: { email: true, name: true } } },
+      select: { user: { select: { id: true, email: true, name: true } } },
     });
 
     // One seat can own several clients, and nothing stops two memberships resolving to
     // the same address — dedupe so nobody gets thanked twice for one purchase.
-    const recipients = owners
+    const owning = owners
       .map((m) => m.user)
       .filter((r, i, all) => all.findIndex((x) => x.email === r.email) === i);
+
+    // Every owner is meant to open this link. One who can't is held back and the studio is
+    // told, rather than thanking them for files on a page that 404s.
+    const { reachable: recipients } = await guardProjectEmail(
+      {
+        project: { ...project, clientName: project.client.name },
+        recipients: owning,
+        email: "release receipt",
+        expected: true,
+      },
+      deps
+    );
 
     // Same kill switch as delivery mail. This one thanks a named person for money they
     // may not have paid, so being able to exercise a release end to end without mailing

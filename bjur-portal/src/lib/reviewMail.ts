@@ -4,6 +4,7 @@ import { sendCutReadyEmail, sendNotesInEmail, sendReviewGuideEmail } from "@/lib
 import { resetSeatPassword } from "@/lib/clients";
 import { isLive } from "@/lib/deliveryNotify";
 import { canApprove } from "@/lib/reviewAccess";
+import { guardProjectEmail, type GuardDeps } from "@/lib/linkGuard";
 import type { CutReadyEmailProps, CutReadyNote } from "@/emails/cutReady";
 
 /**
@@ -39,6 +40,7 @@ export type ReviewMailDeps = {
   sendReviewGuide: typeof sendReviewGuideEmail;
   sendNotesIn: typeof sendNotesInEmail;
   issuePassword: typeof resetSeatPassword;
+  alert: GuardDeps["alert"];
 };
 
 /**
@@ -93,6 +95,17 @@ export function watchUrl(
     : `${portalUrl()}/p/${projectId}/review`;
 }
 
+/** Would this reviewer's cut-ready link open? Guests: always. Seats: see notifyCutReady. */
+async function reviewerLinkOpens(r: { kind: string; userId: string | null }, clientId: string) {
+  if (r.kind === "GUEST") return true;
+  if (!r.userId) return false;
+  const member = await db.clientMember.findFirst({
+    where: { userId: r.userId, clientId, client: { status: "ACTIVE" }, user: { deactivatedAt: null } },
+    select: { id: true },
+  });
+  return !!member;
+}
+
 /** Everyone still entitled to watch: seats and guests, minus anyone revoked. */
 async function activeReviewers(projectId: string) {
   return db.reviewer.findMany({
@@ -130,7 +143,13 @@ export async function notifyCutReady(
             contentTitle: true,
             projectId: true,
             project: {
-              select: { id: true, title: true, client: { select: { name: true, accentColor: true, logoUrl: true } } },
+              select: {
+                id: true,
+                title: true,
+                clientId: true,
+                status: true,
+                client: { select: { name: true, accentColor: true, logoUrl: true } },
+              },
             },
           },
         },
@@ -163,7 +182,22 @@ export async function notifyCutReady(
         }))
       : [];
 
-    const reviewers = (await activeReviewers(projectId)).filter((r) => !only || only.includes(r.id));
+    const listed = (await activeReviewers(projectId)).filter((r) => !only || only.includes(r.id));
+
+    // Every reviewer is meant to open their link. A guest's token always does; a seat's
+    // /p/[id]/review needs a live login on this film's client (the page switches to that
+    // client itself). A seat that fails is held back and the studio told.
+    const project = cut.asset.project;
+    const { reachable: reviewers } = await guardProjectEmail(
+      {
+        project: { ...project, clientName: project.client.name },
+        recipients: listed,
+        email: "cut ready",
+        expected: true,
+        canOpen: (r) => reviewerLinkOpens(r, project.clientId),
+      },
+      deps
+    );
     if (reviewers.length === 0) {
       console.warn(`[review-mail] ${cut.asset.project.title} has no active reviewer to tell`);
       return { sent: 0 };
